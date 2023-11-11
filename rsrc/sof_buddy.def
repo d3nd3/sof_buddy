@@ -1,0 +1,27 @@
+LIBRARY "sof_buddy"
+EXPORTS
+	bind = sys_bind@12  @2
+	closesocket = sys_closesocket  @3
+	connect = sys_connect  @4
+	getsockname = sys_getsockname  @6
+	htonl = sys_htonl  @8
+	htons = sys_htons  @9
+	inet_addr = sys_inet_addr  @10
+	inet_ntoa = sys_inet_ntoa  @11
+	ioctlsocket = sys_ioctlsocket  @12
+	ntohl = sys_ntohl  @14
+	ntohs = sys_ntohs  @15
+	recv = sys_recv  @16
+	recvfrom = sys_recvfrom  @17
+	select = sys_select  @18
+	send = sys_send  @19
+	sendto = sys_sendto  @20
+	setsockopt = sys_setsockopt  @21
+	shutdown = sys_shutdown  @22
+	socket = sys_socket  @23
+	gethostbyname = sys_gethostbyname  @52
+	gethostname = sys_gethostname  @57
+	WSAGetLastError = sys_WSAGetLastError  @111
+	WSAStartup = sys_WSAStartup  @115
+	WSACleanup = sys_WSACleanup  @116
+	__WSAFDIsSet = sys___WSAFDIsSet  @151
