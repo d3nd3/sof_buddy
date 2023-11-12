@@ -66,10 +66,10 @@ void mediaTimers_apply(void)
 		Sys_Mil = 0x20055930; //original
 
 
-	//CVAR_ARCHIVE
-	//CVAR_NOSET
+	//CVAR_ARCHIVE - save to config.cfg
+	//CVAR_NOSET - write-only.
 	//Cvars
-	_sofbuddy_high_priority = orig_Cvar_Get("_sofbuddy_high_priority","0",CVAR_ARCHIVE,&high_priority_change);
+	_sofbuddy_high_priority = orig_Cvar_Get("_sofbuddy_high_priority","1",CVAR_ARCHIVE,&high_priority_change);
 	
 	//test = orig_Cvar_Get("test","7",NULL,NULL);
 

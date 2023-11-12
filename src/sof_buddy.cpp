@@ -24,12 +24,10 @@ void afterSoFplusInit(void)
 {
 	mediaTimers_early();
 
-	BOOL (*sofplusEntry)(void) = (int)o_sofplus + 0xF590;
-	BOOL result = sofplusEntry();
-
-	// *(int*)((void*)o_sofplus+0x331F0) = 0;
-	// *(int*)((void*)o_sofplus+0x331F4) = 0;
-	// *(int*)((void*)o_sofplus+0x33220) = 0;
+	if ( o_sofplus ) {
+		BOOL (*sofplusEntry)(void) = (int)o_sofplus + 0xF590;
+		BOOL result = sofplusEntry();
+	}
 
 	//orig_Qcommon_Init = DetourCreate(orig_Qcommon_Init,&my_orig_Qcommon_Init,DETOUR_TYPE_JMP,5);
 	orig_Cbuf_AddLateCommands = DetourCreate(orig_Cbuf_AddLateCommands,&my_Cbuf_AddLateCommands,DETOUR_TYPE_JMP,5);
