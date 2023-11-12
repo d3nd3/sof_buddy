@@ -1,7 +1,7 @@
 #define _WIN32_WINNT 0x501
 
 #include <windows.h>
-#include <pathcch.h>
+#include <shlwapi.h>
 
 #include <io.h> 
 // #include <unistd.h>
@@ -669,11 +669,22 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 					}
 				}
 
+				#if 0
 				if (PathCchCombine(tempFileName, MAX_PATH, tempFolder, L"spcl.dll") != S_OK) {
 	    	        // Handle error
 	    	        ExitProcess(1);
 					return 1;
 				}
+				#endif
+				// Combine the folder and filename using PathCombine
+			    PathCombineW(tempFileName, tempFolder, L"spcl.dll");
+
+			    // Verify that the resulting path is not too long
+			    if (wcslen(tempFileName) >= MAX_PATH) {
+			        // Handle error
+			        ExitProcess(1);
+			        return 1;
+			    }
 
 			// Open the temp file for writing
 				HANDLE hTempFile = CreateFileW(tempFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
