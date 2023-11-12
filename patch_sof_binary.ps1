@@ -16,20 +16,21 @@ function Write-HexBytes($filePath, $offset, $hexBytes) {
 
 # Check if $bytesToWrite parameter is provided
 if (-not $args) {
-    Write-Host "Error: string to write is required."
+    Write-Output "Error: string to write is required."
     Exit 1
 }
 
-Write-Host "Linking SoF.exe to $args[0]"
+Write-Output "Linking SoF.exe to $($args[0])"
 
-$scriptDirectory = Get-Location
-$binaryFilePath = Join-Path $scriptDirectory "SoF.exe"
+# Get the script directory using a compatible method
+$scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Definition
+$binaryFilePath = $scriptDirectory + "\SoF.exe"
 
 # Check if the .exe file exists
 if (Test-Path $binaryFilePath -PathType Leaf) {
-    Write-Host "Found $binaryFileName at $binaryFilePath"
+    Write-Output "Found SoF.exe at $binaryFilePath"
 } else {
-    Write-Host "Run this script inside your SoF root directory"
+    Write-Output "Run this script inside your SoF root directory"
     Exit 1
 }
 
@@ -40,6 +41,6 @@ $userByteArray += 0x00
 
 Write-HexBytes $binaryFilePath $offset $userByteArray
 
-Write-Host "Patching completed."
+Write-Output "Patching completed."
 
 Read-Host -Prompt "Press Enter to exit"
