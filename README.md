@@ -8,6 +8,9 @@
 ## Usage
 ### Installation + Setup
 Either compile the project using `make` or grab the pre-compiled from release section.  
+Ensure/place the `sof_buddy.dll` file is in your root SoF folder, along with the other 4 scripts.  
+(dump everything into the root SoF folder)  
+
 There are provided 3 useful SoF.exe patchers, which control whether native_wsock/sofplus_wsock/sof_buddy_wsock are loaded.  This toggles which mods you want loaded.  
 `sof_buddy` will automatically load `spcl.dll` if it exists in your directory.
 
