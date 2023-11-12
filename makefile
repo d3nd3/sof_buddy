@@ -48,9 +48,11 @@ $(ODIR)/%.o: $(SDIR)/%.cpp
 
 # Linking rule
 $(OUT): $(OBJS)
+	@mkdir -p $(dir $(OUT))
 	$(CC) $(OFLAGS) rsrc/sof_buddy.def $^ -o $(OUT) -lws2_32 -lwinmm -lpathcch
 
 # Clean rule
 .PHONY: clean
 clean:
 	rm -rf $(ODIR) $(OUT)
+
