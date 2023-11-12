@@ -26,12 +26,25 @@ jobs:
         run: |
           mv bin/sof_buddy.dll .
           zip release.zip sof_buddy.dll patch_sof_binary.ps1 set_sofplus_and_buddy_sof.cmd set_sofplus_sof.cmd set_vanilla_sof.cmd
+        working-directory: ${{ github.workspace }}
+
+      - name: Upload Release Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: release-artifact
+          path: release.zip
 
   release:
     needs: build
     runs-on: ubuntu-latest
 
     steps:
+      - name: Download Release Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: release-artifact
+          path: ${{ github.workspace }}
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
