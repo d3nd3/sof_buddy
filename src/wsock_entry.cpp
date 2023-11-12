@@ -9,8 +9,6 @@
 
 #include <stdio.h>
 #include <stdint.h>
-//for _controlfp
-#include <float.h>
 
 #include <string>
 

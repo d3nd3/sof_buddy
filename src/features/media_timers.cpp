@@ -1,7 +1,5 @@
 //for _controlfp
-#include <float.h>
-#define _PC_24          0x00020000
-#define _MCW_PC         0x00030000              /* Precision Control */
+#include "float.h"
 
 #include <iostream>
 
