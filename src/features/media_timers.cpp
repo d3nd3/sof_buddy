@@ -1,5 +1,5 @@
 //for _controlfp
-#include "float.h"
+#include "customfloat.h"
 
 #include <iostream>
 
