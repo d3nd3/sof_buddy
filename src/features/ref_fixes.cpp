@@ -38,7 +38,7 @@ int TeamIconInterceptFix(void);
 void refFixes_apply(void)
 {
 	//MessageBox(NULL, "refFixes_apply", "MessageBox Example", MB_OK);
-	std::cout << "refFixes_apply";
+	//std::cout << "refFixes_apply";
 	orig_VID_LoadRefresh = DetourCreate((void*)orig_VID_LoadRefresh,(void*)&my_VID_LoadRefresh,DETOUR_TYPE_JMP,5);
 	initDefaultTexSizes();
 }
@@ -79,7 +79,7 @@ qboolean my_VID_LoadRefresh( char *name )
 
 	//sets up teamicon FOV fix.
 	on_ref_init();
-	orig_Com_Printf("Re Reffed\n");
+	//orig_Com_Printf("Re Reffed\n");
 	return ret;
 }
 

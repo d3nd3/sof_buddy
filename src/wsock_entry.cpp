@@ -552,6 +552,7 @@ int sys___WSAFDIsSet(SOCKET fd,fd_set *set)
 
 typedef BOOL(WINAPI* DllMainFunction)(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved);
 
+#define SPCL_CHECKSUM 4207493893
 BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 {
 	wchar_t tempFileName[MAX_PATH];
@@ -568,10 +569,25 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 
 			strcpy(ac_sofplus,"spcl.dll");
 			if( access( ac_sofplus, F_OK ) != -1 ) {
-				b_sofplus = true;
+				FILE *fp;
+
+				char buf[32768];
+				if( fp = fopen(ac_sofplus, "rb") ) {
+					uint32_t crc = 0;
+					while(!feof(fp) && !ferror(fp))
+						crc32(buf, fread(buf, 1, sizeof(buf), fp), &crc);
+					if(!ferror(fp)) {
+						// PrintOut(PRINT_GOOD,"%08x : spsv.dll\n", crc);
+						// MessageBox(NULL, (std::string("spcl.dll checksum") + std::to_string(crc)).c_str(), "Error", MB_ICONERROR | MB_OK);
+						if ( crc == SPCL_CHECKSUM )
+							b_sofplus = true;
+					}
+					fclose(fp);
+				}
 			}
-			else {
-				MessageBox(NULL, "No spcl.dll found", "Error", MB_ICONERROR | MB_OK);
+			if ( !b_sofplus ) {
+				MessageBox(NULL, "Sofplus not installed correctly. Requires version 20140531.", "Error", MB_ICONERROR | MB_OK);
+				ExitProcess(1);
 				return 1;
 				#if 0
 				strcpy(ac_sofplus,"SoFplus.dll");
@@ -580,187 +596,184 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 				}
 				#endif
 			}
-			DWORD dwProt=NULL;
-			if ( b_sofplus == true) {
-				PrintOut(PRINT_GOOD,"SoFplus detected\n");
+			
+			PrintOut(PRINT_GOOD,"SoFplus detected\n");
 
 //-----------------------------------------
-				
-				#if 1
-				HANDLE hFile = CreateFileW(L"spcl.dll", GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-				if (hFile == INVALID_HANDLE_VALUE) {
-			    // Handle error
-					MessageBox(NULL, "CreateFileW", "Error", MB_ICONERROR | MB_OK);
-					ExitProcess(1);
-					return 1;
-				}
+			
+			#if 1
+			HANDLE hFile = CreateFileW(L"spcl.dll", GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+			if (hFile == INVALID_HANDLE_VALUE) {
+		    // Handle error
+				MessageBox(NULL, "CreateFileW", "Error", MB_ICONERROR | MB_OK);
+				ExitProcess(1);
+				return 1;
+			}
 
 			// Get the size of the file
-				DWORD fileSize = GetFileSize(hFile, NULL);
-				if (fileSize == INVALID_FILE_SIZE) {
-			    // Handle error
-					CloseHandle(hFile);
-					MessageBox(NULL, "GetFileSize", "Error", MB_ICONERROR | MB_OK);
-					ExitProcess(1);
-					return 1;
-				}
+			DWORD fileSize = GetFileSize(hFile, NULL);
+			if (fileSize == INVALID_FILE_SIZE) {
+		    // Handle error
+				CloseHandle(hFile);
+				MessageBox(NULL, "GetFileSize", "Error", MB_ICONERROR | MB_OK);
+				ExitProcess(1);
+				return 1;
+			}
 
 			// Read the entire file into a buffer
-				LPBYTE pBuffer = (LPBYTE)malloc(fileSize);
-				if (pBuffer == NULL) {
-			    // Handle memory allocation error
-					CloseHandle(hFile);
-					MessageBox(NULL, "Memory allocation error!", "Error", MB_ICONERROR | MB_OK);
+			LPBYTE pBuffer = (LPBYTE)malloc(fileSize);
+			if (pBuffer == NULL) {
+		    // Handle memory allocation error
+				CloseHandle(hFile);
+				MessageBox(NULL, "Memory allocation error!", "Error", MB_ICONERROR | MB_OK);
+				ExitProcess(1);
+				return 1;
+			}
+
+			DWORD bytesRead;
+			if (!ReadFile(hFile, pBuffer, fileSize, &bytesRead, NULL)) {
+		    // Handle error
+				free(pBuffer);
+				CloseHandle(hFile);
+				MessageBox(NULL, "ReadFile", "Error", MB_ICONERROR | MB_OK);
+				ExitProcess(1);
+				return 1;
+			}
+
+			// Now you can modify the pBuffer as needed
+
+		    #if 1
+	    	void * p = pBuffer+0x9EBD;
+		    WriteByte(p,0x90);
+		    WriteByte(p+1,0x90);
+		    WriteByte(p+2,0x90);
+		    WriteByte(p+3,0x90);
+		    WriteByte(p+4,0x90);
+			
+
+		    #if 1
+	    	WriteByte(pBuffer+0x9EC4,0xEB);
+			#else
+	    	WriteByte(pMappedFile+0x9EC4,0x90);
+	    	WriteByte(pMappedFile+0x9EC5,0x90);
+			#endif
+			#endif
+
+			// Get the path to the temporary directory
+			wchar_t tempPath[MAX_PATH];
+			if (GetTempPathW(MAX_PATH, tempPath) == 0) {
+		        // Handle error
+				free(pBuffer);
+				CloseHandle(hFile);
+				MessageBox(NULL, "GetTempPath Error!", "Error", MB_ICONERROR | MB_OK);
+				ExitProcess(1);
+				return 1;
+			}
+
+    		// Append your desired folder name
+			wchar_t tempFolder[MAX_PATH];
+			wcscpy_s(tempFolder, MAX_PATH, tempPath);
+			wcscat_s(tempFolder, MAX_PATH, L"sof_buddy");
+
+			if (!CreateDirectoryW(tempFolder, NULL)) {
+    	    // Check if the folder already exists
+				if (GetLastError() != ERROR_ALREADY_EXISTS) {
+    	        // Handle error
 					ExitProcess(1);
 					return 1;
 				}
+			}
 
-				DWORD bytesRead;
-				if (!ReadFile(hFile, pBuffer, fileSize, &bytesRead, NULL)) {
-			    // Handle error
-					free(pBuffer);
-					CloseHandle(hFile);
-					MessageBox(NULL, "ReadFile", "Error", MB_ICONERROR | MB_OK);
-					ExitProcess(1);
-					return 1;
-				}
+			#if 0
+			if (PathCchCombine(tempFileName, MAX_PATH, tempFolder, L"spcl.dll") != S_OK) {
+    	        // Handle error
+    	        ExitProcess(1);
+				return 1;
+			}
+			#endif
+			// Combine the folder and filename using PathCombine
+		    PathCombineW(tempFileName, tempFolder, L"spcl.dll");
 
-				// Now you can modify the pBuffer as needed
-
-			    #if 1
-		    	void * p = pBuffer+0x9EBD;
-			    WriteByte(p,0x90);
-			    WriteByte(p+1,0x90);
-			    WriteByte(p+2,0x90);
-			    WriteByte(p+3,0x90);
-			    WriteByte(p+4,0x90);
-				
-
-			    #if 1
-		    	WriteByte(pBuffer+0x9EC4,0xEB);
-				#else
-		    	WriteByte(pMappedFile+0x9EC4,0x90);
-		    	WriteByte(pMappedFile+0x9EC5,0x90);
-				#endif
-				#endif
-
-				// Get the path to the temporary directory
-				wchar_t tempPath[MAX_PATH];
-				if (GetTempPathW(MAX_PATH, tempPath) == 0) {
-			        // Handle error
-					free(pBuffer);
-					CloseHandle(hFile);
-					MessageBox(NULL, "GetTempPath Error!", "Error", MB_ICONERROR | MB_OK);
-					ExitProcess(1);
-					return 1;
-				}
-
-	    	// Append your desired folder name
-				wchar_t tempFolder[MAX_PATH];
-				wcscpy_s(tempFolder, MAX_PATH, tempPath);
-				wcscat_s(tempFolder, MAX_PATH, L"sof_buddy");
-
-				if (!CreateDirectoryW(tempFolder, NULL)) {
-	    	    // Check if the folder already exists
-					if (GetLastError() != ERROR_ALREADY_EXISTS) {
-	    	        // Handle error
-						ExitProcess(1);
-						return 1;
-					}
-				}
-
-				#if 0
-				if (PathCchCombine(tempFileName, MAX_PATH, tempFolder, L"spcl.dll") != S_OK) {
-	    	        // Handle error
-	    	        ExitProcess(1);
-					return 1;
-				}
-				#endif
-				// Combine the folder and filename using PathCombine
-			    PathCombineW(tempFileName, tempFolder, L"spcl.dll");
-
-			    // Verify that the resulting path is not too long
-			    if (wcslen(tempFileName) >= MAX_PATH) {
-			        // Handle error
-			        ExitProcess(1);
-			        return 1;
-			    }
+		    // Verify that the resulting path is not too long
+		    if (wcslen(tempFileName) >= MAX_PATH) {
+		        // Handle error
+		        ExitProcess(1);
+		        return 1;
+		    }
 
 			// Open the temp file for writing
-				HANDLE hTempFile = CreateFileW(tempFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-				if (hTempFile == INVALID_HANDLE_VALUE) {
-			    // Handle error
-					free(pBuffer);
-					CloseHandle(hFile);
-					MessageBox(NULL, "CreateFile Error!", "Error", MB_ICONERROR | MB_OK);
-					ExitProcess(1);
-					return 1;
-				}
+			HANDLE hTempFile = CreateFileW(tempFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+			if (hTempFile == INVALID_HANDLE_VALUE) {
+		    // Handle error
+				free(pBuffer);
+				CloseHandle(hFile);
+				MessageBox(NULL, "CreateFile Error!", "Error", MB_ICONERROR | MB_OK);
+				ExitProcess(1);
+				return 1;
+			}
 
 			// Write the modified buffer to the temp file
-				DWORD bytesWritten;
-				if (!WriteFile(hTempFile, pBuffer, bytesRead, &bytesWritten, NULL)) {
-			    // Handle error
-					free(pBuffer);
-					CloseHandle(hTempFile);
-					CloseHandle(hFile);
-					MessageBox(NULL, "WriteFile Error!", "Error", MB_ICONERROR | MB_OK);
-					ExitProcess(1);
-					return 1;
-				}
-
-			// Close handles and free memory
+			DWORD bytesWritten;
+			if (!WriteFile(hTempFile, pBuffer, bytesRead, &bytesWritten, NULL)) {
+		    // Handle error
 				free(pBuffer);
 				CloseHandle(hTempFile);
 				CloseHandle(hFile);
+				MessageBox(NULL, "WriteFile Error!", "Error", MB_ICONERROR | MB_OK);
+				ExitProcess(1);
+				return 1;
+			}
 
-				//MessageBoxW(NULL, (std::wstring(L"File successfully modified! : ") + tempFileName).c_str(), L"Success", MB_ICONINFORMATION | MB_OK);
+			// Close handles and free memory
+			free(pBuffer);
+			CloseHandle(hTempFile);
+			CloseHandle(hFile);
+
+			//MessageBoxW(NULL, (std::wstring(L"File successfully modified! : ") + tempFileName).c_str(), L"Success", MB_ICONINFORMATION | MB_OK);
 //-----------------------------
-				#endif
-		    	// Load the modified DLL from the temp file
-				o_sofplus = LoadLibraryW(tempFileName);
-	    	    //o_sofplus = LoadLibrary("spcl.dll");
-				if (o_sofplus == NULL) {
-					DWORD error = GetLastError();
-					MessageBoxW(NULL, (L"Cannot load sofplus!! Error code: " + std::to_wstring(error)).c_str(), L"Error", MB_ICONERROR | MB_OK);
-					ExitProcess(1);
-	    	        // Handle error
-					return 1;
-				} else {
-					//MessageBox(NULL, "Success", "Error", MB_ICONERROR | MB_OK);
-					PrintOut(PRINT_GOOD,"Successfully loaded sofplus! %08X\n",o_sofplus);
+			#endif
+	    	// Load the modified DLL from the temp file
+			o_sofplus = LoadLibraryW(tempFileName);
+    	    //o_sofplus = LoadLibrary("spcl.dll");
+			if (o_sofplus == NULL) {
+				DWORD error = GetLastError();
+				MessageBoxW(NULL, (L"Cannot load sofplus!! Error code: " + std::to_wstring(error)).c_str(), L"Error", MB_ICONERROR | MB_OK);
+				ExitProcess(1);
+    	        // Handle error
+				return 1;
+			} else {
+				//MessageBox(NULL, "Success", "Error", MB_ICONERROR | MB_OK);
+				PrintOut(PRINT_GOOD,"Successfully loaded sofplus! %08X\n",o_sofplus);
 
-			    	//sofplus patches done.
-			    	
-					//Couldn't GetProcAddress these for some reason.
-	    	    	//"closesocket"
-	    	    	//(void**)&sp_closesocket
-	    	    	sp_closesocket = &closesocket;
-	    	    	//"ioctlsocket"
-	    	    	//(void**)&sp_ioctlsocket
-	    	    	sp_ioctlsocket = &ioctlsocket;
-					char ac_funcs[24][32] = {"bind","connect","getsockname","htonl","htons","inet_addr","inet_ntoa","ntohl","ntohs","recv","recvfrom","select","send","sendto","bind","setsockopt","shutdown","socket","gethostbyname","gethostname","WSAGetLastError","WSAStartup","WSACleanup","__WSAFDIsSet"};
-					void **pv_funcs[24] = {(void**)&sp_bind,(void**)&sp_connect,(void**)&sp_getsockname,(void**)&sp_htonl,(void**)&sp_htons,(void**)&sp_inet_addr,(void**)&sp_inet_ntoa,(void**)&sp_ntohl,(void**)&sp_ntohs,(void**)&sp_recv,(void**)&sp_recvfrom,(void**)&sp_select,(void**)&sp_send,(void**)&sp_sendto,(void**)&sp_bind,(void**)&sp_setsockopt,(void**)&sp_shutdown,(void**)&sp_socket,(void**)&sp_gethostbyname,(void**)&sp_gethostname,(void**)&sp_WSAGetLastError,(void**)&sp_WSAStartup,(void**)&sp_WSACleanup,(void**)&sp___WSAFDIsSet};
-					for ( int i = 0; i < 24; i++ ) {
-						if ( SoFplusLoadFn(o_sofplus,(void**)pv_funcs[i],&ac_funcs[i][0]) == false )
-						{
-							//MessageBox(NULL, (std::string(&ac_funcs[i][0]) + "Couldn't Load a sofplus function").c_str(), "Error", MB_ICONERROR | MB_OK);
-							b_sofplus = false;
-							PrintOut(PRINT_BAD,"Couldn't load : %s\n",ac_funcs[i]);
-						}
+		    	//sofplus patches done.
+		    	
+				//Couldn't GetProcAddress these for some reason.
+    	    	//"closesocket"
+    	    	//(void**)&sp_closesocket
+    	    	sp_closesocket = &closesocket;
+    	    	//"ioctlsocket"
+    	    	//(void**)&sp_ioctlsocket
+    	    	sp_ioctlsocket = &ioctlsocket;
+				char ac_funcs[24][32] = {"bind","connect","getsockname","htonl","htons","inet_addr","inet_ntoa","ntohl","ntohs","recv","recvfrom","select","send","sendto","bind","setsockopt","shutdown","socket","gethostbyname","gethostname","WSAGetLastError","WSAStartup","WSACleanup","__WSAFDIsSet"};
+				void **pv_funcs[24] = {(void**)&sp_bind,(void**)&sp_connect,(void**)&sp_getsockname,(void**)&sp_htonl,(void**)&sp_htons,(void**)&sp_inet_addr,(void**)&sp_inet_ntoa,(void**)&sp_ntohl,(void**)&sp_ntohs,(void**)&sp_recv,(void**)&sp_recvfrom,(void**)&sp_select,(void**)&sp_send,(void**)&sp_sendto,(void**)&sp_bind,(void**)&sp_setsockopt,(void**)&sp_shutdown,(void**)&sp_socket,(void**)&sp_gethostbyname,(void**)&sp_gethostname,(void**)&sp_WSAGetLastError,(void**)&sp_WSAStartup,(void**)&sp_WSACleanup,(void**)&sp___WSAFDIsSet};
+				for ( int i = 0; i < 24; i++ ) {
+					if ( SoFplusLoadFn(o_sofplus,(void**)pv_funcs[i],&ac_funcs[i][0]) == false )
+					{
+						//MessageBox(NULL, (std::string(&ac_funcs[i][0]) + "Couldn't Load a sofplus function").c_str(), "Error", MB_ICONERROR | MB_OK);
+						b_sofplus = false;
+						PrintOut(PRINT_BAD,"Couldn't load : %s\n",ac_funcs[i]);
 					}
-
-					//some functions not found in mingw ws32?
-					if ( b_sofplus == false ){
-						PrintOut(PRINT_BAD,"ERROR: Couldn't Load a sofplus function\n");
-						//MessageBox(NULL, "Couldn't Load a sofplus function", "Error", MB_ICONERROR | MB_OK);
-						//ExitProcess(1);
-					}
-
 				}
-			} else{
-				PrintOut(PRINT_BAD,"SoFplus not found\n");
-			}	
+
+				//some functions not found in mingw ws32?
+				if ( b_sofplus == false ){
+					PrintOut(PRINT_BAD,"ERROR: Couldn't Load a sofplus function\n");
+					//MessageBox(NULL, "Couldn't Load a sofplus function", "Error", MB_ICONERROR | MB_OK);
+					//ExitProcess(1);
+				}
+
+			}
+	
 			afterSoFplusInit();
 			//CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)sofbuddy_thread,NULL,0,NULL);
 			
