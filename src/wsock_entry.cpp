@@ -307,8 +307,8 @@ int sys_recv(SOCKET s,char *buf,int len,int flags)
 	int i;
 	for (i = 0; i < i_ret; i++)
 	{
-	    if (i > 0) PrintOut(PRINT_LOG_EMPTY,":");
-	    PrintOut(PRINT_LOG_EMPTY,"%c", ac_buf[i],true);
+		if (i > 0) PrintOut(PRINT_LOG_EMPTY,":");
+		PrintOut(PRINT_LOG_EMPTY,"%c", ac_buf[i],true);
 	}
 	PrintOut(PRINT_LOG_EMPTY,"\n",true);
 
@@ -347,8 +347,8 @@ int sys_recvfrom(SOCKET s,char *buf,int len,int flags,struct sockaddr *from,int 
 	int i;
 	for (i = 0; i < i_ret; i++)
 	{
-	    if (i > 0) PrintOut(PRINT_LOG_EMPTY,":",true);
-	    PrintOut(PRINT_LOG_EMPTY,"%c", ac_buf[i],true);
+		if (i > 0) PrintOut(PRINT_LOG_EMPTY,":",true);
+		PrintOut(PRINT_LOG_EMPTY,"%c", ac_buf[i],true);
 	}
 	PrintOut(PRINT_LOG_EMPTY,"\n",true);
 
@@ -394,8 +394,8 @@ int sys_send(SOCKET s,const char *buf,int len,int flags)
 	int i;
 	for (i = 0; i < len; i++)
 	{
-	    if (i > 0) PrintOut(PRINT_LOG_EMPTY,":",true);
-	    PrintOut(PRINT_LOG_EMPTY,"%c", ac_buf[i],true);
+		if (i > 0) PrintOut(PRINT_LOG_EMPTY,":",true);
+		PrintOut(PRINT_LOG_EMPTY,"%c", ac_buf[i],true);
 	}
 	PrintOut(PRINT_LOG_EMPTY,"\n",true);
 
@@ -429,8 +429,8 @@ int sys_sendto(SOCKET s,const char *buf,int len,int flags,const struct sockaddr 
 	int i;
 	for (i = 0; i < len; i++)
 	{
-	    if (i > 0) PrintOut(PRINT_LOG_EMPTY,":",true);
-	    PrintOut(PRINT_LOG_EMPTY,"%c", ac_buf[i],true);
+		if (i > 0) PrintOut(PRINT_LOG_EMPTY,":",true);
+		PrintOut(PRINT_LOG_EMPTY,"%c", ac_buf[i],true);
 	}
 	PrintOut(PRINT_LOG_EMPTY,"\n",true);
 
@@ -539,7 +539,7 @@ int sys_WSACleanup(void)
 }
 
 int sys___WSAFDIsSet(SOCKET fd,fd_set *set)
-{	
+{   
 	#ifdef WINSOCK_ASSERT
 	if ( sp___WSAFDIsSet == NULL ) {
 		orig_Com_Printf("__WSAFDIsSet\n");
@@ -604,7 +604,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 			#if 1
 			HANDLE hFile = CreateFileW(L"spcl.dll", GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 			if (hFile == INVALID_HANDLE_VALUE) {
-		    // Handle error
+			// Handle error
 				MessageBox(NULL, "CreateFileW", "Error", MB_ICONERROR | MB_OK);
 				ExitProcess(1);
 				return 1;
@@ -613,7 +613,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 			// Get the size of the file
 			DWORD fileSize = GetFileSize(hFile, NULL);
 			if (fileSize == INVALID_FILE_SIZE) {
-		    // Handle error
+			// Handle error
 				CloseHandle(hFile);
 				MessageBox(NULL, "GetFileSize", "Error", MB_ICONERROR | MB_OK);
 				ExitProcess(1);
@@ -623,7 +623,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 			// Read the entire file into a buffer
 			LPBYTE pBuffer = (LPBYTE)malloc(fileSize);
 			if (pBuffer == NULL) {
-		    // Handle memory allocation error
+			// Handle memory allocation error
 				CloseHandle(hFile);
 				MessageBox(NULL, "Memory allocation error!", "Error", MB_ICONERROR | MB_OK);
 				ExitProcess(1);
@@ -632,7 +632,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 
 			DWORD bytesRead;
 			if (!ReadFile(hFile, pBuffer, fileSize, &bytesRead, NULL)) {
-		    // Handle error
+			// Handle error
 				free(pBuffer);
 				CloseHandle(hFile);
 				MessageBox(NULL, "ReadFile", "Error", MB_ICONERROR | MB_OK);
@@ -642,27 +642,27 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 
 			// Now you can modify the pBuffer as needed
 
-		    #if 1
-	    	void * p = pBuffer+0x9EBD;
-		    WriteByte(p,0x90);
-		    WriteByte(p+1,0x90);
-		    WriteByte(p+2,0x90);
-		    WriteByte(p+3,0x90);
-		    WriteByte(p+4,0x90);
+			#if 1
+			void * p = pBuffer+0x9EBD;
+			WriteByte(p,0x90);
+			WriteByte(p+1,0x90);
+			WriteByte(p+2,0x90);
+			WriteByte(p+3,0x90);
+			WriteByte(p+4,0x90);
 			
 
-		    #if 1
-	    	WriteByte(pBuffer+0x9EC4,0xEB);
+			#if 1
+			WriteByte(pBuffer+0x9EC4,0xEB);
 			#else
-	    	WriteByte(pMappedFile+0x9EC4,0x90);
-	    	WriteByte(pMappedFile+0x9EC5,0x90);
+			WriteByte(pMappedFile+0x9EC4,0x90);
+			WriteByte(pMappedFile+0x9EC5,0x90);
 			#endif
 			#endif
 
 			// Get the path to the temporary directory
 			wchar_t tempPath[MAX_PATH];
 			if (GetTempPathW(MAX_PATH, tempPath) == 0) {
-		        // Handle error
+				// Handle error
 				free(pBuffer);
 				CloseHandle(hFile);
 				MessageBox(NULL, "GetTempPath Error!", "Error", MB_ICONERROR | MB_OK);
@@ -670,15 +670,15 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 				return 1;
 			}
 
-    		// Append your desired folder name
+			// Append your desired folder name
 			wchar_t tempFolder[MAX_PATH];
 			wcscpy_s(tempFolder, MAX_PATH, tempPath);
 			wcscat_s(tempFolder, MAX_PATH, L"sof_buddy");
 
 			if (!CreateDirectoryW(tempFolder, NULL)) {
-    	    // Check if the folder already exists
+			// Check if the folder already exists
 				if (GetLastError() != ERROR_ALREADY_EXISTS) {
-    	        // Handle error
+				// Handle error
 					ExitProcess(1);
 					return 1;
 				}
@@ -686,25 +686,25 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 
 			#if 0
 			if (PathCchCombine(tempFileName, MAX_PATH, tempFolder, L"spcl.dll") != S_OK) {
-    	        // Handle error
-    	        ExitProcess(1);
+				// Handle error
+				ExitProcess(1);
 				return 1;
 			}
 			#endif
 			// Combine the folder and filename using PathCombine
-		    PathCombineW(tempFileName, tempFolder, L"spcl.dll");
+			PathCombineW(tempFileName, tempFolder, L"spcl.dll");
 
-		    // Verify that the resulting path is not too long
-		    if (wcslen(tempFileName) >= MAX_PATH) {
-		        // Handle error
-		        ExitProcess(1);
-		        return 1;
-		    }
+			// Verify that the resulting path is not too long
+			if (wcslen(tempFileName) >= MAX_PATH) {
+				// Handle error
+				ExitProcess(1);
+				return 1;
+			}
 
 			// Open the temp file for writing
 			HANDLE hTempFile = CreateFileW(tempFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 			if (hTempFile == INVALID_HANDLE_VALUE) {
-		    // Handle error
+			// Handle error
 				free(pBuffer);
 				CloseHandle(hFile);
 				MessageBox(NULL, "CreateFile Error!", "Error", MB_ICONERROR | MB_OK);
@@ -715,7 +715,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 			// Write the modified buffer to the temp file
 			DWORD bytesWritten;
 			if (!WriteFile(hTempFile, pBuffer, bytesRead, &bytesWritten, NULL)) {
-		    // Handle error
+			// Handle error
 				free(pBuffer);
 				CloseHandle(hTempFile);
 				CloseHandle(hFile);
@@ -732,44 +732,42 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 			//MessageBoxW(NULL, (std::wstring(L"File successfully modified! : ") + tempFileName).c_str(), L"Success", MB_ICONINFORMATION | MB_OK);
 //-----------------------------
 			#endif
-	    	// Load the modified DLL from the temp file
+			// Load the modified DLL from the temp file
 			o_sofplus = LoadLibraryW(tempFileName);
-    	    //o_sofplus = LoadLibrary("spcl.dll");
+			//o_sofplus = LoadLibrary("spcl.dll");
 			if (o_sofplus == NULL) {
 				DWORD error = GetLastError();
 				MessageBoxW(NULL, (L"Cannot load sofplus!! Error code: " + std::to_wstring(error)).c_str(), L"Error", MB_ICONERROR | MB_OK);
 				ExitProcess(1);
-    	        // Handle error
+				// Handle error
 				return 1;
 			} else {
 				//MessageBox(NULL, "Success", "Error", MB_ICONERROR | MB_OK);
 				PrintOut(PRINT_GOOD,"Successfully loaded sofplus! %08X\n",o_sofplus);
 
-		    	//sofplus patches done.
-		    	
-				//Couldn't GetProcAddress these for some reason.
-    	    	//"closesocket"
-    	    	//(void**)&sp_closesocket
-    	    	sp_closesocket = &closesocket;
-    	    	//"ioctlsocket"
-    	    	//(void**)&sp_ioctlsocket
-    	    	sp_ioctlsocket = &ioctlsocket;
+				//sofplus patches done.
+				
+				
 				char ac_funcs[24][32] = {"bind","connect","getsockname","htonl","htons","inet_addr","inet_ntoa","ntohl","ntohs","recv","recvfrom","select","send","sendto","bind","setsockopt","shutdown","socket","gethostbyname","gethostname","WSAGetLastError","WSAStartup","WSACleanup","__WSAFDIsSet"};
 				void **pv_funcs[24] = {(void**)&sp_bind,(void**)&sp_connect,(void**)&sp_getsockname,(void**)&sp_htonl,(void**)&sp_htons,(void**)&sp_inet_addr,(void**)&sp_inet_ntoa,(void**)&sp_ntohl,(void**)&sp_ntohs,(void**)&sp_recv,(void**)&sp_recvfrom,(void**)&sp_select,(void**)&sp_send,(void**)&sp_sendto,(void**)&sp_bind,(void**)&sp_setsockopt,(void**)&sp_shutdown,(void**)&sp_socket,(void**)&sp_gethostbyname,(void**)&sp_gethostname,(void**)&sp_WSAGetLastError,(void**)&sp_WSAStartup,(void**)&sp_WSACleanup,(void**)&sp___WSAFDIsSet};
 				for ( int i = 0; i < 24; i++ ) {
 					if ( SoFplusLoadFn(o_sofplus,(void**)pv_funcs[i],&ac_funcs[i][0]) == false )
 					{
 						//MessageBox(NULL, (std::string(&ac_funcs[i][0]) + "Couldn't Load a sofplus function").c_str(), "Error", MB_ICONERROR | MB_OK);
-						b_sofplus = false;
-						PrintOut(PRINT_BAD,"Couldn't load : %s\n",ac_funcs[i]);
 					}
 				}
 
+				//Couldn't GetProcAddress these for some reason.
+				//"closesocket"
+				//(void**)&sp_closesocket
+				sp_closesocket = &closesocket;
+				//"ioctlsocket"
+				//(void**)&sp_ioctlsocket
+				sp_ioctlsocket = &ioctlsocket;
+
 				//some functions not found in mingw ws32?
 				if ( b_sofplus == false ){
-					PrintOut(PRINT_BAD,"ERROR: Couldn't Load a sofplus function\n");
-					//MessageBox(NULL, "Couldn't Load a sofplus function", "Error", MB_ICONERROR | MB_OK);
-					//ExitProcess(1);
+					ExitProcess(1);
 				}
 
 			}
@@ -783,14 +781,14 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 		}//doonce //init
 
 	} else if ( dwReason == DLL_PROCESS_DETACH ) { 
-	    //FreeLibrary(o_sofplus);
-	    #if 0
-	    if (!DeleteFileW(tempFileName)) {
-	            // Handle error
-	    		MessageBox(NULL, "Unable to delete temp spcl file!", "Error", MB_ICONERROR | MB_OK);
-	            return 1;
-        }
-        #endif
+		//FreeLibrary(o_sofplus);
+		#if 0
+		if (!DeleteFileW(tempFileName)) {
+				// Handle error
+				MessageBox(NULL, "Unable to delete temp spcl file!", "Error", MB_ICONERROR | MB_OK);
+				return 1;
+		}
+		#endif
 	}
 
 	return TRUE;
