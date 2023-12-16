@@ -14,6 +14,9 @@
 
 #include <stdio.h>
 
+#include <wchar.h>
+#include <shlwapi.h> // Make sure to link against Shlwapi.lib
+
 #include "DetourXS/detourxs.h"
 
 #include "sof_buddy.h"
@@ -23,6 +26,16 @@
 #include "crc32.h"
 
 #include "features.h"
+
+
+void GenerateRandomString(wchar_t* randomString, int length) {
+	const wchar_t charset[] = L"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+	for (int i = 0; i < length - 1; i++) {
+		int index = rand() % (int)(sizeof(charset) / sizeof(charset[0]) - 1);
+		randomString[i] = charset[index];
+	}
+	randomString[length - 1] = L'\0'; // Null-terminate the string
+}
 
 
 
@@ -601,7 +614,6 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 
 //-----------------------------------------
 			
-			#if 1
 			HANDLE hFile = CreateFileW(L"spcl.dll", GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 			if (hFile == INVALID_HANDLE_VALUE) {
 			// Handle error
@@ -641,8 +653,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 			}
 
 			// Now you can modify the pBuffer as needed
-
-			#if 1
+		
 			void * p = pBuffer+0x9EBD;
 			WriteByte(p,0x90);
 			WriteByte(p+1,0x90);
@@ -657,7 +668,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 			WriteByte(pMappedFile+0x9EC4,0x90);
 			WriteByte(pMappedFile+0x9EC5,0x90);
 			#endif
-			#endif
+			
 
 			// Get the path to the temporary directory
 			wchar_t tempPath[MAX_PATH];
@@ -684,15 +695,8 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 				}
 			}
 
-			#if 0
-			if (PathCchCombine(tempFileName, MAX_PATH, tempFolder, L"spcl.dll") != S_OK) {
-				// Handle error
-				ExitProcess(1);
-				return 1;
-			}
-			#endif
 			// Combine the folder and filename using PathCombine
-			PathCombineW(tempFileName, tempFolder, L"spcl.dll");
+			PathCombineW(tempFileName, tempFolder, L"spcl");
 
 			// Verify that the resulting path is not too long
 			if (wcslen(tempFileName) >= MAX_PATH) {
@@ -701,37 +705,95 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 				return 1;
 			}
 
+			#if 0
+			// Append a random string to the filename
+			wchar_t randomString[8]; // Change the length as needed
+			GenerateRandomString(randomString, sizeof(randomString) / sizeof(randomString[0]));
+
+			// Append the random string to the filename
+			wcscat(tempFileName, L"_");
+			wcscat(tempFileName, randomString);
+			wcscat(tempFileName, L".dll");
+			#else
+			wcscat(tempFileName, L".dll");
+			#endif
+
+			/*
+			This argument:           |             Exists            Does not exist
+			-------------------------+------------------------------------------------------
+			CREATE_ALWAYS            |            Truncates             Creates
+			CREATE_NEW         +-----------+        Fails               Creates
+			OPEN_ALWAYS     ===| does this |===>    Opens               Creates
+			OPEN_EXISTING      +-----------+        Opens                Fails
+			TRUNCATE_EXISTING        |            Truncates              Fails
+			*/
+
 			// Open the temp file for writing
-			HANDLE hTempFile = CreateFileW(tempFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-			if (hTempFile == INVALID_HANDLE_VALUE) {
-			// Handle error
+			HANDLE hTempFile = CreateFileW(tempFileName, GENERIC_READ, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+			if ( !hTempFile ) {
 				free(pBuffer);
 				CloseHandle(hFile);
-				MessageBox(NULL, "CreateFile Error!", "Error", MB_ICONERROR | MB_OK);
 				ExitProcess(1);
 				return 1;
 			}
 
-			// Write the modified buffer to the temp file
-			DWORD bytesWritten;
-			if (!WriteFile(hTempFile, pBuffer, bytesRead, &bytesWritten, NULL)) {
-			// Handle error
-				free(pBuffer);
-				CloseHandle(hTempFile);
-				CloseHandle(hFile);
-				MessageBox(NULL, "WriteFile Error!", "Error", MB_ICONERROR | MB_OK);
-				ExitProcess(1);
-				return 1;
-			}
+			bool spcl_tmp_exists = false;
+			if (GetLastError() == ERROR_ALREADY_EXISTS)
+				spcl_tmp_exists = true;
+			
 
+			//We need to write to it.
+			if ( !spcl_tmp_exists ) { 
+				// Write the modified buffer to the temp file
+				DWORD bytesWritten;
+				if (!WriteFile(hTempFile, pBuffer, bytesRead, &bytesWritten, NULL)) {
+				// Handle error
+					free(pBuffer);
+					CloseHandle(hTempFile);
+					CloseHandle(hFile);
+					MessageBox(NULL, "WriteFile Error!", "Error", MB_ICONERROR | MB_OK);
+					ExitProcess(1);
+					return 1;
+				}
+			}
+			
 			// Close handles and free memory
 			free(pBuffer);
 			CloseHandle(hTempFile);
 			CloseHandle(hFile);
 
+			FILE* fp;
+			char buf[32768];
+			if (fp = _wfopen(tempFileName, L"rb")) {
+				uint32_t crc = 0;
+				while (!feof(fp) && !ferror(fp))
+					crc32(buf, fread(buf, 1, sizeof(buf), fp), &crc);
+
+				if (!ferror(fp)) {
+					// Successfully read the file, perform further operations
+					// MessageBoxW(NULL, (std::wstring(L"spcl.dll temp checksum: ") + std::to_wstring(crc)).c_str(), L"Success", MB_ICONINFORMATION | MB_OK);
+					if ( crc != 2057889219 ) {
+						DeleteFileW(tempFileName);
+						MessageBox(NULL,"Corrupt tempfile, deleted, try again.","Error",MB_ICONERROR|MB_OK);
+						fclose(fp);
+						ExitProcess(1);
+						return 1;
+					}
+				} else {
+					// Handle file reading error
+					MessageBoxW(NULL, L"Error reading spcl.dll temp file", L"Error", MB_ICONERROR | MB_OK);
+					fclose(fp);
+					ExitProcess(1);
+					return 1;
+				}
+
+				fclose(fp);
+			}
+
+
 			//MessageBoxW(NULL, (std::wstring(L"File successfully modified! : ") + tempFileName).c_str(), L"Success", MB_ICONINFORMATION | MB_OK);
 //-----------------------------
-			#endif
+
 			// Load the modified DLL from the temp file
 			o_sofplus = LoadLibraryW(tempFileName);
 			//o_sofplus = LoadLibrary("spcl.dll");
