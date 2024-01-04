@@ -773,9 +773,9 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 					// Successfully read the file, perform further operations
 					// MessageBoxW(NULL, (std::wstring(L"spcl.dll temp checksum: ") + std::to_wstring(crc)).c_str(), L"Success", MB_ICONINFORMATION | MB_OK);
 					if ( crc != 2057889219 ) {
+						fclose(fp);
 						DeleteFileW(tempFileName);
 						MessageBox(NULL,"Corrupt tempfile, deleted, try again.","Error",MB_ICONERROR|MB_OK);
-						fclose(fp);
 						ExitProcess(1);
 						return 1;
 					}
