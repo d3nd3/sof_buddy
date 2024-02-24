@@ -755,7 +755,7 @@ void sofplus_copy(void)
 	*/
 
 	// Open the temp file for writing
-	HANDLE hTempFile = CreateFileW(tempFileName, GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hTempFile = CreateFileW(tempFileName, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, 0, OPEN_ALWAYS, FILE_FLAG_OVERLAPPED, NULL);
 	if ( !hTempFile ) {
 		free(pBuffer);
 		CloseHandle(hFile);
@@ -763,11 +763,18 @@ void sofplus_copy(void)
 		return 1;
 	}
 
+	DWORD error_code1 = GetLastError();
+
+	#if 0
+	char buffer[32];
+	sprintf(buffer, "%d", error_code1);
+	//MessageBoxA(NULL, format_error_message(error_code1), "WriteFile Error", MB_ICONERROR | MB_OK);
+	MessageBoxA(NULL, buffer, "WriteFile Error", MB_ICONERROR | MB_OK);
+	#endif
 	bool spcl_tmp_exists = false;
-	if (GetLastError() == ERROR_ALREADY_EXISTS)
+	if (error_code1 == ERROR_ALREADY_EXISTS || error_code1 == ERROR_SHARING_VIOLATION)
 		spcl_tmp_exists = true;
 	
-
 	//We need to write to it.
 	if ( !spcl_tmp_exists ) { 
 		// Write the modified buffer to the temp file
