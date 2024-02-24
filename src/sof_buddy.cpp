@@ -20,7 +20,7 @@ DWORD WINAPI sofbuddy_thread(LPVOID lpParam) {
 }
 
 
-void afterSoFplusInit(void)
+void afterWsockInit(void)
 {
 	mediaTimers_early();
 

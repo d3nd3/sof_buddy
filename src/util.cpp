@@ -35,7 +35,7 @@ void PrintOut(int mode,char *msg,...)
 #ifdef __TERMINALOUT__
 	switch (mode) {
 		case PRINT_LOG :
-			strcpy(ac_buf,"SoFree Log: ");
+			strcpy(ac_buf,"SoFBuddy Log: ");
 			strcat(ac_buf,ac_tmp);
 			printf("%s",ac_buf);
 		break;
@@ -44,14 +44,14 @@ void PrintOut(int mode,char *msg,...)
 		break;
 		case PRINT_GOOD :
 
-			strcpy(ac_buf,"SoFree Success: ");
+			strcpy(ac_buf,"SoFBuddy Success: ");
 			strcat(ac_buf,ac_tmp);
 			printf("%s",ac_buf);
 
 		break;
 		case PRINT_BAD :
 
-			strcpy(ac_buf,"SoFree Error: ");
+			strcpy(ac_buf,"SoFBuddy Error: ");
 			strcat(ac_buf,ac_tmp);
 			printf("%s",ac_buf);
 
@@ -62,7 +62,7 @@ void PrintOut(int mode,char *msg,...)
 #endif
 #ifdef __FILEOUT__
 	if ( go_logfile == NULL ){
-		go_logfile = fopen("sofreeS.log","a+");
+		go_logfile = fopen("SoFBuddy.log","a+");
 	}
 	switch (mode) {
 		case PRINT_LOG :
