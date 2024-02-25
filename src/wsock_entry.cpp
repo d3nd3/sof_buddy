@@ -755,7 +755,14 @@ void sofplus_copy(void)
 	*/
 
 	// Open the temp file for writing
-	HANDLE hTempFile = CreateFileW(tempFileName, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, 0, OPEN_ALWAYS, FILE_FLAG_OVERLAPPED, NULL);
+	HANDLE hTempFile = CreateFileW(
+		tempFileName, 
+		GENERIC_WRITE, 
+		0, 
+		NULL, 
+		OPEN_ALWAYS, 
+		FILE_ATTRIBUTE_NORMAL, 
+		NULL);
 	if ( !hTempFile ) {
 		free(pBuffer);
 		CloseHandle(hFile);
