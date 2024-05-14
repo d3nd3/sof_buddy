@@ -15,10 +15,15 @@ typedef struct {
 } m32size;
 std::unordered_map<std::string,m32size> default_textures;
 
+cvar_t * _sofbuddy_lightblend_src = NULL;
+cvar_t * _sofbuddy_lightblend_dst = NULL;
+
+
 qboolean (*orig_VID_LoadRefresh)( char *name ) = 0x20066E10;
 void (*orig_GL_BuildPolygonFromSurface)(void *fa) = NULL;
 int (*orig_R_Init)( void *hinstance, void *hWnd, void * unknown ) = NULL;
 void (*orig_drawTeamIcons)(void * param1,void * param2,void * param3,void * param4) = NULL;
+void (*orig_R_BlendLightmaps)(void) = NULL;
 
 
 void on_ref_init(void);
@@ -27,13 +32,137 @@ void initDefaultTexSizes(void);
 qboolean my_VID_LoadRefresh( char *name );
 int my_R_Init(void *hinstance, void *hWnd, void * unknown );
 
+void my_R_BlendLightmaps(void);
 void my_GL_BuildPolygonFromSurface(void *msurface_s);
 void my_drawTeamIcons(float * targetPlayerOrigin,char * playerName,char * imageNameTeamIcon,int redOrBlue);
 int TeamIconInterceptFix(void);
 
+void __stdcall glBlendFunc_R_BlendLightmaps(unsigned int sfactor,unsigned int dfactor);
+
+#define GL_ZERO                           0
+#define GL_ONE                            1
+#define GL_SRC_COLOR                      0x0300
+#define GL_ONE_MINUS_SRC_COLOR            0x0301
+#define GL_SRC_ALPHA                      0x0302
+#define GL_ONE_MINUS_SRC_ALPHA            0x0303
+#define GL_DST_ALPHA                      0x0304
+#define GL_ONE_MINUS_DST_ALPHA            0x0305
+#define GL_DST_COLOR                      0x0306
+#define GL_ONE_MINUS_DST_COLOR            0x0307
+#define GL_SRC_ALPHA_SATURATE             0x0308
+#define GL_CONSTANT_COLOR                 0x8001
+#define GL_ONE_MINUS_CONSTANT_COLOR       0x8002
+#define GL_CONSTANT_ALPHA                 0x8003
+#define GL_ONE_MINUS_CONSTANT_ALPHA       0x8004
+#define GL_BLEND_COLOR                    0x8005
+#define GL_BLEND_EQUATION                 0x8009
+
+//SRC = Incoming Data(Light)
+//DST = Existing Data(Texture)
+int lightblend_src = GL_ZERO;
+int lightblend_dst = GL_DST_COLOR;
+int *lightblend_target_src = 0x300A4610;
+int *lightblend_target_dst = 0x300A43FC;
+
+void lightblend_change(cvar_t * cvar) {
+	int value = cvar->string;
+	if (!strcmp(cvar->string,"GL_ZERO")) {
+		if (cvar==_sofbuddy_lightblend_src) {
+			lightblend_src = GL_ZERO;
+		}
+		else
+			lightblend_dst = GL_ZERO;
+	} else if (!strcmp(cvar->string,"GL_ONE")) {
+		if (cvar==_sofbuddy_lightblend_src) {
+			lightblend_src = GL_ONE;
+		}
+		else
+			lightblend_dst = GL_ONE;
+	} else if (!strcmp(cvar->string,"GL_SRC_COLOR")) {
+		if (cvar==_sofbuddy_lightblend_src) {
+			lightblend_src = GL_SRC_COLOR;
+		}
+		else
+			lightblend_dst = GL_SRC_COLOR;
+	} else if (!strcmp(cvar->string,"GL_ONE_MINUS_SRC_COLOR")) {
+		if (cvar==_sofbuddy_lightblend_src) {
+			lightblend_src = GL_ONE_MINUS_SRC_COLOR;
+		}
+		else
+			lightblend_dst = GL_ONE_MINUS_SRC_COLOR;
+	} else if (!strcmp(cvar->string,"GL_DST_COLOR")) {
+		if (cvar==_sofbuddy_lightblend_src) {
+			lightblend_src = GL_DST_COLOR;
+		}
+		else
+			lightblend_dst = GL_DST_COLOR;
+	} else if (!strcmp(cvar->string,"GL_ONE_MINUS_DST_COLOR")) {
+		if (cvar==_sofbuddy_lightblend_src) {
+			lightblend_src = GL_ONE_MINUS_DST_COLOR;
+		}
+		else
+			lightblend_dst = GL_ONE_MINUS_DST_COLOR;
+	} else if (!strcmp(cvar->string,"GL_SRC_ALPHA")) {
+		if (cvar==_sofbuddy_lightblend_src) {
+			lightblend_src = GL_SRC_ALPHA;
+		}
+		else
+			lightblend_dst = GL_SRC_ALPHA;
+	} else if (!strcmp(cvar->string,"GL_ONE_MINUS_SRC_ALPHA")) {
+		if (cvar==_sofbuddy_lightblend_src) {
+			lightblend_src = GL_ONE_MINUS_SRC_ALPHA;
+		}
+		else
+			lightblend_dst = GL_ONE_MINUS_SRC_ALPHA;
+	} else if (!strcmp(cvar->string,"GL_DST_ALPHA")) {
+		if (cvar==_sofbuddy_lightblend_src) {
+			lightblend_src = GL_DST_ALPHA;
+		}
+		else
+			lightblend_dst = GL_DST_ALPHA;
+	} else if (!strcmp(cvar->string,"GL_ONE_MINUS_DST_ALPHA")) {
+		if (cvar==_sofbuddy_lightblend_src) {
+			lightblend_src = GL_ONE_MINUS_DST_ALPHA;
+		}
+		else
+			lightblend_dst = GL_ONE_MINUS_DST_ALPHA;
+	} else if (!strcmp(cvar->string,"GL_CONSTANT_COLOR")) {
+		if (cvar==_sofbuddy_lightblend_src) {
+			lightblend_src = GL_CONSTANT_COLOR;
+		}
+		else
+			lightblend_dst = GL_CONSTANT_COLOR;
+	} else if (!strcmp(cvar->string,"GL_ONE_MINUS_CONSTANT_COLOR")) {
+		if (cvar==_sofbuddy_lightblend_src) {
+			lightblend_src = GL_ONE_MINUS_CONSTANT_COLOR;
+		}
+		else
+			lightblend_dst = GL_ONE_MINUS_CONSTANT_COLOR;
+	} else if (!strcmp(cvar->string,"GL_CONSTANT_ALPHA")) {
+		if (cvar==_sofbuddy_lightblend_src) {
+			lightblend_src = GL_CONSTANT_ALPHA;
+		}
+		else
+			lightblend_dst = GL_CONSTANT_ALPHA;
+	} else if (!strcmp(cvar->string,"GL_ONE_MINUS_CONSTANT_ALPHA")) {
+		if (cvar==_sofbuddy_lightblend_src) {
+			lightblend_src = GL_ONE_MINUS_CONSTANT_ALPHA;
+		}
+		else
+			lightblend_dst = GL_ONE_MINUS_CONSTANT_ALPHA;
+	} else if (!strcmp(cvar->string,"GL_SRC_ALPHA_SATURATE")) {
+		if (cvar==_sofbuddy_lightblend_src) {
+			lightblend_src = GL_SRC_ALPHA_SATURATE;
+		}
+		else {
+			lightblend_dst = GL_SRC_ALPHA_SATURATE;
+		}
+	}
+}
+
 /*
-	Since these modify the memory of in the library of ref_gl.dll
-	They must be reapplied on reloading of the vid_ref.
+	When the ref_gl.dll library is reloaded, detours are lost.
+	So we use VID_LoadRefresh as entry point to reapply.
 */
 void refFixes_apply(void)
 {
@@ -41,6 +170,9 @@ void refFixes_apply(void)
 	//std::cout << "refFixes_apply";
 	orig_VID_LoadRefresh = DetourCreate((void*)orig_VID_LoadRefresh,(void*)&my_VID_LoadRefresh,DETOUR_TYPE_JMP,5);
 	initDefaultTexSizes();
+
+	_sofbuddy_lightblend_src = orig_Cvar_Get("_sofbuddy_lightblend_src","GL_ZERO",CVAR_ARCHIVE,&lightblend_change);
+	_sofbuddy_lightblend_dst = orig_Cvar_Get("_sofbuddy_lightblend_dst","GL_DST_COLOR",CVAR_ARCHIVE,&lightblend_change);
 }
 
 /*
@@ -61,14 +193,14 @@ qboolean my_VID_LoadRefresh( char *name )
 	orig_GL_BuildPolygonFromSurface = DetourCreate((void*)0x30016390,(void*)&my_GL_BuildPolygonFromSurface,DETOUR_TYPE_JMP,6);
 
 
-	#if 0
-	//write teamicon fovfix.
+	/*
 	if ( orig_R_Init != NULL ) {
 		DetourRemove(orig_R_Init);
 		orig_R_Init = NULL;
 	}
 	orig_R_Init = DetourCreate((void*)0x3000F550,(void*)&my_R_Init,DETOUR_TYPE_JMP,6);
-	#endif
+	*/
+	
 
 	if ( orig_drawTeamIcons != NULL ) {
 		DetourRemove(orig_drawTeamIcons);
@@ -76,6 +208,12 @@ qboolean my_VID_LoadRefresh( char *name )
 	}
 	orig_drawTeamIcons = DetourCreate((void*)0x30003040,(void*)&my_drawTeamIcons,DETOUR_TYPE_JMP,6);
 
+	//For multiply blending.
+	if ( orig_R_BlendLightmaps != NULL ) {
+		DetourRemove(orig_R_BlendLightmaps);
+		orig_R_BlendLightmaps = NULL;
+	}
+	orig_R_BlendLightmaps = DetourCreate((void*)0x30015440,(void*)&my_R_BlendLightmaps,DETOUR_TYPE_JMP,6);
 
 	//sets up teamicon FOV fix.
 	on_ref_init();
@@ -128,24 +266,18 @@ double fovfix_x = 78.6;
 double fovfix_y = 78.6;
 float teamviewFovAngle = 95;
 //unsigned int orig_fovAdjustBytes = 0;
+
+void (__stdcall *real_glBlendFunc)(int sfactor,int factor);
+/*
 int my_R_Init(void *hinstance, void *hWnd, void * unknown )
 {
 	int retval = orig_R_Init(hinstance,hWnd,unknown);
 
-
-	writeUnsignedIntegerAt(0x3000313F,(unsigned int)&fovfix_x);
-	writeUnsignedIntegerAt(0x30003157,(unsigned int)&fovfix_y);
-
-	// 0x30003187 + 5 - something = TeamIconInterceptFix
-	writeIntegerAt(0x30003187,(int)&TeamIconInterceptFix - 0x30003187 - 4);
-
-	//orig_fovAdjustBytes = *(unsigned int*)(0x200157A8);
-	// fov adjust display
-	writeUnsignedIntegerAt(0x200157A8,&teamviewFovAngle);
-
+	real_glBlendFunc = *(int*)0x300A426C;
+	orig_Com_Printf("AtINIT real_glBlendFunc is : %08X\n",real_glBlendFunc);
 	return retval;
 }
-
+*/
 void on_ref_init(void)
 {
 	writeUnsignedIntegerAt(0x3000313F,(unsigned int)&fovfix_x);
@@ -157,6 +289,59 @@ void on_ref_init(void)
 	//orig_fovAdjustBytes = *(unsigned int*)(0x200157A8);
 	// fov adjust display
 	writeUnsignedIntegerAt(0x200157A8,&teamviewFovAngle);
+
+	real_glBlendFunc = *(int*)0x300A426C;
+	//Hook glBlendFuncs
+	WriteE8Call(0x3001B9A4,&glBlendFunc_R_BlendLightmaps);
+	WriteByte(0x3001B9A9,0x90);
+	WriteE8Call(0x3001B690,&glBlendFunc_R_BlendLightmaps);
+	WriteByte(0x3001B695,0x90);
+
+
+	//Disable setting blend_target in R_BlendLightmaps, we do this now.
+	WriteByte(0x30015584,0x90);
+	WriteByte(0x30015585,0x90);
+	WriteByte(0x30015586,0x90);
+	WriteByte(0x30015587,0x90);
+	WriteByte(0x30015588,0x90);
+	WriteByte(0x30015589,0x90);
+	WriteByte(0x3001558A,0x90);
+	WriteByte(0x3001558B,0x90);
+	WriteByte(0x3001558C,0x90);
+	WriteByte(0x3001558D,0x90);
+	WriteByte(0x3001558E,0x90);
+}
+
+bool is_blending = false;
+//Maybe blend is already active before calling R_BlendLightmaps (Nope, it is not.)
+void my_R_BlendLightmaps(void) {
+	// orig_Com_Printf("ComplexState is %i\n",((*(int*)0x300A46E0) & 0x01));
+	*lightblend_target_src = lightblend_src;
+	*lightblend_target_dst = lightblend_dst;
+	is_blending = true;
+	// Calls CheckComplexStates, which calls glBlendFunc
+	orig_R_BlendLightmaps();
+	is_blending = false;
+}
+
+#include <csignal>
+
+
+// src = Incoming pixel Data (Light Data)
+// dest = Pixel Data in color Buffer (Texture Data)
+void __stdcall glBlendFunc_R_BlendLightmaps(unsigned int sfactor,unsigned int dfactor)
+{
+
+	// Multiply Blend Mode.
+	// real_glBlendFunc(GL_DST_COLOR,GL_ONE_MINUS_SRC_ALPHA);
+	// Default
+	// real_glBlendFunc(GL_ZERO,GL_SRC_COLOR);
+	if ( is_blending ) { 
+		real_glBlendFunc(lightblend_src,lightblend_dst);
+	}
+	else {
+		real_glBlendFunc(sfactor,dfactor);
+	}
 }
 /*
 
