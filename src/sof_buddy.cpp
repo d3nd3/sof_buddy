@@ -8,22 +8,11 @@
 void my_orig_Qcommon_Init(int argc, char **argv);
 qboolean my_Cbuf_AddLateCommands(void);
 
-
-DWORD WINAPI sofbuddy_thread(LPVOID lpParam) {
-	Sleep(100);
-    //afterSoFplusInit();
-
-	Sleep(100);
-    Sleep(1500);
-    orig_Com_Printf("SoFree thread is running!");
-    return 1;
-}
-
-
 void afterWsockInit(void)
 {
+#ifdef FEATURE_MEDIA_TIMERS
 	mediaTimers_early();
-
+#endif
 	if ( o_sofplus ) {
 		BOOL (*sofplusEntry)(void) = (int)o_sofplus + 0xF590;
 		BOOL result = sofplusEntry();
@@ -47,10 +36,13 @@ Safest Init Location
 qboolean my_Cbuf_AddLateCommands(void)
 {
 	qboolean ret = orig_Cbuf_AddLateCommands();
-	
+#ifdef FEATURE_MEDIA_TIMERS
 	mediaTimers_apply();
+#endif
 	refFixes_apply();
-
+#ifdef FEATURE_FONT_SCALING
+	scaledFont_apply();
+#endif
 	return ret;
 }
 

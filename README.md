@@ -4,6 +4,7 @@
 * **Widescreen Teamicons GlitchFix**: correct positioning of player teamicons above player models in-game when using widescreen.
 * **HD texture support**: supports different sized/scaled default .m32 textures by hard-coding the uv texture mapping sizes instead of reading them from the .bsp, thus is required when using any HD texture mod.
 * **Improved stable framerate**: QueryPerformanceCounter() usage as frame loop timer instead of timeGetTime().
+* Improved lighting contrast.
 
 ## Usage
 ### Installation + Setup
@@ -23,3 +24,6 @@ If you run on ancient operating system like windows XP, you might not benefit fr
 #### _sofbuddy_high_priority
 default = 1  
 This cvar will be saved in config.cfg.  If you do not want the process have process priority of *HIGH*, set this to 0 for *NORMAL*.  This cvar can be changed at run-time.
+#### _sofbuddy_lightblend_dst , _sofbuddy_lightblend_src
+Credits WhiteMagicRaven for discovering that lightmaps can be blended differently to give lights more punch. 
+For default lighting, change these back to _sofbuddy_lightblend_dst GL_DST_COLOR;_sofbuddy_lightblend_src GL_ZERO

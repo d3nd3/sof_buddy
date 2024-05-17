@@ -21,7 +21,12 @@ SDIR = src
 INC = -Ihdr
 
 # Compiler flags
-CFLAGS = -Wno-write-strings -w -fpermissive -std=c++14
+COMMON_CFLAGS = -Wno-write-strings -w -fpermissive -std=c++14
+
+# Release compiler flags
+CFLAGS = $(COMMON_CFLAGS) 
+# Debug compiler flags (add -g for debugging symbols)
+DBG_CFLAGS = $(COMMON_CFLAGS) -g
 
 # Linker flags
 OFLAGS = -static -lpthread -shared -static-libgcc -static-libstdc++ -Wl,--enable-stdcall-fixup
@@ -33,23 +38,29 @@ _OBJS = $(patsubst $(SDIR)/%.cpp,$(ODIR)/%.o,$(SOURCES))
 
 # Object files
 OBJS = $(ODIR)/DetourXS/ADE32.o \
-       $(ODIR)/DetourXS/detourxs.o \
-       $(ODIR)/wsock_entry.o \
-       $(ODIR)/sof_buddy.o \
-       $(ODIR)/crc32.o \
-       $(ODIR)/util.o \
-       $(ODIR)/features/media_timers.o \
-       $(ODIR)/features/ref_fixes.o
+	$(ODIR)/DetourXS/detourxs.o \
+	$(ODIR)/wsock_entry.o \
+	$(ODIR)/sof_buddy.o \
+	$(ODIR)/crc32.o \
+	$(ODIR)/util.o \
+	$(ODIR)/features/media_timers.o \
+	$(ODIR)/features/ref_fixes.o \
+	$(ODIR)/features/scaled_font.o
+
+# Linking rule
+$(OUT): $(OBJS)
+	@mkdir -p $(dir $(OUT))
+	$(CC) $(OFLAGS) rsrc/sof_buddy.def $^ -o $(OUT) -lws2_32 -lwinmm -lshlwapi -lpsapi
+
+# Debug target
+debug: CFLAGS = $(DBG_CFLAGS)
+debug: $(OUT)
 
 # Build rule
 $(ODIR)/%.o: $(SDIR)/%.cpp
 	@mkdir -p $(dir $@)
 	$(CC) -c $(INC) -o $@ $< $(CFLAGS)
 
-# Linking rule
-$(OUT): $(OBJS)
-	@mkdir -p $(dir $(OUT))
-	$(CC) $(OFLAGS) rsrc/sof_buddy.def $^ -o $(OUT) -lws2_32 -lwinmm -lshlwapi -lpsapi
 
 # Clean rule
 .PHONY: clean
