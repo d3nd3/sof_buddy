@@ -1,9 +1,12 @@
 extern void mediaTimers_apply(void);
 extern void mediaTimers_early(void);
 
+extern void refFixes_early(void);
 extern void refFixes_apply(void);
 
+extern void scaledFont_early(void);
 extern void scaledFont_apply(void);
+extern void my_Con_CheckResize(void);
 
 extern void resetTimers(int val);
 extern int oldtime;

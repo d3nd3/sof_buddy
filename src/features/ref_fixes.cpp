@@ -28,6 +28,8 @@ cvar_t * _sofbuddy_magfilter_mipped = NULL;
 cvar_t * _sofbuddy_minfilter_ui = NULL;
 cvar_t * _sofbuddy_magfilter_ui = NULL;
 
+cvar_t * _gl_texturemode = NULL;
+
 
 
 qboolean (*orig_VID_LoadRefresh)( char *name ) = 0x20066E10;
@@ -37,6 +39,7 @@ void (*orig_drawTeamIcons)(void * param1,void * param2,void * param3,void * para
 void (*orig_R_BlendLightmaps)(void) = NULL;
 void (*orig_GL_TextureMode)(char * mode) = 0x300066D0;
 void (__stdcall *orig_glTexParameterf)(int target_tex, int param_name, float value) = NULL;
+int (*orig_R_SetMode)(void * deviceMode) = NULL;
 
 extern void scaledFont_init(void);
 
@@ -45,6 +48,7 @@ void initDefaultTexSizes(void);
 
 qboolean my_VID_LoadRefresh( char *name );
 int my_R_Init(void *hinstance, void *hWnd, void * unknown );
+int my_R_SetMode(void * deviceMode);
 
 void __cdecl my_GL_RenderLightmappedPoly_intercept(void * surf,void * surf2);
 void my_R_BlendLightmaps(void);
@@ -212,7 +216,8 @@ void minfilter_change(cvar_t * cvar) {
 				minfilter_ui = min_filter_modes[i].gl_code;
 				orig_Com_Printf("Minfilter_ui set to : %s\n",min_filter_modes[i].name);
 			}
-			orig_GL_TextureMode(cvar->string);
+			if (_gl_texturemode)
+				_gl_texturemode->modified = true;
 			return;
 		}
 	}
@@ -232,7 +237,8 @@ void magfilter_change(cvar_t * cvar) {
 				magfilter_ui = mag_filter_modes[i].gl_code;
 				orig_Com_Printf("Magfilter_ui set to : %s\n",mag_filter_modes[i].name);
 			}
-			orig_GL_TextureMode(cvar->string);
+			if (_gl_texturemode)
+				_gl_texturemode->modified = true;
 			return;
 		}
 	}
@@ -257,15 +263,21 @@ void __stdcall orig_glTexParameterf_min_ui(int target_tex, int param_name, float
 void __stdcall orig_glTexParameterf_mag_ui(int target_tex, int param_name, float value) {
 	orig_glTexParameterf(target_tex,param_name,magfilter_ui);
 }
+
+void refFixes_early(void) {
+	orig_VID_LoadRefresh = DetourCreate((void*)orig_VID_LoadRefresh,(void*)&my_VID_LoadRefresh,DETOUR_TYPE_JMP,5);
+}
 /*
 	When the ref_gl.dll library is reloaded, detours are lost.
 	So we use VID_LoadRefresh as entry point to reapply.
+
+	Called at the end of QCommon_Init().
 */
 void refFixes_apply(void)
 {
 	//MessageBox(NULL, "refFixes_apply", "MessageBox Example", MB_OK);
 	//std::cout << "refFixes_apply";
-	orig_VID_LoadRefresh = DetourCreate((void*)orig_VID_LoadRefresh,(void*)&my_VID_LoadRefresh,DETOUR_TYPE_JMP,5);
+	
 	#ifdef FEATURE_HD_TEX
 	initDefaultTexSizes();
 	#endif
@@ -277,20 +289,6 @@ void refFixes_apply(void)
 	_sofbuddy_lightblend_src = orig_Cvar_Get("_sofbuddy_lightblend_src","GL_DST_COLOR",CVAR_ARCHIVE,&lightblend_change);
 	_sofbuddy_lightblend_dst = orig_Cvar_Get("_sofbuddy_lightblend_dst","GL_SRC_COLOR",CVAR_ARCHIVE,&lightblend_change);
 	#endif
-
-	//These textures don't have mipmaps, so GL_NEAREST or GL_LINEAR. (sky prob looks good with GL_LINEAR)
-	_sofbuddy_minfilter_unmipped = orig_Cvar_Get("_sofbuddy_minfilter_unmipped","GL_LINEAR",CVAR_ARCHIVE,&minfilter_change);
-	_sofbuddy_magfilter_unmipped = orig_Cvar_Get("_sofbuddy_magfilter_unmipped","GL_LINEAR",CVAR_ARCHIVE,&magfilter_change);
-
-	_sofbuddy_minfilter_mipped = orig_Cvar_Get("_sofbuddy_minfilter_mipped","GL_LINEAR_MIPMAP_LINEAR",CVAR_ARCHIVE,&minfilter_change);
-	//I like GL_NEAREST here, the detail textures look crisper? debateable.
-	//GL_LINEAR is only way, because otherwise distant angled floor textures look crappy for some reason. (see jpntclx floor eg.)
-	_sofbuddy_magfilter_mipped = orig_Cvar_Get("_sofbuddy_magfilter_mipped","GL_LINEAR",CVAR_ARCHIVE,&magfilter_change);
-
-	// I don't see a reason to have this set to anything but GL_NEAREST
-	_sofbuddy_minfilter_ui = orig_Cvar_Get("_sofbuddy_minfilter_ui","GL_NEAREST",CVAR_ARCHIVE,&minfilter_change);
-	//required for the font upscaling.
-	_sofbuddy_magfilter_ui = orig_Cvar_Get("_sofbuddy_magfilter_ui","GL_NEAREST",CVAR_ARCHIVE,&magfilter_change);
 	
 }
 
@@ -317,16 +315,21 @@ float teamviewFovAngle = 95;
 //unsigned int orig_fovAdjustBytes = 0;
 
 void (__stdcall *real_glBlendFunc)(int sfactor,int factor);
+
 /*
+	No way to hook this. Because inside VID_LoadRefresh().
+*/
 int my_R_Init(void *hinstance, void *hWnd, void * unknown )
-{
+{	
+	/*
+	DetourRemove(&orig_R_SetMode);
+	orig_R_SetMode = DetourCreate((void*)0x3001BBD0,&my_R_SetMode,DETOUR_TYPE_JMP,6);
+	*/
 	int retval = orig_R_Init(hinstance,hWnd,unknown);
 
-	real_glBlendFunc = *(int*)0x300A426C;
-	orig_Com_Printf("AtINIT real_glBlendFunc is : %08X\n",real_glBlendFunc);
 	return retval;
 }
-*/
+
 /*
 void (__stdcall *orig_glMTexCoord2fSGIS)(int target, float x, float y) = NULL;
 void (__stdcall *orig_glMTexCoord2fvSGIS)(int target, float *x) = NULL;
@@ -336,10 +339,7 @@ void (__stdcall * orig_glBegin)(int mode) = NULL;
 
 void hd_fix_init(void) {
 	//texture uv coordinates scaling correctly.
-	if ( orig_GL_BuildPolygonFromSurface != NULL ) {
-		DetourRemove(orig_GL_BuildPolygonFromSurface);
-		orig_GL_BuildPolygonFromSurface = NULL;
-	} 
+	DetourRemove(&orig_GL_BuildPolygonFromSurface);
 	orig_GL_BuildPolygonFromSurface = DetourCreate((void*)0x30016390,(void*)&my_GL_BuildPolygonFromSurface,DETOUR_TYPE_JMP,6);
 }
 
@@ -348,10 +348,7 @@ void teamicon_fix_init(void) {
 		Fov Teamicon Widescreen Fix
 	*/
 
-	if ( orig_drawTeamIcons != NULL ) {
-		DetourRemove(orig_drawTeamIcons);
-		orig_drawTeamIcons = NULL;
-	}
+	DetourRemove(&orig_drawTeamIcons);
 	orig_drawTeamIcons = DetourCreate((void*)0x30003040,(void*)&my_drawTeamIcons,DETOUR_TYPE_JMP,6);
 
 
@@ -395,10 +392,7 @@ void lighting_fix_init(void) {
 	/*
 		For multiply blending /w gl_ext_multitexture 0.
 	*/
-	if ( orig_R_BlendLightmaps != NULL ) {
-		DetourRemove(orig_R_BlendLightmaps);
-		orig_R_BlendLightmaps = NULL;
-	}
+	DetourRemove(&orig_R_BlendLightmaps);
 	orig_R_BlendLightmaps = DetourCreate((void*)0x30015440,(void*)&my_R_BlendLightmaps,DETOUR_TYPE_JMP,6);
 	
 	lightblend_change(_sofbuddy_lightblend_src);
@@ -427,6 +421,9 @@ void lighting_fix_init(void) {
 }
 
 void setup_minmag_filters(void) {
+
+	_gl_texturemode = orig_Cvar_Get("gl_texturemode","GL_NEAREST",NULL,NULL); 
+
 	// This overpowers sofplus _sp_cl_vid_gl_texture_mag_filter.
 	// Could later allow his cvar to be used for mag_ui, maybe.
 	orig_glTexParameterf = *(int*)0x300A457C;
@@ -450,13 +447,44 @@ void setup_minmag_filters(void) {
 	WriteE8Call(0x300065B1 ,&orig_glTexParameterf_mag_ui);
 	WriteByte(0x300065B6,0x90);
 
-	orig_GL_TextureMode("GL_NEAREST");
+	
 
+	//These textures don't have mipmaps, so GL_NEAREST or GL_LINEAR. (sky prob looks good with GL_LINEAR)
+	_sofbuddy_minfilter_unmipped = orig_Cvar_Get("_sofbuddy_minfilter_unmipped","GL_LINEAR",CVAR_ARCHIVE,&minfilter_change);
+	minfilter_change(_sofbuddy_minfilter_unmipped);
+	_sofbuddy_magfilter_unmipped = orig_Cvar_Get("_sofbuddy_magfilter_unmipped","GL_LINEAR",CVAR_ARCHIVE,&magfilter_change);
+	magfilter_change(_sofbuddy_magfilter_unmipped);
+
+	_sofbuddy_minfilter_mipped = orig_Cvar_Get("_sofbuddy_minfilter_mipped","GL_LINEAR_MIPMAP_LINEAR",CVAR_ARCHIVE,&minfilter_change);
+	minfilter_change(_sofbuddy_minfilter_mipped);
+	//I like GL_NEAREST here, the detail textures look crisper? debateable.
+	_sofbuddy_magfilter_mipped = orig_Cvar_Get("_sofbuddy_magfilter_mipped","GL_NEAREST",CVAR_ARCHIVE,&magfilter_change);
+	magfilter_change(_sofbuddy_magfilter_mipped);
+
+	// I don't see a reason to have this set to anything but GL_NEAREST
+	_sofbuddy_minfilter_ui = orig_Cvar_Get("_sofbuddy_minfilter_ui","GL_NEAREST",CVAR_ARCHIVE,&minfilter_change);
+	minfilter_change(_sofbuddy_minfilter_ui);
+	//required for the font upscaling.
+	_sofbuddy_magfilter_ui = orig_Cvar_Get("_sofbuddy_magfilter_ui","GL_NEAREST",CVAR_ARCHIVE,&magfilter_change);
+	magfilter_change(_sofbuddy_magfilter_ui);
 }
+
+int my_R_SetMode(void * deviceMode) {
+	orig_Com_Printf("R_SETMODE_R_SETMODE\n");
+	int ret = orig_R_SetMode(deviceMode);
+
+	if (ret) {
+		my_Con_CheckResize();
+		orig_Com_Printf("fontscale is : %i %i\n",*(int*)0x2024AF98,*(int*)0x2040365C);
+	}
+
+	return ret;
+}
+
 void on_ref_init(void)
 {
-	
 	setup_minmag_filters();
+
 #ifdef FEATURE_HD_TEX
 	hd_fix_init();
 #endif

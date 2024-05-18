@@ -8,11 +8,31 @@
 void my_orig_Qcommon_Init(int argc, char **argv);
 qboolean my_Cbuf_AddLateCommands(void);
 
+/*
+	DllMain of WSOCK32 library
+	Implicit Linking (Static Linking to the Import Library)
+	the application is linked with an import library (.lib) file during the build process.
+	This import library contains information about the functions and data exported by the .dll.
+	When the application starts, the Windows loader automatically loads the .dll specified by the import library.
+	If the .dll is not found at runtime, the application will fail to start.
+
+	Before the application’s main entry point (e.g., main() or WinMain()) is called, 
+	the loader inspects the import table of the executable to determine the required .dll files
+	The loader attempts to load each .dll specified in the import table. This includes resolving the addresses 
+	of the functions and variables that the application imports from the .dlls.
+
+	Once a .dll is loaded, the loader calls the DllMain function of the .dll (if it exists) with the 
+	DLL_PROCESS_ATTACH notification. This allows the .dll to perform any necessary initialization.
+*/
 void afterWsockInit(void)
 {
 #ifdef FEATURE_MEDIA_TIMERS
 	mediaTimers_early();
 #endif
+#ifdef FEATURE_FONT_SCALING
+	scaledFont_early();
+#endif
+	refFixes_early();
 	if ( o_sofplus ) {
 		BOOL (*sofplusEntry)(void) = (int)o_sofplus + 0xF590;
 		BOOL result = sofplusEntry();

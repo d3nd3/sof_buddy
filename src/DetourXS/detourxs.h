@@ -12,4 +12,4 @@ enum
 
 LPVOID DetourCreate(LPVOID lpFuncOrig, LPVOID lpFuncDetour, int patchType, int detourLen=DETOUR_LEN_AUTO);
 LPVOID DetourCreate(LPCSTR lpModuleName, LPCSTR lpProcName, LPVOID lpFuncDetour, int patchType, int detourLen=DETOUR_LEN_AUTO);
-BOOL DetourRemove(LPVOID lpDetourCreatePtr);
+BOOL DetourRemove(void** lppDetourCreatePtr);

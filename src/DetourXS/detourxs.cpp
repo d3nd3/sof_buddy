@@ -25,6 +25,7 @@ int GetDetourLenAuto(PBYTE &pbFuncOrig, int minDetLen);
 LPVOID DetourCreate(LPCSTR lpModuleName, LPCSTR lpProcName, LPVOID lpFuncDetour, int patchType, int detourLen)
 {
 	LPVOID lpFuncOrig = NULL;
+
 		
 	if((lpFuncOrig = (void*)GetProcAddress(GetModuleHandle(lpModuleName), lpProcName)) == NULL)
 		return NULL;
@@ -32,8 +33,11 @@ LPVOID DetourCreate(LPCSTR lpModuleName, LPCSTR lpProcName, LPVOID lpFuncDetour,
 	return DetourCreate(lpFuncOrig, lpFuncDetour, patchType, detourLen);
 }
 
+
 LPVOID DetourCreate(LPVOID lpFuncOrig, LPVOID lpFuncDetour, int patchType, int detourLen)
 {
+
+
 	LPVOID lpMallocPtr = NULL;
 	DWORD dwProt = NULL;
 	PBYTE pbMallocPtr = NULL;
@@ -132,8 +136,10 @@ LPVOID DetourCreate(LPVOID lpFuncOrig, LPVOID lpFuncDetour, int patchType, int d
 	return lpMallocPtr;
 }
 
-BOOL DetourRemove(LPVOID lpDetourCreatePtr)
+BOOL DetourRemove(void** lppDetourCreatePtr)
 {
+
+	LPVOID lpDetourCreatePtr = *lppDetourCreatePtr;
 	PBYTE pbMallocPtr = NULL;
 	DWORD dwFuncOrig = NULL;
 	DWORD dwProt = NULL;
@@ -166,6 +172,7 @@ BOOL DetourRemove(LPVOID lpDetourCreatePtr)
 	memcpy((LPVOID)dwFuncOrig, lpDetourCreatePtr, (i-JMP32_SZ));
 	VirtualProtect((LPVOID)dwFuncOrig, (i-JMP32_SZ), dwProt, new DWORD);
 
+	*lppDetourCreatePtr = NULL;
 	return TRUE;
 }
 
