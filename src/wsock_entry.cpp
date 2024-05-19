@@ -634,12 +634,15 @@ void wsock_link(void)
 		ExitProcess(1);
 	}
 }
-
+/*
+	Patches spcl.dll file before load.
+*/
 void sofplus_copy(void)
 {
 	wchar_t tempFileName[MAX_PATH];
 	//-----------------------------------------
 				
+	// open spcl.dll file
 	HANDLE hFile = CreateFileW(L"spcl.dll", GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hFile == INVALID_HANDLE_VALUE) {
 	// Handle error
@@ -648,7 +651,7 @@ void sofplus_copy(void)
 		return 1;
 	}
 
-	// Get the size of the file
+	// spcl.dll file size
 	DWORD fileSize = GetFileSize(hFile, NULL);
 	if (fileSize == INVALID_FILE_SIZE) {
 	// Handle error
@@ -658,7 +661,7 @@ void sofplus_copy(void)
 		return 1;
 	}
 
-	// Read the entire file into a buffer
+	// malloc a buffer equal size to spcl.dll
 	LPBYTE pBuffer = (LPBYTE)malloc(fileSize);
 	if (pBuffer == NULL) {
 	// Handle memory allocation error
@@ -668,6 +671,7 @@ void sofplus_copy(void)
 		return 1;
 	}
 
+	// copy spcl.dll bytes into buffer
 	DWORD bytesRead;
 	if (!ReadFile(hFile, pBuffer, fileSize, &bytesRead, NULL)) {
 	// Handle error
@@ -678,8 +682,13 @@ void sofplus_copy(void)
 		return 1;
 	}
 
-	// Now you can modify the pBuffer as needed
+//=================================================================================
+	// Modify the in-memory file spcl.dll
+//=================================================================================
 
+	/*
+		Nop the DllMain init function.
+	*/
 	void * p = pBuffer+0x9EBD;
 	WriteByte(p,0x90);
 	WriteByte(p+1,0x90);
@@ -687,16 +696,17 @@ void sofplus_copy(void)
 	WriteByte(p+3,0x90);
 	WriteByte(p+4,0x90);
 	
-
+	// Force return SUCCESS.
 	#if 1
 	WriteByte(pBuffer+0x9EC4,0xEB);
 	#else
 	WriteByte(pMappedFile+0x9EC4,0x90);
 	WriteByte(pMappedFile+0x9EC5,0x90);
 	#endif
-	
 
-	// Get the path to the temporary directory
+//=================================================================================
+// Get the path to the temporary directory
+//=================================================================================
 	wchar_t tempPath[MAX_PATH];
 	if (GetTempPathW(MAX_PATH, tempPath) == 0) {
 		// Handle error
@@ -754,7 +764,9 @@ void sofplus_copy(void)
 	TRUNCATE_EXISTING        |            Truncates              Fails
 	*/
 
-	// Open the temp file for writing
+//=================================================================================
+	// Write the tempfile containing the modified spcl.dll buffer we read earlier.
+//=================================================================================
 	HANDLE hTempFile = CreateFileW(
 		tempFileName, 
 		GENERIC_WRITE, 
@@ -807,6 +819,8 @@ void sofplus_copy(void)
 	CloseHandle(hTempFile);
 	CloseHandle(hFile);
 
+	//=================================================================================
+
 	//Now check if it has correct checksum of spcl.dll
 	FILE* fp;
 	char buf[32768];
@@ -837,12 +851,12 @@ void sofplus_copy(void)
 	}
 
 
-	//MessageBoxW(NULL, (std::wstring(L"File successfully modified! : ") + tempFileName).c_str(), L"Success", MB_ICONINFORMATION | MB_OK);
 //-----------------------------
-
 	// Load the modified DLL from the temp file
+	//MessageBoxW(NULL, (std::wstring(L"Path is : ") + tempFileName).c_str(), L"Success", MB_ICONINFORMATION | MB_OK);
+	// o_sofplus = LoadLibraryExW(tempFileName,NULL,LOAD_LIBRARY_SEARCH_DEFAULT_DIRS );
+	// o_sofplus = LoadLibrary("spcl.dll");
 	o_sofplus = LoadLibraryW(tempFileName);
-	//o_sofplus = LoadLibrary("spcl.dll");
 	if (o_sofplus == NULL) {
 		DWORD error = GetLastError();
 		MessageBoxW(NULL, (L"Cannot load sofplus!! Error code: " + std::to_wstring(error)).c_str(), L"Error", MB_ICONERROR | MB_OK);

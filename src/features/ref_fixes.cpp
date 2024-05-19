@@ -16,8 +16,10 @@ typedef struct {
 } m32size;
 std::unordered_map<std::string,m32size> default_textures;
 
+#ifdef FEATURE_ALT_LIGHTING
 cvar_t * _sofbuddy_lightblend_src = NULL;
 cvar_t * _sofbuddy_lightblend_dst = NULL;
+#endif
 
 cvar_t * _sofbuddy_minfilter_unmipped = NULL;
 cvar_t * _sofbuddy_magfilter_unmipped = NULL;
@@ -32,7 +34,7 @@ cvar_t * _gl_texturemode = NULL;
 
 
 
-qboolean (*orig_VID_LoadRefresh)( char *name ) = 0x20066E10;
+qboolean (*orig_VID_LoadRefresh)( char *name ) = NULL;
 void (*orig_GL_BuildPolygonFromSurface)(void *fa) = NULL;
 int (*orig_R_Init)( void *hinstance, void *hWnd, void * unknown ) = NULL;
 void (*orig_drawTeamIcons)(void * param1,void * param2,void * param3,void * param4) = NULL;
@@ -76,6 +78,8 @@ void __stdcall glBlendFunc_R_BlendLightmaps(unsigned int sfactor,unsigned int df
 #define GL_BLEND_COLOR                    0x8005
 #define GL_BLEND_EQUATION                 0x8009
 
+
+#ifdef FEATURE_ALT_LIGHTING
 //SRC = Incoming Data(Light)
 //DST = Existing Data(Texture)
 int lightblend_src = GL_ZERO;
@@ -178,6 +182,7 @@ void lightblend_change(cvar_t * cvar) {
 		}
 	}
 }
+#endif
 
 typedef struct
 {
@@ -203,18 +208,19 @@ int magfilter_mipped = 0x2600;
 int minfilter_ui = 0x2600;
 int magfilter_ui = 0x2600;
 
+//TODO: Why is this called twice on vid_restart??
 void minfilter_change(cvar_t * cvar) {
 	for ( int i=0;i<6;i++) {
 		if (!strcmp(min_filter_modes[i].name,cvar->string)) {
 			if ( cvar == _sofbuddy_minfilter_unmipped ) {
 				minfilter_unmipped = min_filter_modes[i].gl_code;
-				orig_Com_Printf("Minfilter_unmipped set to : %s\n",min_filter_modes[i].name);
+				// orig_Com_Printf("Minfilter_unmipped set to : %s\n",min_filter_modes[i].name);
 			} else if ( cvar == _sofbuddy_minfilter_mipped ) {
 				minfilter_mipped = min_filter_modes[i].gl_code;
-				orig_Com_Printf("Minfilter_mipped set to : %s\n",min_filter_modes[i].name);
+				// orig_Com_Printf("Minfilter_mipped set to : %s\n",min_filter_modes[i].name);
 			} else if ( cvar == _sofbuddy_minfilter_ui ) {
 				minfilter_ui = min_filter_modes[i].gl_code;
-				orig_Com_Printf("Minfilter_ui set to : %s\n",min_filter_modes[i].name);
+				// orig_Com_Printf("Minfilter_ui set to : %s\n",min_filter_modes[i].name);
 			}
 			if (_gl_texturemode)
 				_gl_texturemode->modified = true;
@@ -265,7 +271,7 @@ void __stdcall orig_glTexParameterf_mag_ui(int target_tex, int param_name, float
 }
 
 void refFixes_early(void) {
-	orig_VID_LoadRefresh = DetourCreate((void*)orig_VID_LoadRefresh,(void*)&my_VID_LoadRefresh,DETOUR_TYPE_JMP,5);
+	orig_VID_LoadRefresh = DetourCreate((void*)0x20066E10,(void*)&my_VID_LoadRefresh,DETOUR_TYPE_JMP,5);
 }
 /*
 	When the ref_gl.dll library is reloaded, detours are lost.
@@ -362,7 +368,7 @@ void teamicon_fix_init(void) {
 	// fov adjust display
 	writeUnsignedIntegerAt(0x200157A8,&teamviewFovAngle);
 }
-
+#ifdef FEATURE_ALT_LIGHTING
 void lighting_fix_init(void) {
 	/*
 		Lighting Improrvement gl_ext_multitexture 1
@@ -419,6 +425,7 @@ void lighting_fix_init(void) {
 	WriteByte(0x3001558D,0x90);
 	WriteByte(0x3001558E,0x90);
 }
+#endif
 
 void setup_minmag_filters(void) {
 
@@ -595,7 +602,7 @@ void my_GL_BuildPolygonFromSurface(void *msurface_s) {
 }
 
 
-
+#ifdef FEATURE_ALT_LIGHTING
 bool is_blending = false;
 //Maybe blend is already active before calling R_BlendLightmaps (Nope, it is not.)
 void my_R_BlendLightmaps(void) {
@@ -608,7 +615,6 @@ void my_R_BlendLightmaps(void) {
 	is_blending = false;
 }
 
-#include <csignal>
 
 
 // src = Incoming pixel Data (Light Data)
@@ -627,6 +633,7 @@ void __stdcall glBlendFunc_R_BlendLightmaps(unsigned int sfactor,unsigned int df
 		real_glBlendFunc(sfactor,dfactor);
 	}
 }
+#endif
 /*
 
 q2 : 

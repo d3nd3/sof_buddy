@@ -23,23 +23,61 @@ qboolean my_Cbuf_AddLateCommands(void);
 
 	Once a .dll is loaded, the loader calls the DllMain function of the .dll (if it exists) with the 
 	DLL_PROCESS_ATTACH notification. This allows the .dll to perform any necessary initialization.
+
+	Each library exports the full set of winsock functions.
+	SoF.exe [Implicit]-> sof_buddy.dll [Explicit]->sof_plus.dll [Implicit]->native_winsock.dll
+
+	Module Definition File (.def): A module definition file gives you fine-grained control over linking. 
+	You can list the specific functions you want to import from a DLL:
+	LIBRARY    MyProgram
+	EXPORTS
+	    MyFunction
+	IMPORTS
+	    WSOCK32.dll.bind
+	    WSOCK32.dll.sendto
+	    ; ... (other functions)
+
+	Linker Options: Some linkers might have options to specify individual functions to import.
+	__declspec(dllimport) is a storage-class specifier that tells the compiler that a function or object or data type is 
+	defined in an external DLL.
+
+	The function or object or data type is exported from a DLL with a corresponding __declspec(dllexport).
+
+	spcl.dll selectively imports:
+	  bind
+	  sendto
+	  recvfrom
+	  WSAGetLastError
+	  WSASetLastError
+	  WSAStartup
+	  inet_addr
+
+	 I could had used implicit linking if I had known about it, so if I renamed the wsock.lib file it links to spcl.dll? weird?
+
+	 Initialization Order: 
+	   The operating system loader calls the DllMain functions of these DLLs in the order they are loaded.
+	   However, this order is not always predictable and can vary depending on factors like the DLL's 
+	   dependency graph and loading mechanisms.
 */
 void afterWsockInit(void)
 {
 #ifdef FEATURE_MEDIA_TIMERS
+	//my_Sys_Milliseconds hook
 	mediaTimers_early();
 #endif
 #ifdef FEATURE_FONT_SCALING
 	scaledFont_early();
 #endif
 	refFixes_early();
+
+	// We ensure that the sofplus init function is
 	if ( o_sofplus ) {
 		BOOL (*sofplusEntry)(void) = (int)o_sofplus + 0xF590;
 		BOOL result = sofplusEntry();
 	}
 
 	//orig_Qcommon_Init = DetourCreate(orig_Qcommon_Init,&my_orig_Qcommon_Init,DETOUR_TYPE_JMP,5);
-	orig_Cbuf_AddLateCommands = DetourCreate(orig_Cbuf_AddLateCommands,&my_Cbuf_AddLateCommands,DETOUR_TYPE_JMP,5);
+	orig_Cbuf_AddLateCommands = DetourCreate(0x20018740,&my_Cbuf_AddLateCommands,DETOUR_TYPE_JMP,5);
 	
 }
 
@@ -71,4 +109,4 @@ void ( *orig_Com_Printf)(char * msg, ...) = 0x2001C6E0;
 void (*orig_Qcommon_Frame) (int msec) = 0x2001F720;
 
 void (*orig_Qcommon_Init) (int argc, char **argv) = 0x2001F390;
-qboolean (*orig_Cbuf_AddLateCommands)(void) = 0x20018740;
+qboolean (*orig_Cbuf_AddLateCommands)(void) = NULL;

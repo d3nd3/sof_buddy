@@ -1,13 +1,15 @@
 #include <windows.h>
 #include <math.h>
 
+#include "features.h"
 #include "../DetourXS/detourxs.h"
 #include "sof_compat.h"
 #include "util.h"
 
-
+#ifdef FEATURE_FONT_SCALING
 cvar_t * _sofbuddy_font_scale = NULL;
 cvar_t * _sofbuddy_console_size = NULL;
+#endif
 
 void (*orig_Draw_Char) (int, int, int, int) = NULL;
 void (*orig_Draw_String)(int a,int b,int c,int d) = NULL;
