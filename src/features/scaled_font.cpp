@@ -113,8 +113,11 @@ void my_Con_DrawNotify(void) {
 	So when changing from larger font to smaller font, lines are over-wrapped.
 	When changing from smaller font to larger font, lines extend off screen.
 	Only solution: re-initailise console?
+	Clearing console is a bad idea because lose information for user.
+	When user changes resolution, he faces same issue as font change, so doesn't matter.
 */
 void my_Con_CheckResize(void) {
+	//This makes con.linewidth smaller in order to reduce the character count per line.
 	int viddef_before = *viddef_width;
 
 	//width = (vidref.width/8) - 2
@@ -151,11 +154,13 @@ void fontscale_change(cvar_t * cvar) {
 	//update consoleSize based on new font
 	consolesize_change(_sofbuddy_console_size);
 
+	/*
 	// Clear console.
 	if ( !first_run && orig_Con_CheckResize ) {
 		//Cannot call this before Con_Init, cos references a cvar from Con_Init.
 		orig_Con_Initialize();
 	}
+	*/
 	first_run = false; 
 }
 //config.cfg is already executed at this point. autoexec not (executed at end of CL_Init).
