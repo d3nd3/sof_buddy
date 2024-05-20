@@ -39,7 +39,7 @@ void (*orig_GL_BuildPolygonFromSurface)(void *fa) = NULL;
 int (*orig_R_Init)( void *hinstance, void *hWnd, void * unknown ) = NULL;
 void (*orig_drawTeamIcons)(void * param1,void * param2,void * param3,void * param4) = NULL;
 void (*orig_R_BlendLightmaps)(void) = NULL;
-void (*orig_GL_TextureMode)(char * mode) = 0x300066D0;
+void (*orig_GL_TextureMode)(char * mode) = NULL;
 void (__stdcall *orig_glTexParameterf)(int target_tex, int param_name, float value) = NULL;
 int (*orig_R_SetMode)(void * deviceMode) = NULL;
 
@@ -90,91 +90,91 @@ int *lightblend_target_dst = 0x300A43FC;
 void lightblend_change(cvar_t * cvar) {
 	int value = cvar->string;
 	if (!strcmp(cvar->string,"GL_ZERO")) {
-		if (cvar==_sofbuddy_lightblend_src) {
+		if (!strcmp(cvar->name,"_sofbuddy_lightblend_src")) {
 			lightblend_src = GL_ZERO;
 		}
 		else
 			lightblend_dst = GL_ZERO;
 	} else if (!strcmp(cvar->string,"GL_ONE")) {
-		if (cvar==_sofbuddy_lightblend_src) {
+		if (!strcmp(cvar->name,"_sofbuddy_lightblend_src")) {
 			lightblend_src = GL_ONE;
 		}
 		else
 			lightblend_dst = GL_ONE;
 	} else if (!strcmp(cvar->string,"GL_SRC_COLOR")) {
-		if (cvar==_sofbuddy_lightblend_src) {
+		if (!strcmp(cvar->name,"_sofbuddy_lightblend_src")) {
 			lightblend_src = GL_SRC_COLOR;
 		}
 		else
 			lightblend_dst = GL_SRC_COLOR;
 	} else if (!strcmp(cvar->string,"GL_ONE_MINUS_SRC_COLOR")) {
-		if (cvar==_sofbuddy_lightblend_src) {
+		if (!strcmp(cvar->name,"_sofbuddy_lightblend_src")) {
 			lightblend_src = GL_ONE_MINUS_SRC_COLOR;
 		}
 		else
 			lightblend_dst = GL_ONE_MINUS_SRC_COLOR;
 	} else if (!strcmp(cvar->string,"GL_DST_COLOR")) {
-		if (cvar==_sofbuddy_lightblend_src) {
+		if (!strcmp(cvar->name,"_sofbuddy_lightblend_src")) {
 			lightblend_src = GL_DST_COLOR;
 		}
 		else
 			lightblend_dst = GL_DST_COLOR;
 	} else if (!strcmp(cvar->string,"GL_ONE_MINUS_DST_COLOR")) {
-		if (cvar==_sofbuddy_lightblend_src) {
+		if (!strcmp(cvar->name,"_sofbuddy_lightblend_src")) {
 			lightblend_src = GL_ONE_MINUS_DST_COLOR;
 		}
 		else
 			lightblend_dst = GL_ONE_MINUS_DST_COLOR;
 	} else if (!strcmp(cvar->string,"GL_SRC_ALPHA")) {
-		if (cvar==_sofbuddy_lightblend_src) {
+		if (!strcmp(cvar->name,"_sofbuddy_lightblend_src")) {
 			lightblend_src = GL_SRC_ALPHA;
 		}
 		else
 			lightblend_dst = GL_SRC_ALPHA;
 	} else if (!strcmp(cvar->string,"GL_ONE_MINUS_SRC_ALPHA")) {
-		if (cvar==_sofbuddy_lightblend_src) {
+		if (!strcmp(cvar->name,"_sofbuddy_lightblend_src")) {
 			lightblend_src = GL_ONE_MINUS_SRC_ALPHA;
 		}
 		else
 			lightblend_dst = GL_ONE_MINUS_SRC_ALPHA;
 	} else if (!strcmp(cvar->string,"GL_DST_ALPHA")) {
-		if (cvar==_sofbuddy_lightblend_src) {
+		if (!strcmp(cvar->name,"_sofbuddy_lightblend_src")) {
 			lightblend_src = GL_DST_ALPHA;
 		}
 		else
 			lightblend_dst = GL_DST_ALPHA;
 	} else if (!strcmp(cvar->string,"GL_ONE_MINUS_DST_ALPHA")) {
-		if (cvar==_sofbuddy_lightblend_src) {
+		if (!strcmp(cvar->name,"_sofbuddy_lightblend_src")) {
 			lightblend_src = GL_ONE_MINUS_DST_ALPHA;
 		}
 		else
 			lightblend_dst = GL_ONE_MINUS_DST_ALPHA;
 	} else if (!strcmp(cvar->string,"GL_CONSTANT_COLOR")) {
-		if (cvar==_sofbuddy_lightblend_src) {
+		if (!strcmp(cvar->name,"_sofbuddy_lightblend_src")) {
 			lightblend_src = GL_CONSTANT_COLOR;
 		}
 		else
 			lightblend_dst = GL_CONSTANT_COLOR;
 	} else if (!strcmp(cvar->string,"GL_ONE_MINUS_CONSTANT_COLOR")) {
-		if (cvar==_sofbuddy_lightblend_src) {
+		if (!strcmp(cvar->name,"_sofbuddy_lightblend_src")) {
 			lightblend_src = GL_ONE_MINUS_CONSTANT_COLOR;
 		}
 		else
 			lightblend_dst = GL_ONE_MINUS_CONSTANT_COLOR;
 	} else if (!strcmp(cvar->string,"GL_CONSTANT_ALPHA")) {
-		if (cvar==_sofbuddy_lightblend_src) {
+		if (!strcmp(cvar->name,"_sofbuddy_lightblend_src")) {
 			lightblend_src = GL_CONSTANT_ALPHA;
 		}
 		else
 			lightblend_dst = GL_CONSTANT_ALPHA;
 	} else if (!strcmp(cvar->string,"GL_ONE_MINUS_CONSTANT_ALPHA")) {
-		if (cvar==_sofbuddy_lightblend_src) {
+		if (!strcmp(cvar->name,"_sofbuddy_lightblend_src")) {
 			lightblend_src = GL_ONE_MINUS_CONSTANT_ALPHA;
 		}
 		else
 			lightblend_dst = GL_ONE_MINUS_CONSTANT_ALPHA;
 	} else if (!strcmp(cvar->string,"GL_SRC_ALPHA_SATURATE")) {
-		if (cvar==_sofbuddy_lightblend_src) {
+		if (!strcmp(cvar->name,"_sofbuddy_lightblend_src")) {
 			lightblend_src = GL_SRC_ALPHA_SATURATE;
 		}
 		else {
@@ -208,19 +208,21 @@ int magfilter_mipped = 0x2600;
 int minfilter_ui = 0x2600;
 int magfilter_ui = 0x2600;
 
-//TODO: Why is this called twice on vid_restart??
+
+/*
+	A cvar change function should be careful to use the cvar its changing global variable, not set yet.
+*/
 void minfilter_change(cvar_t * cvar) {
+	// MessageBox(NULL, cvar->string , cvar->name, MB_ICONERROR | MB_OK);
 	for ( int i=0;i<6;i++) {
 		if (!strcmp(min_filter_modes[i].name,cvar->string)) {
-			if ( cvar == _sofbuddy_minfilter_unmipped ) {
+			// MessageBox(NULL, "Matched" , "Error", MB_ICONERROR | MB_OK);
+			if ( !strcmp(cvar->name,"_sofbuddy_minfilter_unmipped") ) {
 				minfilter_unmipped = min_filter_modes[i].gl_code;
-				// orig_Com_Printf("Minfilter_unmipped set to : %s\n",min_filter_modes[i].name);
-			} else if ( cvar == _sofbuddy_minfilter_mipped ) {
+			} else if ( !strcmp(cvar->name,"_sofbuddy_minfilter_mipped") ) {
 				minfilter_mipped = min_filter_modes[i].gl_code;
-				// orig_Com_Printf("Minfilter_mipped set to : %s\n",min_filter_modes[i].name);
-			} else if ( cvar == _sofbuddy_minfilter_ui ) {
+			} else if ( !strcmp(cvar->name,"_sofbuddy_minfilter_ui") ) {
 				minfilter_ui = min_filter_modes[i].gl_code;
-				// orig_Com_Printf("Minfilter_ui set to : %s\n",min_filter_modes[i].name);
 			}
 			if (_gl_texturemode)
 				_gl_texturemode->modified = true;
@@ -233,13 +235,13 @@ void minfilter_change(cvar_t * cvar) {
 void magfilter_change(cvar_t * cvar) {
 	for ( int i=0;i<2;i++) {
 		if (!strcmp(mag_filter_modes[i].name,cvar->string)) {
-			if ( cvar == _sofbuddy_magfilter_unmipped ) {
+			if ( !strcmp(cvar->name,"_sofbuddy_magfilter_unmipped") ) {
 				magfilter_unmipped = mag_filter_modes[i].gl_code;
 				orig_Com_Printf("Magfilter_unmipped set to : %s\n",mag_filter_modes[i].name);
-			} else if ( cvar == _sofbuddy_magfilter_mipped ) {
+			} else if ( !strcmp(cvar->name,"_sofbuddy_magfilter_mipped") ) {
 				magfilter_mipped = mag_filter_modes[i].gl_code;
 				orig_Com_Printf("Magfilter_mipped set to : %s\n",mag_filter_modes[i].name);
-			} else if ( cvar == _sofbuddy_magfilter_ui ) {
+			} else if ( !strcmp(cvar->name,"_sofbuddy_magfilter_ui") ) {
 				magfilter_ui = mag_filter_modes[i].gl_code;
 				orig_Com_Printf("Magfilter_ui set to : %s\n",mag_filter_modes[i].name);
 			}
@@ -278,6 +280,9 @@ void refFixes_early(void) {
 	So we use VID_LoadRefresh as entry point to reapply.
 
 	Called at the end of QCommon_Init().
+
+	IMPORTANT:
+	  A cvar's modified function cannot use the global pointer because it hasnt' returned yet...
 */
 void refFixes_apply(void)
 {
@@ -295,8 +300,6 @@ void refFixes_apply(void)
 	_sofbuddy_lightblend_src = orig_Cvar_Get("_sofbuddy_lightblend_src","GL_DST_COLOR",CVAR_ARCHIVE,&lightblend_change);
 	_sofbuddy_lightblend_dst = orig_Cvar_Get("_sofbuddy_lightblend_dst","GL_SRC_COLOR",CVAR_ARCHIVE,&lightblend_change);
 	#endif
-
-
 
 
 	//These textures don't have mipmaps, so GL_NEAREST or GL_LINEAR. (sky prob looks good with GL_LINEAR)
@@ -443,10 +446,22 @@ void lighting_fix_init(void) {
 }
 #endif
 
+void my_GL_TextureMode(char * mode) {
+	orig_Com_Printf("CALLLING GL_TEXTUREMODE %i\n",minfilter_mipped);
+	orig_GL_TextureMode(mode);
+}
+
+/*
+	R_Init->GL_SetDefaultState() is handling texturemode for us, yet we are after that.
+	So this patch is late.
+	Thus we want to call it again, from R_beginFrame()
+*/
 void setup_minmag_filters(void) {
 	static bool first_run = true;
 
-	_gl_texturemode = orig_Cvar_Get("gl_texturemode","GL_NEAREST",NULL,NULL); 
+	// orig_GL_TextureMode = DetourCreate(0x300066D0,&my_GL_TextureMode,DETOUR_TYPE_JMP,5);
+
+	_gl_texturemode = orig_Cvar_Get("gl_texturemode","GL_LINEAR_MIPMAP_LINEAR",NULL,NULL); 
 
 	// This overpowers sofplus _sp_cl_vid_gl_texture_mag_filter.
 	// Could later allow his cvar to be used for mag_ui, maybe.
@@ -471,9 +486,8 @@ void setup_minmag_filters(void) {
 	WriteE8Call(0x300065B1 ,&orig_glTexParameterf_mag_ui);
 	WriteByte(0x300065B6,0x90);
 
-	//R_Init->GL_SetDefaultState() is handling texturemode for us, yet we are after that.
-	//Thus we want to call it again, from R_beginFrame()
-
+	
+	// orig_Com_Printf("Triggering glTextureMOde!!\n");
 	//Trigger re-apply of texturemode
 	if (_gl_texturemode) _gl_texturemode->modified = true;
 

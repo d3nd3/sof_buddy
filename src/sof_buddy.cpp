@@ -94,6 +94,11 @@ void afterWsockInit(void)
 //But its loaded with its default value.
 /*
 	This is earlier than Cbuf_AddLateCommands(), just before exec default.cfg and exec config.cfg IN Qcommon_Init()
+
+	Cvar flags are or'ed in, thus multiple calls to Cvar_Get stack the flags.
+	Does the command with NULL, remove the command or create multiple?
+	  NULL does not remove previous set modified callbacks.
+	  With a new modified callback, it overrides the currently set one.
 */
 void my_FS_InitFilesystem(void) {
 	orig_FS_InitFilesystem();
@@ -103,6 +108,8 @@ void my_FS_InitFilesystem(void) {
 	#ifdef FEATURE_FONT_SCALING
 		scaledFont_apply();
 	#endif
+
+	//orig_Com_Printf("End FS_InitFilesystem\n");
 }
 /*
 	A long standing bug, was related to the order of initializing cvars, which behaved different for a user without

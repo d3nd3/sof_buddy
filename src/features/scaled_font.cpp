@@ -188,12 +188,14 @@ void my_Con_Init(void) {
 	orig_Con_CheckResize = DetourCreate((void*)0x20020880,(void*)&my_Con_CheckResize,DETOUR_TYPE_JMP,5);
 }
 
+
 //Called at end of QCommon_Init()
 void scaledFont_apply(void) {
 
 	_sofbuddy_console_size = orig_Cvar_Get("_sofbuddy_console_size","0.35",CVAR_ARCHIVE,&consolesize_change);
 	//fontscale_change references a cvar, so order matters.
 	_sofbuddy_font_scale = orig_Cvar_Get("_sofbuddy_font_scale","1",CVAR_ARCHIVE,&fontscale_change);
+
 	
 	orig_Con_DrawNotify = DetourCreate((void*)0x20020D70 , (void*)&my_Con_DrawNotify,DETOUR_TYPE_JMP,5);
 	orig_Con_DrawConsole = DetourCreate((void*)0x20020F90,(void*)&my_Con_DrawConsole,DETOUR_TYPE_JMP,5);
