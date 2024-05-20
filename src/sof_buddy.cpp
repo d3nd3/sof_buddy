@@ -5,6 +5,10 @@
 #include "sof_compat.h"
 #include "./DetourXS/detourxs.h"
 
+
+//__ioinit
+void (*orig_FS_InitFilesystem)(void) = NULL;
+void my_FS_InitFilesystem(void);
 void my_orig_Qcommon_Init(int argc, char **argv);
 qboolean my_Cbuf_AddLateCommands(void);
 
@@ -61,6 +65,10 @@ qboolean my_Cbuf_AddLateCommands(void);
 */
 void afterWsockInit(void)
 {
+	/*
+		This is called by our DllMain(), thus before SoF.exe CRTmain().
+		Cvars etc not allowed here. 
+	*/
 #ifdef FEATURE_MEDIA_TIMERS
 	//my_Sys_Milliseconds hook
 	mediaTimers_early();
@@ -77,10 +85,29 @@ void afterWsockInit(void)
 	}
 
 	//orig_Qcommon_Init = DetourCreate(orig_Qcommon_Init,&my_orig_Qcommon_Init,DETOUR_TYPE_JMP,5);
+	orig_FS_InitFilesystem = DetourCreate(0x20026980, &my_FS_InitFilesystem,DETOUR_TYPE_JMP,6);
 	orig_Cbuf_AddLateCommands = DetourCreate(0x20018740,&my_Cbuf_AddLateCommands,DETOUR_TYPE_JMP,5);
 	
 }
 
+//Every cvar here would trigger its modified, because no cvars exist prior.
+//But its loaded with its default value.
+/*
+	This is earlier than Cbuf_AddLateCommands(), just before exec default.cfg and exec config.cfg IN Qcommon_Init()
+*/
+void my_FS_InitFilesystem(void) {
+	orig_FS_InitFilesystem();
+
+	//Best place for cvars if you want config.cfg induced triggering of modified events.
+	refFixes_apply();
+	#ifdef FEATURE_FONT_SCALING
+		scaledFont_apply();
+	#endif
+}
+/*
+	A long standing bug, was related to the order of initializing cvars, which behaved different for a user without
+	a config.cfg than one with one. If getting crashes, always remember this!.
+*/
 void my_orig_Qcommon_Init(int argc, char **argv)
 {
 	orig_Qcommon_Init(argc,argv);
@@ -88,7 +115,7 @@ void my_orig_Qcommon_Init(int argc, char **argv)
 
 
 /*
-Safest Init Location
+Safest Init Location for wanting to check command line values.
 */
 //this is called inside Qcommon_Init()
 qboolean my_Cbuf_AddLateCommands(void)
@@ -97,10 +124,7 @@ qboolean my_Cbuf_AddLateCommands(void)
 #ifdef FEATURE_MEDIA_TIMERS
 	mediaTimers_apply();
 #endif
-	refFixes_apply();
-#ifdef FEATURE_FONT_SCALING
-	scaledFont_apply();
-#endif
+
 	return ret;
 }
 

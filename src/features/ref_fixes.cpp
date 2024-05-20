@@ -295,6 +295,22 @@ void refFixes_apply(void)
 	_sofbuddy_lightblend_src = orig_Cvar_Get("_sofbuddy_lightblend_src","GL_DST_COLOR",CVAR_ARCHIVE,&lightblend_change);
 	_sofbuddy_lightblend_dst = orig_Cvar_Get("_sofbuddy_lightblend_dst","GL_SRC_COLOR",CVAR_ARCHIVE,&lightblend_change);
 	#endif
+
+
+
+
+	//These textures don't have mipmaps, so GL_NEAREST or GL_LINEAR. (sky prob looks good with GL_LINEAR)
+	_sofbuddy_minfilter_unmipped = orig_Cvar_Get("_sofbuddy_minfilter_unmipped","GL_LINEAR",CVAR_ARCHIVE,&minfilter_change);
+	_sofbuddy_magfilter_unmipped = orig_Cvar_Get("_sofbuddy_magfilter_unmipped","GL_LINEAR",CVAR_ARCHIVE,&magfilter_change);
+
+	_sofbuddy_minfilter_mipped = orig_Cvar_Get("_sofbuddy_minfilter_mipped","GL_LINEAR_MIPMAP_LINEAR",CVAR_ARCHIVE,&minfilter_change);
+	//I like GL_NEAREST here, the detail textures look crisper? debateable.
+	_sofbuddy_magfilter_mipped = orig_Cvar_Get("_sofbuddy_magfilter_mipped","GL_NEAREST",CVAR_ARCHIVE,&magfilter_change);
+
+	// I don't see a reason to have this set to anything but GL_NEAREST
+	_sofbuddy_minfilter_ui = orig_Cvar_Get("_sofbuddy_minfilter_ui","GL_NEAREST",CVAR_ARCHIVE,&minfilter_change);
+	//required for the font upscaling.
+	_sofbuddy_magfilter_ui = orig_Cvar_Get("_sofbuddy_magfilter_ui","GL_NEAREST",CVAR_ARCHIVE,&magfilter_change);
 	
 }
 
@@ -428,6 +444,7 @@ void lighting_fix_init(void) {
 #endif
 
 void setup_minmag_filters(void) {
+	static bool first_run = true;
 
 	_gl_texturemode = orig_Cvar_Get("gl_texturemode","GL_NEAREST",NULL,NULL); 
 
@@ -454,26 +471,12 @@ void setup_minmag_filters(void) {
 	WriteE8Call(0x300065B1 ,&orig_glTexParameterf_mag_ui);
 	WriteByte(0x300065B6,0x90);
 
-	
+	//R_Init->GL_SetDefaultState() is handling texturemode for us, yet we are after that.
+	//Thus we want to call it again, from R_beginFrame()
 
-	//These textures don't have mipmaps, so GL_NEAREST or GL_LINEAR. (sky prob looks good with GL_LINEAR)
-	_sofbuddy_minfilter_unmipped = orig_Cvar_Get("_sofbuddy_minfilter_unmipped","GL_LINEAR",CVAR_ARCHIVE,&minfilter_change);
-	minfilter_change(_sofbuddy_minfilter_unmipped);
-	_sofbuddy_magfilter_unmipped = orig_Cvar_Get("_sofbuddy_magfilter_unmipped","GL_LINEAR",CVAR_ARCHIVE,&magfilter_change);
-	magfilter_change(_sofbuddy_magfilter_unmipped);
+	//Trigger re-apply of texturemode
+	if (_gl_texturemode) _gl_texturemode->modified = true;
 
-	_sofbuddy_minfilter_mipped = orig_Cvar_Get("_sofbuddy_minfilter_mipped","GL_LINEAR_MIPMAP_LINEAR",CVAR_ARCHIVE,&minfilter_change);
-	minfilter_change(_sofbuddy_minfilter_mipped);
-	//I like GL_NEAREST here, the detail textures look crisper? debateable.
-	_sofbuddy_magfilter_mipped = orig_Cvar_Get("_sofbuddy_magfilter_mipped","GL_NEAREST",CVAR_ARCHIVE,&magfilter_change);
-	magfilter_change(_sofbuddy_magfilter_mipped);
-
-	// I don't see a reason to have this set to anything but GL_NEAREST
-	_sofbuddy_minfilter_ui = orig_Cvar_Get("_sofbuddy_minfilter_ui","GL_NEAREST",CVAR_ARCHIVE,&minfilter_change);
-	minfilter_change(_sofbuddy_minfilter_ui);
-	//required for the font upscaling.
-	_sofbuddy_magfilter_ui = orig_Cvar_Get("_sofbuddy_magfilter_ui","GL_NEAREST",CVAR_ARCHIVE,&magfilter_change);
-	magfilter_change(_sofbuddy_magfilter_ui);
 }
 
 int my_R_SetMode(void * deviceMode) {

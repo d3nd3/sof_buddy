@@ -152,7 +152,8 @@ void fontscale_change(cvar_t * cvar) {
 	consolesize_change(_sofbuddy_console_size);
 
 	// Clear console.
-	if ( !first_run ) {
+	if ( !first_run && orig_Con_CheckResize ) {
+		//Cannot call this before Con_Init, cos references a cvar from Con_Init.
 		orig_Con_Initialize();
 	}
 	first_run = false; 
@@ -189,8 +190,11 @@ void my_Con_Init(void) {
 
 //Called at end of QCommon_Init()
 void scaledFont_apply(void) {
-	_sofbuddy_font_scale = orig_Cvar_Get("_sofbuddy_font_scale","1",CVAR_ARCHIVE,&fontscale_change);
+
 	_sofbuddy_console_size = orig_Cvar_Get("_sofbuddy_console_size","0.35",CVAR_ARCHIVE,&consolesize_change);
+	//fontscale_change references a cvar, so order matters.
+	_sofbuddy_font_scale = orig_Cvar_Get("_sofbuddy_font_scale","1",CVAR_ARCHIVE,&fontscale_change);
+	
 	orig_Con_DrawNotify = DetourCreate((void*)0x20020D70 , (void*)&my_Con_DrawNotify,DETOUR_TYPE_JMP,5);
 	orig_Con_DrawConsole = DetourCreate((void*)0x20020F90,(void*)&my_Con_DrawConsole,DETOUR_TYPE_JMP,5);
 
