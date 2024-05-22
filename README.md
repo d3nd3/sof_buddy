@@ -2,9 +2,11 @@
 
 ## Features
 * **Widescreen Teamicons GlitchFix**: correct positioning of player teamicons above player models in-game when using widescreen.
-* **HD texture support**: supports different sized/scaled default .m32 textures by hard-coding the uv texture mapping sizes instead of reading them from the .bsp, thus is required when using any HD texture mod.
+* **HD texture support**: supports different sized/scaled default .m32 textures by hard-coding the uv texture mapping sizes instead of reading them from the .bsp, thus is required when using any HD texture mod. see [hd_textures](https://www.sof1.org/viewtopic.php?p=45667)
 * **Improved stable framerate**: QueryPerformanceCounter() usage as frame loop timer instead of timeGetTime().
-* Improved lighting contrast.
+* **Lighting blend mode adjustment** (if compile with #define FEATURE_ALT_LIGHTING in hdr/features.h)
+* **Font Scaling**
+* **Console Size Adjustment**
 
 ## Usage
 ### Installation + Setup
@@ -27,3 +29,9 @@ This cvar will be saved in config.cfg.  If you do not want the process have proc
 #### _sofbuddy_lightblend_dst , _sofbuddy_lightblend_src
 Credits WhiteMagicRaven for discovering that lightmaps can be blended differently to give lights more punch. 
 For default lighting, change these back to _sofbuddy_lightblend_dst GL_DST_COLOR;_sofbuddy_lightblend_src GL_ZERO
+#### _sofbuddy_font_scale
+default = 1
+#### _sofbuddy_console_size
+default = 0.35  
+range = 0 - 1  
+fullscreen = 1
