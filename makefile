@@ -20,7 +20,7 @@ SDIR = src
 # Include directory
 INC = -Ihdr
 
-# Compiler flags
+# Compiler flags -w (removes warnings)
 COMMON_CFLAGS = -Wno-write-strings -w -fpermissive -std=c++14
 
 # Release compiler flags

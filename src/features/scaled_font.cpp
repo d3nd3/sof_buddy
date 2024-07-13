@@ -7,9 +7,11 @@
 #include "util.h"
 
 #ifdef FEATURE_FONT_SCALING
+
+
 cvar_t * _sofbuddy_font_scale = NULL;
 cvar_t * _sofbuddy_console_size = NULL;
-#endif
+
 
 void (*orig_Draw_Char) (int, int, int, int) = NULL;
 void (*orig_Draw_String)(int a,int b,int c,int d) = NULL;
@@ -96,6 +98,7 @@ void my_Con_DrawConsole (float frac) {
 	orig_Con_DrawConsole(frac);
 	isFontOuter = false;
 }
+
 int * viddef_width = 0x2040365C;
 int real_refdef_width = 0;
 void my_Con_DrawNotify(void) {
@@ -150,6 +153,9 @@ void fontscale_change(cvar_t * cvar) {
 	static bool first_run = true;
 	//round to nearest quarter
 	fontScale = roundf(cvar->value * 4.0f) / 4.0f;
+
+	//Protect from divide by 0.
+	if (fontScale == 0) fontScale = 1;
 
 	//update consoleSize based on new font
 	consolesize_change(_sofbuddy_console_size);
@@ -234,9 +240,10 @@ void scaledFont_early(void) {
 */
 void scaledFont_init(void) {
 	void * glVertex2f = *(int*)0x300A4670;
+	// PrintOut(PRINT_LOG,"Huh: %08X\n",glVertex2f);
 
 	DetourRemove(&orig_glVertex2f);
-	orig_glVertex2f = DetourCreate((void*)glVertex2f,(void*)&my_glVertex2f,DETOUR_TYPE_JMP,5);
+	orig_glVertex2f = DetourCreate((void*)glVertex2f,(void*)&my_glVertex2f,DETOUR_TYPE_JMP,DETOUR_LEN_AUTO); //5
 
 	// DetourRemove(&orig_Draw_String_Color);
 	// orig_Draw_String_Color = DetourCreate((void*)0x30001A40,(void*)&my_Draw_String_Color,DETOUR_TYPE_JMP, 5);
@@ -251,3 +258,5 @@ void scaledFont_init(void) {
 	orig_DrawStretchPic = DetourCreate((void*)0x30001D10 ,(void*)&my_DrawStretchPic, DETOUR_TYPE_JMP,5);
 	
 }
+
+#endif

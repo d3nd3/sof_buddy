@@ -7,7 +7,7 @@
 
 #define __FILEOUT__
 //#define __TERMINALOUT__
-//#define __LOGGING__
+
 
 FILE * go_logfile = NULL;
 
@@ -92,6 +92,7 @@ void PrintOut(int mode,char *msg,...)
 	
 #endif
 
+	#if 0
 	switch (mode) {
 		case PRINT_LOG :
 
@@ -116,7 +117,7 @@ void PrintOut(int mode,char *msg,...)
 		default :
 			orig_Com_Printf("%s",ac_tmp);
 	}
-
+	#endif
 }
 
 

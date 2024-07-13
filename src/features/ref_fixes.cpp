@@ -321,14 +321,16 @@ void refFixes_apply(void)
 
 /*
 re.init() exported by ref_lib AND...
-re.init() is called inside VID_LoadRefresh, so create detour earlier.
-or dont' use that detour. and call directly.
+re.init() is called inside VID_LoadRefresh
+'was previously using r_Init as entry, but could not hook it as never had signal that
+ref_gl.dll is loaded, until too late and r_init has already been called'
 */
 qboolean my_VID_LoadRefresh( char *name )
 {
 	//vid_ref loaded.
 	qboolean ret = orig_VID_LoadRefresh(name);
 	
+	// gl function pointers have been set.
 	on_ref_init();
 
 	return ret;
@@ -494,14 +496,16 @@ void setup_minmag_filters(void) {
 }
 
 int my_R_SetMode(void * deviceMode) {
-	orig_Com_Printf("R_SETMODE_R_SETMODE\n");
+	// orig_Com_Printf("R_SETMODE_R_SETMODE\n");
 	int ret = orig_R_SetMode(deviceMode);
 
+	#ifdef FEATURE_FONT_SCALING
 	if (ret) {
 		my_Con_CheckResize();
-		orig_Com_Printf("fontscale is : %i %i\n",*(int*)0x2024AF98,*(int*)0x2040365C);
+		// orig_Com_Printf("fontscale is : %i %i\n",*(int*)0x2024AF98,*(int*)0x2040365C);
 	}
-
+	#endif
+	
 	return ret;
 }
 

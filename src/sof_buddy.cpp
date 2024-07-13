@@ -5,6 +5,7 @@
 #include "sof_compat.h"
 #include "./DetourXS/detourxs.h"
 
+#include "util.h"
 
 //__ioinit
 void (*orig_FS_InitFilesystem)(void) = NULL;
@@ -76,18 +77,22 @@ void afterWsockInit(void)
 #ifdef FEATURE_FONT_SCALING
 	scaledFont_early();
 #endif
+	PrintOut(PRINT_LOG,"Before refFixes\n");
 	refFixes_early();
-
+	PrintOut(PRINT_LOG,"After refFixes\n");
 	// We ensure that the sofplus init function is
 	if ( o_sofplus ) {
+		PrintOut(PRINT_LOG,"Before sofplusEntry\n");
 		BOOL (*sofplusEntry)(void) = (int)o_sofplus + 0xF590;
 		BOOL result = sofplusEntry();
+		PrintOut(PRINT_LOG,"After sofplusEntry\n");
 	}
 
 	//orig_Qcommon_Init = DetourCreate(orig_Qcommon_Init,&my_orig_Qcommon_Init,DETOUR_TYPE_JMP,5);
+	
 	orig_FS_InitFilesystem = DetourCreate(0x20026980, &my_FS_InitFilesystem,DETOUR_TYPE_JMP,6);
 	orig_Cbuf_AddLateCommands = DetourCreate(0x20018740,&my_Cbuf_AddLateCommands,DETOUR_TYPE_JMP,5);
-	
+	PrintOut(PRINT_GOOD,"SoF Buddy fully initialised!\n");
 }
 
 //Every cvar here would trigger its modified, because no cvars exist prior.

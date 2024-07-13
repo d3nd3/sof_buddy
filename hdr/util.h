@@ -3,6 +3,9 @@
 #define PRINT_LOG 3
 #define PRINT_LOG_EMPTY 4
 
+// Log Debug Logs ? Else only Good/Bad (Status).
+// #define __LOGGING__
+
 #define M_PI   3.14159265358979323846264338327950288
 #define degToRad(angleInDegrees) ((angleInDegrees) * M_PI / 180.0)
 #define radToDeg(angleInRadians) ((angleInRadians) * 180.0 / M_PI)

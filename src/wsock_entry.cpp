@@ -152,8 +152,8 @@ typedef int (__stdcall * lpfn___WSAFDIsSet)(SOCKET fd,fd_set *set);
 lpfn___WSAFDIsSet sp___WSAFDIsSet = (lpfn___WSAFDIsSet)__WSAFDIsSet;
 extern "C" int __stdcall sys___WSAFDIsSet(SOCKET fd,fd_set *set);
 
+// #define WINSOCK_ASSERT
 
-#define WINSOCK_ASSERT
 int __stdcall sys_bind(SOCKET s,const struct sockaddr *name,int namelen)
 {
 	#ifdef WINSOCK_ASSERT
@@ -164,8 +164,9 @@ int __stdcall sys_bind(SOCKET s,const struct sockaddr *name,int namelen)
 	#endif
 
 	sockaddr_in * sock_in = (sockaddr_in*)name;
-	//PrintOut(PRINT_LOG,"CALLING bind! %s %hu\n",sock_in->sin_addr.s_addr,ntohs(sock_in->sin_port));
-
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING bind! %s %hu\n",sock_in->sin_addr.s_addr,ntohs(sock_in->sin_port));
+	#endif
 
 	return sp_bind(s,name,namelen);
 }
@@ -178,7 +179,9 @@ int sys_closesocket(SOCKET s)
 		ExitProcess(1);
 	}
 	#endif
-	//PrintOut(PRINT_LOG,"CALLING closesocket!\n");
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING closesocket!\n");
+	#endif
 	return sp_closesocket(s);
 	//return NULL;
 }
@@ -192,8 +195,10 @@ int sys_connect(SOCKET s,const struct sockaddr *name,int namelen)
 	}
 	#endif
 	sockaddr_in * sock_in=(sockaddr_in*)name;
-	//PrintOut(PRINT_LOG,"CALLING connect! %s : %hu\n",inet_ntoa(sock_in->sin_addr),ntohs(sock_in->sin_port));
-	sp_connect(s,name,namelen);
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING connect! %s : %hu\n",inet_ntoa(sock_in->sin_addr),ntohs(sock_in->sin_port));
+	#endif
+	return sp_connect(s,name,namelen);
 }
 
 int sys_getsockname(SOCKET s, struct sockaddr *name,int *namelen)
@@ -204,7 +209,9 @@ int sys_getsockname(SOCKET s, struct sockaddr *name,int *namelen)
 		ExitProcess(1);
 	}
 	#endif
-	//PrintOut(PRINT_LOG,"CALLING getsockname!\n");
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING getsockname!\n");
+	#endif
 	return sp_getsockname(s,name,namelen);
 }
 
@@ -216,7 +223,9 @@ u_long sys_htonl(u_long hostlong)
 		ExitProcess(1);
 	}
 	#endif
-	//PrintOut(PRINT_LOG,"CALLING htonl!\n");
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING htonl!\n");
+	#endif
 	return sp_htonl(hostlong);
 }
 
@@ -228,7 +237,9 @@ u_short sys_htons(u_short hostshort)
 		ExitProcess(1);
 	}
 	#endif
-	//PrintOut(PRINT_LOG,"CALLING htons!\n");
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING htons!\n");
+	#endif
 	return sp_htons(hostshort);
 }
 
@@ -240,7 +251,9 @@ unsigned long sys_inet_addr(const char *cp)
 		ExitProcess(1);
 	}
 	#endif
-	//PrintOut(PRINT_LOG,"CALLING inet_addr %s!\n",cp);
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING inet_addr %s!\n",cp);
+	#endif
 	return sp_inet_addr(cp);
 }
 
@@ -254,7 +267,9 @@ char* sys_inet_ntoa(struct in_addr in)
 	#endif
 	char * pc_out;
 	pc_out=sp_inet_ntoa(in);
-	//PrintOut(PRINT_LOG,"CALLING inet_ntoa %s\n",pc_out);
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING inet_ntoa %s\n",pc_out);
+	#endif
 	return pc_out;
 }
 
@@ -266,7 +281,9 @@ int sys_ioctlsocket(SOCKET s,long cmd,u_long *argp)
 		ExitProcess(1);
 	}
 	#endif
-	//PrintOut(PRINT_LOG,"CALLING ioctlscoket!\n");
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING ioctlscoket!\n");
+	#endif
 
 	return sp_ioctlsocket(s,cmd,argp);
 	//return NULL;
@@ -280,6 +297,9 @@ u_long sys_ntohl(u_long netlong)
 		ExitProcess(1);
 	}
 	#endif
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING sys_ntohl!\n");
+	#endif
 	return sp_ntohl(netlong);
 }
 
@@ -291,7 +311,9 @@ u_short sys_ntohs(u_short netshort)
 		ExitProcess(1);
 	}
 	#endif
-	//PrintOut(PRINT_LOG,"CALLING ntohs!\n");
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING ntohs!\n");
+	#endif
 	return sp_ntohs(netshort);
 }
 
@@ -382,7 +404,9 @@ int sys_select(int nfds,fd_set *readfds,fd_set *writefds,fd_set *exceptfds,const
 		ExitProcess(1);
 	}
 	#endif
-	//PrintOut("CALLING select!\n");
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING select!\n");
+	#endif
 	return sp_select(nfds,readfds,writefds,exceptfds,timeout);
 }
 
@@ -463,7 +487,9 @@ int sys_setsockopt(SOCKET s,int level,int optname,const char *optval,int optlen)
 		ExitProcess(1);
 	}
 	#endif
-	//PrintOut(PRINT_LOG,"CALLING setsockopt!\n");
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING setsockopt!\n");
+	#endif
 	return sp_setsockopt(s,level,optname,optval,optlen);
 }
 
@@ -475,7 +501,9 @@ int sys_shutdown(SOCKET s,int how)
 		ExitProcess(1);
 	}
 	#endif
-	//PrintOut(PRINT_LOG,"CALLING shutdown!\n");
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING shutdown!\n");
+	#endif
 	return shutdown(s,how);
 }
 
@@ -487,7 +515,9 @@ SOCKET sys_socket(int af,int type,int protocol)
 		ExitProcess(1);
 	}
 	#endif
-	//PrintOut(PRINT_LOG,"CALLING socket! %i %i %i\n",af,type,protocol);
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING socket! %i %i %i\n",af,type,protocol);
+	#endif
 	return sp_socket(af,type,protocol);
 }
 
@@ -499,7 +529,9 @@ struct hostent* sys_gethostbyname(const char *name)
 		ExitProcess(1);
 	}
 	#endif
-	//PrintOut(PRINT_LOG,"CALLING gethostbyname %s!\n",name);
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING gethostbyname %s!\n",name);
+	#endif
 	return sp_gethostbyname(name);
 }
 
@@ -511,7 +543,9 @@ int sys_gethostname(char *name,int namelen)
 		ExitProcess(1);
 	}
 	#endif
-	//PrintOut(PRINT_LOG,"CALLING gethostname! %s\n",name);
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING gethostname! %s\n",name);
+	#endif
 	return sp_gethostname(name,namelen);
 
 }
@@ -524,22 +558,32 @@ int sys_WSAGetLastError(void)
 		ExitProcess(1);
 	}
 	#endif
-	//PrintOut(PRINT_LOG,"CALLING WSAGetLastError!\n");
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING WSAGetLastError!\n");
+	#endif
 	return sp_WSAGetLastError();
 }
 
 int sys_WSAStartup(WORD wVersionRequested,LPWSADATA lpWSAData)
 {
+	static bool doOnce = false;
 	#ifdef WINSOCK_ASSERT
 	if ( sp_WSAStartup == NULL ) {
 		orig_Com_Printf("WSAStartup\n");
 		ExitProcess(1);
 	}
 	#endif
-	//PrintOut(PRINT_LOG,"CALLING WSA_STARTUP!\n");
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING WSA_STARTUP!\n");
+	#endif
 
 	int ret = sp_WSAStartup(wVersionRequested,lpWSAData);
-	resetTimers(0); 
+	if (!doOnce) {
+		doOnce = true;
+		resetTimers(0);
+	}
+	PrintOut(PRINT_LOG,"CALLING WSA_STARTUP_AFTERXX!\n");
+	
 	return ret;
 }
 
@@ -551,7 +595,9 @@ int sys_WSACleanup(void)
 		ExitProcess(1);
 	}
 	#endif
-	//PrintOut(PRINT_LOG,"CALLING WSA_CLEANUP!\n");
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING WSA_CLEANUP!\n");
+	#endif
 	return sp_WSACleanup();
 }
 
@@ -563,7 +609,9 @@ int sys___WSAFDIsSet(SOCKET fd,fd_set *set)
 		ExitProcess(1);
 	}
 	#endif
-	//PrintOut(PRINT_LOG,"CALLING __WSAFDIsSet!\n");
+	#ifdef __LOGGING__
+	PrintOut(PRINT_LOG,"CALLING __WSAFDIsSet!\n");
+	#endif
 	return sp___WSAFDIsSet(fd,set);
 }
 
@@ -580,8 +628,7 @@ DWORD get_base_address() {
 }
 
 // A function that reads a null-terminated string from a given memory address
-char* read_string(DWORD address,char * result) {
-
+char* read_string(uintptr_t address,char * result) {
     int i = 0; // a counter for the buffer index
     char c; // a variable to store the current character
     do {
@@ -591,6 +638,7 @@ char* read_string(DWORD address,char * result) {
         address++; // increment the address
     } while (c != '\0' && i < 256); // repeat until the end of the string or the buffer limit
 
+    return result;
 }
 
 // A function that formats the error message from a given error code
@@ -716,11 +764,14 @@ void sofplus_copy(void)
 		ExitProcess(1);
 		return 1;
 	}
+	// char erm[256];
+	// wsprintf(erm,"%s",tempPath);
+	// MessageBox(NULL, erm, "NoIdea", MB_ICONERROR | MB_OK);
 
 	// Append your desired folder name
 	wchar_t tempFolder[MAX_PATH];
-	wcscpy_s(tempFolder, MAX_PATH, tempPath);
-	wcscat_s(tempFolder, MAX_PATH, L"sof_buddy");
+	wcscpy_s(tempFolder, _countof(tempFolder), tempPath);
+	wcscat_s(tempFolder, _countof(tempFolder), L"sof_buddy");
 
 	if (!CreateDirectoryW(tempFolder, NULL)) {
 	// Check if the folder already exists
@@ -733,7 +784,7 @@ void sofplus_copy(void)
 
 	// Combine the folder and filename using PathCombine
 	PathCombineW(tempFileName, tempFolder, L"spcl");
-
+	PrintOut(PRINT_LOG,"Forming fileName %ls from %ls where temppath is %ls\n",tempFileName,tempFolder,tempPath);
 	// Verify that the resulting path is not too long
 	if (wcslen(tempFileName) >= MAX_PATH) {
 		// Handle error
@@ -856,6 +907,7 @@ void sofplus_copy(void)
 	//MessageBoxW(NULL, (std::wstring(L"Path is : ") + tempFileName).c_str(), L"Success", MB_ICONINFORMATION | MB_OK);
 	// o_sofplus = LoadLibraryExW(tempFileName,NULL,LOAD_LIBRARY_SEARCH_DEFAULT_DIRS );
 	// o_sofplus = LoadLibrary("spcl.dll");
+	PrintOut(PRINT_LOG,"Loading %ls\n",tempFileName);
 	o_sofplus = LoadLibraryW(tempFileName);
 	if (o_sofplus == NULL) {
 		DWORD error = GetLastError();
@@ -875,7 +927,9 @@ void sofplus_copy(void)
 		for ( int i = 0; i < 24; i++ ) {
 			if ( SoFplusLoadFn(o_sofplus,(void**)pv_funcs[i],&ac_funcs[i][0]) == false )
 			{
-				//MessageBox(NULL, (std::string(&ac_funcs[i][0]) + "Couldn't Load a sofplus function").c_str(), "Error", MB_ICONERROR | MB_OK);
+				#ifdef __LOGGING__
+				MessageBox(NULL, (std::string(&ac_funcs[i][0]) + "Couldn't Load a sofplus function").c_str(), "Error", MB_ICONERROR | MB_OK);
+				#endif
 			}
 		}
 
@@ -889,7 +943,7 @@ void sofplus_copy(void)
 
 
 	}
-
+	PrintOut(PRINT_LOG,"Before afterWsockInit()\n");
 	afterWsockInit();
 	//CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)sofbuddy_thread,NULL,0,NULL);
 	
@@ -906,6 +960,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 
 		static bool init = false;
 		if (init==false) {
+			PrintOut(PRINT_LOG,"DllMain\n");
 			/*
 				we are loaded thus they have sofbuddy in sof.exe as wsock wrapper.
 				we check if spcl.dll exists, as to whether to load it or not.
@@ -915,12 +970,12 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 			bool b_sofplus = false;
 
 			strcpy(ac_sofplus,"spcl.dll");
-
+			PrintOut(PRINT_LOG,"DllMain 2\n");
 			DWORD base_address = get_base_address(); // get the base address of the process
 			DWORD offset = 0x11AD72; // the offset to the memory address
 			DWORD address = base_address + offset; // the absolute memory address
 			char result[256];
-			read_string(address,result); // read the string from the memory address
+		    read_string(address,result);
 			/*
 			MessageBox(NULL, result, "Success", MB_OK);
 			ExitProcess(1);
@@ -934,7 +989,9 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 
 			ExitProcess(1);
 			*/
+			
 			if( access( ac_sofplus, F_OK ) != -1 ) {
+				PrintOut(PRINT_LOG,"spcl.dll exists\n");
 				//spcl.dll exists.
 				FILE *fp;
 
@@ -946,9 +1003,12 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 					if(!ferror(fp)) {
 						// PrintOut(PRINT_GOOD,"%08x : spsv.dll\n", crc);
 						// MessageBox(NULL, (std::string("spcl.dll checksum") + std::to_string(crc)).c_str(), "Error", MB_ICONERROR | MB_OK);
-						if ( crc == SPCL_CHECKSUM )
+						if ( crc == SPCL_CHECKSUM ) {
 							b_sofplus = true;
+							PrintOut(PRINT_LOG,"GOOD SPCL FILE\n");
+						}
 						else {
+							PrintOut(PRINT_LOG,"BAD SPCL FILE\n");
 							MessageBox(NULL, "Sofplus not installed correctly. Requires version 20140531.", "Error", MB_ICONERROR | MB_OK);
 							ExitProcess(1);
 							return 1;
@@ -959,9 +1019,11 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 			}
 			
 			if ( b_sofplus ) {
+				PrintOut(PRINT_LOG,"SOFPLUS LOAD ATTEMPT\n");
 				PrintOut(PRINT_GOOD,"SoFplus detected\n");
 				sofplus_copy();
 			} else {
+				PrintOut(PRINT_LOG,"NON SOFPLUS LOAD ATTEMPT\n");
 				wsock_link();
 			}
 			init=true;
@@ -984,7 +1046,9 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 
 bool SoFplusLoadFn(HMODULE sofplus,void ** out_fn,char * func)
 {
-	
+	PrintOut(PRINT_LOG,"SoFplusLoadFn()\n");
 	*out_fn = (void*)GetProcAddress(sofplus,func);
 	if (*out_fn == NULL) return false;
+
+	return true;
 }
