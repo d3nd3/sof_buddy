@@ -9,6 +9,11 @@
 * **Console Size Adjustment**
 
 ## Usage
+### Wine/Proton
+If you are on linux, I highly recommend using wine instead of proton.  
+`wine SoF.exe +set console 1 +set cddir CDDIR +set wine %command%`
+
+Because wine has less tearing and less glitchy gun effects/visuals.
 ### Installation + Setup
 Either compile the project using `make` or grab the pre-compiled from release section.  
 Ensure/place the `sof_buddy.dll` file is in your root SoF folder, along with the other 4 scripts.  
