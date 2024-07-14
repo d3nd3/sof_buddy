@@ -49,3 +49,10 @@ void writeIntegerAt(void * addr, int value);
 void WriteE8Call(void * where,void * dest);
 void WriteE9Jmp(void * where, void * dest);
 void WriteByte(void * where, unsigned char value);
+
+cvar_t * findCvar(char * cvarname);
+void setCvarUnsignedInt(cvar_t * which,unsigned int val);
+void setCvarInt(cvar_t * which,int val);
+void setCvarByte(cvar_t * which, unsigned char val);
+void setCvarFloat(cvar_t * which, float val);
+void setCvarString(cvar_t * which, char * newstr);

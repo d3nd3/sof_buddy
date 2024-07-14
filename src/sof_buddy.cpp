@@ -13,6 +13,15 @@ void my_FS_InitFilesystem(void);
 void my_orig_Qcommon_Init(int argc, char **argv);
 qboolean my_Cbuf_AddLateCommands(void);
 
+cvar_t *(*orig_Cvar_Get)(const char * name, const char * value, int flags, cvarcommand_t command) = 0x20021AE0;
+void ( *orig_Com_Printf)(char * msg, ...) = 0x2001C6E0;
+void (*orig_Qcommon_Frame) (int msec) = 0x2001F720;
+
+void (*orig_Qcommon_Init) (int argc, char **argv) = 0x2001F390;
+qboolean (*orig_Cbuf_AddLateCommands)(void) = NULL;
+
+
+
 /*
 	DllMain of WSOCK32 library
 	Implicit Linking (Static Linking to the Import Library)
@@ -92,27 +101,53 @@ void afterWsockInit(void)
 	
 	orig_FS_InitFilesystem = DetourCreate(0x20026980, &my_FS_InitFilesystem,DETOUR_TYPE_JMP,6);
 	orig_Cbuf_AddLateCommands = DetourCreate(0x20018740,&my_Cbuf_AddLateCommands,DETOUR_TYPE_JMP,5);
+
+	
 	PrintOut(PRINT_GOOD,"SoF Buddy fully initialised!\n");
+}
+
+/*
+	Fix bug on proton:
+		Proton 3.7.8
+		GloriousEggProton 
+	if vid_card or cpu_memory_using become 'modified'
+	causes a cascade of low performance cvars to kick in. (drivers/alldefs.cfg,geforce.cfg,cpu4.cfg,memory1.cfg)
+	which have very bad values in them.
+
+	they can become modified if new hardware values differ from config.cfg 
+*/
+void InitDefaults(void)
+{
+	orig_Cmd_ExecuteString("exec drivers/highest.cfg\nset fx_maxdebrisonscreen 128\n");
+
+	PrintOut(PRINT_GOOD,"Fixed defaults\n");
 }
 
 //Every cvar here would trigger its modified, because no cvars exist prior.
 //But its loaded with its default value.
 /*
+	Cvar_Get -> If the variable already exists, the value will not be set
 	This is earlier than Cbuf_AddLateCommands(), just before exec default.cfg and exec config.cfg IN Qcommon_Init()
 
 	Cvar flags are or'ed in, thus multiple calls to Cvar_Get stack the flags.
 	Does the command with NULL, remove the command or create multiple?
 	  NULL does not remove previous set modified callbacks.
 	  With a new modified callback, it overrides the currently set one.
+
+	 If you want your cvar's onChange callback to be triggered by config.cfg (which sets cvars).
+	 They have to be first created here, thus it would have 2 calls to the callback, if the config.cfg contains a different value,
+	 than the default we supply here.
 */
 void my_FS_InitFilesystem(void) {
 	orig_FS_InitFilesystem();
 
-	//Best place for cvars if you want config.cfg induced triggering of modified events.
+	//Best (Earliest)(before exec config.cfg) place for cvar creation, if you want config.cfg induced triggering of modified events.
 	refFixes_apply();
 	#ifdef FEATURE_FONT_SCALING
 		scaledFont_apply();
 	#endif
+
+	
 
 	//orig_Com_Printf("End FS_InitFilesystem\n");
 }
@@ -126,8 +161,21 @@ void my_orig_Qcommon_Init(int argc, char **argv)
 }
 
 
+
+
+
 /*
-Safest Init Location for wanting to check command line values.
+Safest(Earliest) Init Location for wanting to check command line values.
+
+Cbuf_AddEarlyCommands
+  processes all `+set` commands first.
+
+Later in frame...
+Cbuf_AddLateCommands
+  all other commands that start with + are processed.
+  You can mark the end of the command with `-`.
+
+"public 1" must be set inside dedicated.cfg because dedicated.cfg overrides it? If no dedicated.cfg in user, the dedicated.cfg from pak0.pak is used.
 */
 //this is called inside Qcommon_Init()
 qboolean my_Cbuf_AddLateCommands(void)
@@ -136,13 +184,10 @@ qboolean my_Cbuf_AddLateCommands(void)
 #ifdef FEATURE_MEDIA_TIMERS
 	mediaTimers_apply();
 #endif
-
+	
+	/*
+		CL_Init() already called, which handled VID_Init, and R_Init()
+	*/
 	return ret;
 }
 
-cvar_t *(*orig_Cvar_Get)(const char * name, const char * value, int flags, cvarcommand_t command) = 0x20021AE0;
-void ( *orig_Com_Printf)(char * msg, ...) = 0x2001C6E0;
-void (*orig_Qcommon_Frame) (int msec) = 0x2001F720;
-
-void (*orig_Qcommon_Init) (int argc, char **argv) = 0x2001F390;
-qboolean (*orig_Cbuf_AddLateCommands)(void) = NULL;

@@ -9,6 +9,10 @@
 //#define __TERMINALOUT__
 
 
+void (*orig_Z_Free) (void * v) = 0x2001EBC0;
+char *(*orig_CopyString) (char *in) = 0x2001EA20;
+void (*orig_Cmd_ExecuteString)(const char * string) = 0x200194F0;
+
 FILE * go_logfile = NULL;
 
 void PrintOut(int mode,char *msg,...)
@@ -118,6 +122,7 @@ void PrintOut(int mode,char *msg,...)
 			orig_Com_Printf("%s",ac_tmp);
 	}
 	#endif
+	
 }
 
 
@@ -165,4 +170,67 @@ void WriteByte(void * where, unsigned char value)
 	VirtualProtect(where, 1, PAGE_READWRITE, &dwProt);
 	*(unsigned char*)where = value;
 	VirtualProtect(where, 1, dwProt, &dwProt);
+}
+
+/*
+Cvar Util Funcs
+*/
+cvar_t * findCvar(char * cvarname)
+{
+	cvar_t	*var;
+	cvar_t * cvar_vars = *(unsigned int*)0x2024B1D8;
+	
+	for (var=cvar_vars ; var ; var=var->next)
+		if (!strcmp (cvarname, var->name))
+			return var;
+	return NULL;
+}
+
+void setCvarUnsignedInt(cvar_t * which,unsigned int val){
+	which->modified = true;
+	orig_Z_Free(which->string);
+	char intstring[64];
+	which->value = (float)val;
+	sprintf(intstring,"%u",val);
+	which->string = orig_CopyString(intstring);
+}
+
+
+void setCvarInt(cvar_t * which,int val){
+	which->modified = true;
+	orig_Z_Free(which->string);
+	char intstring[64];
+	which->value = (float)val;
+	sprintf(intstring,"%d",val);
+	which->string = orig_CopyString(intstring);
+}
+
+void setCvarByte(cvar_t * which, unsigned char val) {
+	which->modified = true;
+	orig_Z_Free(which->string);
+	char bytestring[64];
+	sprintf(bytestring,"%hhu",val);
+	which->value = atof(bytestring);
+	which->string = orig_CopyString(bytestring);
+}
+
+
+void setCvarFloat(cvar_t * which, float val) {
+
+	which->modified = true;
+	orig_Z_Free(which->string);
+	char floatstring[64];
+	sprintf(floatstring,"%f",val);
+	which->string = orig_CopyString(floatstring);
+	which->value = val;
+}
+
+void setCvarString(cvar_t * which, char * newstr) {
+
+	which->modified = true;
+	orig_Z_Free(which->string);
+	
+	
+	which->string = orig_CopyString(newstr);
+	which->value = atof(which->string);
 }

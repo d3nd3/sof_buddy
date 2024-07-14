@@ -10,8 +10,9 @@
 
 ## Usage
 ### Wine/Proton
-If you are on linux, I highly recommend using wine instead of proton.  
-`wine SoF.exe +set console 1 +set cddir CDDIR +set wine %command%`
+If you are on linux, I highly recommend using wine instead of proton.  There is less screen tearing, when using true fullscreen (drm.modeset), only noticeable in slight moments.  
+`wine SoF.exe +set console 1 +set cddir CDDIR +set wine %command%`  
+However, if you do decide to use Proton, I recommend <= 4.11-13 , else you have to adjust sound frequency each startup. (It sticks to 11, but 22 is better).
 
 Because wine has less tearing and less glitchy gun effects/visuals.
 ### Installation + Setup

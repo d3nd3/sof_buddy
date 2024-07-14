@@ -62,3 +62,8 @@ extern void (*orig_GL_BuildPolygonFromSurface)(void *fa);
 extern int (*orig_R_Init)( void *hinstance, void *hWnd, void * unknown );
 extern void (*orig_drawTeamIcons)(void * param1,void * param2,void * param3,void * param4);
 
+//util access
+extern void (*orig_Cmd_ExecuteString)(const char * string);
+
+extern void InitDefaults(void);
+

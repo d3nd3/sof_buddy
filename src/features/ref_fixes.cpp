@@ -7,8 +7,9 @@
 
 #include "features.h"
 #include "../DetourXS/detourxs.h"
-#include "util.h"
+
 #include "sof_compat.h"
+#include "util.h"
 
 typedef struct {
 	unsigned short w;
@@ -45,6 +46,7 @@ int (*orig_R_SetMode)(void * deviceMode) = NULL;
 
 extern void scaledFont_init(void);
 
+HMODULE __stdcall RefInMemory(LPCSTR lpLibFileName);
 void on_ref_init(void);
 void initDefaultTexSizes(void);
 
@@ -273,6 +275,8 @@ void __stdcall orig_glTexParameterf_mag_ui(int target_tex, int param_name, float
 }
 
 void refFixes_early(void) {
+	WriteE8Call(0x20066E75,&RefInMemory);
+	WriteByte(0x20066E7A,0x90);
 	orig_VID_LoadRefresh = DetourCreate((void*)0x20066E10,(void*)&my_VID_LoadRefresh,DETOUR_TYPE_JMP,5);
 }
 /*
@@ -308,7 +312,8 @@ void refFixes_apply(void)
 
 	_sofbuddy_minfilter_mipped = orig_Cvar_Get("_sofbuddy_minfilter_mipped","GL_LINEAR_MIPMAP_LINEAR",CVAR_ARCHIVE,&minfilter_change);
 	//I like GL_NEAREST here, the detail textures look crisper? debateable.
-	_sofbuddy_magfilter_mipped = orig_Cvar_Get("_sofbuddy_magfilter_mipped","GL_NEAREST",CVAR_ARCHIVE,&magfilter_change);
+	//Since it affects the bullet fire light, it should be LINEAR.
+	_sofbuddy_magfilter_mipped = orig_Cvar_Get("_sofbuddy_magfilter_mipped","GL_LINEAR",CVAR_ARCHIVE,&magfilter_change);
 
 	// I don't see a reason to have this set to anything but GL_NEAREST
 	_sofbuddy_minfilter_ui = orig_Cvar_Get("_sofbuddy_minfilter_ui","GL_NEAREST",CVAR_ARCHIVE,&minfilter_change);
@@ -326,7 +331,8 @@ re.init() is called inside VID_LoadRefresh
 ref_gl.dll is loaded, until too late and r_init has already been called'
 */
 qboolean my_VID_LoadRefresh( char *name )
-{
+{	
+
 	//vid_ref loaded.
 	qboolean ret = orig_VID_LoadRefresh(name);
 	
@@ -508,9 +514,24 @@ int my_R_SetMode(void * deviceMode) {
 	
 	return ret;
 }
+HMODULE (__stdcall *orig_LoadLibraryA)(LPCSTR lpLibFileName) = *(unsigned int*)0x20111178;
+HMODULE __stdcall RefInMemory(LPCSTR lpLibFileName)
+{
+	HMODULE ret = orig_LoadLibraryA(lpLibFileName);
+	if (ret) {
+		WriteE8Call(0x3000FA26,&InitDefaults);
+		WriteByte(0x3000FA2B,0x90);	
+	}
+	
+	return ret;
+}
 
+/*
+	After R_Init()
+*/
 void on_ref_init(void)
 {
+
 	setup_minmag_filters();
 
 #ifdef FEATURE_HD_TEX
