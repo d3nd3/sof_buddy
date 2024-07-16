@@ -14,7 +14,7 @@ void my_orig_Qcommon_Init(int argc, char **argv);
 qboolean my_Cbuf_AddLateCommands(void);
 
 cvar_t *(*orig_Cvar_Get)(const char * name, const char * value, int flags, cvarcommand_t command) = 0x20021AE0;
-void ( *orig_Com_Printf)(char * msg, ...) = 0x2001C6E0;
+void ( *orig_Com_Printf)(char * msg, ...) = NULL;
 void (*orig_Qcommon_Frame) (int msec) = 0x2001F720;
 
 void (*orig_Qcommon_Init) (int argc, char **argv) = 0x2001F390;
@@ -114,11 +114,18 @@ void afterWsockInit(void)
 	causes a cascade of low performance cvars to kick in. (drivers/alldefs.cfg,geforce.cfg,cpu4.cfg,memory1.cfg)
 	which have very bad values in them.
 
-	they can become modified if new hardware values differ from config.cfg 
+	they can become modified if new hardware values differ from config.cfg
+
+	The exact moment that hardware-changed new setup files are exec'ed (cpu_ vid_card different to config.cfg)
 */
 void InitDefaults(void)
 {
-	orig_Cmd_ExecuteString("exec drivers/highest.cfg\nset fx_maxdebrisonscreen 128\n");
+	orig_Cmd_ExecuteString("exec drivers/highest.cfg\n");
+	// fix 1024 high value of fx_maxdebrisonscreen, hurts cpu.
+	orig_Cmd_ExecuteString("set fx_maxdebrisonscreen 128\n");
+	// fix compression as default for some gpu.
+	orig_Cmd_ExecuteString("set r_isf GL_SOLID_FORMAT\n");
+	orig_Cmd_ExecuteString("set r_iaf GL_ALPHA_FORMAT\n");
 
 	PrintOut(PRINT_GOOD,"Fixed defaults\n");
 }
@@ -140,6 +147,9 @@ void InitDefaults(void)
 */
 void my_FS_InitFilesystem(void) {
 	orig_FS_InitFilesystem();
+
+	//Allow PrintOut to use Com_Printf now.
+	orig_Com_Printf = 0x2001C6E0;
 
 	//Best (Earliest)(before exec config.cfg) place for cvar creation, if you want config.cfg induced triggering of modified events.
 	refFixes_apply();

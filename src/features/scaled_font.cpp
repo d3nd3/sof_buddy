@@ -203,7 +203,8 @@ void my_Con_Init(void) {
 //Called at end of QCommon_Init()
 void scaledFont_apply(void) {
 
-	_sofbuddy_console_size = orig_Cvar_Get("_sofbuddy_console_size","0.35",CVAR_ARCHIVE,&consolesize_change);
+	//0.35 is nice value.
+	_sofbuddy_console_size = orig_Cvar_Get("_sofbuddy_console_size","0.5",CVAR_ARCHIVE,&consolesize_change);
 	//fontscale_change references a cvar, so order matters.
 	_sofbuddy_font_scale = orig_Cvar_Get("_sofbuddy_font_scale","1",CVAR_ARCHIVE,&fontscale_change);
 

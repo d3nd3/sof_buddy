@@ -7,15 +7,27 @@
 * **Lighting blend mode adjustment** (if compile with #define FEATURE_ALT_LIGHTING in hdr/features.h)
 * **Font Scaling**
 * **Console Size Adjustment**
+* **Sane first time settings for SoF init if del config.cfg eg.**
 
 ## Usage
 ### Wine/Proton
-If you are on linux, I highly recommend using wine instead of proton.  There is less screen tearing, when using true fullscreen (drm.modeset), only noticeable in slight moments.  
-`wine SoF.exe +set console 1 +set cddir CDDIR +set wine %command%`  
+If you are on linux, I highly recommend using wine instead of proton.  There is less screen tearing, when using true fullscreen (drm.modeset), only noticeable in slight moments. (Because wine has less tearing and less glitchy gun effects/visuals.)  
+
+`wine SoF.exe +set console 1 +set cddir CDDIR #%command%`  
 However, if you do decide to use Proton, I recommend <= 4.11-13 , else you have to adjust sound frequency each startup. (It sticks to 11, but 22 is better).
 
-Because wine has less tearing and less glitchy gun effects/visuals.
+Optimal FPS, especially if using wine:  
+base/autoexec.cfg:  
+```
+cl_quads 0
+ghl_light_method 0
+ghl_shadows 0
+```
+
+
 ### Installation + Setup
+It is recommended to delete your User/config.cfg file before install so that you get optimal defaults.  
+
 Either compile the project using `make` or grab the pre-compiled from release section.  
 Ensure/place the `sof_buddy.dll` file is in your root SoF folder, along with the other 4 scripts.  
 (dump everything into the root SoF folder)  

@@ -274,9 +274,13 @@ void __stdcall orig_glTexParameterf_mag_ui(int target_tex, int param_name, float
 	orig_glTexParameterf(target_tex,param_name,magfilter_ui);
 }
 
+/*
+	RefInMemory is a LoadLibrary() in-place Detour, for ref_gl.dll
+*/
 void refFixes_early(void) {
 	WriteE8Call(0x20066E75,&RefInMemory);
 	WriteByte(0x20066E7A,0x90);
+
 	orig_VID_LoadRefresh = DetourCreate((void*)0x20066E10,(void*)&my_VID_LoadRefresh,DETOUR_TYPE_JMP,5);
 }
 /*
@@ -515,10 +519,19 @@ int my_R_SetMode(void * deviceMode) {
 	return ret;
 }
 HMODULE (__stdcall *orig_LoadLibraryA)(LPCSTR lpLibFileName) = *(unsigned int*)0x20111178;
+
+/*
+	RefInMemory is a LoadLibrary() in-place Detour, for ref_gl.dll
+
+	Allows to modify ref_gl.dll at before R_Init() returns.
+*/
 HMODULE __stdcall RefInMemory(LPCSTR lpLibFileName)
 {
 	HMODULE ret = orig_LoadLibraryA(lpLibFileName);
 	if (ret) {
+		/*
+			Get the exact moment that hardware-changed new setup files are exec'ed (cpu_ vid_card different to config.cfg)
+		*/
 		WriteE8Call(0x3000FA26,&InitDefaults);
 		WriteByte(0x3000FA2B,0x90);	
 	}
