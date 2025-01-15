@@ -1,8 +1,10 @@
+#include "sof_buddy.h"
+
 #include <iostream>
 
-#include "sof_buddy.h"
-#include "features.h"
 #include "sof_compat.h"
+#include "features.h"
+
 #include "./DetourXS/detourxs.h"
 
 #include "util.h"
@@ -14,12 +16,13 @@ void my_orig_Qcommon_Init(int argc, char **argv);
 qboolean my_Cbuf_AddLateCommands(void);
 
 cvar_t *(*orig_Cvar_Get)(const char * name, const char * value, int flags, cvarcommand_t command) = 0x20021AE0;
+cvar_t *(*orig_Cvar_Set2) (char *var_name, char *value, qboolean force) = 0x20021D70;
+void (*orig_Cvar_SetInternal)(bool active) = 0x200216C0;
 void ( *orig_Com_Printf)(char * msg, ...) = NULL;
 void (*orig_Qcommon_Frame) (int msec) = 0x2001F720;
 
 void (*orig_Qcommon_Init) (int argc, char **argv) = 0x2001F390;
 qboolean (*orig_Cbuf_AddLateCommands)(void) = NULL;
-
 
 
 /*
@@ -79,10 +82,7 @@ void afterWsockInit(void)
 		This is called by our DllMain(), thus before SoF.exe CRTmain().
 		Cvars etc not allowed here. 
 	*/
-#ifdef FEATURE_MEDIA_TIMERS
-	//my_Sys_Milliseconds hook
-	mediaTimers_early();
-#endif
+
 #ifdef FEATURE_FONT_SCALING
 	scaledFont_early();
 #endif
@@ -102,6 +102,9 @@ void afterWsockInit(void)
 	orig_FS_InitFilesystem = DetourCreate(0x20026980, &my_FS_InitFilesystem,DETOUR_TYPE_JMP,6);
 	orig_Cbuf_AddLateCommands = DetourCreate(0x20018740,&my_Cbuf_AddLateCommands,DETOUR_TYPE_JMP,5);
 
+
+	//Patch CL_Frame() to allow client frame limitting whilst in non dedicated server
+	WriteByte(0x2000D973,0x90);WriteByte(0x2000D974,0x90);
 	
 	PrintOut(PRINT_GOOD,"SoF Buddy fully initialised!\n");
 }
@@ -130,26 +133,13 @@ void InitDefaults(void)
 	PrintOut(PRINT_GOOD,"Fixed defaults\n");
 }
 
-//Every cvar here would trigger its modified, because no cvars exist prior.
-//But its loaded with its default value.
-/*
-	Cvar_Get -> If the variable already exists, the value will not be set
-	This is earlier than Cbuf_AddLateCommands(), just before exec default.cfg and exec config.cfg IN Qcommon_Init()
-
-	Cvar flags are or'ed in, thus multiple calls to Cvar_Get stack the flags.
-	Does the command with NULL, remove the command or create multiple?
-	  NULL does not remove previous set modified callbacks.
-	  With a new modified callback, it overrides the currently set one.
-
-	 If you want your cvar's onChange callback to be triggered by config.cfg (which sets cvars).
-	 They have to be first created here, thus it would have 2 calls to the callback, if the config.cfg contains a different value,
-	 than the default we supply here.
-*/
 void my_FS_InitFilesystem(void) {
 	orig_FS_InitFilesystem();
 
 	//Allow PrintOut to use Com_Printf now.
 	orig_Com_Printf = 0x2001C6E0;
+
+	
 
 	//Best (Earliest)(before exec config.cfg) place for cvar creation, if you want config.cfg induced triggering of modified events.
 	refFixes_apply();
@@ -191,8 +181,14 @@ Cbuf_AddLateCommands
 qboolean my_Cbuf_AddLateCommands(void)
 {
 	qboolean ret = orig_Cbuf_AddLateCommands();
+	//user can disable modern tick from launch option. +set _sofbuddy_classic 1
 #ifdef FEATURE_MEDIA_TIMERS
-	mediaTimers_apply();
+	create_sofbuddy_cvars();
+	if ( _sofbuddy_classic_timers && _sofbuddy_classic_timers->value == 0.0f ) 
+		{
+			PrintOut(PRINT_GOOD,"Using QPC timers!\n");
+			mediaTimers_apply();
+		}
 #endif
 	
 	/*

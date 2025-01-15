@@ -21,6 +21,8 @@ typedef struct cvar_s
 
 
 extern cvar_t *(*orig_Cvar_Get)(const char * name, const char * value, int flags, cvarcommand_t command);
+extern cvar_t *(*orig_Cvar_Set2) (char *var_name, char *value, qboolean force);
+extern void (*orig_Cvar_SetInternal)(bool active); 
 
 #define  CVAR_ARCHIVE   0x00000001  // set to cause it to be saved to config.cfg
 

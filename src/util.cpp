@@ -1,12 +1,14 @@
-#include <windows.h>
+#include "sof_buddy.h"
+
 #include <stdio.h>
 #include <stdarg.h>
 
 #include "sof_compat.h"
 #include "util.h"
 
-#define __FILEOUT__
-//#define __TERMINALOUT__
+//Extra output print places than in-game.
+// #define __FILEOUT__
+// #define __TERMINALOUT__
 
 
 void (*orig_Z_Free) (void * v) = 0x2001EBC0;
@@ -26,6 +28,7 @@ void PrintOut(int mode,char *msg,...)
 	// perror (ac_buf);
 	va_end (args);
 
+//ignore debug-log-type-messages?
 #ifndef __LOGGING__
 	if ( mode == PRINT_LOG || mode == PRINT_LOG_EMPTY ) return;
 #endif
@@ -76,6 +79,9 @@ void PrintOut(int mode,char *msg,...)
 				fprintf(go_logfile,"%s",ac_buf);
 
 		break;
+		case PRINT_LOG_EMPTY :
+			fprintf("%s",ac_tmp);
+		break;
 		case PRINT_GOOD :
 
 				strcpy(ac_buf,"SoFree Success: ");
@@ -97,6 +103,7 @@ void PrintOut(int mode,char *msg,...)
 #endif
 
 	if ( orig_Com_Printf == NULL) return;
+	//in-game print
 	switch (mode) {
 		case PRINT_LOG :
 
@@ -104,6 +111,9 @@ void PrintOut(int mode,char *msg,...)
 				strcat(ac_buf,ac_tmp);
 				orig_Com_Printf("%s",ac_buf);
 
+		break;
+		case PRINT_LOG_EMPTY :
+			orig_Com_Printf("%s",ac_tmp);
 		break;
 		case PRINT_GOOD :
 

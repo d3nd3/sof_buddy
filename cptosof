@@ -1,3 +1,2 @@
 #!/bin/bash
-SOFDIR="/mnt/d/sof1/"
 cp "bin/sof_buddy.dll" "${SOFDIR}"

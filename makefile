@@ -43,6 +43,7 @@ OBJS = $(ODIR)/DetourXS/ADE32.o \
 	$(ODIR)/sof_buddy.o \
 	$(ODIR)/crc32.o \
 	$(ODIR)/util.o \
+	$(ODIR)/cvars.o \
 	$(ODIR)/features/media_timers.o \
 	$(ODIR)/features/ref_fixes.o \
 	$(ODIR)/features/scaled_font.o

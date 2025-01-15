@@ -3,7 +3,7 @@
 #define PRINT_LOG 3
 #define PRINT_LOG_EMPTY 4
 
-// Log Debug Logs ? Else only Good/Bad (Status).
+// show debug-log-type-messages?
 // #define __LOGGING__
 
 #define M_PI   3.14159265358979323846264338327950288

@@ -405,7 +405,7 @@ int sys_select(int nfds,fd_set *readfds,fd_set *writefds,fd_set *exceptfds,const
 	}
 	#endif
 	#ifdef __LOGGING__
-	PrintOut(PRINT_LOG,"CALLING select!\n");
+	// PrintOut(PRINT_LOG,"CALLING select!\n");
 	#endif
 	return sp_select(nfds,readfds,writefds,exceptfds,timeout);
 }
@@ -559,7 +559,7 @@ int sys_WSAGetLastError(void)
 	}
 	#endif
 	#ifdef __LOGGING__
-	PrintOut(PRINT_LOG,"CALLING WSAGetLastError!\n");
+	// PrintOut(PRINT_LOG,"CALLING WSAGetLastError!\n");
 	#endif
 	return sp_WSAGetLastError();
 }
@@ -580,7 +580,9 @@ int sys_WSAStartup(WORD wVersionRequested,LPWSADATA lpWSAData)
 	int ret = sp_WSAStartup(wVersionRequested,lpWSAData);
 	if (!doOnce) {
 		doOnce = true;
+		#ifdef FEATURE_MEDIA_TIMERS
 		resetTimers(0);
+		#endif
 	}
 	PrintOut(PRINT_LOG,"CALLING WSA_STARTUP_AFTERXX!\n");
 	

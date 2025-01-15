@@ -1,16 +1,14 @@
-#include <windows.h>
+#include "sof_buddy.h"
 #include <math.h>
 
-#include "features.h"
-#include "../DetourXS/detourxs.h"
 #include "sof_compat.h"
+#include "features.h"
+
+#include "../DetourXS/detourxs.h"
+
 #include "util.h"
 
 #ifdef FEATURE_FONT_SCALING
-
-
-cvar_t * _sofbuddy_font_scale = NULL;
-cvar_t * _sofbuddy_console_size = NULL;
 
 
 void (*orig_Draw_Char) (int, int, int, int) = NULL;
@@ -203,11 +201,7 @@ void my_Con_Init(void) {
 //Called at end of QCommon_Init()
 void scaledFont_apply(void) {
 
-	//0.35 is nice value.
-	_sofbuddy_console_size = orig_Cvar_Get("_sofbuddy_console_size","0.5",CVAR_ARCHIVE,&consolesize_change);
-	//fontscale_change references a cvar, so order matters.
-	_sofbuddy_font_scale = orig_Cvar_Get("_sofbuddy_font_scale","1",CVAR_ARCHIVE,&fontscale_change);
-
+	create_scaled_fonts_cvars();
 	
 	orig_Con_DrawNotify = DetourCreate((void*)0x20020D70 , (void*)&my_Con_DrawNotify,DETOUR_TYPE_JMP,5);
 	orig_Con_DrawConsole = DetourCreate((void*)0x20020F90,(void*)&my_Con_DrawConsole,DETOUR_TYPE_JMP,5);

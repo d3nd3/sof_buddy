@@ -1,14 +1,16 @@
-#include <windows.h>
+#include "sof_buddy.h"
 
 #include <unordered_map>
 #include <string>
 #include <math.h>
 #include <iostream>
 
+#include "sof_compat.h"
 #include "features.h"
+
 #include "../DetourXS/detourxs.h"
 
-#include "sof_compat.h"
+
 #include "util.h"
 
 typedef struct {
@@ -17,25 +19,14 @@ typedef struct {
 } m32size;
 std::unordered_map<std::string,m32size> default_textures;
 
-#ifdef FEATURE_ALT_LIGHTING
-cvar_t * _sofbuddy_lightblend_src = NULL;
-cvar_t * _sofbuddy_lightblend_dst = NULL;
-#endif
-
-cvar_t * _sofbuddy_minfilter_unmipped = NULL;
-cvar_t * _sofbuddy_magfilter_unmipped = NULL;
-
-cvar_t * _sofbuddy_minfilter_mipped = NULL;
-cvar_t * _sofbuddy_magfilter_mipped = NULL;
-
-cvar_t * _sofbuddy_minfilter_ui = NULL;
-cvar_t * _sofbuddy_magfilter_ui = NULL;
 
 cvar_t * _gl_texturemode = NULL;
-
-
+cvar_t * gl_swapinterval = NULL;
+cvar_t * vid_ref = NULL;
 
 qboolean (*orig_VID_LoadRefresh)( char *name ) = NULL;
+void (*orig_VID_CheckChanges)(void) = NULL;
+
 void (*orig_GL_BuildPolygonFromSurface)(void *fa) = NULL;
 int (*orig_R_Init)( void *hinstance, void *hWnd, void * unknown ) = NULL;
 void (*orig_drawTeamIcons)(void * param1,void * param2,void * param3,void * param4) = NULL;
@@ -44,12 +35,14 @@ void (*orig_GL_TextureMode)(char * mode) = NULL;
 void (__stdcall *orig_glTexParameterf)(int target_tex, int param_name, float value) = NULL;
 int (*orig_R_SetMode)(void * deviceMode) = NULL;
 
+
 extern void scaledFont_init(void);
 
 HMODULE __stdcall RefInMemory(LPCSTR lpLibFileName);
 void on_ref_init(void);
 void initDefaultTexSizes(void);
 
+void my_VID_CheckChanges(void);
 qboolean my_VID_LoadRefresh( char *name );
 int my_R_Init(void *hinstance, void *hWnd, void * unknown );
 int my_R_SetMode(void * deviceMode);
@@ -73,10 +66,13 @@ void __stdcall glBlendFunc_R_BlendLightmaps(unsigned int sfactor,unsigned int df
 #define GL_DST_COLOR                      0x0306
 #define GL_ONE_MINUS_DST_COLOR            0x0307
 #define GL_SRC_ALPHA_SATURATE             0x0308
+
 #define GL_CONSTANT_COLOR                 0x8001
 #define GL_ONE_MINUS_CONSTANT_COLOR       0x8002
 #define GL_CONSTANT_ALPHA                 0x8003
 #define GL_ONE_MINUS_CONSTANT_ALPHA       0x8004
+
+
 #define GL_BLEND_COLOR                    0x8005
 #define GL_BLEND_EQUATION                 0x8009
 
@@ -84,11 +80,13 @@ void __stdcall glBlendFunc_R_BlendLightmaps(unsigned int sfactor,unsigned int df
 #ifdef FEATURE_ALT_LIGHTING
 //SRC = Incoming Data(Light)
 //DST = Existing Data(Texture)
+//defaults.
 int lightblend_src = GL_ZERO;
-int lightblend_dst = GL_DST_COLOR;
+int lightblend_dst = GL_SRC_COLOR;
 int *lightblend_target_src = 0x300A4610;
 int *lightblend_target_dst = 0x300A43FC;
 
+//15
 void lightblend_change(cvar_t * cvar) {
 	int value = cvar->string;
 	if (!strcmp(cvar->string,"GL_ZERO")) {
@@ -282,6 +280,11 @@ void refFixes_early(void) {
 	WriteByte(0x20066E7A,0x90);
 
 	orig_VID_LoadRefresh = DetourCreate((void*)0x20066E10,(void*)&my_VID_LoadRefresh,DETOUR_TYPE_JMP,5);
+
+	//Fix gl_swapinterval on VID_CheckChanges
+	orig_VID_CheckChanges = DetourCreate((void*)0x200670C0 ,(void*)&my_VID_CheckChanges,DETOUR_TYPE_JMP,5);
+
+
 }
 /*
 	When the ref_gl.dll library is reloaded, detours are lost.
@@ -302,28 +305,17 @@ void refFixes_apply(void)
 	#endif
 
 	#ifdef FEATURE_ALT_LIGHTING
-	// _sofbuddy_lightblend_src = orig_Cvar_Get("_sofbuddy_lightblend_src","GL_ZERO",CVAR_ARCHIVE,&lightblend_change);
-	// _sofbuddy_lightblend_dst = orig_Cvar_Get("_sofbuddy_lightblend_dst","GL_DST_COLOR",CVAR_ARCHIVE,&lightblend_change);
-
-	_sofbuddy_lightblend_src = orig_Cvar_Get("_sofbuddy_lightblend_src","GL_DST_COLOR",CVAR_ARCHIVE,&lightblend_change);
-	_sofbuddy_lightblend_dst = orig_Cvar_Get("_sofbuddy_lightblend_dst","GL_SRC_COLOR",CVAR_ARCHIVE,&lightblend_change);
+	create_reffixes_cvars();
 	#endif
-
-
-	//These textures don't have mipmaps, so GL_NEAREST or GL_LINEAR. (sky prob looks good with GL_LINEAR)
-	_sofbuddy_minfilter_unmipped = orig_Cvar_Get("_sofbuddy_minfilter_unmipped","GL_LINEAR",CVAR_ARCHIVE,&minfilter_change);
-	_sofbuddy_magfilter_unmipped = orig_Cvar_Get("_sofbuddy_magfilter_unmipped","GL_LINEAR",CVAR_ARCHIVE,&magfilter_change);
-
-	_sofbuddy_minfilter_mipped = orig_Cvar_Get("_sofbuddy_minfilter_mipped","GL_LINEAR_MIPMAP_LINEAR",CVAR_ARCHIVE,&minfilter_change);
-	//I like GL_NEAREST here, the detail textures look crisper? debateable.
-	//Since it affects the bullet fire light, it should be LINEAR.
-	_sofbuddy_magfilter_mipped = orig_Cvar_Get("_sofbuddy_magfilter_mipped","GL_LINEAR",CVAR_ARCHIVE,&magfilter_change);
-
-	// I don't see a reason to have this set to anything but GL_NEAREST
-	_sofbuddy_minfilter_ui = orig_Cvar_Get("_sofbuddy_minfilter_ui","GL_NEAREST",CVAR_ARCHIVE,&minfilter_change);
-	//required for the font upscaling.
-	_sofbuddy_magfilter_ui = orig_Cvar_Get("_sofbuddy_magfilter_ui","GL_NEAREST",CVAR_ARCHIVE,&magfilter_change);
 	
+}
+
+
+void my_VID_CheckChanges(void)
+{
+	//trigger gl_swapinterval->modified for R_Init() -> GL_SetDefaultState()
+	if ( vid_ref && vid_ref-> modified ) gl_swapinterval->modified = true;
+	orig_VID_CheckChanges();
 }
 
 
@@ -408,7 +400,7 @@ void lighting_fix_init(void) {
 	WriteE8Call(0x30015C20,&my_GL_RenderLightmappedPoly_intercept);
 	//Jmp to glEnd() afterwards.
 	WriteE9Jmp(0x30015C25,0x30015D18);
-	//Make push surface, instead of image (push EAX -> push EBP instead)
+	//Make push surface_t, instead of image_t (push EAX -> push EBP instead)
 	WriteByte(0x30015C1F,0x50);
 
 	WriteByte(0x30015D18,0x90);
@@ -456,6 +448,18 @@ void lighting_fix_init(void) {
 	WriteByte(0x3001558D,0x90);
 	WriteByte(0x3001558E,0x90);
 }
+
+void whiteraven_change(cvar_t* cvar) {
+	if (cvar->value) {
+		//on
+		orig_Cvar_Set2("_sofbuddy_lightblend_src","GL_DST_COLOR",false);
+		orig_Cvar_Set2("_sofbuddy_lightblend_dst","GL_SRC_COLOR",false);
+	} else {
+		//off - default sof
+		orig_Cvar_Set2("_sofbuddy_lightblend_src","GL_ZERO",false);
+		orig_Cvar_Set2("_sofbuddy_lightblend_dst","GL_SRC_COLOR",false);
+	}
+}
 #endif
 
 void my_GL_TextureMode(char * mode) {
@@ -467,13 +471,80 @@ void my_GL_TextureMode(char * mode) {
 	R_Init->GL_SetDefaultState() is handling texturemode for us, yet we are after that.
 	So this patch is late.
 	Thus we want to call it again, from R_beginFrame()
+
+	Before, gl_texturemode would only affect:
+	  sky/detailtextures(unmipped) using MAG_FILTER(gl_texturemode) for both min and mag
+	  normal in-game mipped textures using MIN_FILTER(gl_texturemode) and MAG_FILTER(gl_texturemode)
+
+	UI was untouched, hardcode to NEAREST/NEAREST
+
+	gl_texturemode values:
+	==GL_NEAREST==
+	  MIN: GL_NEAREST
+	  MAG: GL_NEAREST
+	==GL_LINEAR==
+	  MIN: GL_LINEAR
+	  MAG: GL_LINEAR
+	==GL_NEAREST_MIPMAP_NEAREST==
+	  MIN: GL_NEAREST_MIPMAP_NEAREST
+	  MAG: GL_NEAREST
+	==GL_LINEAR_MIPMAP_NEAREST==
+	  MIN: GL_LINEAR_MIPMAP_NEAREST 
+	  MAG: GL_LINEAR
+	==GL_NEAREST_MIPMAP_LINEAR==
+	  MIN: GL_NEAREST_MIPMAP_LINEAR
+	  MAG: GL_NEAREST
+	==GL_LINEAR_MIPMAP_LINEAR==
+	  MIN: GL_LINEAR_MIPMAP_LINEAR
+	  MAG: GL_LINEAR
+
+
+  	So:
+  		MAG can be:
+  			GL_NEAREST
+  			GL_LINEAR
+  			( can't use mipmaps ).
+  		MIN can be:
+  			GL_NEAREST_MIPMAP_NEAREST
+  				Chooses the mipmap that most closely matches the size of the pixel being textured and uses the GL_NEAREST criterion
+  				(the texture element nearest to the center of the pixel) to produce a texture value.
+  			GL_NEAREST_MIPMAP_LINEAR
+  				Chooses the two mipmaps that most closely match the size of the pixel being textured and uses the GL_NEAREST criterion
+  				(the texture element nearest to the center of the pixel) to produce a texture value from each mipmap.
+  				The final texture value is a weighted average of those two values.
+  			GL_LINEAR_MIPMAP_NEAREST
+  				Chooses the mipmap that most closely matches the size of the pixel being textured and uses the GL_LINEAR criterion
+  				(a weighted average of the four texture elements that are closest to the center of the pixel) to produce a texture value.
+  			GL_LINEAR_MIPMAP_LINEAR
+				Chooses the two mipmaps that most closely match the size of the pixel being textured and uses the GL_LINEAR criterion
+				(a weighted average of the four texture elements that are closest to the center of the pixel) to produce a texture value from each mipmap.
+				The final texture value is a weighted average of those two values.
+
+	//how many mipmaps to sample
+	GL_SOMETHING_MIPMAP_LINEAR = pick 2 mipmap that most closely matches size. and take the weighted average between them.
+	GL_SOMETHING_MIPMAP_NEAREST = pick 1 mipmap that most closely matches size.
+
+	//texel selection mechanism
+	GL_NEAREST_MIPMAP_SOMETHING = the texel nearest to the center of the pixel
+	GL_LINEAR_MIPMAP_SOMETHING = a weighted average of the four texels that are closest to the center of the pixel
+
+
+	MIN == DISTANT ( zoomed out )
+	MAG == SUPER CLOSE ( zoomed in )
+
+	There are six defined minifying functions. 
+	Two of them use the nearest one or nearest four texture elements to compute the texture value.
+	The other four use mipmaps.
+
 */
 void setup_minmag_filters(void) {
 	static bool first_run = true;
 
 	// orig_GL_TextureMode = DetourCreate(0x300066D0,&my_GL_TextureMode,DETOUR_TYPE_JMP,5);
 
-	_gl_texturemode = orig_Cvar_Get("gl_texturemode","GL_LINEAR_MIPMAP_LINEAR",NULL,NULL); 
+	//Not necessary to specify flags, because they get stacked, and can't be removed.
+	//This is not used anymore, just need it to trigger.
+	_gl_texturemode = orig_Cvar_Get("gl_texturemode","GL_LINEAR_MIPMAP_LINEAR",CVAR_ARCHIVE,NULL); 
 
 	// This overpowers sofplus _sp_cl_vid_gl_texture_mag_filter.
 	// Could later allow his cvar to be used for mag_ui, maybe.
@@ -502,6 +573,11 @@ void setup_minmag_filters(void) {
 	// orig_Com_Printf("Triggering glTextureMOde!!\n");
 	//Trigger re-apply of texturemode
 	if (_gl_texturemode) _gl_texturemode->modified = true;
+
+
+	//==init== code for gl_swapinterval fix
+	gl_swapinterval = orig_Cvar_Get("gl_swapinterval","0",NULL,NULL);
+	vid_ref = orig_Cvar_Get("vid_ref","gl",NULL,NULL);
 
 }
 
@@ -573,7 +649,77 @@ alias ravenlight "_sofbuddy_lightblend_src GL_DST_COLOR;_sofbuddy_lightblend_dst
 //void (*orig_HandleFlowing)(void * surf,int * scroll_x, int * scroll_y) = 0x300127D0;
 //void (*orig_GL_MBind2)(int target,int texnum) = 0x30006350;
 
+/*
+	SoF uses glBlendFunc(GL_ZERO,GL_SRC_COLOR) in R_BlendLightMaps().
+	Result = S(Light) x (0,0,0) + D(Texture) x (Sr,Sg,Sb)
+		== Texture x Light.
 
+	Experiments showing the max values it creates which relates to clamping.
+
+	SoF uses glBlendFunc(GL_ZERO,GL_SRC_COLOR) in R_BlendLightMaps().
+	Result = S(Light) x (0,0,0) + D(Texture) x (Sr,Sg,Sb)
+
+	Light=0.5, Tex=0.5
+	GL_ZERO,GL_SRC_COLOR == GL_DST_COLOR,GL_ZERO == Tex*Light (SOF DEFAULT) == 0->1
+	GL_ONE,GL_SRC_COLOR == Light+(Tex*Light) == 0->2 (Favours Light)
+	GL_DST_COLOR,GL_ONE == (Tex*Light)+Tex==0->2 (Favours Tex)
+	GL_SRC_COLOR,GL_DST_COLOR == Light^2+Tex^2 ==0->2 (DARKENS)
+
+	TLDR:Raven's solution doubles saturation of every pixel ( Lightmap AND texture ).
+	==chose this one: multiplies by 2, then clamp to 1.: so any combination of texture/lighting that has satutratiton greater > 0.5 when multiplied together, gets clamped to full saturation. So range of saturation becomes 0-0.5.. Max saturation is applied at 0.5, anything higher becomes 0.5 too. Mapping from 0-0.5 to 0-1, everything is doubled in saturation.====
+	GL_DST_COLOR,GL_SRC_COLOR == 2*Light*Tex==0->2 (LIGHTENS)
+
+
+	GL_ZERO,GL_ZERO == 0
+
+	==This one looks washed out, why?, ah because after clamp it removes the texture, and not the light==
+	GL_ONE,GL_ONE == Light+Tex == 0->2 (LIGHTENS)
+
+	GL_ONE,GL_ZERO == Light == 0->1
+	GL_ZERO,GL_ONE == Tex == 0->1
+	GL_DST_COLOR,GL_DST_COLOR == Light*Tex+Tex^2 = 0->2 (Favours Tex)
+	GL_SRC_COLOR,GL_SRC_COLOR == Light^2+Light*Tex = 0->2 (Favours Light)
+	GL_SRC_ALPHA,GL_SRC_COLOR == Light*1+Light*Tex = 0->2 (Favours Light, darker when transparent,)
+	GL_SRC_COLOR,GL_SRC_ALPHA == Light^2+Light*1= 0->2 (Favours Light)
+	GL_DST_ALPHA,GL_DST_COLOR == Light*1+Tex^2 = 0->2 ( Favours Light)
+	GL_DST_COLOR,GL_DST_ALPHA == Light*Tex+1*Tex = 0->2 (Favours Tex)
+	GL_DST_ALPHA,GL_SRC_COLOR == Light*1+Tex*Light = 0->2 (Favours Light)
+
+	==============
+	gl_modulate explodes the lightmaps, but this high value just gets clamped to 255. 
+	Thus making the max light strength lower, since lower light strengths become the max. 
+	aka:
+	highlight clipping
+	Blown Highlights
+	Overexposure
+	Burnout
+	Washed-Out Highlights
+	Overbrights
+	White-Out
+	==============
+
+//default
+glBlendFunc (GL_ZERO, GL_SRC_COLOR );
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
+	glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE);
+	glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_PRIMARY_COLOR);
+	glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
+	glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE1_RGB, GL_TEXTURE);
+	glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
+
+//magicraven
+glBlendFunc (GL_DST_COLOR, GL_SRC_COLOR );
+	// First texture unit (handles destination color)
+	glActiveTextureARB(GL_TEXTURE0_ARB);
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
+	glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE);
+	glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_PREVIOUS);  // Destination color
+	glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
+	glTexEnvi(GL_TEXTURE_ENV, GL_SOURCE1_RGB, GL_PRIMARY_COLOR);  // Source color
+	glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
+
+
+*/
 void my_GL_RenderLightmappedPoly_intercept(void * msurface_t, void * dummy) {
 	// asm volatile(
     //     "push %ebp\n"
