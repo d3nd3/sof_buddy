@@ -150,7 +150,7 @@ extern void whiteraven_change(cvar_t* cvar);
 
 void create_reffixes_cvars(void) {
 	//ref_fixes.cpp
-	_sofbuddy_lightblend_src = orig_Cvar_Get("_sofbuddy_lightblend_src","GL_DST_COLOR",CVAR_ARCHIVE,&lightblend_change);
+	_sofbuddy_lightblend_src = orig_Cvar_Get("_sofbuddy_lightblend_src","GL_ZERO",CVAR_ARCHIVE,&lightblend_change);
 	_sofbuddy_lightblend_dst = orig_Cvar_Get("_sofbuddy_lightblend_dst","GL_SRC_COLOR",CVAR_ARCHIVE,&lightblend_change);
 
 	//sky detailtextures (unmipped)
