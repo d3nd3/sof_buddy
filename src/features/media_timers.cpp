@@ -82,32 +82,48 @@ void mediaTimers_early(void)
 {
 	
 }
+#ifdef FEATURE_MEDIA_TIMERS
+/*
+	Also implements cl_maxfps in singleplayer
+*/
 void mediaTimers_apply(void)
 {
+	//CVAR_ARCHIVE - save to config.cfg
+	//CVAR_NOSET - write-only.
+	//===Cvars====
+	cl_maxfps = orig_Cvar_Get("cl_maxfps","30",NULL,&cl_maxfps_change);
+	test = orig_Cvar_Get("test","100",NULL,NULL);
+	create_mediatimers_cvars();
+
+
+	//===Memory Edits===
 	freq = {0};
 	base = {0};
 
 	//Detour sys_milliseconds for any other code that calls sys_milliseconds uses media timer instead of timegettime.
 	//gameloop calls -> sofplus_sys_milli -> our_sys_milli -> orig_sys_milli
 	Sys_Mil_AfterHookThunk = DetourCreate(0x20055930,&my_Sys_Milliseconds,DETOUR_TYPE_JMP,5);
-	
-	
-	#if 0
-	HANDLE processHandle = GetCurrentProcess();
 
-	// Specify the core you want to set affinity to (e.g., core 0)
-	DWORD_PTR processAffinityMask = 1 << 0;
 
-	// Set the affinity mask for the current process
-	BOOL success = SetProcessAffinityMask(processHandle, processAffinityMask);
-	if (success) {
-	   std::cout << "Affinity set successfully." << std::endl;
-	} else {
-		MessageBox(NULL, "Failed to set affinity", "MessageBox Example", MB_OK);
-	}
-	#endif
-	//std::cout << "mediaTimers_apply";
-	//MessageBox(NULL, "mediaTimers_apply", "MessageBox Example", MB_OK);
+	// main() loop reimplemented.
+
+	//Patch call to sys_millisecond
+	WriteE8Call(0x20066412,&winmain_loop);
+
+	//continue the outer loop once sys_millisecond returns, nothing else.
+	WriteE9Jmp(0x20066417,0x2006643C);
+
+
+	//use Sys_Milliseconds() instead of timeGetTime() for: 
+	//	sys_win.c
+	//		Sys_SendKeyEvent()
+	//			sys_frame_time = timeGetTime();
+	//Wasn't originally an 0xE8 call, was 0xFF 0x15. Thus extra byte nopped.
+	WriteE8Call(0x20065D5E,&my_Sys_Milliseconds); // 5e 5f 60 61 62 63
+	WriteByte(0x20065D63,0x90);
+
+
+	//==SoF Plus integration==
 	if ( o_sofplus ) {
 		spcl_FreeScript = (void*)o_sofplus+0x9D20;
 		spcl_Timers = (void*)o_sofplus+0x10190;
@@ -122,32 +138,24 @@ void mediaTimers_apply(void)
 		Sys_Mil = &my_Sys_Milliseconds;
 	}
 
+	#if 0
+	//This was an idea to set 1 core affinity to make QueryPerformanceCounter behave nicer.
+	HANDLE processHandle = GetCurrentProcess();
 
-	//CVAR_ARCHIVE - save to config.cfg
-	//CVAR_NOSET - write-only.
-	//Cvars
+	// Specify the core you want to set affinity to (e.g., core 0)
+	DWORD_PTR processAffinityMask = 1 << 0;
 
-	cl_maxfps = orig_Cvar_Get("cl_maxfps","30",NULL,&cl_maxfps_change);
-	test = orig_Cvar_Get("test","100",NULL,NULL);
-
-	create_mediatimers_cvars();
-
-	//Patch sys_millisecond
-	WriteE8Call(0x20066412,&winmain_loop);
-
-	//continue the outer loop once sys_millisecond returns, nothing else.
-	WriteE9Jmp(0x20066417,0x2006643C);
-
-
-	//use Sys_Milliseconds() instead of timeGetTime() for: 
-	//	sys_win.c
-	//		Sys_SendKeyEvent()
-	//			sys_frame_time = timeGetTime();
-	//Wasn't originally an 0xE8 call, was 0xFF 0x15. Thus extra byte nopped.
-	WriteE8Call(0x20065D5E,&my_Sys_Milliseconds); // 5e 5f 60 61 62 63
-	WriteByte(0x20065D63,0x90);
+	// Set the affinity mask for the current process
+	BOOL success = SetProcessAffinityMask(processHandle, processAffinityMask);
+	if (success) {
+	   std::cout << "Affinity set successfully." << std::endl;
+	} else {
+		MessageBox(NULL, "Failed to set affinity", "MessageBox Example", MB_OK);
+	}
+	#endif
 	
 }
+#endif
 
 /*
 	--IMPORTANT--

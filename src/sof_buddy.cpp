@@ -24,6 +24,67 @@ void (*orig_Qcommon_Frame) (int msec) = 0x2001F720;
 void (*orig_Qcommon_Init) (int argc, char **argv) = 0x2001F390;
 qboolean (*orig_Cbuf_AddLateCommands)(void) = NULL;
 
+void (*orig_CL_UpdateSimulationTimeInfo)(float extratime) = NULL;
+void (*orig_CL_ReadPackets)(void) = NULL;
+
+void * (*orig_Sys_GetGameApi)(void * imports) = NULL;
+void (*orig_CinematicFreeze)(bool bEnable) = NULL;
+void my_CinematicFreeze(bool bEnable);
+
+void * my_Sys_GetGameApi(void * imports)
+{
+
+	void * pv_ret = 0;
+	// calls LoadLibrary
+	pv_ret = orig_Sys_GetGameApi(imports);
+
+	//Fixing cl_maxfps limitter for singleplayer-bug cinematics
+	DetourRemove(&orig_CinematicFreeze);
+	orig_CinematicFreeze = DetourCreate(0x50075190,&my_CinematicFreeze,DETOUR_TYPE_JMP,7);
+
+	return pv_ret;
+}
+void my_CinematicFreeze(bool bEnable)
+{
+	bool before = *(char*)0x5015D8D5 == 1 ? true : false;
+	orig_CinematicFreeze(bEnable);
+	bool after = *(char*)0x5015D8D5 == 1 ? true : false;
+
+	if (before != after) {
+		*(char*)0x201E7F5B = after ? 0x1 : 0x00;
+	}
+}
+/*
+	Testing if black nyc1 issue was caused by this function.
+	Seems it is not.
+
+	https://github.com/d3nd3/sof_buddy/issues/3
+*/
+void my_CL_UpdateSimulationTimeInfo(float extratime)
+{
+
+	static int sim_counter = 0;
+
+	//SinglePlayer never sleeps
+	if ( sim_counter % 30 == 0 ) {
+		orig_CL_UpdateSimulationTimeInfo(extratime);
+	}
+
+	sim_counter += 1;
+}
+
+void my_CL_ReadPackets(void)
+{
+	static int sim_counter = 0;
+
+	//SinglePlayer never sleeps
+	if ( sim_counter % 30 == 0 ) {
+		orig_CL_ReadPackets();
+	}
+
+	sim_counter += 1;
+}
+
 
 /*
 	DllMain of WSOCK32 library
@@ -83,9 +144,18 @@ void afterWsockInit(void)
 		Cvars etc not allowed here. 
 	*/
 
+	/*
+		cl_showfps 2 breaks cl_showfps 1 on native for some reason.
+	*/
+
+
+	// orig_CL_UpdateSimulationTimeInfo = DetourCreate(0x2000D6A0, &my_CL_UpdateSimulationTimeInfo,DETOUR_TYPE_JMP, 6);
+	// orig_CL_ReadPackets = DetourCreate(0x2000C5C0, &my_CL_ReadPackets,DETOUR_TYPE_JMP,8);
+
 #ifdef FEATURE_FONT_SCALING
 	scaledFont_early();
 #endif
+
 	PrintOut(PRINT_LOG,"Before refFixes\n");
 	refFixes_early();
 	PrintOut(PRINT_LOG,"After refFixes\n");
@@ -102,10 +172,18 @@ void afterWsockInit(void)
 	orig_FS_InitFilesystem = DetourCreate(0x20026980, &my_FS_InitFilesystem,DETOUR_TYPE_JMP,6);
 	orig_Cbuf_AddLateCommands = DetourCreate(0x20018740,&my_Cbuf_AddLateCommands,DETOUR_TYPE_JMP,5);
 
-
-	//Patch CL_Frame() to allow client frame limitting whilst in non dedicated server
-	WriteByte(0x2000D973,0x90);WriteByte(0x2000D974,0x90);
 	
+	orig_Sys_GetGameApi = DetourCreate((void*)0x20065F20,(void*)&my_Sys_GetGameApi,DETOUR_TYPE_JMP,5);
+
+
+
+	//Below causes this issue : Black Loading After Cinematic nyc1
+	//https://github.com/d3nd3/sof_buddy/issues/3
+	//Patch CL_Frame() to allow client frame limitting whilst in "single-player/non-dedicated" mode.
+	//Ths bug was fixed with hooking void CinematicFreeze(bool bEnable) and setting cl.frame.cinematicFreeze instantly.
+	WriteByte(0x2000D973,0x90);WriteByte(0x2000D974,0x90);
+
+
 	PrintOut(PRINT_GOOD,"SoF Buddy fully initialised!\n");
 }
 
@@ -142,7 +220,10 @@ void my_FS_InitFilesystem(void) {
 	
 
 	//Best (Earliest)(before exec config.cfg) place for cvar creation, if you want config.cfg induced triggering of modified events.
+
+	// FEATURE_HD_TEX FEATURE_ALT_LIGHTING etc...
 	refFixes_apply();
+
 	#ifdef FEATURE_FONT_SCALING
 		scaledFont_apply();
 	#endif

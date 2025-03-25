@@ -37,7 +37,6 @@ LPVOID DetourCreate(LPCSTR lpModuleName, LPCSTR lpProcName, LPVOID lpFuncDetour,
 LPVOID DetourCreate(LPVOID lpFuncOrig, LPVOID lpFuncDetour, int patchType, int detourLen)
 {
 
-
 	LPVOID lpMallocPtr = NULL;
 	DWORD dwProt = NULL;
 	PBYTE pbMallocPtr = NULL;

@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install MinGW-w64
         run: sudo apt-get install -y g++-mingw-w64-i686 mingw-w64-i686-dev
@@ -24,26 +24,40 @@ jobs:
 
       - name: Prepare Release
         run: |
-          mv bin/sof_buddy.dll .
-          zip release.zip sof_buddy.dll patch_sof_binary.ps1 set_sofplus_and_buddy_sof.cmd set_sofplus_sof.cmd set_vanilla_sof.cmd
+          zip release_windows.zip bin/sof_buddy.dll rsrc/win_scripts/patch_sof_binary.ps1 rsrc/win_scripts/set_sofplus_and_buddy_sof.cmd rsrc/win_scripts/set_sofplus_sof.cmd rsrc/win_scripts/set_vanilla_sof.cmd
+          zip release_linux_wine.zip bin/sof_buddy.dll rsrc/lin_scripts/patch_sof_binary.sh rsrc/lin_scripts/set_sofplus_and_buddy_sof.sh rsrc/lin_scripts/set_sofplus_sof.sh rsrc/lin_scripts/set_vanilla_sof.sh
         working-directory: ${{ github.workspace }}
 
-      - name: Upload Release Artifact
-        uses: actions/upload-artifact@v3
+      - name: Upload Windows Release Artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: release-artifact
-          path: release.zip
+          name: release-windows-artifact
+          path: release_windows.zip
+
+      - name: Upload Linux Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-artifact
+          path: release_linux_wine.zip
 
   release:
     needs: build
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download Release Artifact
-        uses: actions/download-artifact@v3
+      - name: Download Windows Release Artifact
+        uses: actions/download-artifact@v4
         with:
-          name: release-artifact
-          path: ${{ github.workspace }}
+          name: release-windows-artifact
+          path: windows_release
+          extract: false
+
+      - name: Download Linux Release Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-linux-artifact
+          path: linux_release
+          extract: false
 
       - name: Create Release
         id: create_release
@@ -56,12 +70,23 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Release Asset
+      - name: Upload Windows Release Asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release.zip
-          asset_name: release.zip
+          asset_path: windows_release/release_windows.zip
+          asset_name: release_windows.zip
+          asset_content_type: application/zip
+
+
+      - name: Upload Linux Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: linux_release/release_linux_wine.zip
+          asset_name: release_linux_wine.zip
           asset_content_type: application/zip

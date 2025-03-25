@@ -6,10 +6,7 @@
 #include "sof_compat.h"
 #include "util.h"
 
-//Extra output print places than in-game.
-// #define __FILEOUT__
-// #define __TERMINALOUT__
-
+// see util.h for debugging toggles 
 
 void (*orig_Z_Free) (void * v) = 0x2001EBC0;
 char *(*orig_CopyString) (char *in) = 0x2001EA20;
@@ -80,7 +77,7 @@ void PrintOut(int mode,char *msg,...)
 
 		break;
 		case PRINT_LOG_EMPTY :
-			fprintf("%s",ac_tmp);
+			fprintf(go_logfile,"%s",ac_tmp);
 		break;
 		case PRINT_GOOD :
 

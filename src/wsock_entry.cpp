@@ -945,9 +945,6 @@ void sofplus_copy(void)
 
 
 	}
-	PrintOut(PRINT_LOG,"Before afterWsockInit()\n");
-	afterWsockInit();
-	//CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)sofbuddy_thread,NULL,0,NULL);
 	
 }
 
@@ -1028,6 +1025,11 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 				PrintOut(PRINT_LOG,"NON SOFPLUS LOAD ATTEMPT\n");
 				wsock_link();
 			}
+
+			PrintOut(PRINT_LOG,"Before afterWsockInit()\n");
+			afterWsockInit();
+			//CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)sofbuddy_thread,NULL,0,NULL);
+			
 			init=true;
 		}//doonce //init
 
