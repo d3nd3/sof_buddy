@@ -85,6 +85,100 @@ void my_CL_ReadPackets(void)
 	sim_counter += 1;
 }
 
+#define MAXCMDLINE 256
+void my_Con_Draw_Console(void)
+{
+		//jmp to here.
+
+		int		i;
+		char	*text;
+
+		static int* edit_line = 0x20367EA4;
+		static char* key_lines = 0x20365EA0;
+
+		static int* key_linepos = 0x20365E9C;
+		static int* cls_realtime = 0x201C1F0C;
+		static int* con_linewidth = 0x2024AF98;
+		static int* con_vislines = 0x2024AFA0;
+
+		static int* cls_key_dest = 0x201C1F04;
+		static int* cls_state = 0x201C1F00;
+
+		static void (*ref_draw_char) (int, int, int, int) = *(int*)0x204035C8;
+		
+		//key_menu
+		if (*cls_key_dest == 3)
+			return;
+		//key_console, ca_active
+		if (*cls_key_dest != 1 && *cls_state == 8)
+			return;		// don't draw anything (always draw if not active)
+
+		
+		text = key_lines + MAXCMDLINE * *edit_line;
+		// orig_Com_Printf("Drawing %c\n",text[1]);
+
+		//Blinking underscore animation
+		text[*key_linepos] = 0x20;
+		if ( (*cls_realtime>>8) & 1 ) {
+			
+			text[*key_linepos] = 0x5F;	
+		}
+		
+		int maxchars = *con_linewidth > MAXCMDLINE ? MAXCMDLINE : *con_linewidth;
+		
+		//Fill spaces
+		for (i=*key_linepos+1 ; i < maxchars; i++)
+			text[i] = ' ';
+
+		
+		//con_linewidth can be larger than MAXCMDLINE.
+		//key_linepos cannot be larger than 255
+
+		
+		//number of characters on line already larger or equal to that than can fit on screen
+		//then we show max number of characters.
+		//but can we access till the end of buffer always?
+
+		/*
+		if (*key_linepos >= *con_linewidth) {
+			text += 1 + *key_linepos - *con_linewidth;
+		}
+		*/
+
+		//Refer to image in google notes - text=start_pos_show_left
+		int space = &text[MAXCMDLINE-1] - text;
+		
+
+		if ( space >= 0 ) {
+			maxchars = space < *con_linewidth ? space : *con_linewidth;
+			// orig_Com_Printf("Max Chars = %i %08X\n",maxchars,ref_draw_char);
+
+			paletteRGBA_s palette;
+			palette.c = 0xFFFFFFFF;
+			/*
+			//0x48 -> 0x5C[A],0x5D[B],0x5E[G],0x5F[R]
+			// 0x0C -> 0x1C [R][G][B][A] -> [R][G][B][A]
+			// 16 + 8 = 24
+			// White font?
+			char * palette = malloc(24);
+			memset(palette, 0x00, 0x24);
+			*(unsigned int*)(palette + 16) = 0xFFFFFFFF;
+			*(unsigned int*)(palette + 20) = 0xFFFFFFFF;
+			*/
+			// orig_Com_Printf("Drawing %c\n",text[1]);
+
+			//Draw_Char(int, int, int, paletteRGBA_c &)
+			for (i=0 ; i<maxchars; i++) {
+				// if ( i < (*con_vislines/8)-1 ) orig_Com_Printf("%i %i Drawing %c\n",maxchars,*con_vislines,text[i]);
+				ref_draw_char((i+1)<<3, *con_vislines - 16, text[i],&palette);
+			}
+			// free(palette);
+
+			// remove previous cursor
+			text = key_lines + MAXCMDLINE * *edit_line;
+			text[*key_linepos] = 0;
+		}
+}
 
 /*
 	DllMain of WSOCK32 library
@@ -183,7 +277,83 @@ void afterWsockInit(void)
 	//Ths bug was fixed with hooking void CinematicFreeze(bool bEnable) and setting cl.frame.cinematicFreeze instantly.
 	WriteByte(0x2000D973,0x90);WriteByte(0x2000D974,0x90);
 
+#if 0
 
+//===================================================================================================
+//===================================================================================================
+//===================================================================================================
+	//Fix a nasty overflow bug in larger resolutions related to Con_DrawInput()
+	//20020D41 - 5 bytes here  no longer needed.
+	/*
+		LEN:5 mov     eax, con_linewidth
+		LEN:3 HEX: 0x83 0xC4 0x10 ... add     esp, 10h
+		LEN:1 HEX: 0x46 ... inc     esi
+		LEN:3 HEX: 0x83 0xC3 0x08 ... add     ebx, 8
+		LEN:2 HEX: 0x3B 0xF0 ... cmp     esi, eax        ; con.linewidth
+		LEN:2 HEX: 0x7C 0xCE ... jl      short loc_20020D1F
+	*/
+	/*
+		Lets NOP the entire area first, before we shift up. We needed the extra space to create a CMP to constant.
+		5+3+1+3+2+2 = 16 bytes
+	*/
+	#if 1
+	for (int i=0; i<16;i++) {
+		WriteByte(0x20020D41+i,0x90);
+	}
+	// add esp, 10h
+	WriteByte(0x20020D41,0x83);WriteByte(0x20020D42,0xC4);WriteByte(0x20020D43,0x10);
+	//inc esi
+	WriteByte(0x20020D44,0x46);
+	//add ebx, 8
+	WriteByte(0x20020D45,0x83);WriteByte(0x20020D46,0xC3);WriteByte(0x20020D47,0x08);
+	//cmp esi, 255 - this is now 3 bytes - that is the reason for memory shift.
+	WriteByte(0x20020D48,0x83);WriteByte(0x20020D49,0xFE);WriteByte(0x20020D4A,0xFF);
+	//jle rel_offset
+	WriteByte(0x20020D4B,0x7E);WriteByte(0x20020D4C,0xD2);
+	#endif
+	/*
+		Address calculated from:
+
+		Address of jle + 2:
+		0x20020D4B + 2 = 0x20020D4D
+
+		Offset:
+		0x20020D1F - 0x20020D4D = -0x2E (hex)
+		-0x2E in decimal = -46.
+
+		Convert -46 to a signed 8-bit byte:
+		-46 → 0xD2 (hex).
+	*/
+	//Repeat for other offset
+	/*
+		0x20020CF6
+		5: 8B 0D 98 AF 24 20
+		1: 40
+		2: 3B C1
+		2: 7C F1
+	*/
+	
+	#if 1
+	for (int i=0; i<10;i++) {
+		WriteByte(0x20020CF6+i,0x90);
+	}
+	//inc eax
+	WriteByte(0x20020CF6,0x40);
+	//cmp eax, 255 - this is now 3 bytes - that is the reason for memory shift.
+	WriteByte(0x20020CF7,0x83);WriteByte(0x20020CF8,0xF8);WriteByte(0x20020CF9,0xFF);
+	//jle rel_offset
+	WriteByte(0x20020CFA, 0x7E); WriteByte(0x20020CFB, 0xF6);
+	//0xF6 Was calculated by deepseek, same as before example.
+	#endif
+
+//===================================================================================================
+//===================================================================================================
+//===================================================================================================
+#else
+	// WriteE8Call(0x2002111D,&my_Con_Draw_Console);
+	WriteE9Jmp(0x2002111D,&my_Con_Draw_Console);
+	WriteE9Jmp(0x20020C90, 0x20020D6C);
+#endif
 	PrintOut(PRINT_GOOD,"SoF Buddy fully initialised!\n");
 }
 
@@ -211,6 +381,12 @@ void InitDefaults(void)
 	PrintOut(PRINT_GOOD,"Fixed defaults\n");
 }
 
+/*
+	Inside Qcommon_Init()
+	After:
+	Cbuf_AddEarlyCommands (false);
+	Cbuf_Execute ();
+*/
 void my_FS_InitFilesystem(void) {
 	orig_FS_InitFilesystem();
 
@@ -242,9 +418,6 @@ void my_orig_Qcommon_Init(int argc, char **argv)
 }
 
 
-
-
-
 /*
 Safest(Earliest) Init Location for wanting to check command line values.
 
@@ -268,10 +441,14 @@ qboolean my_Cbuf_AddLateCommands(void)
 	if ( _sofbuddy_classic_timers && _sofbuddy_classic_timers->value == 0.0f ) 
 		{
 			PrintOut(PRINT_GOOD,"Using QPC timers!\n");
-			mediaTimers_apply();
+			mediaTimers_apply_later();
 		}
 #endif
 	
+		// For cvar creation which requires to override other config.cfg cvars
+		// By definition cvars which change other cvars cannot both be in config.cfg
+		refFixes_apply_later();
+
 	/*
 		CL_Init() already called, which handled VID_Init, and R_Init()
 	*/

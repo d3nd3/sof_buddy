@@ -1,8 +1,9 @@
-extern void mediaTimers_apply(void);
+extern void mediaTimers_apply_later(void);
 extern void mediaTimers_early(void);
 
 extern void refFixes_early(void);
 extern void refFixes_apply(void);
+extern void refFixes_apply_later(void);
 
 extern void scaledFont_early(void);
 extern void scaledFont_apply(void);
@@ -23,6 +24,7 @@ extern int oldtime;
 extern void create_sofbuddy_cvars(void);
 extern void create_mediatimers_cvars(void);
 extern void create_reffixes_cvars(void);
+extern void create_reffixes_after_config_cvars(void);
 extern void create_scaled_fonts_cvars(void);
 
 
@@ -53,3 +55,5 @@ extern cvar_t * _sofbuddy_whiteraven_lighting;
 //scaled_font.cpp
 extern cvar_t * _sofbuddy_font_scale;
 extern cvar_t * _sofbuddy_console_size;
+extern cvar_t * test;
+extern cvar_t * test2;

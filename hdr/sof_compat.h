@@ -19,6 +19,27 @@ typedef struct cvar_s
    struct cvar_s *   next;
 } cvar_t;
 
+typedef struct paletteRGB_s
+{
+   struct
+   {
+      byte r,g,b;
+   };
+} paletteRGB_t;
+
+typedef struct paletteRGBA_s
+{
+   union
+   {
+      struct
+      {
+         byte r,g,b,a;
+      };
+      unsigned c;
+      byte c_array[4];
+   };
+} paletteRGBA_t;
+
 
 extern cvar_t *(*orig_Cvar_Get)(const char * name, const char * value, int flags, cvarcommand_t command);
 extern cvar_t *(*orig_Cvar_Set2) (char *var_name, char *value, qboolean force);
@@ -68,4 +89,5 @@ extern void (*orig_drawTeamIcons)(void * param1,void * param2,void * param3,void
 extern void (*orig_Cmd_ExecuteString)(const char * string);
 
 extern void InitDefaults(void);
+
 

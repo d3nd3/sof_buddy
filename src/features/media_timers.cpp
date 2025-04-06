@@ -31,7 +31,7 @@ int sleep_busyticks = 2;
 
 void cl_maxfps_change(cvar_t *cvar);
 
-cvar_t * test = NULL;
+
 cvar_t * cl_maxfps = NULL;
 
 int (*Sys_Mil) (void) = NULL;
@@ -86,13 +86,13 @@ void mediaTimers_early(void)
 /*
 	Also implements cl_maxfps in singleplayer
 */
-void mediaTimers_apply(void)
+void mediaTimers_apply_later(void)
 {
 	//CVAR_ARCHIVE - save to config.cfg
 	//CVAR_NOSET - write-only.
 	//===Cvars====
 	cl_maxfps = orig_Cvar_Get("cl_maxfps","30",NULL,&cl_maxfps_change);
-	test = orig_Cvar_Get("test","100",NULL,NULL);
+	
 	create_mediatimers_cvars();
 
 

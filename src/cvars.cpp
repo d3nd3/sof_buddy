@@ -70,6 +70,10 @@ cvar_t * _sofbuddy_whiteraven_lighting = NULL;
 //scaled_font.cpp
 cvar_t * _sofbuddy_font_scale = NULL;
 cvar_t * _sofbuddy_console_size = NULL;
+cvar_t * _sofbuddy_hud_scale = NULL;
+
+cvar_t * test = NULL;
+cvar_t * test2 = NULL;
 
 
 #ifdef FEATURE_MEDIA_TIMERS
@@ -88,12 +92,21 @@ void create_sofbuddy_cvars(void) {
 */
 extern void consolesize_change(cvar_t * cvar);
 extern void fontscale_change(cvar_t * cvar);
+extern void hudscale_change(cvar_t * cvar);
+
 void create_scaled_fonts_cvars(void) {
 	//scaled_font.cpp
 	//0.35 is nice value.
 	_sofbuddy_console_size = orig_Cvar_Get("_sofbuddy_console_size","0.5",CVAR_ARCHIVE,&consolesize_change);
 	//fontscale_change references a cvar, so order matters.
 	_sofbuddy_font_scale = orig_Cvar_Get("_sofbuddy_font_scale","1",CVAR_ARCHIVE,&fontscale_change);
+
+	_sofbuddy_hud_scale = orig_Cvar_Get("_sofbuddy_hud_scale","1",CVAR_ARCHIVE,&hudscale_change);
+
+	test = orig_Cvar_Get("test","21.1",NULL,NULL);
+	test2 = orig_Cvar_Get("test2","21.1",NULL,NULL);
+
+	// test = orig_Cvar_Get("test","0",NULL,NULL);
 }
 #endif
 
@@ -162,10 +175,13 @@ void create_reffixes_cvars(void) {
 	_sofbuddy_minfilter_mipped = orig_Cvar_Get("_sofbuddy_minfilter_mipped","GL_LINEAR_MIPMAP_LINEAR",CVAR_ARCHIVE,&minfilter_change);
 	_sofbuddy_magfilter_mipped = orig_Cvar_Get("_sofbuddy_magfilter_mipped","GL_LINEAR",CVAR_ARCHIVE,&magfilter_change);
 
-	//ui
+	//ui - left magfilter_ui at GL_NEAREST for now because fonts look really bad with LINEAR, even tho others might be better at 4k
 	_sofbuddy_minfilter_ui = orig_Cvar_Get("_sofbuddy_minfilter_ui","GL_NEAREST",CVAR_ARCHIVE,&minfilter_change);
 	_sofbuddy_magfilter_ui = orig_Cvar_Get("_sofbuddy_magfilter_ui","GL_NEAREST",CVAR_ARCHIVE,&magfilter_change);
+}
 
+void create_reffixes_after_config_cvars(void) {
+	// Move this to after config.cfg somehow
 	_sofbuddy_whiteraven_lighting = orig_Cvar_Get("_sofbuddy_whiteraven_lighting","0",CVAR_ARCHIVE,&whiteraven_change);
 }
 #endif

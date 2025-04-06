@@ -240,3 +240,25 @@ void setCvarString(cvar_t * which, char * newstr) {
 	which->string = orig_CopyString(newstr);
 	which->value = atof(which->string);
 }
+
+size_t strlen_custom(const char *str) {
+    // Handle NULL pointer input for robustness
+    if (str == NULL) {
+        return 0;
+    }
+
+    size_t length = 0;
+    // Loop until the null terminator (*str == 0x00 or *str == '\0')
+    while (*str != '\0') {
+        // Check if the character's value is >= 0x20
+        // Note: We cast to unsigned char to avoid potential issues if 'char'
+        // is signed and the value is > 127 on some systems, although for
+        // comparing against 0x20 it's usually fine either way.
+        if ((unsigned char)*str >= 0x20) {
+            length++; // Increment length only if condition is met
+        }
+        str++; // Move to the next character regardless of the condition
+    }
+
+    return length;
+}

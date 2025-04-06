@@ -292,6 +292,8 @@ void refFixes_early(void) {
 
 	Called at the end of QCommon_Init().
 
+	Before 'exec config.cfg'
+
 	IMPORTANT:
 	  A cvar's modified function cannot use the global pointer because it hasnt' returned yet...
 */
@@ -308,6 +310,13 @@ void refFixes_apply(void)
 	create_reffixes_cvars();
 	#endif
 	
+}
+
+void refFixes_apply_later(void)
+{
+	#ifdef FEATURE_ALT_LIGHTING
+	create_reffixes_after_config_cvars();
+	#endif
 }
 
 
@@ -476,7 +485,8 @@ void my_GL_TextureMode(char * mode) {
 	  sky/detailtextures(unmipped) using MAG_FILTER(gl_texturemode) for both min and mag
 	  normal in-game mipped textures using MIN_FILTER(gl_texturemode) and MAG_FILTER(gl_texturemode)
 
-	UI was untouched, hardcode to NEAREST/NEAREST
+	UI was untouched, hardcode to NEAREST/NEAREST.
+	Considering defaulting the UI to GL_LINEAR for MAG. For re-scale HUD aesthetics.
 
 	gl_texturemode values:
 	==GL_NEAREST==

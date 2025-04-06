@@ -4,7 +4,7 @@
 #define PRINT_LOG_EMPTY 4
 
 // show debug-log-type-messages?
-// #define __LOGGING__
+#define __LOGGING__
 
 //Extra output print places than in-game.
 // #define __FILEOUT__
@@ -60,3 +60,4 @@ void setCvarInt(cvar_t * which,int val);
 void setCvarByte(cvar_t * which, unsigned char val);
 void setCvarFloat(cvar_t * which, float val);
 void setCvarString(cvar_t * which, char * newstr);
+size_t strlen_custom(const char *str);
