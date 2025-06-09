@@ -4,11 +4,12 @@
 #define PRINT_LOG_EMPTY 4
 
 // show debug-log-type-messages?
-#define __LOGGING__
+// #define __LOGGING__
 
 //Extra output print places than in-game.
 // #define __FILEOUT__
 // #define __TERMINALOUT__
+
 
 #define M_PI   3.14159265358979323846264338327950288
 #define degToRad(angleInDegrees) ((angleInDegrees) * M_PI / 180.0)

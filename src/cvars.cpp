@@ -3,23 +3,118 @@
 #include "sof_compat.h"
 #include "features.h"
 
-//Every cvar here would trigger its modified, because no cvars exist prior.
-//But its loaded with its default value.
 /*
+	==UPDATED NOTES==
+	(IF MODIFIED==TRUE : Cvar_Get() will fire callback else not. (Unless its creating new cvar))
+	Cvar_Get() - (Only sets modified=1 upon Creation).
+     --2 PATHWAYS.--
+     OnCreation : 
+          //fires the callback unless NULL for callback in fn call.
+          if ( cvar->callback ) fire callback()
+
+     OnExist : 
+          //fires the callback if callback arg AND modified == 1
+         if (cvar->modified && cvar->callback)
+              fire callback();
+
+     This means Cvar_Get depends on modified being true, to fire its callback. ( if the cvar already exists)
+
+
+
+Cvar_Set2() - force=0 force=1 force=>1
+     Will call Cvar_Get() and return, if the var is not existing already. (calls Cvar_Get() in creation mode/pathway).
+     won't set the var->value(float) if CVAR_INTERNAL
+
+    //fires the callback if the cvar has a callback associated to it, and if the value is changed.
+    if ( !strcmp(newval,oldval)) {
+        if ( cvar->callback ) fire callback()
+    }
+     
+     if force >1 , also force CVAR_INTERNAL's to be set. (Warning: don't use for latched cvars, memory leak).
+
+    server CVAR_LATCH - just sets cvar->latched_string
+    client CVAR_LATCH - (protected with CVAR_INTERNAL) (specific for game cvar). - bypasses modified and userinfo_modified (Also calls UpdateViolence here).
+
+  ----------------------
+
   Cvar_Get() - Used for 'Creating Cvar'
   Cvar_Set2() - Used for 'Setting Cvar'
   
 	Cvar_Get -> If the variable already exists, the value will not be set
-	This is earlier than Cbuf_AddLateCommands(), just before exec default.cfg and exec config.cfg IN Qcommon_Init()
+	
+	==Cvar_Get Quirks==
+	--flags--
+		Cvar flags are or'ed in, thus multiple calls to Cvar_Get stack the flags, but doesn't remove flags.
+	--NULL callback argument--
+		Does the command with NULL, remove the command or create multiple?
+	  	NULL does not remove previous set modified callbacks.
+	  	With a new modified callback, it overrides the currently set one.
 
-	Cvar flags are or'ed in, thus multiple calls to Cvar_Get stack the flags, but doesn't remove flags.
-	Does the command with NULL, remove the command or create multiple?
-	  NULL does not remove previous set modified callbacks.
-	  With a new modified callback, it overrides the currently set one.
+	--Cvar already exists--
+		If the cvar already exists when calling Cvar_Get(), the callback is still fired if the value has been modified since.
+		I assume this needs the modified value to be reset to false, not sure how that happens, or if it does. 
 
 	 If you want your cvar's onChange callback to be triggered by config.cfg (which sets cvars).
-	 They have to be first created here, thus it would have 2 calls to the callback, if the config.cfg contains a different value,
+	 They have to be first created before config.cfg, thus it would have 2 calls to the callback, if the config.cfg contains a different value,
 	 than the default we supply here.
+
+	Modified callback is called _WHEN_:
+		Upon Cvar Creation in Cvar_Get()
+			If the Cvar already exists, it checks it has a modified=true AND a callback, then fires callback()
+			If the Cvar didn't exist, it checks ONLY if it has a callback, then fires callback()
+
+		Upon Cvar change in Cvar_Set2()
+		  If the value being set is DIFFERENT than current value _AND_ has a callback, then fires callback()
+
+
+	IMPORTANT:
+	  A cvar's modified function cannot use the global pointer because it hasnt' returned yet...
+
+	For cvar creation which requires to change other config.cfg cvars
+	By definition cvars which change other cvars cannot both have CVAR_ARCHIVE flags
+	Because then the order of them would matter inside the config.cfg (Race Condition).
+
+	SO: EVERY CVAR_ARCHIVE CVAR MUST NOT SHARE IMPLEMENTATION VARIABLE MAPPINGS, ELSE THEY CONFLICT WITH THEMSELVES,
+	THEY'RE ESSENTIALLY ALIASES FOR EACH OTHER, WHICH IS INVALID.
+
+
+	==Understanding cvar Race conditions==
+		Qcommon_Init()
+
+			//We do it twice incase a basedir or cddir etc are set
+			//To change behaviour of exec config.cfg etc...
+
+			//only process commandline "+set" commands
+			Cbuf_AddEarlyCommands (false);
+			Cbuf_Execute ();
+
+			//Process some launch options: -user -cddir -basedir -game
+			FS_InitFileSystem():
+
+			Cbuf_AddText ("exec default.cfg\n");
+			Cbuf_AddText ("exec config.cfg\n");
+
+			//Repeat the previous +set commands to override anything set by the config.cfg or default.cfg
+			//only process commandline "+set" commands
+			Cbuf_AddEarlyCommands (true);
+			Cbuf_Execute ();
+
+			//Exec autoexec.cfg
+		  CL_Init()
+		    FS_ExecAutoexec()
+
+			//Add all of the other commands with +CMD which are not +set and not -user etc (launch options)
+		  Cbuf_AddLateCommands()
+
+
+		TLDR:
+			default.cfg
+			config.cfg
+			launch_+set's
+			autoexec.cfg
+			launch_+cmd's
+
+		
 */
 
 
@@ -178,10 +273,9 @@ void create_reffixes_cvars(void) {
 	//ui - left magfilter_ui at GL_NEAREST for now because fonts look really bad with LINEAR, even tho others might be better at 4k
 	_sofbuddy_minfilter_ui = orig_Cvar_Get("_sofbuddy_minfilter_ui","GL_NEAREST",CVAR_ARCHIVE,&minfilter_change);
 	_sofbuddy_magfilter_ui = orig_Cvar_Get("_sofbuddy_magfilter_ui","GL_NEAREST",CVAR_ARCHIVE,&magfilter_change);
+
+	_sofbuddy_whiteraven_lighting = orig_Cvar_Get("_sofbuddy_whiteraven_lighting","0",CVAR_ARCHIVE,NULL);
 }
 
-void create_reffixes_after_config_cvars(void) {
-	// Move this to after config.cfg somehow
-	_sofbuddy_whiteraven_lighting = orig_Cvar_Get("_sofbuddy_whiteraven_lighting","0",CVAR_ARCHIVE,&whiteraven_change);
-}
+
 #endif

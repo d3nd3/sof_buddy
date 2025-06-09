@@ -161,6 +161,10 @@ void WriteE8Call(void * where,void * dest)
 	VirtualProtect(where, 5, dwProt, &dwProt);
 }
 
+/*
+	When calculating jumps use:
+	DestinationTo - (Address of JMP + SIZE_OF_JMP)
+*/
 void WriteE9Jmp(void * where, void * dest)
 {
 	DWORD dwProt=NULL;

@@ -1,5 +1,8 @@
 #define _WIN32_WINNT 0x501
 
+// #define WINSOCK_ASSERT
+// #define WINSOCK_LOGGING
+
 #include <windows.h>
 #include <shlwapi.h>
 
@@ -28,7 +31,6 @@
 #include "crc32.h"
 
 #include "features.h"
-
 
 
 
@@ -152,7 +154,7 @@ typedef int (__stdcall * lpfn___WSAFDIsSet)(SOCKET fd,fd_set *set);
 lpfn___WSAFDIsSet sp___WSAFDIsSet = (lpfn___WSAFDIsSet)__WSAFDIsSet;
 extern "C" int __stdcall sys___WSAFDIsSet(SOCKET fd,fd_set *set);
 
-// #define WINSOCK_ASSERT
+
 
 int __stdcall sys_bind(SOCKET s,const struct sockaddr *name,int namelen)
 {
@@ -164,7 +166,7 @@ int __stdcall sys_bind(SOCKET s,const struct sockaddr *name,int namelen)
 	#endif
 
 	sockaddr_in * sock_in = (sockaddr_in*)name;
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING bind! %s %hu\n",sock_in->sin_addr.s_addr,ntohs(sock_in->sin_port));
 	#endif
 
@@ -179,7 +181,7 @@ int sys_closesocket(SOCKET s)
 		ExitProcess(1);
 	}
 	#endif
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING closesocket!\n");
 	#endif
 	return sp_closesocket(s);
@@ -195,7 +197,7 @@ int sys_connect(SOCKET s,const struct sockaddr *name,int namelen)
 	}
 	#endif
 	sockaddr_in * sock_in=(sockaddr_in*)name;
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING connect! %s : %hu\n",inet_ntoa(sock_in->sin_addr),ntohs(sock_in->sin_port));
 	#endif
 	return sp_connect(s,name,namelen);
@@ -209,7 +211,7 @@ int sys_getsockname(SOCKET s, struct sockaddr *name,int *namelen)
 		ExitProcess(1);
 	}
 	#endif
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING getsockname!\n");
 	#endif
 	return sp_getsockname(s,name,namelen);
@@ -223,7 +225,7 @@ u_long sys_htonl(u_long hostlong)
 		ExitProcess(1);
 	}
 	#endif
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING htonl!\n");
 	#endif
 	return sp_htonl(hostlong);
@@ -237,7 +239,7 @@ u_short sys_htons(u_short hostshort)
 		ExitProcess(1);
 	}
 	#endif
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING htons!\n");
 	#endif
 	return sp_htons(hostshort);
@@ -251,7 +253,7 @@ unsigned long sys_inet_addr(const char *cp)
 		ExitProcess(1);
 	}
 	#endif
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING inet_addr %s!\n",cp);
 	#endif
 	return sp_inet_addr(cp);
@@ -267,7 +269,7 @@ char* sys_inet_ntoa(struct in_addr in)
 	#endif
 	char * pc_out;
 	pc_out=sp_inet_ntoa(in);
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING inet_ntoa %s\n",pc_out);
 	#endif
 	return pc_out;
@@ -281,7 +283,7 @@ int sys_ioctlsocket(SOCKET s,long cmd,u_long *argp)
 		ExitProcess(1);
 	}
 	#endif
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING ioctlscoket!\n");
 	#endif
 
@@ -297,7 +299,7 @@ u_long sys_ntohl(u_long netlong)
 		ExitProcess(1);
 	}
 	#endif
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING sys_ntohl!\n");
 	#endif
 	return sp_ntohl(netlong);
@@ -311,7 +313,7 @@ u_short sys_ntohs(u_short netshort)
 		ExitProcess(1);
 	}
 	#endif
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING ntohs!\n");
 	#endif
 	return sp_ntohs(netshort);
@@ -404,7 +406,7 @@ int sys_select(int nfds,fd_set *readfds,fd_set *writefds,fd_set *exceptfds,const
 		ExitProcess(1);
 	}
 	#endif
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	// PrintOut(PRINT_LOG,"CALLING select!\n");
 	#endif
 	return sp_select(nfds,readfds,writefds,exceptfds,timeout);
@@ -487,7 +489,7 @@ int sys_setsockopt(SOCKET s,int level,int optname,const char *optval,int optlen)
 		ExitProcess(1);
 	}
 	#endif
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING setsockopt!\n");
 	#endif
 	return sp_setsockopt(s,level,optname,optval,optlen);
@@ -501,7 +503,7 @@ int sys_shutdown(SOCKET s,int how)
 		ExitProcess(1);
 	}
 	#endif
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING shutdown!\n");
 	#endif
 	return shutdown(s,how);
@@ -515,7 +517,7 @@ SOCKET sys_socket(int af,int type,int protocol)
 		ExitProcess(1);
 	}
 	#endif
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING socket! %i %i %i\n",af,type,protocol);
 	#endif
 	return sp_socket(af,type,protocol);
@@ -529,7 +531,7 @@ struct hostent* sys_gethostbyname(const char *name)
 		ExitProcess(1);
 	}
 	#endif
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING gethostbyname %s!\n",name);
 	#endif
 	return sp_gethostbyname(name);
@@ -543,7 +545,7 @@ int sys_gethostname(char *name,int namelen)
 		ExitProcess(1);
 	}
 	#endif
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING gethostname! %s\n",name);
 	#endif
 	return sp_gethostname(name,namelen);
@@ -558,12 +560,26 @@ int sys_WSAGetLastError(void)
 		ExitProcess(1);
 	}
 	#endif
-	#ifdef __LOGGING__
-	// PrintOut(PRINT_LOG,"CALLING WSAGetLastError!\n");
+	#ifdef WINSOCK_LOGGING
+	PrintOut(PRINT_LOG,"CALLING WSAGetLastError!\n");
 	#endif
 	return sp_WSAGetLastError();
 }
 
+/*
+	Contains SoFPlus Init code.
+	Called by Qcommon_Init() -> NET_Init()
+	before Cbuf_AddLateCommands()
+
+	calls exec sofplus.cfg which initialises all addons
+
+	If an addon calls sp_sc_timer, its lines of code will be
+	Cbuf_AddText() inside WinMain loop. Which will be executed on next
+	Cbuf_Execute().
+
+	3 Stages of timer code.
+	Here -> WinMain -> Cbuf_Execute
+*/
 int sys_WSAStartup(WORD wVersionRequested,LPWSADATA lpWSAData)
 {
 	static bool doOnce = false;
@@ -573,19 +589,20 @@ int sys_WSAStartup(WORD wVersionRequested,LPWSADATA lpWSAData)
 		ExitProcess(1);
 	}
 	#endif
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING WSA_STARTUP!\n");
 	#endif
 
-	int ret = sp_WSAStartup(wVersionRequested,lpWSAData);
 	if (!doOnce) {
 		doOnce = true;
-		#ifdef FEATURE_MEDIA_TIMERS
-		resetTimers(0);
-		#endif
+
 	}
+	// __asm__("int $3");
+	int ret = sp_WSAStartup(wVersionRequested,lpWSAData);
+
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING WSA_STARTUP_AFTERXX!\n");
-	
+	#endif
 	return ret;
 }
 
@@ -597,7 +614,7 @@ int sys_WSACleanup(void)
 		ExitProcess(1);
 	}
 	#endif
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING WSA_CLEANUP!\n");
 	#endif
 	return sp_WSACleanup();
@@ -611,7 +628,7 @@ int sys___WSAFDIsSet(SOCKET fd,fd_set *set)
 		ExitProcess(1);
 	}
 	#endif
-	#ifdef __LOGGING__
+	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING __WSAFDIsSet!\n");
 	#endif
 	return sp___WSAFDIsSet(fd,set);
@@ -689,6 +706,7 @@ void wsock_link(void)
 */
 void sofplus_copy(void)
 {
+	#if 0
 	wchar_t tempFileName[MAX_PATH];
 	//-----------------------------------------
 				
@@ -737,6 +755,7 @@ void sofplus_copy(void)
 //=================================================================================
 
 	/*
+	    Why do we NOP this?
 		Nop the DllMain init function.
 	*/
 	void * p = pBuffer+0x9EBD;
@@ -908,9 +927,12 @@ void sofplus_copy(void)
 	// Load the modified DLL from the temp file
 	//MessageBoxW(NULL, (std::wstring(L"Path is : ") + tempFileName).c_str(), L"Success", MB_ICONINFORMATION | MB_OK);
 	// o_sofplus = LoadLibraryExW(tempFileName,NULL,LOAD_LIBRARY_SEARCH_DEFAULT_DIRS );
-	// o_sofplus = LoadLibrary("spcl.dll");
 	PrintOut(PRINT_LOG,"Loading %ls\n",tempFileName);
 	o_sofplus = LoadLibraryW(tempFileName);
+	#else
+		o_sofplus = LoadLibrary("spcl.dll");
+	#endif
+
 	if (o_sofplus == NULL) {
 		DWORD error = GetLastError();
 		MessageBoxW(NULL, (L"Cannot load sofplus!! Error code: " + std::to_wstring(error)).c_str(), L"Error", MB_ICONERROR | MB_OK);
