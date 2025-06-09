@@ -95,10 +95,6 @@ enumCroppedDrawMode hudCroppedEnum;
 int croppedWidth = 0;
 int croppedHeight = 0;
 
-int * viddef_width = 0x2040365C;
-int * viddef_height = 0x20403660;
-
-
 
 
 /*
@@ -138,8 +134,8 @@ void my_DrawStretchPic(int x, int y, int w, int h,int palette, char *name, int f
 		// orig_Com_Printf("Yes %i %i %i %i\n",x,y,w,h);
 		isNotFont = true;
 
-		int consoleHeight = draw_con_frac * *viddef_height;
-		y = -1* *viddef_height + consoleHeight;
+		int consoleHeight = draw_con_frac * current_vid_h;
+		y = -1* current_vid_h + consoleHeight;
 		orig_DrawStretchPic(x,y,w,h,palette,name,flags);
 		orig_SRC_AddDirtyPoint(0,0);
 		orig_SRC_AddDirtyPoint(w-1,consoleHeight-1);
@@ -176,13 +172,13 @@ void my_DrawStretchPic(int x, int y, int w, int h,int palette, char *name, int f
 void my_DrawPicOptions(int x, int y, float w_scale, float h_scale, int pal, char *name)
 {
 	if ( hudDmRanking ) {
-		float x_scale = *viddef_width/640;
+		float x_scale = current_vid_w/640;
 		int offsetEdge = 40; //36??
-		float y_scale = *viddef_height/480;
+		float y_scale = current_vid_h/480;
 		if ( hudDmRanking_wasImage ) {
 			// PrintOut(PRINT_LOG,"Logo ypos = %i\n",y);
 			//2nd image, means we in spec chasing someone. This image is a DM Logo.
-			x = *viddef_width - 32*hudScale - offsetEdge*x_scale;
+			x = current_vid_w - 32*hudScale - offsetEdge*x_scale;
 			// y = y + (hudScale-1)*32;
 			//go to start of border by removing fixed margin, add previous logo + new scaling margin
 			y = 20*y_scale + 32*hudScale + 6*y_scale;
@@ -220,7 +216,7 @@ void my_DrawPicOptions(int x, int y, float w_scale, float h_scale, int pal, char
 			//Or just leave them and do an extra SCR_DirtyRect call.
 			
 			// float y_scale = vid_height/480; 
-			x = *viddef_width - 32*hudScale - offsetEdge*x_scale;
+			x = current_vid_w - 32*hudScale - offsetEdge*x_scale;
 			//SOF FORMULA : vid_width - 40 * vid_width/640 - 16 
 			w_scale = hudScale;
 			h_scale = hudScale;
@@ -232,15 +228,15 @@ void my_DrawPicOptions(int x, int y, float w_scale, float h_scale, int pal, char
 		static bool secondDigit = false;
 
 		// //Special Interface Font Wooo (also used in SoFPlus cl_showfps 2)
-		float x_scale = static_cast<float>(*viddef_width) / 640.0f;
-		float y_scale = static_cast<float>(*viddef_height) / 480.0f;
+		float x_scale = static_cast<float>(current_vid_w) / 640.0f;
+		float y_scale = static_cast<float>(current_vid_h) / 480.0f;
 
 		// //Bottom-Right Corner - frame_bottom
-    x = static_cast<float>(*viddef_width) - 13.0f * x_scale - 63.0f*hudScale;
+    x = static_cast<float>(current_vid_w) - 13.0f * x_scale - 63.0f*hudScale;
     if (!secondDigit) x += 18.0f*hudScale;
     // if (left) x -= test2->value * hudScale; //width
 
-    y = static_cast<float>(*viddef_height) - 7.0f * y_scale - 49.0f*hudScale;
+    y = static_cast<float>(current_vid_h) - 7.0f * y_scale - 49.0f*hudScale;
     // if (top) y -= 16.0f * hudScale; //height
 
     w_scale = hudScale;
@@ -401,19 +397,19 @@ void my_R_DrawFont(int screenX, int screenY, char* text, int colorPalette, char 
 		if ( !wasHudDmRanking ) {
 			//score first is centered.
 
-			screenX = *viddef_width - 32*hudScale - 24*(*viddef_width/640) + hudScale*16 - fontWidth*strlen(text)/2;
+			screenX = current_vid_w - 32*hudScale - 24*(current_vid_w/640) + hudScale*16 - fontWidth*strlen(text)/2;
 
 		} else {
 			//position in dmrank
-			screenX = *viddef_width - 32*hudScale - 24*(*viddef_width/640) + hudScale*16 - fontWidth*strlen(text)/2;
+			screenX = current_vid_w - 32*hudScale - 24*(current_vid_w/640) + hudScale*16 - fontWidth*strlen(text)/2;
 		}
 		*/
 		
 		//Text is only drawn in:
 		//Spec Chase Mode
 		//Spec OFF 
-		float x_scale = *viddef_width/640;
-		float y_scale = *viddef_height/480;
+		float x_scale = current_vid_w/640;
+		float y_scale = current_vid_h/480;
 		
 		if ( hudDmRanking_wasImage ) {
 			//We are SPEC or TEAM DMMODE playing.
@@ -422,7 +418,7 @@ void my_R_DrawFont(int screenX, int screenY, char* text, int colorPalette, char 
 
 				// We are in spec chasing someone, so this font is the name of the player we chase.
 				// There is an eye and a LOGO above us, if in TEAM DM
-				// x = *viddef_width - 32*hudScale - offsetEdge*x_scale;
+				// x = current_vid_w - 32*hudScale - offsetEdge*x_scale;
 				//Preserve their centering of text calculation.(Don't want to bother with colorCodes).
 				// screenX += 56 * x_scale;
 				//40 is a magic number here.
@@ -430,26 +426,26 @@ void my_R_DrawFont(int screenX, int screenY, char* text, int colorPalette, char 
 
 				//Why is this negative?
 				//Oh because it extends to the left, for long names
-				int center_offset = screenX - (*viddef_width - (offsetEdge * x_scale));
+				int center_offset = screenX - (current_vid_w - (offsetEdge * x_scale));
 				// PrintOut(PRINT_LOG,"Center offset is %i\n",center_offset);
 				// screenX -= -16 + 32*hudScale - center_offset*(hudScale-1);
-				// screenX = *viddef_width - 40 * x_scale - 16 
+				// screenX = current_vid_w - 40 * x_scale - 16 
 				//x = width - scaled_border - scaledHud/2 + centered_text
-				screenX = *viddef_width - offsetEdge * x_scale - 16*hudScale + center_offset;
+				screenX = current_vid_w - offsetEdge * x_scale - 16*hudScale + center_offset;
 				// y = 20*y_scale + 32*hudScale + 6*y_scale;
 				screenY = 20*y_scale + 64*hudScale + 6*y_scale;
 			} else
 			{
 				// TEAM DM PLAYING - 1 Logo above.
 				//Specifically for Team Deathmatch where a logo is shown above score.
-				screenX = *viddef_width - 16*hudScale - offsetEdge*x_scale - fontWidth*strlen(text)/2;
+				screenX = current_vid_w - 16*hudScale - offsetEdge*x_scale - fontWidth*strlen(text)/2;
 				screenY = screenY + (hudScale-1)*32;
 			}
 			
 		} else
 		{
 			//PLAYING IN NON-TEAM DM, so NO LOGO
-			screenX = *viddef_width - offsetEdge*x_scale - 16*hudScale - fontWidth*strlen(text)/2;
+			screenX = current_vid_w - offsetEdge*x_scale - 16*hudScale - fontWidth*strlen(text)/2;
 		}
 		/*
 			Score -> 0
@@ -473,27 +469,27 @@ void my_R_DrawFont(int screenX, int screenY, char* text, int colorPalette, char 
 void R_Draw_Font_WeapName(int screenX, int screenY, char* text, int colorPalette, char * font, bool rememberLastColor)
 {
 	int fontWidth = test2->value;
-	float x_scale = *viddef_width/640;
-	float y_scale = *viddef_height/480;
+	float x_scale = current_vid_w/640;
+	float y_scale = current_vid_h/480;
 
 	//Bottom-Right Corner - no centering is required here.
-  screenX = static_cast<float>(*viddef_width) - 13.0f * x_scale - 79.0f*hudScale; //79
+  screenX = static_cast<float>(current_vid_w) - 13.0f * x_scale - 79.0f*hudScale; //79
 
-  float dynamic_pos = (static_cast<float>(*viddef_height) - 7.0f - 24.0f) - screenY; //33 - -9
+  float dynamic_pos = (static_cast<float>(current_vid_h) - 7.0f - 24.0f) - screenY; //33 - -9
   // vertical center? Nvm. Only if text is resized. (Take aaway from current to "do nothing" for hudScale == 1 without using hudScale-1)
-  screenY = static_cast<float>(*viddef_height) - 7.0f * y_scale - 28.0f * hudScale - dynamic_pos * hudScale;
+  screenY = static_cast<float>(current_vid_h) - 7.0f * y_scale - 28.0f * hudScale - dynamic_pos * hudScale;
   // if (top) y-= dynamic_pos * hudScale;
   orig_R_DrawFont(screenX,screenY,text,colorPalette,font,rememberLastColor);
 }
 //and item count
 void R_Draw_Font_AmmoClips(int screenX, int screenY, char* text, int colorPalette, char * font, bool rememberLastColor)
 {
-	float x_scale = *viddef_width/640;
-	float y_scale = *viddef_height/480;
+	float x_scale = current_vid_w/640;
+	float y_scale = current_vid_h/480;
 
 	// Bottom-Left Corner - frame_bottom
   screenX = 11.0f * x_scale + 76.0f * hudScale;
-  screenY = static_cast<float>(*viddef_height) - 7.0f * y_scale - 29.0f * hudScale;
+  screenY = static_cast<float>(current_vid_h) - 7.0f * y_scale - 29.0f * hudScale;
 
 	orig_R_DrawFont(screenX,screenY,text,colorPalette,font,rememberLastColor);
 }
@@ -507,6 +503,46 @@ void my_SCR_CenterPrint(char * text)
 
 /*
 	Scoreboard Font scale
+	Only called in one location (SCR_UpdateScreen)
+
+	Draw_StretchPic(int x, int y, int size_width, int size_height, paletteRGBA_c &, char const *, unsigned int)
+	Draw_Pic(int x, int y, char const *, paletteRGBA_c)
+	Draw_Char(int x, int y, int, paletteRGBA_c &)
+	Draw_String_Color(int x, int y, char const * text, int length, paletteRGBA_c &)
+	SP_GetStringText(ushort)
+	char *COM_Parse (char **data_p)
+	va(char *,...)
+
+	The plan:
+		Tried multiply the vertex positions by 2.
+		This should work in theory.
+		When you multiply them by 2, their width and height increases.
+		But the position changes too.
+
+		We must measure the distance from the center of the screen, initially, before scale.
+		So after we scale it, we can reposition them again.
+
+		So:
+		  Save Position.
+		  Scale.
+		  Restore Position.
+		
+		Have to do it all at once.
+		Doesn't make sense.
+		Ah.
+		That was the idea?
+		To delay the functions, make them dummy, so that width could be calculated.
+
+		TexCoord1
+		Vertex1
+		TexCoord2
+		Vertex2
+		TexCoord3
+		Vertex3
+		TexCoord4
+		Vertex4
+
+
 */
 bool isDrawingLayout = false;
 void my_SCR_ExecuteLayoutString(char * text)
@@ -597,7 +633,7 @@ typedef enum
 
 	con.linewidth is faked in con_checkresize()
 
-	There is rare crash with the console system, not sure what causes it.
+	There is rare crash with the console system, not sure what causes it. (This got solved. Was not sof_buddy).
 */
 void my_Con_DrawConsole (float frac) {
 	draw_con_frac = frac;
@@ -644,12 +680,12 @@ void my_Con_DrawConsole (float frac) {
 
 int real_refdef_width = 0;
 void my_Con_DrawNotify(void) {
-	real_refdef_width = *viddef_width;
-	*viddef_width = 1/fontScale * *viddef_width;
+	real_refdef_width = current_vid_w;
+	current_vid_w = 1/fontScale * current_vid_w;
 	isFontOuter = true;
 	orig_Con_DrawNotify();
 	isFontOuter = false;
-	*viddef_width = real_refdef_width;
+	current_vid_w = real_refdef_width;
 }
 
 /*
@@ -666,17 +702,17 @@ void my_Con_DrawNotify(void) {
 */
 void my_Con_CheckResize(void) {
 	//This makes con.linewidth smaller in order to reduce the character count per line.
-	int viddef_before = *viddef_width;
+	int viddef_before = current_vid_w;
 
 	int width = (viddef_before >> 3) - 2;
 
 	//Only manipulate width when video initialised.
 	if ( width >= 1 ) {
 		//width = (vidref.width/8) - 2
-		*viddef_width = 1/fontScale * *viddef_width;
+		current_vid_w = 1/fontScale * current_vid_w;
 		orig_Con_CheckResize();
 		
-		*viddef_width = viddef_before;
+		current_vid_w = viddef_before;
 		// orig_Com_Printf("linewidth is now : %i\n",*(int*)0x2024AF98);	
 	} else {
 		orig_Con_CheckResize();
@@ -687,6 +723,7 @@ void my_Con_CheckResize(void) {
 	More efficient than many if statements in low level glVertex() call.
 
 	TODO: Don't use hudScale-1 so that we can use scales < 1.
+	UPDATE: Seems hudScale-1 works even for scales < 1
 
 	frame_health
 		WIDTH: 155
@@ -709,14 +746,14 @@ void my_Con_CheckResize(void) {
 
 	Fixed Vertical Border of 15.
 
-	FrameY_upper = *viddef_height - 15*y_scale - 27*hudScale
-	FrameY_lower = *viddef_height - 15*y_scale
+	FrameY_upper = current_vid_h - 15*y_scale - 27*hudScale
+	FrameY_lower = current_vid_h - 15*y_scale
 
-	healthY_upper = *viddef_height - 15*y_scale - 16*hudScale
-	healthY_lower = *viddef_height - 15*y_scale - 7*hudScale
+	healthY_upper = current_vid_h - 15*y_scale - 16*hudScale
+	healthY_lower = current_vid_h - 15*y_scale - 7*hudScale
 
-	armorY_upper = *viddef_height - 15*y_scale - 27*hudScale
-	armorY_lower = *viddef_height - 15*y_scale - 15*hudScale
+	armorY_upper = current_vid_h - 15*y_scale - 27*hudScale
+	armorY_lower = current_vid_h - 15*y_scale - 15*hudScale
 
 	The issue with scaling like this is when the transparency around image is not symmetric.
 	So it actually moves its position relative to other objects when its scaled up?
@@ -771,10 +808,10 @@ center_x - 60 == start_pos.
 
 void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, float &x, float &y) {
     if (hudHealthArmor) {
-        float y_scale = static_cast<float>(*viddef_height) / 480.0f;
-        int center_x = *viddef_width / 2;
+        float y_scale = static_cast<float>(current_vid_h) / 480.0f;
+        int center_x = current_vid_w / 2;
         float health_frame_start_x = center_x - 80.0f * hudScale;
-        float health_frame_start_y = *viddef_height - 15.0f * y_scale;
+        float health_frame_start_y = current_vid_h - 15.0f * y_scale;
         float offset;
 
         switch (hudCroppedEnum) {
@@ -817,15 +854,15 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
             break;
         }
     } else if (hudInventoryAndAmmo) {
-        float x_scale = static_cast<float>(*viddef_width) / 640.0f;
-        float y_scale = static_cast<float>(*viddef_height) / 480.0f;
+        float x_scale = static_cast<float>(current_vid_w) / 640.0f;
+        float y_scale = static_cast<float>(current_vid_h) / 480.0f;
 
         switch (hudCroppedEnum) {
             case GUN_AMMO_BOTTOM:
           		//Bottom-Right Corner - frame_bottom
-              x = static_cast<float>(*viddef_width) - 13.0f * x_scale;
+              x = static_cast<float>(current_vid_w) - 13.0f * x_scale;
               if (left) x -= 128.0f * hudScale; //width
-              y = static_cast<float>(*viddef_height) - 7.0f * y_scale;
+              y = static_cast<float>(current_vid_h) - 7.0f * y_scale;
               if (top) y -= 64.0f * hudScale; //height
             break;
 
@@ -833,15 +870,15 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
           		// Bottom-Left Corner - frame_bottom
               x = 11.0f * x_scale;
               if (!left) x += 128.0f * hudScale; //width
-              y = static_cast<float>(*viddef_height) - 7.0f * y_scale;
+              y = static_cast<float>(current_vid_h) - 7.0f * y_scale;
               if (top) y -= 64.0f * hudScale; //height
             break;
 
             case GUN_AMMO_TOP:
             	//Bottom-Right Corner - frame_top2 
-            	x = static_cast<float>(*viddef_width) - 13.0f * x_scale;
+            	x = static_cast<float>(current_vid_w) - 13.0f * x_scale;
             	if (left) x -= 128.0f * hudScale; //width=128
-            	y = static_cast<float>(*viddef_height) - 7.0f * y_scale - 33.0f * hudScale;
+            	y = static_cast<float>(current_vid_h) - 7.0f * y_scale - 33.0f * hudScale;
             	if (top) y-= 32.0f * hudScale; //height=28?
           	break;
 
@@ -850,18 +887,18 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
           		x = 11.0f * x_scale;
           		if (!left) x += 128.0f * hudScale; //width
 
-          		y = static_cast<float>(*viddef_height) - 7.0f * y_scale - 33.0f * hudScale;
+          		y = static_cast<float>(current_vid_h) - 7.0f * y_scale - 33.0f * hudScale;
           		if (top) y -= 32.0f * hudScale; //height
           	break;
 
           	case GUN_AMMO_SWITCH: {
           		//Bottom-Right Corner - frame_top
-          		x = static_cast<float>(*viddef_width) - 13.0f * x_scale;
+          		x = static_cast<float>(current_vid_w) - 13.0f * x_scale;
           		if (left) x -= 128.0f * hudScale; //width=128
 
-          		// float dynamic_pos = (static_cast<float>(*viddef_height) - 7.0f - 33.0f - -9.0f ) - y; //33 - -9
-          		float dynamic_pos = (static_cast<float>(*viddef_height) - 7.0f - 24.0f ) - y; //33 - -9
-          		y = static_cast<float>(*viddef_height) - 7.0f * y_scale - 28.0f * hudScale; // 28
+          		// float dynamic_pos = (static_cast<float>(current_vid_h) - 7.0f - 33.0f - -9.0f ) - y; //33 - -9
+          		float dynamic_pos = (static_cast<float>(current_vid_h) - 7.0f - 24.0f ) - y; //33 - -9
+          		y = static_cast<float>(current_vid_h) - 7.0f * y_scale - 28.0f * hudScale; // 28
           		if (top) y-= dynamic_pos * hudScale;
           	}
           	break;
@@ -871,20 +908,20 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
           		x = 11.0f * x_scale;
               if (!left) x += 128.0f * hudScale; //width
 
-          		// float dynamic_pos = (static_cast<float>(*viddef_height) - 7.0f - 33.0f - -9.0f ) - y;
-          		float dynamic_pos = (static_cast<float>(*viddef_height) - 7.0f - 24.0f ) - y; //33 - -9
-          		y = static_cast<float>(*viddef_height) - 7.0f * y_scale - 28.0f * hudScale;
+          		// float dynamic_pos = (static_cast<float>(current_vid_h) - 7.0f - 33.0f - -9.0f ) - y;
+          		float dynamic_pos = (static_cast<float>(current_vid_h) - 7.0f - 24.0f ) - y; //33 - -9
+          		y = static_cast<float>(current_vid_h) - 7.0f * y_scale - 28.0f * hudScale;
           		if (top) y-= dynamic_pos * hudScale;
           	}
           	break;
 
           	case GUN_AMMO_SWITCH_LIP: {
           		//Bottom-Right Corner - frame_lip
-          		x = static_cast<float>(*viddef_width) - 13.0f * x_scale;
+          		x = static_cast<float>(current_vid_w) - 13.0f * x_scale;
           		if (left) x -= 128.0f * hudScale; //width=128
 
-          		// float dynamic_pos = (static_cast<float>(*viddef_height) - 7.0f - test->value ) - y; //33 - -9
-          		y = static_cast<float>(*viddef_height) - 7.0f * y_scale - 33.0f * hudScale;
+          		// float dynamic_pos = (static_cast<float>(current_vid_h) - 7.0f - test->value ) - y; //33 - -9
+          		y = static_cast<float>(current_vid_h) - 7.0f * y_scale - 33.0f * hudScale;
           		if (top) y-= 32.0f * hudScale;
           	}
           	break;
@@ -894,8 +931,8 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
 	    				x = 11.0f * x_scale;
 	    		    if (!left) x += 128.0f * hudScale; //width
 
-	    		    // float dynamic_pos = (static_cast<float>(*viddef_height) - 7.0f - test->value ) - y; //33 - -9
-	    		    y = static_cast<float>(*viddef_height) - 7.0f * y_scale - 33.0f * hudScale;
+	    		    // float dynamic_pos = (static_cast<float>(current_vid_h) - 7.0f - test->value ) - y; //33 - -9
+	    		    y = static_cast<float>(current_vid_h) - 7.0f * y_scale - 33.0f * hudScale;
 	    		    if (top) y-= 32.0f * hudScale;
 	    		  }
           	break;
@@ -904,7 +941,7 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
         			// Bottom-Left Corner - frame_bottom
         	    x = 11.0f * x_scale + 29.0f * hudScale;
         	    if (!left) x += 39.0f * hudScale; //width
-        	    y = static_cast<float>(*viddef_height) - 7.0f * y_scale - 16.0f * hudScale;
+        	    y = static_cast<float>(current_vid_h) - 7.0f * y_scale - 16.0f * hudScale;
         	    if (top) y -= 32.0f * hudScale; //height
           }
         }
@@ -914,22 +951,26 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
 void __stdcall my_glVertex2f_CroppedPic_1(float x, float y) {
 	//top-left
 	drawCroppedPicVertex(true,true,x,y);
-	orig_glVertex2i(static_cast<int>(std::round(x)), static_cast<int>(std::round(y)));
+	// orig_glVertex2i(static_cast<int>(std::round(x)), static_cast<int>(std::round(y)));
+	orig_glVertex2f(x,y);
 }
 void __stdcall my_glVertex2f_CroppedPic_2(float x, float y) {
 	//top-right
 	drawCroppedPicVertex(true,false,x,y);
-	orig_glVertex2i(static_cast<int>(std::round(x)), static_cast<int>(std::round(y)));
+	// orig_glVertex2i(static_cast<int>(std::round(x)), static_cast<int>(std::round(y)));
+	orig_glVertex2f(x,y);
 }
 void __stdcall my_glVertex2f_CroppedPic_3(float x, float y) {
 	//bottom-right
 	drawCroppedPicVertex(false,false,x,y);
-	orig_glVertex2i(static_cast<int>(std::round(x)), static_cast<int>(std::round(y)));
+	// orig_glVertex2i(static_cast<int>(std::round(x)), static_cast<int>(std::round(y)));
+	orig_glVertex2f(x,y);
 }
 void __stdcall my_glVertex2f_CroppedPic_4(float x, float y) {
 	//bottom-left
 	drawCroppedPicVertex(false,true,x,y);
-	orig_glVertex2i(static_cast<int>(std::round(x)), static_cast<int>(std::round(y)));
+	// orig_glVertex2i(static_cast<int>(std::round(x)), static_cast<int>(std::round(y)));
+	orig_glVertex2f(x,y);
 }
 
 /*
@@ -937,18 +978,59 @@ void __stdcall my_glVertex2f_CroppedPic_4(float x, float y) {
 	However its not so simple for HUD rescaling, as their position has to remain same.
 
 	TODO: Could move this into its own hook too! (like CroppedPic)
+
+	Below 2^24 all integers can be represented exactly by 32 bit floats.
+
+	When Quake 2 is using inputs as whole numbers, its fine. If we multiply them by a non whole number its not fine.
+	Should we round? But rounding is still bad, because why should it fill the next pixel? Pixels span across 0->1.
+	If the vertex lands between those values, its worthy to fill the pixel.
+
+	This makes believe that rounding to whole integers can do more damage. The floating precision needs to be preserved.
 */
 void __stdcall my_glVertex2f(float one, float two) {
 	if ( ( isFontOuter  && !isNotFont) ) {
 		// Round to integers for pixel-perfect font rendering
-		orig_glVertex2i(static_cast<int>(std::round(one * fontScale)),static_cast<int>(std::round(two * fontScale)));
+		// orig_glVertex2i(static_cast<int>(std::round(one * fontScale)),static_cast<int>(std::round(two * fontScale)));
+
+		//Preserving the actual vertex position then letting it map naturally to pixels seems better than rounding
+		orig_glVertex2f(one * fontScale ,two * fontScale);
 		return;
 	} else if ( isDrawingLayout ) {
-		//This is vertices for font and images. Assume all are 2x as large, should offset position by width/2?
-		//We don't have width, lets control position in other function.
-		int iOne = static_cast<int>(std::round(one*fontScale));
-		int iTwo = static_cast<int>(std::round(two*fontScale));
-		orig_glVertex2i(iOne,iTwo);
+
+		static int vertexCounter = 1;
+		static float x_mid_offset;
+		static float y_mid_offset;
+
+		static float x_first_vertex;
+		static float y_first_vertex;
+
+		if ( vertexCounter == 1 ) {
+			// PrintOut(PRINT_LOG,"Vertex: %f\n",one);
+			x_mid_offset = current_vid_w * 0.5f - one;
+			y_mid_offset = current_vid_h * 0.5f - two;
+
+			x_first_vertex = one;
+			y_first_vertex = two;
+		}
+		//This is vertices for font and images
+
+		/*
+			Since Center Aligned.
+			  Save Position.
+		    Scale.
+		    Restore Position.
+		*/
+
+		// int iOne = static_cast<int>(std::round( one*hudScale - x_first_vertex*(hudScale-1) - x_mid_offset*(hudScale-1) ));
+		// int iTwo = static_cast<int>(std::round( two*hudScale - y_first_vertex*(hudScale-1) - y_mid_offset*(hudScale-1) ));
+		// orig_glVertex2i(iOne,iTwo);
+
+		//rounding is not necessary!
+		orig_glVertex2f(one*hudScale - x_first_vertex*(hudScale-1) - x_mid_offset*(hudScale-1),
+			two*hudScale - y_first_vertex*(hudScale-1) - y_mid_offset*(hudScale-1));
+
+		vertexCounter++;
+		if ( vertexCounter > 4 ) vertexCounter = 1;
 		return;
 	}
 	orig_glVertex2f(one,two);
@@ -1080,12 +1162,12 @@ void consolesize_change(cvar_t * cvar) {
 	consoleSize = cvar->value/fontScale;
 }
 
-// Modified callback is called within Cvar_Set2() and Cvar_Get()?
+
 void fontscale_change(cvar_t * cvar) {
 	static bool first_run = true;
 	//round to nearest quarter
 	fontScale = roundf(cvar->value * 4.0f) / 4.0f;
-	PrintOut(PRINT_LOG,"Precise fontScale change: %.10f\n", fontScale);
+	// PrintOut(PRINT_LOG,"Precise fontScale change: %.10f\n", fontScale);
 
 	//Protect from divide by 0.
 	if (fontScale == 0) fontScale = 1;
@@ -1135,9 +1217,9 @@ void my_Con_Init(void) {
 	//Calls CheckResize, but doesn't matter, vid not intialised, so width is 0, con.linewidth = 78.
 	orig_Con_Init();
 
-	//*viddef_width == 0,
+	//current_vid_w == 0,
 	//1/6 *0 == 0 ... 0 << 8
-	// orig_Com_Printf("fontscale is : %f %f %i %i\n",_sofbuddy_font_scale->value, fontScale,*(int*)0x2024AF98,*viddef_width);
+	// orig_Com_Printf("fontscale is : %f %f %i %i\n",_sofbuddy_font_scale->value, fontScale,*(int*)0x2024AF98,current_vid_w);
 
 	
 	//Adjusts con.linewidth because less characters fit on line for font-scaling.
@@ -1151,7 +1233,7 @@ void my_Con_Init(void) {
 /*
 	Before 'exec config.cfg'
 */
-void scaledFont_apply(void) {
+void scaledFont_cvars_init(void) {
 
 	create_scaled_fonts_cvars();
 	

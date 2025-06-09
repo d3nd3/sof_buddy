@@ -34,19 +34,27 @@ void cl_maxfps_change(cvar_t *cvar);
 
 cvar_t * cl_maxfps = NULL;
 
+int (*sp_Sys_Mil) (void) = NULL;
 int (*Sys_Mil) (void) = NULL;
 int (*Sys_Mil_AfterHookThunk) (void) = NULL;
 
 int winmain_loop(void);
 int my_Sys_Milliseconds(void);
 
-LARGE_INTEGER freq;
-LARGE_INTEGER base;
+LARGE_INTEGER base = {0};
+LARGE_INTEGER freq = {0};
+
 int qpcTimeStampNano(void);
 
 int oldtime = 0;
 int frametime = 100;
 float previous_cl_maxfps = 30.0f;
+
+int *sp_whileLoopCount = NULL;
+int *sp_lastFullClientFrame = NULL;
+int *sp_oldtime = NULL;
+int *sp_oldtime_internal = NULL;
+
 
 /*
 	If we modify oldtime, these variables might already had got a value.
@@ -58,35 +66,59 @@ float previous_cl_maxfps = 30.0f;
 */
 inline void resetTimers(int val)
 {
-
-	/*
-		There are all implemented to make _sp_cl_frame_delay work.
-	*/
-	
-	//newTimeBeforeFrameDrawn
-	//*(int*)((void*)o_sofplus+0x331F0) = val;
-
-	// previous_newtime (thus used for staying in the busyloop)
-	// slows down framerate
-	// if (newtime - newTimeBeforeFrameDrawn )
-	*(int*)((void*)o_sofplus+0x331F4) = val;
-	// previous_newtime_clone
-	*(int*)((void*)o_sofplus+0x33220) = val;
-	
+	*sp_oldtime = val;
+	*sp_oldtime_internal = val;
+	*sp_lastFullClientFrame = val;
 }
 
 void (*spcl_Timers)(void) = NULL;
-
 void (*spcl_FreeScript)(void) = NULL;
+
+/*
+	This is DllMain direct.
+	This is early.
+	I am wondering if the curtime used inside WSA_Startup() is not using our timers.
+	But it should not be possible.
+*/
 void mediaTimers_early(void)
 {
-	
+	#if 0
+	int (*orig_sys_mil) (void) = 0x20055930;
+	//sofplus only hooks into the sys_milli called by WinMain
+	int before_curtime = orig_sys_mil();
+	#endif
+	Sys_Mil_AfterHookThunk = DetourCreate(0x20055930,&my_Sys_Milliseconds,DETOUR_TYPE_JMP,5);
+
+	#if 0
+	//Correct the timer value used in sofplus timers.
+	if (o_sofplus) {
+		int * lastSofplusTimerTick = (void*)o_sofplus+0x52630;
+		int deltaTime = before_curtime - *lastSofplusTimerTick;
+		int new_curtime = my_Sys_Milliseconds();
+		if ( deltaTime > 0 ) {
+			*lastSofplusTimerTick = new_curtime - deltaTime;
+		} else {
+			*lastSofplusTimerTick = new_curtime - 1;
+		}
+	}
+	#endif
 }
 #ifdef FEATURE_MEDIA_TIMERS
 /*
 	Also implements cl_maxfps in singleplayer
+
+	QCommon_Init() is called before any loop stuff.
+
+	SoFPlus Init (WSAStartup) is called by NET_Init() inside QCommon_Init() just before this function.
+
+	Because the sofplus addons are ran by WSA_Startup()-. Cbuf_AddText("exec sofplus.cfg").
+	The actual first call to sp_sc_timer occurs later when the console is executed.
+
+	This means the next call to Sys_Milliseconds() after WSA_Startup() is setting the curtime back again.
+
+	NOTE: Sys_Miliseconds is called inside Sys_Init() before NET_Init().
 */
-void mediaTimers_apply_later(void)
+void mediaTimers_apply_afterCmdline(void)
 {
 	//CVAR_ARCHIVE - save to config.cfg
 	//CVAR_NOSET - write-only.
@@ -97,17 +129,18 @@ void mediaTimers_apply_later(void)
 
 
 	//===Memory Edits===
-	freq = {0};
-	base = {0};
 
 	//Detour sys_milliseconds for any other code that calls sys_milliseconds uses media timer instead of timegettime.
 	//gameloop calls -> sofplus_sys_milli -> our_sys_milli -> orig_sys_milli
-	Sys_Mil_AfterHookThunk = DetourCreate(0x20055930,&my_Sys_Milliseconds,DETOUR_TYPE_JMP,5);
+	//important we call this super early to catch any bad curtime being set by sys_millisecond timegettime implem.
+	// mediaTimers_early();
 
 
 	// main() loop reimplemented.
 
-	//Patch call to sys_millisecond
+	//Remember that this is where ctrl hooks the Sys_milliseconds()
+	//Patch call to sys_millisecond -
+
 	WriteE8Call(0x20066412,&winmain_loop);
 
 	//continue the outer loop once sys_millisecond returns, nothing else.
@@ -125,13 +158,29 @@ void mediaTimers_apply_later(void)
 
 	//==SoF Plus integration==
 	if ( o_sofplus ) {
+		
 		spcl_FreeScript = (void*)o_sofplus+0x9D20;
 		spcl_Timers = (void*)o_sofplus+0x10190;
-		resetTimers(0);
-		*(int*)((void*)o_sofplus+0x331F0) = 0;
-		//no longer need to use sofplus sys_mil
-		// Sys_Mil = (void*)o_sofplus+0xFA60; //sofplus sys_mil
+
+		
+		sp_Sys_Mil = (void*)o_sofplus+0xFA60; //sofplus sys_mil
 		Sys_Mil = &my_Sys_Milliseconds;
+
+		sp_whileLoopCount = (void*)o_sofplus+0x33188;
+		*sp_whileLoopCount = 0;
+
+		//If framecount increased (CL_Frame ran) sets 
+		sp_lastFullClientFrame = (void*)o_sofplus+0x331F0;
+		*sp_lastFullClientFrame = 0;
+
+		sp_oldtime_internal = (void*)o_sofplus+0x33220;
+		*sp_oldtime_internal = 0;
+
+		sp_oldtime = (void*)o_sofplus+0x331F4;
+		*sp_oldtime = 0;
+
+		
+
 	}
 	else {
 		// Sys_Mil = 0x20055930; //original
@@ -320,6 +369,21 @@ So if we modify extratime, we are messing with the fps display.
 */
 int winmain_loop(void)
 {
+	/*
+	int nt=0, t=0,ot=0;
+	do
+	{
+		nt = Sys_Mil ();
+		t = nt - ot;
+	} while (t < 1);
+	//Time is applied to extratime here: 
+	orig_Qcommon_Frame (t);
+
+	ot = nt;
+	//does not matter what we return here.
+	return 0;
+	*/
+
 	static int * const cls_state = 0x201C1F00;
 	
 
@@ -370,10 +434,7 @@ int winmain_loop(void)
 
 		
 		while(1) {
-			if (o_sofplus) {
-				*(int*)((void*)o_sofplus+0x33188) = 0;
-				spcl_FreeScript();
-			}
+
 			
 			
 			// printf("lol?\n");
@@ -405,7 +466,20 @@ int winmain_loop(void)
 				timestamp+measure: 1ms
 				----qCommon extratime: 5
 			*/
+			// printf("new sys_mil()\n");
 			newtime = Sys_Mil();
+			#if 0
+			if (o_sofplus) {
+				//Call this to handle timers!
+				sp_Sys_Mil();
+			}
+			#else
+			if (o_sofplus) {
+				*sp_whileLoopCount = 0;
+				spcl_FreeScript();
+			}
+			#endif
+			
 			time = newtime - oldtime;
 
 			//calculating last Frame's render time in advanced to predict if it will make extratime > targetMsec
@@ -469,14 +543,14 @@ int winmain_loop(void)
 				//2ms ticks of busyloop at end of every frame. (exclude 2,1)
 				if ( /**extratime > eatenFrame &&*/ remainingTime>sleep_busyticks && !didSleep ) {
 					// printf("Sleep...??\n");
-					didSleep = true;
+				didSleep = true;
 					//AfterFrameRendered...
 					// unsigned long before = qpcTimeStampNano();
-					Sleep(1);
+				Sleep(1);
 					// 1058500 nanoseconds for 1ms sleep.
 					// unsigned long after = qpcTimeStampNano();
 
-					
+
 
 					// unsigned long actualSlept = after - before;
 					//if (actualSlept >= 2'000'000) PrintOut(PRINT_GOOD,"Long Sleep %u\n",actualSlept);
@@ -492,76 +566,87 @@ int winmain_loop(void)
 						There is no compensation for a long average, they independent units.
 					*/
 
+					// printf("after sleep\n");
 					//sleep was performed, so update.
-					newtime = Sys_Mil();
+				newtime = Sys_Mil();
+					//Call this to execute any timers!
+					// sp_Sys_Mil();
+
 					//Sleep didn't produce >1ms change...
-					int time_and_sleep = newtime - oldtime;
-					if ( time_and_sleep == 0 ) 
-					{
+				int time_and_sleep = newtime - oldtime;
+				if ( time_and_sleep == 0 ) 
+				{
 						//is this correct?
 						//See below function to see main loop structure.
 						//We want to have time_and_sleep > 1 before iterating the loop again.
 						//I made it such that if this is the case, it won't try sleep again, because it must be close to 1ms, just
 						//busy sleep to further it.
-						continue;
-					}
-					int overlapMs = time_and_sleep - remainingTime;
+					continue;
+				}
+				int overlapMs = time_and_sleep - remainingTime;
 					//time_and_sleep > remainingTime
 					// int sleep_gamma =  frametime - std::round(1000/_sofbuddy_sleep_gamma->value);
 					//allows 7-2 = 5ms of render time == 200fps capable system.
-					if ( overlapMs > 0 && overlapMs <= sleep_gamma && !eatenFrame ) {
+				if ( overlapMs > 0 && overlapMs <= sleep_gamma && !eatenFrame ) {
 						//OUR ATTEMPT TO COMPENSATE THE NEXT FRAME WINDOW...
 						// measure how much it eats into next frame
-						
+
 						// time = actualSleptMS;
 						// if ( time > 0) time = time -1;
 						// if ( time < targetMsec ) time +=1;
 						// ===================================================================
 						// PrintOut(PRINT_GOOD,"Eating into next frame %i\n",time_and_sleep);
-						
+
 
 						// time = overlapMs;
-						time = time_and_sleep;
+					time = time_and_sleep;
 						//extratime gets set to this later in this function.
-						eatenFrame = overlapMs;
+					eatenFrame = overlapMs;
 
 						//temporary force QCommon_Frame() to renderNewFrame
 						// *extratime = targetMsec;
 						// *extratime = frametime;
 
 
-						previous_cl_maxfps = cl_maxfps->value;
-						cl_maxfps->value = 1000.0f;
-						
-					} else {
-						time = time_and_sleep;
-					}
-					//break to QCommon_Frame()
-					break;
+					previous_cl_maxfps = cl_maxfps->value;
+					cl_maxfps->value = 1000.0f;
+
 				} else {
+					time = time_and_sleep;
+				}
+					//break to QCommon_Frame()
+				break;
+			} else {
 					// printf("busy-sleep...??\n");
 					/*
 						remainingTime < 2 :: 1 or 0
 						Do busywait at end to reduce chance of sleep overlap.
 					*/
-					
-					//Do busyloop if remainingTime too small
-					do
-					{	
 
-						__asm__ volatile("pause");
-						newtime = Sys_Mil();
+					//Do busyloop if remainingTime too small
+				do
+				{	
+						// printf("busysleep\n");
+					__asm__ volatile("pause");
+					newtime = Sys_Mil();
+						#if 0
 						if (o_sofplus) {
-							*(int*)((void*)o_sofplus+0x33188) = 0;
-							spcl_FreeScript();
+							//Call this to handle timers!
+							sp_Sys_Mil();
 						}
-						time = newtime - oldtime;
+						#else
+					if (o_sofplus) {
+						*sp_whileLoopCount = 0;
+						spcl_FreeScript();
 					}
-					while (time < 1);
+						#endif
+					time = newtime - oldtime;
+				}
+				while (time < 1);
 					//Wait until 1ms has passed.
 
 					//break to QCommon_Frame()
-					break;
+				break;
 				} //debt-sleep-busy triple if
 
 			} //if no time passed
@@ -583,12 +668,20 @@ int winmain_loop(void)
 		//Do busyloop if remainingTime too small
 		do
 		{	
+			// printf("busysleep 2\n");
 			__asm__ volatile("pause");
 			newtime = Sys_Mil();
+			#if 0
 			if (o_sofplus) {
-				*(int*)((void*)o_sofplus+0x33188) = 0;
+				//Call this to handle timers!
+				sp_Sys_Mil();
+			}
+			#else
+			if (o_sofplus) {
+				*sp_whileLoopCount = 0;
 				spcl_FreeScript();
 			}
+			#endif
 			time = newtime - oldtime;
 
 			/*
@@ -624,10 +717,36 @@ int winmain_loop(void)
 	// This is intentionally above qCommonFrame, so that oldtime can be changed during any code in Qcommon from Sys_SendKeyEvent() eg.
 
 	oldtime = newtime;
+	#if 1
 	if ( o_sofplus ) {
-		spcl_Timers();
-		resetTimers(newtime);
+		//Try to get sofplus to fire/Cbuf_AddText the timers callbacks.
+		//It uses curtime and updates
+		//int * lastSofplusTimerTick = (void*)o_sofplus+0x52630;
+		//to curtime at end. 
+
+		//Maybe the difference is something small like:
+		//the initial value of curtime in sofplus/q2 is not 0?
+		//we can test it by adding 1 to curtime.
+
+		//1 ms should have already passed, so the Timers should be fired.
+		//Why are they not being fired?
+		// int* curtext_size_before = *(int*)0x2023F830; 
+		// spcl_Timers();
+		// spcl_FreeScript();
+		//We call this one because it handles everything, timers,free,_sp_cl_info_state,_sp_cl_info_server
+		sp_Sys_Mil();
+		// resetTimers(newtime);
+		// int* curtext_size_after = *(int*)0x2023F830;
+
+		/*
+		if (curtext_size_after != curtext_size_before) {
+			printf("CBuf_AddText for Timer!\n");
+			orig_Com_Printf("Cbuf_AddText for Timer!\n");	
+		}
+		*/
+		
 	}
+	#endif
 
 	_controlfp( _PC_24, _MCW_PC );
 
@@ -646,9 +765,10 @@ int winmain_loop(void)
 		// *extratime = test->value;
 	}
 	
+	// orig_Com_Printf("Before qcommon_Frame\n");
 	//Time is applied to extratime here: 
 	orig_Qcommon_Frame (time);
-
+	// orig_Com_Printf("After qcommon_Frame\n");
 
 	//does not matter what we return here.
 	return 0;
@@ -688,6 +808,43 @@ int winmain_loop(void)
 	}
 */
 
+
+/*
+freq = 10,000,000, so resolution = 1/10,000,000 = 0.0000001 = 0.1 microseconds = 100 nanoseconds.
+1000 ns = 1us
+1000 us = 1ms
+1000 ms = 1s
+_sp_cl_cpu_cool 1 = 0.1 ms = 100 us
+*/
+__attribute__((always_inline)) long long qpc_timers(bool force)
+{
+	
+	LARGE_INTEGER cur = {0};
+
+	if (!freq.QuadPart || force)
+    {
+		if (!QueryPerformanceFrequency(&freq))
+		{
+			printf("QueryPerformanceFrequency failed\n");
+			orig_Com_Printf("QueryPerformanceFrequency failed\n");
+			ExitProcess(1);
+		}
+	}
+	//obtain a new base.
+	if (!base.QuadPart || force)
+	{
+		if (!QueryPerformanceCounter(&base))
+		{
+			printf("QueryPerformanceCounter failed\n");
+			orig_Com_Printf("QueryPerformanceCounter failed\n");
+			ExitProcess(1);
+		}
+	}
+	
+	QueryPerformanceCounter(&cur);
+	return (long long)(cur.QuadPart - base.QuadPart);
+}
+
 /*
 	
 The difference between an older and a newer value of the QueryPerformanceCounter can be negative.
@@ -696,193 +853,123 @@ The difference between an older and a newer value of the QueryPerformanceCounter
 Consider explicitly binding the thread to a specific processor using SetThreadAffinityMask to avoid counter discrepancies caused by core switching.
 */
 // SofPlus -> Us -> orig
+
+/*
+	This is actually called in Sys_Init() inside QCommon_Init()
+	By some cpu_analyse type code.
+
+	Next its called by: Netchan_Init()
+
+	Its also called every frame inside CL_Frame() , (not in q2). 
+	Seems to have no purpose too. (Ah unless its to set curtime (would make sense)).
+
+	Cbuf_Execute() in CL_Frame() is meant to handle the sp_sc_timer calbacks.
+	Cbuf_AddText() called by the spTimers() function.
+
+	analyze_cpu() - 20021183 , 200211a2
+	Netchan_Init() - 2004d256
+	CL_InitLocal() - 2000cad7 (cls.realtime = Sys_Milliseconds())
+	WinMain() - 20066373 (oldtime = Sys_Milliseconds ();)
+	_US_
+	M_PushMenu() - 200cb7fe, 200c7823 200c78a6 (main menu when game starts)
+	M_PushMenu() innerFunc() - 200e6171
+	IN_MenuMove() - 200cc079
+	CL_Frame() - 2000d91a
+	Sys_SendKeyEvents() - 20065d63
+	_US_
+	CL_Frame()
+	Sys_SendKeyEvents()
+	IN_MenuMove()
+	_US_
+	...
+
+	CL_ReadPackets()
+		CL_ParseServerMessage()
+			CL_ParseServerData() is what prints' the mapname.
+
+	(Net_Init())
+	WSA_Startup() is initialising the sofplus with the addon inits.
+
+	Because the cpu_analyze() calls to Sys_Milliseconds() eventually result in
+	curtime = 0.
+	The times which it got saved at no longer make any sense after it resets.
+
+	We have to find out what causes it to reset to 0.
+
+*/
 int my_Sys_Milliseconds(void)
 {
-	/*
-	int a = timeGetTime();
-	//set curtime
-    *(int*)0x20390D38 = a;
-	return a;
-	*/
-	//orig_Com_Printf("mediaTimersWait\n");
+	#if 0
+	void *return_address = __builtin_return_address(0);
+    printf("my_Sys_Milliseconds called by : %p\n", return_address);
+	#endif
 
-    //freq = 10,000,000, so resolution = 1/10,000,000 = 0.0000001 = 0.1 microseconds = 100 nanoseconds.
-    //1000 ns = 1us
-    //1000 us = 1ms
-    //1000 ms = 1s
-    //_sp_cl_cpu_cool 1 = 0.1 ms = 100 us
-    //DO ONCE.
-    if (!freq.QuadPart)
-    {
-        if (!QueryPerformanceFrequency(&freq))
-        {
-            orig_Com_Printf("QueryPerformanceFrequency failed\n");
-        	ExitProcess(1);
-        }
-    }
+	static int prev_val = 0;
 
-    /*
-	base : 353890310400
-	base2 : 1702992128
-    */
-    //DO ONCE.
-    if (!base.QuadPart)
-    {
-        if (!QueryPerformanceCounter(&base))
-        {
-        	orig_Com_Printf("QueryPerformanceCounter failed\n");
-        	ExitProcess(1);
-        }
-    }
+    long long ticks_elapsed = qpc_timers(false);
 
-    /*
-    cur : 353890311403
-	cur2 : 1702993131
-    */
-    LARGE_INTEGER cur;
-    QueryPerformanceCounter(&cur);
 
-    //(cur - base) * 1000/freq
-
-    long long diff = cur.QuadPart - base.QuadPart;
-
-    bool wasNeg = false;
+	bool wasNeg = false;
     //Handle bug when thread switches core or bios/driver bug.
-   	while ( diff < 0 ) {
-	    if (!QueryPerformanceFrequency(&freq))
-	    {
-	        orig_Com_Printf("QueryPerformanceFrequency failed\n");
-	    	ExitProcess(1);
-	    }
-   		//obtain a new base.
-   		if (!QueryPerformanceCounter(&base))
-   		{
-   			orig_Com_Printf("QueryPerformanceCounter failed\n");
-   			ExitProcess(1);
-   		}
-   		// orig_Com_Printf("QueryPerformanceCounter is negative\n");
-   		LARGE_INTEGER cur;
-    	QueryPerformanceCounter(&cur);
-
-    	diff = cur.QuadPart - base.QuadPart;
-    	wasNeg = true;
-   	}
+	while ( ticks_elapsed < 0 ) {
+		// printf("while diff < 0\n");
+   		ticks_elapsed = qpc_timers(true);
+		wasNeg = true;
+	}
 
     //100ns tick * 1,000,000 = ns->us->ms 100ms
-    // diff/freq = seconds. seconds * 1,000,000 = microseconds.
-    int ret = diff * 1000 / freq.QuadPart;
+    // ticks_elapsed/freq = seconds. seconds * 1,000,000 = microseconds.
+	int ret = (int)((ticks_elapsed * 1000LL) / freq.QuadPart);
+	// printf("now: %i :: old %i\n",ret,prev_val);
+	if ( ret < prev_val ) {
+		// printf("if ret < prev_val\n");
 
-   	while ( ret < oldtime ) {
-	    if (!QueryPerformanceFrequency(&freq))
-	    {
-	        orig_Com_Printf("QueryPerformanceFrequency failed\n");
-	    	ExitProcess(1);
-	    }
-   		//obtain a new base.
-   		if (!QueryPerformanceCounter(&base))
-   		{
-   			orig_Com_Printf("QueryPerformanceCounter failed\n");
-   			ExitProcess(1);
-   		}
-   		// orig_Com_Printf("QueryPerformanceCounter is wrapped\n");
-   		LARGE_INTEGER cur;
-    	QueryPerformanceCounter(&cur);
+		// ticks_elapsed = qpc_timers(true);
+		// ret = ticks_elapsed * 1000 / freq.QuadPart;
+		wasNeg = true;
+	}
 
-    	diff = cur.QuadPart - base.QuadPart;
-    	ret = diff * 1000 / freq.QuadPart;
-    	wasNeg = true;
-   	}
-   	#if 0
-    if ( test != NULL ) {
-    	if ( ret-oldtime > test->value ) {
-    		orig_Com_Printf("mediaTimer: %i\n",ret-oldtime);
-    	}
-    }
-    #endif
-    
-    if ( wasNeg ) {
-    	//MessageBox(NULL, "Timer out of sync", "Error", MB_ICONERROR | MB_OK);
-    	//ret has recalibrated so oldtime has to change.
-    	oldtime = ret;
-    	// _sp_cl_frame_delay support
-    	resetTimers(ret);
-    	*(int*)((void*)o_sofplus+0x331F0) = ret;
-    }
+	if ( wasNeg ) {
+		// Have to adjust the timers sadly.
+		// Or change the location of 'exec sofplus.cfg' slightly
+
+		// printf("wasNeg\n");
+		// orig_Com_Printf("wasNeg\n");
+
+		//TODO:
+    	//This doesn't fix the timers, because the actual timestamp
+    	//of each timer has to be changed. Its a simple iteration.
+    	//but i won't do it unless I have to. You'd also want to update
+    	//the lastTimerTick variable inside of the spTimer() function.
+		oldtime = ret;
+		resetTimers(ret);
+	}
 
     //set curtime
-    *(int*)0x20390D38 = ret;
+	*(int*)0x20390D38 = ret;
 
-    return ret;
+	prev_val = ret;
+	return ret;
 }
 
 int qpcTimeStampNano(void)
 {
-	//orig_Com_Printf("mediaTimersWait\n");
-    
-
     //freq = 10,000,000, so resolution = 1/10,000,000 = 0.0000001 = 0.1 microseconds = 100 nanoseconds.
     //1000 ns = 1us
     //1000 us = 1ms
     //1000 ms = 1s
     //_sp_cl_cpu_cool 1 = 0.1 ms = 100 us
-    //DO ONCE.
-    if (!freq.QuadPart)
-    {
-        if (!QueryPerformanceFrequency(&freq))
-        {
-            orig_Com_Printf("QueryPerformanceFrequency failed\n");
-        	ExitProcess(1);
-        }
-    }
 
-    /*
-	base : 353890310400
-	base2 : 1702992128
-    */
-    //DO ONCE.
-    if (!base.QuadPart)
-    {
-        if (!QueryPerformanceCounter(&base))
-        {
-        	orig_Com_Printf("QueryPerformanceCounter failed\n");
-        	ExitProcess(1);
-        }
-    }
-
-    /*
-    cur : 353890311403
-	cur2 : 1702993131
-    */
-    LARGE_INTEGER cur;
-    QueryPerformanceCounter(&cur);
-
-    //(cur - base) * 1000/freq
-
-    long long diff = cur.QuadPart - base.QuadPart;
-
+	LARGE_INTEGER freq = {0};
+    long long diff = qpc_timers(false);
     //Handle bug when thread switches core or bios/driver bug.
-   	while ( diff < 0 ) {
-	    if (!QueryPerformanceFrequency(&freq))
-	    {
-	        orig_Com_Printf("QueryPerformanceFrequency failed\n");
-	    	ExitProcess(1);
-	    }
-   		//obtain a new base.
-   		if (!QueryPerformanceCounter(&base))
-   		{
-   			orig_Com_Printf("QueryPerformanceCounter failed\n");
-   			ExitProcess(1);
-   		}
-   		
-   		LARGE_INTEGER cur;
-    	QueryPerformanceCounter(&cur);
-
-    	diff = cur.QuadPart - base.QuadPart;
-   	}
+	while ( diff < 0 ) {
+		diff = qpc_timers(true);
+	}
 
     //100ns tick * 1,000,000 = ns->us->ms 100ms
     // diff/freq = seconds. seconds * 1,000,000 = microseconds.
-    int ret = diff * 1'000'000'000 / freq.QuadPart;
+	int ret = diff * 1'000'000'000 / freq.QuadPart;
 
-    return ret;
+	return ret;
 }
