@@ -180,6 +180,13 @@ void lightblend_change(cvar_t * cvar) {
 		else {
 			lightblend_dst = GL_SRC_ALPHA_SATURATE;
 		}
+	} else {
+		PrintOut(PRINT_BAD,"Bad lightblend_src value. See glBlendFunc() docs.\nGL_ZERO,GL_ONE,GL_SRC_COLOR,"
+						   "GL_ONE_MINUS_SRC_COLOR,GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR,GL_SRC_ALPHA,"
+						   "GL_ONE_MINUS_SRC_ALPHA,GL_DST_ALPHA,GL_ONE_MINUS_DST_ALPHA,GL_CONSTANT_COLOR,"
+						   "GL_ONE_MINUS_CONSTANT_COLOR,GL_CONSTANT_ALPHA,GL_ONE_MINUS_CONSTANT_ALPHA,"
+						   "GL_SRC_ALPHA_SATURATE"
+		);
 	}
 }
 #endif
@@ -276,6 +283,7 @@ void __stdcall orig_glTexParameterf_mag_ui(int target_tex, int param_name, float
 	RefInMemory is a LoadLibrary() in-place Detour, for ref_gl.dll
 */
 void refFixes_early(void) {
+	//Direct LoadLibrary replacement.
 	WriteE8Call(0x20066E75,&RefInMemory);
 	WriteByte(0x20066E7A,0x90);
 
@@ -297,7 +305,7 @@ void refFixes_early(void) {
 	IMPORTANT:
 	  A cvar's modified function cannot use the global pointer because it hasnt' returned yet...
 */
-void refFixes_apply(void)
+void refFixes_cvars_init(void)
 {
 	//MessageBox(NULL, "refFixes_apply", "MessageBox Example", MB_OK);
 	//std::cout << "refFixes_apply";
@@ -312,19 +320,20 @@ void refFixes_apply(void)
 	
 }
 
-void refFixes_apply_later(void)
-{
-	#ifdef FEATURE_ALT_LIGHTING
-	create_reffixes_after_config_cvars();
-	#endif
-}
 
-
+int current_vid_w;
+int current_vid_h;
+int * viddef_width = 0x2040365C;
+int * viddef_height = 0x20403660;
 void my_VID_CheckChanges(void)
 {
 	//trigger gl_swapinterval->modified for R_Init() -> GL_SetDefaultState()
-	if ( vid_ref && vid_ref-> modified ) gl_swapinterval->modified = true;
+	if ( vid_ref && vid_ref->modified ) {
+		gl_swapinterval->modified = true;
+	}
 	orig_VID_CheckChanges();
+	current_vid_w = *viddef_width;
+	current_vid_h = *viddef_height;
 }
 
 
@@ -458,7 +467,14 @@ void lighting_fix_init(void) {
 	WriteByte(0x3001558E,0x90);
 }
 
+/*
+	The cvars have to map to unique features.
+	If they are shortcuts for each other, then order matters, and then they can't sit in config.cfg together.
+*/
+
 void whiteraven_change(cvar_t* cvar) {
+// deprecated implementation.
+#if 0
 	if (cvar->value) {
 		//on
 		orig_Cvar_Set2("_sofbuddy_lightblend_src","GL_DST_COLOR",false);
@@ -468,6 +484,7 @@ void whiteraven_change(cvar_t* cvar) {
 		orig_Cvar_Set2("_sofbuddy_lightblend_src","GL_ZERO",false);
 		orig_Cvar_Set2("_sofbuddy_lightblend_dst","GL_SRC_COLOR",false);
 	}
+#endif
 }
 #endif
 
@@ -607,6 +624,8 @@ int my_R_SetMode(void * deviceMode) {
 HMODULE (__stdcall *orig_LoadLibraryA)(LPCSTR lpLibFileName) = *(unsigned int*)0x20111178;
 
 /*
+	Direct LoadLibrary replacement.
+	
 	RefInMemory is a LoadLibrary() in-place Detour, for ref_gl.dll
 
 	Allows to modify ref_gl.dll at before R_Init() returns.
@@ -814,12 +833,25 @@ void my_GL_BuildPolygonFromSurface(void *msurface_s) {
 
 
 #ifdef FEATURE_ALT_LIGHTING
+
+// _sofbuddy_whiteraven_lighting
+
+
 bool is_blending = false;
 //Maybe blend is already active before calling R_BlendLightmaps (Nope, it is not.)
 void my_R_BlendLightmaps(void) {
 	// orig_Com_Printf("ComplexState is %i\n",((*(int*)0x300A46E0) & 0x01));
-	*lightblend_target_src = lightblend_src;
-	*lightblend_target_dst = lightblend_dst;
+
+	//required to trigger change mb?
+	if ( _sofbuddy_whiteraven_lighting->value == 1.0f ) {
+		*lightblend_target_src = GL_DST_COLOR;
+		*lightblend_target_dst = GL_SRC_COLOR;
+	} else {
+		*lightblend_target_src = lightblend_src;
+		*lightblend_target_dst = lightblend_dst;	
+	}
+	
+
 	is_blending = true;
 	// Calls CheckComplexStates, which calls glBlendFunc
 	orig_R_BlendLightmaps();
@@ -838,7 +870,11 @@ void __stdcall glBlendFunc_R_BlendLightmaps(unsigned int sfactor,unsigned int df
 	// Default
 	// real_glBlendFunc(GL_ZERO,GL_SRC_COLOR);
 	if ( is_blending ) { 
-		real_glBlendFunc(lightblend_src,lightblend_dst);
+		if ( _sofbuddy_whiteraven_lighting->value == 1.0f ) {
+			real_glBlendFunc(GL_DST_COLOR,GL_SRC_COLOR);
+		} else {
+			real_glBlendFunc(lightblend_src,lightblend_dst);
+		}
 	}
 	else {
 		real_glBlendFunc(sfactor,dfactor);

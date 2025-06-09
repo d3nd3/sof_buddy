@@ -35,6 +35,9 @@ Your vsync settings will work hassle free.
 
 :syringe: **Sane first time settings for SoF init if del config.cfg eg.**  
 There is a bug when changing hardware that sets very bad defaults that got fixed.
+
+:syringe: **Client Console overflow/crashes fixed**  
+A paste large text into console crash and 2048px or wider resolution console crash fixed.
 </details>
 
 ## Installation
@@ -80,7 +83,8 @@ base/autoexec.cfg:
 cl_quads 0
 ghl_light_method 0
 ghl_shadows 0
-```
+```  
+Although cl_quads makes the game's effects disabled so much less visually enjoyable.
 </details>
 
 
@@ -115,12 +119,13 @@ default = 2
 **_sofbuddy_minfilter_ui**  
 **_sofbuddy_magfilter_ui**  
 **_sofbuddy_whiteraven_lighting**  
+When this value is 1, _sofbuddy_lightblend_* cvars are overridden  
 default = 0  
 values = 1 : Enable sharper lighting.  
 
 ---
 
-These cvars exist to provide WhiteMagicRaven lighting mod.
+These 2 cvars adjust the blending algorithm for blending lightmaps with textures. See glBlendFunc() on opengl docs. Note that they do nothing if *_sofbuddy_whiteraven_lighting* is enabled, since it uses them to tweak the lighting.   
 values:  
 `GL_ZERO,GL_ONE,GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA,GL_DST_ALPHA,GL_ONE_MINUS_DST_ALPHA,GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR,GL_SRC_ALPHA_SATURATE,GL_CONSTANT_COLOR,GL_ONE_MINUS_CONSTANT_COLOR,GL_CONSTANT_ALPHA,GL_ONE_MINUS_CONSTANT_ALPHA`  
 **_sofbuddy_lightblend_dst**  

@@ -31,6 +31,10 @@ void * (*orig_Sys_GetGameApi)(void * imports) = NULL;
 void (*orig_CinematicFreeze)(bool bEnable) = NULL;
 void my_CinematicFreeze(bool bEnable);
 
+
+char *(*orig_Sys_GetClipboardData)( void ) = 0x20065E60;
+char *Sys_GetClipboardData( void );
+
 void * my_Sys_GetGameApi(void * imports)
 {
 
@@ -85,6 +89,9 @@ void my_CL_ReadPackets(void)
 	sim_counter += 1;
 }
 
+/*
+	This fixes the buffer overflow crash caused by > 2048px wide resolutions whilst entering lines into console.
+*/
 #define MAXCMDLINE 256
 void my_Con_Draw_Console(void)
 {
@@ -181,6 +188,80 @@ void my_Con_Draw_Console(void)
 }
 
 /*
+char *Sys_GetClipboardData( void ) {
+	char *data = NULL;
+	char *cliptext;
+
+	if ( OpenClipboard( NULL ) != 0 ) {
+		HANDLE hClipboardData;
+
+		if ( ( hClipboardData = GetClipboardData( CF_TEXT ) ) != 0 ) {
+			if ( ( cliptext = (char *) GlobalLock( hClipboardData ) ) != 0 ) {
+				data = (char *) Z_Malloc( GlobalSize( hClipboardData ) + 1, TAG_CLIPBOARD, qfalse);
+				strcpy( data, cliptext );
+				GlobalUnlock( hClipboardData );
+				
+				strtok( data, "\n\r\b" );
+			}
+		}
+		CloseClipboard();
+	}
+	return data;
+}
+*/
+
+char *my_Sys_GetClipboardData( void )
+{
+	char *cbd;
+	static void (*Z_Free)(void *pvAddress) = 0x200F9D32;
+	static int* key_linepos = 0x20365E9C;
+	static char* key_lines = 0x20365EA0;
+	static int* edit_line = 0x20367EA4;
+
+	if ( ( cbd = orig_Sys_GetClipboardData() ) != 0 )
+	{
+		int allow_to_add_len;
+		strtok( cbd, "\n\r\b" );
+
+		//excludes null char
+		allow_to_add_len = strlen( cbd );
+
+		//key_linepos points to the null character
+		//but its length corresponds to the non-null characters.
+
+		//excludes null char. (MAXCMDLINE-1) non-null characters allowed.
+		if ( allow_to_add_len + *key_linepos >= MAXCMDLINE ) {
+
+			//excluding null char.
+			allow_to_add_len= (MAXCMDLINE-1) - *key_linepos;
+		}
+		//allow_to_add_len fits already.
+
+		//key_linepos starts at 1 because of ] or > symbol.
+		if ( allow_to_add_len > 0 )
+		{
+			//allow_to_add_len  is 255
+			// Com_Printf("New allow_to_add_len is : %i\n",allow_to_add_len);
+
+			//Because index 255 is the max index to hold null
+			//We only store 255 characters. not 256.
+
+			//ensure clipboard is null character ended?
+			cbd[allow_to_add_len]=0; //this clamps cbd to size i+1 , i if exclude null.
+			//append cbd to key_lines
+
+			strcat( key_lines + *edit_line * MAXCMDLINE, cbd );
+
+			//key_linepos should only be allowed to be set to 255 max.
+			*key_linepos += allow_to_add_len;
+		}
+		Z_Free( cbd );
+	}
+
+	return cbd;
+}
+
+/*
 	DllMain of WSOCK32 library
 	Implicit Linking (Static Linking to the Import Library)
 	the application is linked with an import library (.lib) file during the build process.
@@ -230,9 +311,22 @@ void my_Con_Draw_Console(void)
 	   The operating system loader calls the DllMain functions of these DLLs in the order they are loaded.
 	   However, this order is not always predictable and can vary depending on factors like the DLL's 
 	   dependency graph and loading mechanisms.
+
+	Even if your code has a single successful LoadLibrary call, multiple DllMain functions in other DLLs might have already executed.
+
+	So by default, spcl DllMain is called first, when we call LoadLibrary.
+	SoF.exe -> sof_buddy.dll -> spcl.dll
+
+	Cbuf_AddText - appends to buffer
+	Cbuf_Execute() called by CL_Init() and Qcommon_Init() and Qcommon_Frame()
+
+	sp sp_sc_timers callback code is executed by Qcommon_Frame()
+
 */
 void afterWsockInit(void)
 {
+
+
 	/*
 		This is called by our DllMain(), thus before SoF.exe CRTmain().
 		Cvars etc not allowed here. 
@@ -246,6 +340,10 @@ void afterWsockInit(void)
 	// orig_CL_UpdateSimulationTimeInfo = DetourCreate(0x2000D6A0, &my_CL_UpdateSimulationTimeInfo,DETOUR_TYPE_JMP, 6);
 	// orig_CL_ReadPackets = DetourCreate(0x2000C5C0, &my_CL_ReadPackets,DETOUR_TYPE_JMP,8);
 
+#ifdef FEATURE_MEDIA_TIMERS
+	mediaTimers_early();
+#endif
+
 #ifdef FEATURE_FONT_SCALING
 	scaledFont_early();
 #endif
@@ -253,13 +351,7 @@ void afterWsockInit(void)
 	PrintOut(PRINT_LOG,"Before refFixes\n");
 	refFixes_early();
 	PrintOut(PRINT_LOG,"After refFixes\n");
-	// We ensure that the sofplus init function is
-	if ( o_sofplus ) {
-		PrintOut(PRINT_LOG,"Before sofplusEntry\n");
-		BOOL (*sofplusEntry)(void) = (int)o_sofplus + 0xF590;
-		BOOL result = sofplusEntry();
-		PrintOut(PRINT_LOG,"After sofplusEntry\n");
-	}
+	
 
 	//orig_Qcommon_Init = DetourCreate(orig_Qcommon_Init,&my_orig_Qcommon_Init,DETOUR_TYPE_JMP,5);
 	
@@ -270,6 +362,15 @@ void afterWsockInit(void)
 	orig_Sys_GetGameApi = DetourCreate((void*)0x20065F20,(void*)&my_Sys_GetGameApi,DETOUR_TYPE_JMP,5);
 
 
+
+
+//=================== B U G  F I X I N G =========================
+
+	//PASTING INTO CONSOLE CRASH/OVERFLOW
+	// orig_Sys_GetClipboardData = DetourCreate((void*)0x20065E60,(void*)&my_Sys_GetClipboardData,DETOUR_TYPE_JMP,10);
+	WriteE8Call(0x2004BB63,&my_Sys_GetClipboardData);
+	// WriteByte(0x2004BB6E,0x8C); //Skip to end, we re-implement this section.
+	WriteE9Jmp(0x2004BB6C,0x2004BBFE);
 
 	//Below causes this issue : Black Loading After Cinematic nyc1
 	//https://github.com/d3nd3/sof_buddy/issues/3
@@ -354,6 +455,70 @@ void afterWsockInit(void)
 	WriteE9Jmp(0x2002111D,&my_Con_Draw_Console);
 	WriteE9Jmp(0x20020C90, 0x20020D6C);
 #endif
+
+
+	/*
+		So ye, there is a race condition.
+		If we call this init function before our detour/patches.
+		They get overriden it seems.
+		WSA_Startup calls Cmd_AddCommand etc in sofplus.
+		Specifically _sp_sc_on_change_CVARNAME feature.
+
+		Ah I remember now, it was because I was fustrated that I could not modify
+		any of the code that was in DllMain, because the code would execute instantly after
+		LoadLibrary(), so I had no chance to edit the memory. I wanted full control, thats all.
+		Kinda Naive reasoning.
+	*/
+	// Why do we need control of this?
+	/*
+	    He doesn't use detours, so they are fully compatible with detours,
+	    just it calls his hook first, then mine, then mine calls orig.
+	    his -> mine -> orig
+		Perhaps to ensure the same order each run, just in-case? Since the order of DllMain is not guaranteed?
+		I think this is not needed.
+		SoF plus memory edits in DllMain
+			2000F2B0 = CL_ParseServerMessage: svc_stufftext handle
+			2000C216 = ConnectionlessPacket() "cmd" disabled fully, even in singleplayer.
+			2000C5EA = Hook ConnectionlessPacket()
+			2000C04C = Ip of ConnectionlessPacket shown in Developer Print instead of normal Print
+			2001F8F6 = CL_Frame() hook
+			20066D86 = VID_LoadRefresh() hook
+			2006702A = R_Init hook
+			20066E25 = R_Shutdown hook
+			200160F5 = V_RenderView hook
+			2000D857 = cl_showfps print hook
+			2001610D = SCR_DrawInterface hook
+			20016126 = SCR_ExecuteLayoutString hook
+			2000C75D = LoadSoundModule hook
+
+			20066413 = Sys_Millisec hook
+			==Cmd_TokenizeString with macroExpand=True==
+				2000C01B = CL_ConnectionlessPacket
+				2001233F = CL_PredictWeapons
+				200194FC = Cmd_ExecuteString
+				20019549 = Cmd_ExecuteString
+				2005EEC8 = SV_ConnectionlessPacket
+				20063970 = SV_ExecuteClientMessage
+	*/
+	/*
+	//The media_timers.cpp is calling 
+		if ( o_sofplus ) {
+			spcl_Timers();
+			resetTimers(newtime);
+		}
+	And fully disables spcl's sys_millisecond hook.
+	But this all occurs within QCommon_Init(). Very later than here.
+	*/
+	
+	#if 0
+	if ( o_sofplus ) {
+		PrintOut(PRINT_LOG,"Before sofplusEntry\n");
+		BOOL (*sofplusEntry)(void) = (int)o_sofplus + 0xF590;
+		BOOL result = sofplusEntry();
+		PrintOut(PRINT_LOG,"After sofplusEntry\n");
+	}
+	#endif
+
 	PrintOut(PRINT_GOOD,"SoF Buddy fully initialised!\n");
 }
 
@@ -371,6 +536,9 @@ void afterWsockInit(void)
 */
 void InitDefaults(void)
 {
+	/*
+		This is called after loadLibrary("ref_gl.dll")
+	*/
 	orig_Cmd_ExecuteString("exec drivers/highest.cfg\n");
 	// fix 1024 high value of fx_maxdebrisonscreen, hurts cpu.
 	orig_Cmd_ExecuteString("set fx_maxdebrisonscreen 128\n");
@@ -386,22 +554,42 @@ void InitDefaults(void)
 	After:
 	Cbuf_AddEarlyCommands (false);
 	Cbuf_Execute ();
+
+	<HERE>
+	default.cfg
+	config.cfg
+	launch_+set's
+	autoexec.cfg
+	launch_+cmd's
+
+	So we are trying to create cvars with modified callback functitons _BEFORE_ config.cfg.
+	Yet we can't use QCommon_Init hook because Cbuf_Init() is then not called.
 */
 void my_FS_InitFilesystem(void) {
-	orig_FS_InitFilesystem();
+	orig_FS_InitFilesystem(); //processes cddir user etc setting dirs
+
+	/*
+		This is super early and no cvars from default.cfg or config.cfg or autoexec.cfg or +cmd  have been issued.
+		So values can be overwritten easily later.
+
+		HOWEVER:
+		This is the best place to create cvars as it ensures that the callbacks are executed by every other cvar creator function hereafter.
+		eg. config.cfg autoexec.cfg etc.
+
+	*/
 
 	//Allow PrintOut to use Com_Printf now.
 	orig_Com_Printf = 0x2001C6E0;
 
-	
-
 	//Best (Earliest)(before exec config.cfg) place for cvar creation, if you want config.cfg induced triggering of modified events.
+	//Idea = Cvar_Get() cvar creation with modified callback.
+	//Since config.cfg represents the user's saved values. It is important they trigger the callback to set internal values.
 
 	// FEATURE_HD_TEX FEATURE_ALT_LIGHTING etc...
-	refFixes_apply();
+	refFixes_cvars_init();
 
 	#ifdef FEATURE_FONT_SCALING
-		scaledFont_apply();
+		scaledFont_cvars_init();
 	#endif
 
 	
@@ -411,15 +599,29 @@ void my_FS_InitFilesystem(void) {
 /*
 	A long standing bug, was related to the order of initializing cvars, which behaved different for a user without
 	a config.cfg than one with one. If getting crashes, always remember this!.
+
+	<HERE>
+	default.cfg
+	config.cfg
+	launch_+set's
+	autoexec.cfg
+	launch_+cmd's
+	<OR HERE>
+
+	This is currently unused/un-needed.
 */
 void my_orig_Qcommon_Init(int argc, char **argv)
 {
+	//Earliest Init here.
+
 	orig_Qcommon_Init(argc,argv);
+
+	//This is latest init? here?
 }
 
 
 /*
-Safest(Earliest) Init Location for wanting to check command line values.
+Earliest Init Location for where launch commands have fully been processed/executed.
 
 Cbuf_AddEarlyCommands
   processes all `+set` commands first.
@@ -427,28 +629,40 @@ Cbuf_AddEarlyCommands
 Later in frame...
 Cbuf_AddLateCommands
   all other commands that start with + are processed.
-  You can mark the end of the command with `-`.
+  Ignores launch options eg. -user 
 
 "public 1" must be set inside dedicated.cfg because dedicated.cfg overrides it? If no dedicated.cfg in user, the dedicated.cfg from pak0.pak is used.
+
+	default.cfg
+	config.cfg
+	launch_+set's
+	autoexec.cfg
+	<HERE>
+	launch_+cmd's
+	<OR HERE>
+	
+	Maybe the purpose of this hook is so that we do stuff before the:
+	Soldier of Fortune Iniitalised print line. Thats all.
 */
 //this is called inside Qcommon_Init()
 qboolean my_Cbuf_AddLateCommands(void)
 {
 	qboolean ret = orig_Cbuf_AddLateCommands();
+
+	/*
+		The use case for this should be only for handling command line cvars...
+	*/
+
 	//user can disable modern tick from launch option. +set _sofbuddy_classic 1
 #ifdef FEATURE_MEDIA_TIMERS
 	create_sofbuddy_cvars();
 	if ( _sofbuddy_classic_timers && _sofbuddy_classic_timers->value == 0.0f ) 
 		{
 			PrintOut(PRINT_GOOD,"Using QPC timers!\n");
-			mediaTimers_apply_later();
+			mediaTimers_apply_afterCmdline();
 		}
 #endif
 	
-		// For cvar creation which requires to override other config.cfg cvars
-		// By definition cvars which change other cvars cannot both be in config.cfg
-		refFixes_apply_later();
-
 	/*
 		CL_Init() already called, which handled VID_Init, and R_Init()
 	*/
