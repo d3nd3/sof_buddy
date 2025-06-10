@@ -681,11 +681,11 @@ void my_Con_DrawConsole (float frac) {
 int real_refdef_width = 0;
 void my_Con_DrawNotify(void) {
 	real_refdef_width = current_vid_w;
-	current_vid_w = 1/fontScale * current_vid_w;
+	*viddef_width = 1/fontScale * current_vid_w;
 	isFontOuter = true;
 	orig_Con_DrawNotify();
 	isFontOuter = false;
-	current_vid_w = real_refdef_width;
+	*viddef_width = real_refdef_width;
 }
 
 /*
@@ -703,20 +703,9 @@ void my_Con_DrawNotify(void) {
 void my_Con_CheckResize(void) {
 	//This makes con.linewidth smaller in order to reduce the character count per line.
 	int viddef_before = current_vid_w;
-
-	int width = (viddef_before >> 3) - 2;
-
-	//Only manipulate width when video initialised.
-	if ( width >= 1 ) {
-		//width = (vidref.width/8) - 2
-		current_vid_w = 1/fontScale * current_vid_w;
-		orig_Con_CheckResize();
-		
-		current_vid_w = viddef_before;
-		// orig_Com_Printf("linewidth is now : %i\n",*(int*)0x2024AF98);	
-	} else {
-		orig_Con_CheckResize();
-	}
+	*viddef_width = 1/fontScale * current_vid_w;
+	orig_Con_CheckResize();
+	*viddef_width = viddef_before;
 }
 
 /*

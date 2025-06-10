@@ -93,6 +93,7 @@ void my_CL_ReadPackets(void)
 	This fixes the buffer overflow crash caused by > 2048px wide resolutions whilst entering lines into console.
 */
 #define MAXCMDLINE 256
+//This is Con_DrawInput()
 void my_Con_Draw_Console(void)
 {
 		//jmp to here.
@@ -146,11 +147,11 @@ void my_Con_Draw_Console(void)
 		//then we show max number of characters.
 		//but can we access till the end of buffer always?
 
-		/*
+		//prestep horizontally.
 		if (*key_linepos >= *con_linewidth) {
 			text += 1 + *key_linepos - *con_linewidth;
 		}
-		*/
+		
 
 		//Refer to image in google notes - text=start_pos_show_left
 		int space = &text[MAXCMDLINE-1] - text;

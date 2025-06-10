@@ -53,8 +53,13 @@ extern cvar_t * _sofbuddy_whiteraven_lighting;
 extern int current_vid_w;
 extern int current_vid_h;
 
+extern int * viddef_width;
+extern int * viddef_height; 
+
 //scaled_font.cpp
 extern cvar_t * _sofbuddy_font_scale;
 extern cvar_t * _sofbuddy_console_size;
+extern cvar_t * con_maxlines;
+extern cvar_t * con_buffersize;
 extern cvar_t * test;
 extern cvar_t * test2;

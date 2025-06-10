@@ -167,6 +167,9 @@ cvar_t * _sofbuddy_font_scale = NULL;
 cvar_t * _sofbuddy_console_size = NULL;
 cvar_t * _sofbuddy_hud_scale = NULL;
 
+cvar_t * con_maxlines = NULL;
+cvar_t * con_buffersize = NULL;
+
 cvar_t * test = NULL;
 cvar_t * test2 = NULL;
 
@@ -197,6 +200,9 @@ void create_scaled_fonts_cvars(void) {
 	_sofbuddy_font_scale = orig_Cvar_Get("_sofbuddy_font_scale","1",CVAR_ARCHIVE,&fontscale_change);
 
 	_sofbuddy_hud_scale = orig_Cvar_Get("_sofbuddy_hud_scale","1",CVAR_ARCHIVE,&hudscale_change);
+
+	con_maxlines = orig_Cvar_Get("con_maxlines","512",CVAR_ARCHIVE,NULL);
+	con_buffersize = orig_Cvar_Get("con_buffersize","32768",CVAR_ARCHIVE,NULL);
 
 	test = orig_Cvar_Get("test","21.1",NULL,NULL);
 	test2 = orig_Cvar_Get("test2","21.1",NULL,NULL);
