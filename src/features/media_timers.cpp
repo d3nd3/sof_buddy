@@ -734,6 +734,8 @@ int winmain_loop(void)
 		// spcl_Timers();
 		// spcl_FreeScript();
 		//We call this one because it handles everything, timers,free,_sp_cl_info_state,_sp_cl_info_server
+
+		//TODDO : Ensure _sp_cl_cpu_cool is fully disabled here.
 		sp_Sys_Mil();
 		// resetTimers(newtime);
 		// int* curtext_size_after = *(int*)0x2023F830;

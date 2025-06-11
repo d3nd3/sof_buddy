@@ -223,7 +223,12 @@ extern void sleep_change(cvar_t *cvar);
 void create_mediatimers_cvars(void) {
 	//meda_timers.cpp
 	_sofbuddy_high_priority = orig_Cvar_Get("_sofbuddy_high_priority","1",CVAR_ARCHIVE,&high_priority_change);
-	_sofbuddy_sleep = orig_Cvar_Get("_sofbuddy_sleep","1",CVAR_ARCHIVE,&sleep_change);
+
+	//this feature is too experimental and causes a wonky frequency*msec pairing, breaking
+	//the law of : frequency*msec = 1000
+	//so if the system is bottlenecked it causes speeding players.
+	//we leave at default 0 for now. TODO: FIX THIS - do more proper.
+	_sofbuddy_sleep = orig_Cvar_Get("_sofbuddy_sleep","0",CVAR_ARCHIVE,&sleep_change);
 
 	//frametimeMS - maxRendertimeMS = remaining after render time = spare time.
 	// provide fps of max system
@@ -250,6 +255,7 @@ void create_mediatimers_cvars(void) {
 	//1 = lowest cpu usage without stutter
 	//2 = less stutter when system overloaded - cost of more cpu (try this if too much lag)
 	_sofbuddy_sleep_busyticks = orig_Cvar_Get("_sofbuddy_sleep_busyticks","2", CVAR_ARCHIVE, &sleep_busyticks_change);
+
 }
 #endif
 
