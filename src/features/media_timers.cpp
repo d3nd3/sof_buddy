@@ -345,6 +345,8 @@ Minimum Timer Resolution: 10000 ns
 */
 typedef NTSTATUS(WINAPI* pNtQueryTimerResolution)(PULONG, PULONG, PULONG);
 
+
+#if 0
 /*
 GOAL:
 the frames sacrifice equal distance from each other in time for equal frequency per second
@@ -694,7 +696,7 @@ int winmain_loop(void)
 		}
 		while (time < 1);
 		//Wait until 1ms has passed.
-	}
+	} //if not sleep mode
 	
 
 /*
@@ -734,6 +736,8 @@ int winmain_loop(void)
 		// spcl_Timers();
 		// spcl_FreeScript();
 		//We call this one because it handles everything, timers,free,_sp_cl_info_state,_sp_cl_info_server
+
+		//TODDO : Ensure _sp_cl_cpu_cool is fully disabled here.
 		sp_Sys_Mil();
 		// resetTimers(newtime);
 		// int* curtext_size_after = *(int*)0x2023F830;
@@ -808,7 +812,39 @@ int winmain_loop(void)
 	}
 */
 
+#else
+// This is called in place of Sys_Millisecond.
+int winmain_loop(void)
+{
 
+	int time,newtime;
+	do {
+		if ( _sofbuddy_sleep->value ) 
+		{
+			// orig_Com_Printf("Sleeping...\n");
+			Sleep(1);
+		}
+		newtime = Sys_Mil();
+		time = newtime - oldtime;
+	} while (time < 1);
+	
+	_controlfp( _PC_24, _MCW_PC );
+	#if 1
+	if ( o_sofplus ) {
+		//we will handle the sleep, instead.
+		setCvarInt(_sp_cl_cpu_cool,0);
+		setCvarInt(_sp_cl_frame_delay,0);
+		sp_Sys_Mil();
+	}	
+	#endif
+
+	oldtime = newtime;
+	orig_Qcommon_Frame (time);
+
+	//fake return because we are implementing everything
+	return 0;
+}
+#endif
 /*
 freq = 10,000,000, so resolution = 1/10,000,000 = 0.0000001 = 0.1 microseconds = 100 nanoseconds.
 1000 ns = 1us
