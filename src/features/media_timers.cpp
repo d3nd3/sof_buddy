@@ -243,11 +243,13 @@ void sleep_change(cvar_t * cvar) {
 	if ( cvar->value ) {
 		sleep_mode = true;
 		extratime_resume=0;
+		PrintOut(PRINT_GOOD,"cpu sleep is ENABLED\n");
 	} else {
 		sleep_mode = false;
 		extratime_resume=0;
+		PrintOut(PRINT_GOOD,"cpu sleep is DISABLED\n");
 	}
-	PrintOut(PRINT_GOOD,"sleep is now : %i\n",sleep_mode);
+	
 }
 
 
