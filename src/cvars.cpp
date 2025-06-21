@@ -145,10 +145,9 @@ cvar_t * _sofbuddy_classic_timers = NULL;
 //meda_timers.cpp
 cvar_t * _sofbuddy_high_priority = NULL;
 cvar_t * _sofbuddy_sleep = NULL;
-cvar_t * _sofbuddy_sleep_gamma = NULL;
+cvar_t * _sofbuddy_sleep_jitter = NULL;
 cvar_t * _sofbuddy_sleep_busyticks = NULL;
-cvar_t * _sp_cl_cpu_cool = NULL;
-cvar_t * _sp_cl_frame_delay = NULL;
+
 
 //ref_fixes.cpp
 cvar_t * _sofbuddy_lightblend_src = NULL;
@@ -218,47 +217,21 @@ void create_scaled_fonts_cvars(void) {
 */
 extern void high_priority_change(cvar_t * cvar);
 extern void sleep_busyticks_change(cvar_t * cvar);
-extern void sleep_gamma_change(cvar_t *cvar);
+extern void sleep_jitter_change(cvar_t *cvar);
 extern void sleep_change(cvar_t *cvar);
 
 void create_mediatimers_cvars(void) {
 	//meda_timers.cpp
 	_sofbuddy_high_priority = orig_Cvar_Get("_sofbuddy_high_priority","1",CVAR_ARCHIVE,&high_priority_change);
 
-	//this feature is too experimental and causes a wonky frequency*msec pairing, breaking
-	//the law of : frequency*msec = 1000
-	//so if the system is bottlenecked it causes speeding players.
-	//we leave at default 0 for now. TODO: FIX THIS - do more proper.
-	_sofbuddy_sleep = orig_Cvar_Get("_sofbuddy_sleep","0",CVAR_ARCHIVE,&sleep_change);
 
-	//frametimeMS - maxRendertimeMS = remaining after render time = spare time.
-	// provide fps of max system
-	//fast system means larger values (more space in next frame to occupy)
-	//slow system means smaller values (less space in next frame to occupy)
+	_sofbuddy_sleep = orig_Cvar_Get("_sofbuddy_sleep","1",CVAR_ARCHIVE,&sleep_change);
 
-	//frametimeMS-7 ... (takes 7ms to renderFrameCode)
-	//frametimeMS-6 ... (takes 6ms to renderFrameCode)
-	//frametimeMS-5 ... (takes 5ms to renderFrameCode)
-	//frametimeMS-4 ... (takes 4ms to renderFrameCode)
-	//frametimeMS-3 ... (takes 3ms to renderFrameCode)
-	//frametimeMS-2 ... (takes 2ms to renderFrameCode)
-	//frametimeMS-1 ... (takes 1ms to renderFrameCode)
-	//5 = slow, 2 = fast
-	//how many 'spare ticks' in each frame to use for overflow/eating
-	//Most of the time this cvar does nothing - becuase system is not lagging
-	//More appropriate on struggling systems.
-	//This cvar requires you to specify your max uncapped fps to calculate spare time.
-	//Put low value eg. 140 == 7 == Never eat
-	_sofbuddy_sleep_gamma = orig_Cvar_Get("_sofbuddy_sleep_gamma","300", CVAR_ARCHIVE, &sleep_gamma_change);
+	_sofbuddy_sleep_jitter = orig_Cvar_Get("_sofbuddy_sleep_jitter","0", CVAR_ARCHIVE, &sleep_jitter_change);
 
-
-	//0 = messy ending to each frame = stutter = but lowest cpu usage
-	//1 = lowest cpu usage without stutter
-	//2 = less stutter when system overloaded - cost of more cpu (try this if too much lag)
+	//how many 1ms ticks of busytick wait should use as protection from inaccurate Sleep(1) 
 	_sofbuddy_sleep_busyticks = orig_Cvar_Get("_sofbuddy_sleep_busyticks","2", CVAR_ARCHIVE, &sleep_busyticks_change);
 
-	_sp_cl_cpu_cool = orig_Cvar_Get("_sp_cl_cpu_cool","0",NULL,NULL);
-	_sp_cl_frame_delay = orig_Cvar_Get("_sp_cl_frame_delay","0",NULL,NULL);
 }
 #endif
 

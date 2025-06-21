@@ -1,1 +1,2 @@
-powershell -ExecutionPolicy Bypass -File patch_sof_binary.ps1 "spcl.dll"
+#!/bin/bash
+bash patch_sof_binary.sh SoF.exe spcl.dll

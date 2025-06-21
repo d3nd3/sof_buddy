@@ -33,10 +33,9 @@ extern cvar_t * _sofbuddy_classic_timers;
 //meda_timers.cpp
 extern cvar_t * _sofbuddy_high_priority;
 extern cvar_t * _sofbuddy_sleep;
-extern cvar_t * _sofbuddy_sleep_gamma;
+extern cvar_t * _sofbuddy_sleep_jitter;
 extern cvar_t * _sofbuddy_sleep_busyticks;
-extern cvar_t * _sp_cl_cpu_cool;
-extern cvar_t * _sp_cl_frame_delay;
+
 
 //ref_fixes.cpp
 extern cvar_t * _sofbuddy_lightblend_src;

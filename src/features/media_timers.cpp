@@ -19,10 +19,10 @@
 void high_priority_change(cvar_t * cvar);
 void sleep_change(cvar_t * cvar);
 bool sleep_mode = true;
-int eatenFrame = 0;
+int extratime_resume = 0;
 
-void sleep_gamma_change(cvar_t *cvar);
-int sleep_gamma = 4; //300fps
+void sleep_jitter_change(cvar_t *cvar);
+bool sleep_jitter = false; 
 
 //how many msec ticks to busyloop for each frame
 void sleep_busyticks_change(cvar_t * cvar);
@@ -242,49 +242,25 @@ void high_priority_change(cvar_t * cvar) {
 void sleep_change(cvar_t * cvar) {
 	if ( cvar->value ) {
 		sleep_mode = true;
-		eatenFrame=0;
+		extratime_resume=0;
 	} else {
 		sleep_mode = false;
-		eatenFrame=0;
+		extratime_resume=0;
 	}
 	PrintOut(PRINT_GOOD,"sleep is now : %i\n",sleep_mode);
 }
 
-/*
-	TODO: Get max ms they can render at and adjust.
-	was = 5
-	now using 1000/500 = 2
-	claiming system can bench 500fps uncapped
-*/
-void sleep_gamma_change(cvar_t *cvar)
+
+void sleep_jitter_change(cvar_t *cvar)
 {
-	// PrintOut(PRINT_GOOD,"sleep_gamma changed\n");
-	// orig_Cvar_SetInternal(1);
-	cl_maxfps = orig_Cvar_Get("cl_maxfps","30",NULL,NULL);
-	int targetMsec = std::ceil(1000/cl_maxfps->value);
-
-	//disable it
-	if ( cvar->value == 0.0f ) {
-		//targetMsec - 1000/200 ... assume system can run 200fps at peak.
-		sleep_gamma = 0; //default
-		PrintOut(PRINT_GOOD,"sleep_gamma is now : %i\n",sleep_gamma);
-		return;
+	if ( cvar->value ) {
+		sleep_jitter = true;
+		PrintOut(PRINT_GOOD,"sleep_jitter is ENABLED\n");
 	}
-	
-	//frametimeMS - maxRendertimeMS = remaining after render time = spare time.
-	// provide fps of max system
-	//fast system means larger values (more space in next frame to occupy)
-	//slow system means smaller values (less space in next frame to occupy)
-	sleep_gamma =  targetMsec - std::round(1000/cvar->value);
-	if (sleep_gamma >= targetMsec) {
-		//impossible scenario = sleeping all frame ( highest value for least sleep = targetMsec - 1)
-		//targetMsec - 1000/200 ... assume system can run 200fps at peak.
-		sleep_gamma = targetMsec - 1; //Give them the fastest setup
+	else {
+		sleep_jitter = false;
+		PrintOut(PRINT_GOOD,"sleep_jitter is DISABLED\n");
 	}
-	//ceil ensures the slower of the ms  is selected when between int ranges.
-	//eg. 1000/550 = 1.8, so use 2ms.
-
-	PrintOut(PRINT_GOOD,"sleep_gamma is now : %i\n",sleep_gamma);
 }
 /*
 
@@ -346,18 +322,17 @@ Minimum Timer Resolution: 10000 ns
 typedef NTSTATUS(WINAPI* pNtQueryTimerResolution)(PULONG, PULONG, PULONG);
 
 
-#if 0
+#if 1
 /*
 GOAL:
 the frames sacrifice equal distance from each other in time for equal frequency per second
-
 so more stutter, but the stutter is not noticeable if you are on 60hz refresh eg.
 
 msec sent to server is set:
 ms = cls.frametime * 1000;
 
 This variable is the actual msec when factoring in load + vsync etc.
-Not the target/max msec.
+Not the target/max msec. (because of extratime - measured)
 
 cls.frametime is calculated in CL_Frame():
 cls.frametime = extratime/1000.0;
@@ -367,414 +342,174 @@ When vsync is active the renderFrame will block, causing high time/msec value pu
 Making extratime have a very large value.
 
 SoF uses 1/cls.frametime to compute fps display
-So if we modify extratime, we are messing with the fps display.
+So if we modify extratime, we are messing with the fps display _AND_ that affects user speed, so its potentially
+unsafe.
 */
 int winmain_loop(void)
 {
-	/*
-	int nt=0, t=0,ot=0;
-	do
-	{
-		nt = Sys_Mil ();
-		t = nt - ot;
-	} while (t < 1);
-	//Time is applied to extratime here: 
-	orig_Qcommon_Frame (t);
-
-	ot = nt;
-	//does not matter what we return here.
-	return 0;
-	*/
-
 	static int * const cls_state = 0x201C1F00;
-	
+	int newtime = 0, timedelta = 0;
+	static int * const extratime = 0x201E7578;
 
-	/*
-	ULONG CurrentResolution, MaximumResolution, MinimumResolution;
-
-	HMODULE hNtDll = LoadLibrary("ntdll.dll");
-	pNtQueryTimerResolution NtQueryTimerResolution =
-            (pNtQueryTimerResolution)GetProcAddress(hNtDll, "NtQueryTimerResolution");
-    // Query the timer resolution
-    NTSTATUS status = NtQueryTimerResolution(&CurrentResolution, &MaximumResolution, &MinimumResolution);
-
-    if (status == 0) {
-        std::wcout << L"Current Timer Resolution: " << CurrentResolution << L" ns\n";
-        std::wcout << L"Maximum Timer Resolution: " << MaximumResolution << L" ns\n";
-        std::wcout << L"Minimum Timer Resolution: " << MinimumResolution << L" ns\n";
-    } else {
-        std::wcout << L"Failed to query timer resolution, NTSTATUS: " << status << L"\n";
-    }
-    */
-	//orig_Com_Printf("winmain_loop\n");
-
-	int newtime = 0, time = 0;
-	static int * extratime = 0x201E7578;
-	// static bool firstRunThisFrame = true;
 	bool didSleep = false;
+	bool isBeingBorrowed = false;
 
-	// If Qcommon detected new CL_Frame(), we override it to eat.
+	int last_extratime_resume = 0;
+	//detect fresh cl_frame()
+
+
 	if ( *extratime == 0 ) {
-		//detect fresh cl_frame()
-		// firstRunThisFrame = true;
-		cl_maxfps->value = previous_cl_maxfps;
-		*extratime = eatenFrame;
-	}
-	
-	//Reset this - it has served its purpose by filling extratime above.
-	eatenFrame = 0;
+		if ( extratime_resume > 0 ) {
+			//We have to confirm that this new frame_window renders 2 frames on time
+			//Else we correct our lie.
+			isBeingBorrowed = true;
 
-	/*
-	if ( firstRunThisFrame ) {
-		firstRunThisFrame = false;
-		// if ( !didSleep ) PrintOut(PRINT_GOOD,"Can't Sleep this frame, starved: %i\n",remainingTime);
+			//apply our lies to steal time from this new frame_window
+			*extratime = extratime_resume;
+
+			last_extratime_resume = extratime_resume;
+			extratime_resume = 0;
+		}
 	}
-	*/
+
+
 	int targetMsec = *cls_state == 7 ? 100 : std::ceil(1000/cl_maxfps->value);
 
+	/*
+		. . . . . . . | draw . . . .  | draw . . .
+		. . . . . . . | . . . . . . . | . . . . . . .
+
+		we are at one of these dots.
+		extratime is the dot we are at.
+	*/
 	if ( sleep_mode ) {
+		/*
+			On the first tick after frame is rendered.
+			timedelta will be the time it took to render the frame.
+			So no sleep will occur then.
 
-		
-		while(1) {
-
-			
-			
-			// printf("lol?\n");
+			//If QCommon_Frame() (which does the main work, including rendering) consistently takes 
+			//1ms or more, then timedelta will always be 1 or greater.
+		*/
+		//measure time in case:
+		//(maybe QCommon_Frame() took 1ms already.. no need to sleep?)
+		newtime = Sys_Mil();
+		timedelta = newtime - oldtime;
+		// orig_Com_Printf("timedelta1 = %i\n",timedelta);
+		//1ms has not passed. 
+		if ( timedelta == 0 ) {
 			/*
-				====SLEEP ON====
+				BURN TIME
 			*/
-			//1000/cl_maxfps == float
-			//sof engine uses float comparison
-			//so we use ceil
-			//1000/143-160 = 6.X
-			//such that 6 < 6.X
-			//so use ceil to get same behaviour in int
-			//6 < 7
-			
+			// orig_Com_Printf("FreeSleepTime = %i\n",(targetMsec - *extratime));
+			if ( (targetMsec - *extratime)>sleep_busyticks && !didSleep ) {
+				//ensures 1ms passes.
+				//burn with Sleep()
 
-			/*
-				Time measurements are taken before and after running Qcommon_Frame()
-				The result of that measurement is here.
-
-				----qCommon extratime: 5
-				timestamp+measure: 1ms
-				----qCommon extratime: 6
-				timestamp+measure: 1ms
-				----qCommon extratime: 7 drawFrame() reset
-				timestamp+measure: 3ms
-				----qCommon extratime: 3
-				timestamp+measure: 1ms
-				----qCommon extratime: 4
-				timestamp+measure: 1ms
-				----qCommon extratime: 5
-			*/
-			// printf("new sys_mil()\n");
-			newtime = Sys_Mil();
-			#if 0
-			if (o_sofplus) {
-				//Call this to handle timers!
-				sp_Sys_Mil();
-			}
-			#else
-			if (o_sofplus) {
-				*sp_whileLoopCount = 0;
-				spcl_FreeScript();
-			}
-			#endif
-			
-			time = newtime - oldtime;
-
-			//calculating last Frame's render time in advanced to predict if it will make extratime > targetMsec
-			int remainingTime = targetMsec - (*extratime+time);
-			// int remainingTime = frametime - (*extratime + time);
-
-			//WE HAVE A PROBLEM--> vsync has lower fps than cl_maxfps
-			//Also how can we ever approximate a system capability.
-			//CAVEAT: THIS feature of eating into next frame has to be reserved for systems that target a fixed fps with VSYNC off.
-			//TODO: Check vsync is off + FORCE off.
-			//Also this could slow your movespeed down in-game if your actual fps dips too much below your maxfps
-
-			//100 99 2
-			//7 6 2
-			//ah so negative remainingTime is the condition when the sum of the msec units
-			//does not fit into the total. interesting problem.
-			//*extratime 
-			if ( remainingTime < 0 ) {
-				// PrintOut(PRINT_GOOD,"CannotFit-> targetMsec:%i usedTime:%i lastChunk:%i\n",targetMsec,*extratime,time);
-				int debt = 0 - remainingTime;
-				//on a fast system u can draw the frame in 1 or 2 ms.
-				//_should_ benchmark this to get theier system value.
-				//when small debt, try to squeeze it into next frame.
-				//allows 7-2 = 5ms of render time == 200fps capable system.
-				// int sleep_gamma =  frametime - std::round(1000/_sofbuddy_sleep_gamma->value);
-				if ( debt <= sleep_gamma && !eatenFrame ) {
-					//OUR ATTEMPT TO COMPENSATE THE NEXT FRAME WINDOW...
-					// measure how much it eats into next frame
-					// ===================================================================
-					// PrintOut(PRINT_GOOD,"Non-Sleep: eating into next frame %i\n",debt);
-					
-					// time = 
-					eatenFrame = debt;
-					//extratime gets set to this later in this function.
-					// eatenFrame = time;
-
-					//temporary force QCommon_Frame() to renderNewFrame
-					//this has to be the actual frametime because it sets cls.frametime and msec in cmd.
-					// *extratime = targetMsec;
-					// *extratime = frametime;
-
-
-					//whichever value extrattime has now, whcih is lower than usual.
-					previous_cl_maxfps = cl_maxfps->value;
-					cl_maxfps->value = 1000.0f;
-
-				} else {
-					time = newtime - oldtime;
-				}
-				//break to QCommon_Frame()
-				break;
-			}
-
-			if ( time == 0 ) {
-				//require a sleep of some form. because 0 ms passed.
-
-				// PrintOut(PRINT_GOOD,"targetMsec =  %i\n",targetMsec);
-				//AFTER Render CL_Frame() has been measured AND ONCE.. (because only want 1ms minimum sleep per iteration here.)
-
-				//Impossible for remainingTime to be 0 - implies extratime == targetMsec - because last QCommon_Frame would had reset it otherwise.
-				//2ms ticks of busyloop at end of every frame. (exclude 2,1)
-				if ( /**extratime > eatenFrame &&*/ remainingTime>sleep_busyticks && !didSleep ) {
-					// printf("Sleep...??\n");
+				//any more iterations of this loop will USE busysleep
 				didSleep = true;
-					//AfterFrameRendered...
-					// unsigned long before = qpcTimeStampNano();
+				// orig_Com_Printf("We slept...\n");
 				Sleep(1);
-					// 1058500 nanoseconds for 1ms sleep.
-					// unsigned long after = qpcTimeStampNano();
-
-
-
-					// unsigned long actualSlept = after - before;
-					//if (actualSlept >= 2'000'000) PrintOut(PRINT_GOOD,"Long Sleep %u\n",actualSlept);
-					// actualSlept as MS
-					// int actualSleptMS = actualSlept / 1'000'000;
-					/*
-						too much quota/time was used up, so this frame is drawn late, but
-						the next frame will still (fit into the frame window time hopefully, if it does 
-						not, then you just notice frame drops, any long frame is by default allowed to take as
-						long as it wants. its execClientFrame() when timePassed >= 7ms , so a minimum guarantee only.)
-
-						What i'm saying is that, frames are independent, they dont know if the previous one was laggy or not
-						There is no compensation for a long average, they independent units.
-					*/
-
-					// printf("after sleep\n");
-					//sleep was performed, so update.
 				newtime = Sys_Mil();
-					//Call this to execute any timers!
-					// sp_Sys_Mil();
 
-					//Sleep didn't produce >1ms change...
-				int time_and_sleep = newtime - oldtime;
-				if ( time_and_sleep == 0 ) 
-				{
-						//is this correct?
-						//See below function to see main loop structure.
-						//We want to have time_and_sleep > 1 before iterating the loop again.
-						//I made it such that if this is the case, it won't try sleep again, because it must be close to 1ms, just
-						//busy sleep to further it.
-					continue;
-				}
-				int overlapMs = time_and_sleep - remainingTime;
-					//time_and_sleep > remainingTime
-					// int sleep_gamma =  frametime - std::round(1000/_sofbuddy_sleep_gamma->value);
-					//allows 7-2 = 5ms of render time == 200fps capable system.
-				if ( overlapMs > 0 && overlapMs <= sleep_gamma && !eatenFrame ) {
-						//OUR ATTEMPT TO COMPENSATE THE NEXT FRAME WINDOW...
-						// measure how much it eats into next frame
+				//Sleep _STILL_ didn't produce >1ms change...
+				timedelta = newtime - oldtime;
+				if ( timedelta == 0 ) goto busyloop;
 
-						// time = actualSleptMS;
-						// if ( time > 0) time = time -1;
-						// if ( time < targetMsec ) time +=1;
-						// ===================================================================
-						// PrintOut(PRINT_GOOD,"Eating into next frame %i\n",time_and_sleep);
-
-
-						// time = overlapMs;
-					time = time_and_sleep;
-						//extratime gets set to this later in this function.
-					eatenFrame = overlapMs;
-
-						//temporary force QCommon_Frame() to renderNewFrame
-						// *extratime = targetMsec;
-						// *extratime = frametime;
-
-
-					previous_cl_maxfps = cl_maxfps->value;
-					cl_maxfps->value = 1000.0f;
-
-				} else {
-					time = time_and_sleep;
-				}
-					//break to QCommon_Frame()
-				break;
 			} else {
-					// printf("busy-sleep...??\n");
-					/*
-						remainingTime < 2 :: 1 or 0
-						Do busywait at end to reduce chance of sleep overlap.
-					*/
-
-					//Do busyloop if remainingTime too small
+				//ensures 1ms passes.
+				busyloop:
+				//burn with busyloop
 				do
 				{	
-						// printf("busysleep\n");
 					__asm__ volatile("pause");
 					newtime = Sys_Mil();
-						#if 0
-						if (o_sofplus) {
-							//Call this to handle timers!
-							sp_Sys_Mil();
-						}
-						#else
-					if (o_sofplus) {
-						*sp_whileLoopCount = 0;
-						spcl_FreeScript();
-					}
-						#endif
-					time = newtime - oldtime;
+					timedelta = newtime - oldtime;
 				}
-				while (time < 1);
-					//Wait until 1ms has passed.
+				while (timedelta < 1);
+				
+			} 
 
-					//break to QCommon_Frame()
-				break;
-				} //debt-sleep-busy triple if
+		} //if no timedelta passed
 
-			} //if no time passed
+		//1MS has passed...
 
-			//time passed during compute, was not in excess.
-			break;
-		}//while(1)
-		
+		//Not really needed feature, but its there just in-case mb for slow laptops?
+		if ( sleep_jitter ) {
+			/*
+				This 'frame' cannot fit into the 'frame_window',
+				borrow from next 'frame_window'
+			*/
+			int remainingTime = targetMsec - (*extratime + timedelta);
+
+			// (extratime+timedelta) > targetMsec
+			if ( remainingTime < 0 ) {
+				if ( !isBeingBorrowed ) {
+					//Never borrow twice in a row
+					int debt = 0 - remainingTime;
+					if ( !extratime_resume ) {
+						extratime_resume = debt;
+					}
+				} else {
+					//We are being borrowed from by the previous frame_window
+					//Yet we can't render our frame because of them.
+					//Instead of cause a chain reaction, we tell the truth.
+					timedelta += last_extratime_resume;
+				}
+			}
+
+			//are we trying to borrow steal time from next frames' frame_window 
+			//(force frames to render closer in time than average msec)
+			if (extratime_resume) {
+				//ensure we lie to server that this frame was on time.
+				timedelta = targetMsec - *extratime;
+				//Bad consequence of lieing : It really took 8 ms, we said 7ms
+				//We expect it fits into next frame.
+				//But if it doens't fit into next frame either, then that frame has to lie too
+				//And so chains of lies == the frequency is false.
+				//It is only _NOT_ a lie, if the next frame really fits 2 frames into 1 frame_window.
+			}
+		} //sleep_jitter feature
+
 	} else {
 		/*
 			====SLEEP OFF====
 		*/
-		/*
-		if ( firstRunThisFrame ) {
-			firstRunThisFrame = false;
-			PrintOut(PRINT_GOOD,"Can't Sleep this frame, starved: %i\n",remainingTime);
-		}
-		*/
-		//Do busyloop if remainingTime too small
 		do
 		{	
-			// printf("busysleep 2\n");
 			__asm__ volatile("pause");
 			newtime = Sys_Mil();
-			#if 0
-			if (o_sofplus) {
-				//Call this to handle timers!
-				sp_Sys_Mil();
-			}
-			#else
-			if (o_sofplus) {
-				*sp_whileLoopCount = 0;
-				spcl_FreeScript();
-			}
-			#endif
-			time = newtime - oldtime;
-
-			/*
-			//RenderFrameMsec = 1 or 2 ms on my system.
-			//That leaves 5 msec for sleep
-			if ( *extratime == 0 ) {
-				orig_Com_Printf("RenderFrameMsec = %i\n",time);
-			}
-			*/
+			timedelta = newtime - oldtime;
 		}
-		while (time < 1);
+		while (timedelta < 1);
 		//Wait until 1ms has passed.
+
+		
 	} //if not sleep mode
 	
 
-/*
-	//Do something once per Frame.
-	if ( firstRunThisFrame ) {
-		firstRunThisFrame = false;
-		if ( *extratime > eatenFrame ) {
-			eatenFrame = 0;
-			
-			//debug iteration after frame drawn.
-			if (remainingTime <= 2) {
-				PrintOut(PRINT_GOOD,"Can't Sleep this frame, starved: %i\n",remainingTime);
-			}
-			
-		}
-	}
-	
-*/
-
-	// This is intentionally above qCommonFrame, so that oldtime can be changed during any code in Qcommon from Sys_SendKeyEvent() eg.
-
+	// This is intentionally above qCommonFrame, so that oldtime can be re-adjusted by future qpc_timer calls()
+	// Without being overidden _AFTER_ qCommonFrame.
 	oldtime = newtime;
-	#if 1
-	if ( o_sofplus ) {
-		//Try to get sofplus to fire/Cbuf_AddText the timers callbacks.
-		//It uses curtime and updates
-		//int * lastSofplusTimerTick = (void*)o_sofplus+0x52630;
-		//to curtime at end. 
-
-		//Maybe the difference is something small like:
-		//the initial value of curtime in sofplus/q2 is not 0?
-		//we can test it by adding 1 to curtime.
-
-		//1 ms should have already passed, so the Timers should be fired.
-		//Why are they not being fired?
-		// int* curtext_size_before = *(int*)0x2023F830; 
-		// spcl_Timers();
-		// spcl_FreeScript();
-		//We call this one because it handles everything, timers,free,_sp_cl_info_state,_sp_cl_info_server
-
-		//TODDO : Ensure _sp_cl_cpu_cool is fully disabled here.
-		sp_Sys_Mil();
-		// resetTimers(newtime);
-		// int* curtext_size_after = *(int*)0x2023F830;
-
-		/*
-		if (curtext_size_after != curtext_size_before) {
-			printf("CBuf_AddText for Timer!\n");
-			orig_Com_Printf("Cbuf_AddText for Timer!\n");	
-		}
-		*/
-		
-	}
-	#endif
 
 	_controlfp( _PC_24, _MCW_PC );
 
-	//higher msec value (slowerframe) = larger distance moved
-	//higher frame = faster frequency to server
-	//when frequency and msec value do not match = change speed
 
-	//if we are pushing for 7ms when we are 6ms frequency, we do speed boost unintended.
-	
-	if ( !eatenFrame && *extratime+time >= targetMsec) {
-		//frame about to be rendered.
-		frametime = *extratime+time;
-		// *extratime = test->value;
-	} else if (eatenFrame) {
-		frametime = targetMsec;
-		// *extratime = test->value;
+	if ( o_sofplus ) {
+		//We call this one because it handles everything, timers,free,_sp_cl_info_state,_sp_cl_info_server
+		*(int*)(o_sofplus + 0x331AC) = 0x00;
+		*(int*)(o_sofplus + 0x331BC) = 0x00;
+		sp_Sys_Mil();
 	}
-	
-	// orig_Com_Printf("Before qcommon_Frame\n");
-	//Time is applied to extratime here: 
-	orig_Qcommon_Frame (time);
-	// orig_Com_Printf("After qcommon_Frame\n");
 
-	//does not matter what we return here.
+	//higher msec value (less frequent) = lower frequency to server, more distance moved
+	//lower msec value (more frequent) = faster frequency to server, less distance mvoed
+	//when frequency and msec value do not match = change speed
+	
+	//Time is applied to extratime here: 
+	orig_Qcommon_Frame (timedelta);
+
+	//does not matter what we return here because we have jmp instruction immidiately after.
 	return 0;
 }
 /*
@@ -832,8 +567,10 @@ int winmain_loop(void)
 	#if 1
 	if ( o_sofplus ) {
 		//we will handle the sleep, instead.
-		setCvarInt(_sp_cl_cpu_cool,0);
-		setCvarInt(_sp_cl_frame_delay,0);
+		// setCvarInt(_sp_cl_cpu_cool,0);
+		// setCvarInt(_sp_cl_frame_delay,0);
+		*(int*)(o_sofplus + 0x331AC) = 0x00;
+		*(int*)(o_sofplus + 0x331BC) = 0x00;
 		sp_Sys_Mil();
 	}	
 	#endif
@@ -845,6 +582,26 @@ int winmain_loop(void)
 	return 0;
 }
 #endif
+
+/*
+	ULONG CurrentResolution, MaximumResolution, MinimumResolution;
+
+	HMODULE hNtDll = LoadLibrary("ntdll.dll");
+	pNtQueryTimerResolution NtQueryTimerResolution =
+            (pNtQueryTimerResolution)GetProcAddress(hNtDll, "NtQueryTimerResolution");
+    // Query the timer resolution
+    NTSTATUS status = NtQueryTimerResolution(&CurrentResolution, &MaximumResolution, &MinimumResolution);
+
+    if (status == 0) {
+        std::wcout << L"Current Timer Resolution: " << CurrentResolution << L" ns\n";
+        std::wcout << L"Maximum Timer Resolution: " << MaximumResolution << L" ns\n";
+        std::wcout << L"Minimum Timer Resolution: " << MinimumResolution << L" ns\n";
+    } else {
+        std::wcout << L"Failed to query timer resolution, NTSTATUS: " << status << L"\n";
+    }
+*/
+
+
 /*
 freq = 10,000,000, so resolution = 1/10,000,000 = 0.0000001 = 0.1 microseconds = 100 nanoseconds.
 1000 ns = 1us

@@ -1,2 +1,2 @@
 #!/bin/bash
-powershell -ExecutionPolicy Bypass -File patch_sof_binary.ps1 "sof_buddy.dll"
+bash patch_sof_binary.sh SoF.exe sof_buddy.dll

@@ -113,10 +113,14 @@ default = 0.35
 range = 0 - 1  
 fullscreen = 1  
 **_sofbuddy_sleep**  
+Whether to save some cpu cycles, will internally call Sleep(1)  
 default = 1  
-**_sofbuddy_sleep_gamma**  
-default = 300  
+**_sofbuddy_sleep_jitter**  
+Whether to squash frames together if a frame is missed - only use this if you are desperate  
+default = 0  
 **_sofbuddy_sleep_busyticks**  
+How many 1ms ticks to reserve for busyloop sleeping. Higher values = less Sleep(1).  If you want the lower cpu usage, set this to 1. If you set it to 0, the Sleep(1) will degrade your cl_maxfps with stutter fps.  
+recommended = 2  
 default = 2  
 **_sofbuddy_minfilter_unmipped**  
 **_sofbuddy_magfilter_unmipped**  
