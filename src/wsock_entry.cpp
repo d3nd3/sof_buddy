@@ -33,6 +33,18 @@
 #include "features.h"
 
 
+/*
+	CAUTION: Don't use directly without void* typecast
+	#include <typeinfo> // For typeid
+	struct HINSTANCE__; // Forward declaration: "There exists a struct called HINSTANCE__"
+	                    // But we don't know its size or members yet.
+
+	typedef struct HINSTANCE__ *HINSTANCE; // HINSTANCE is a pointer to this incomplete struct.
+	                                     // This is now an opaque pointer.
+*/
+//Lets make it a void* instead, to future-proof code.
+void *o_sofplus = NULL;
+
 
 void GenerateRandomString(wchar_t* randomString, int length) {
 	const wchar_t charset[] = L"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -44,8 +56,6 @@ void GenerateRandomString(wchar_t* randomString, int length) {
 }
 
 
-
-HMODULE o_sofplus = NULL;
 
 
 bool SoFplusLoadFn(HMODULE sofplus,void ** out_fn,char * func);

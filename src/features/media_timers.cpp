@@ -16,6 +16,9 @@
 
 #include <cmath>  // Include cmath for std::ceil
 
+#include <cassert>
+
+
 void high_priority_change(cvar_t * cvar);
 void sleep_change(cvar_t * cvar);
 bool sleep_mode = true;
@@ -52,8 +55,8 @@ float previous_cl_maxfps = 30.0f;
 
 int *sp_whileLoopCount = NULL;
 int *sp_lastFullClientFrame = NULL;
-int *sp_oldtime = NULL;
-int *sp_oldtime_internal = NULL;
+int *sp_current_timestamp = NULL;
+int *sp_current_timestamp2 = NULL;
 
 
 /*
@@ -66,8 +69,8 @@ int *sp_oldtime_internal = NULL;
 */
 inline void resetTimers(int val)
 {
-	*sp_oldtime = val;
-	*sp_oldtime_internal = val;
+	*sp_current_timestamp = val;
+	*sp_current_timestamp2 = val;
 	*sp_lastFullClientFrame = val;
 }
 
@@ -92,7 +95,7 @@ void mediaTimers_early(void)
 	#if 0
 	//Correct the timer value used in sofplus timers.
 	if (o_sofplus) {
-		int * lastSofplusTimerTick = (void*)o_sofplus+0x52630;
+		int * lastSofplusTimerTick = o_sofplus+0x52630;
 		int deltaTime = before_curtime - *lastSofplusTimerTick;
 		int new_curtime = my_Sys_Milliseconds();
 		if ( deltaTime > 0 ) {
@@ -159,25 +162,32 @@ void mediaTimers_apply_afterCmdline(void)
 	//==SoF Plus integration==
 	if ( o_sofplus ) {
 		
-		spcl_FreeScript = (void*)o_sofplus+0x9D20;
-		spcl_Timers = (void*)o_sofplus+0x10190;
+		spcl_FreeScript = o_sofplus+0x9D20;
+		spcl_Timers = o_sofplus+0x10190;
 
 		
-		sp_Sys_Mil = (void*)o_sofplus+0xFA60; //sofplus sys_mil
+		sp_Sys_Mil = o_sofplus+0xFA60; //sofplus sys_mil
 		Sys_Mil = &my_Sys_Milliseconds;
 
-		sp_whileLoopCount = (void*)o_sofplus+0x33188;
+		sp_whileLoopCount = o_sofplus+0x33188;
 		*sp_whileLoopCount = 0;
 
 		//If framecount increased (CL_Frame ran) sets 
-		sp_lastFullClientFrame = (void*)o_sofplus+0x331F0;
+
+		// sp_lastFullClientFrame = sp_current_timestamp
+		// inside CL_Frame Hook.
+		sp_lastFullClientFrame = o_sofplus+0x331F0;
 		*sp_lastFullClientFrame = 0;
 
-		sp_oldtime_internal = (void*)o_sofplus+0x33220;
-		*sp_oldtime_internal = 0;
+		//Both set by Sys_Milli inside Main()
 
-		sp_oldtime = (void*)o_sofplus+0x331F4;
-		*sp_oldtime = 0;
+		//This one only used by cmp to call timers within the sys_mill hook
+		sp_current_timestamp2 = o_sofplus+0x33220;
+		*sp_current_timestamp2 = 0;
+
+		//Used to set sp_lastFullClientFrame and SCR_DrawInterface fps
+		sp_current_timestamp = o_sofplus+0x331F4;
+		*sp_current_timestamp = 0;
 
 		
 
@@ -496,7 +506,6 @@ int winmain_loop(void)
 
 	_controlfp( _PC_24, _MCW_PC );
 
-
 	if ( o_sofplus ) {
 		//We call this one because it handles everything, timers,free,_sp_cl_info_state,_sp_cl_info_server
 		*(int*)(o_sofplus + 0x331AC) = 0x00;
@@ -724,6 +733,11 @@ int my_Sys_Milliseconds(void)
 		wasNeg = true;
 	}
 
+	// assert( !wasNeg );
+
+	/*
+		Not sure how often this occurs
+	*/
 	if ( wasNeg ) {
 		// Have to adjust the timers sadly.
 		// Or change the location of 'exec sofplus.cfg' slightly

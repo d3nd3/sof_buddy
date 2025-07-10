@@ -514,7 +514,7 @@ void afterWsockInit(void)
 	#if 0
 	if ( o_sofplus ) {
 		PrintOut(PRINT_LOG,"Before sofplusEntry\n");
-		BOOL (*sofplusEntry)(void) = (int)o_sofplus + 0xF590;
+		BOOL (*sofplusEntry)(void) = o_sofplus + 0xF590;
 		BOOL result = sofplusEntry();
 		PrintOut(PRINT_LOG,"After sofplusEntry\n");
 	}
