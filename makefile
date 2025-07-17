@@ -11,7 +11,7 @@
 OUT = bin/sof_buddy.dll
 
 # Compiler
-CC = i686-w64-mingw32-g++
+CC = i686-w64-mingw32-g++-posix
 
 # Directories
 ODIR = obj
