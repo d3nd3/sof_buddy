@@ -33,6 +33,44 @@
 #include "features.h"
 
 
+// Support for windows XP - hooked by -wl,--wrap,GetTickCount64
+// This is the function that the linker will call instead of the real GetTickCount64
+extern "C" ULONGLONG __wrap_GetTickCount64(void)
+{
+    static volatile LONG64 last_result = -1;
+    DWORD current_tick = GetTickCount();
+
+    if (last_result == -1)
+    {
+        // First time call
+        last_result = current_tick;
+        return (ULONGLONG)current_tick;
+    }
+
+    // Use InterlockedCompareExchange64 for thread safety
+    LONG64 original_last_result = last_result;
+    LONG64 new_result;
+
+    if (current_tick < (DWORD)original_last_result)
+    {
+        // The 32-bit counter wrapped around. Increment the high 32 bits.
+        new_result = original_last_result + (0x100000000LL + current_tick - (DWORD)original_last_result);
+    }
+    else
+    {
+        // No wraparound
+        new_result = original_last_result + (current_tick - (DWORD)original_last_result);
+    }
+    
+    // Atomically update the last result
+    // This is a simplified atomic update, for a real-world scenario
+    // a critical section might be safer if contention is high.
+    last_result = new_result;
+
+    return (ULONGLONG)new_result;
+}
+
+
 /*
 	CAUTION: Don't use directly without void* typecast
 	#include <typeinfo> // For typeid

@@ -40,8 +40,8 @@ DBG_CFLAGS = $(COMMON_CFLAGS)
 #Instability/Errors: You should always link dynamically against core Windows system DLLs. They are the operating system.
 # Attempting to statically link them is incorrect and often fails or produces unstable results.
 # Linker flags
-#OFLAGS = -static -lpthread -shared -static-libgcc -static-libstdc++ -Wl,--enable-stdcall-fixup
-OFLAGS = -shared -static-libgcc -static-libstdc++ -Wl,-Bstatic -lpthread -Wl,-Bdynamic -Wl,--enable-stdcall-fixup
+OFLAGS = -static -lpthread -shared -static-libgcc -static-libstdc++ -Wl,--enable-stdcall-fixup
+#OFLAGS = -shared -static-libgcc -static-libstdc++ -Wl,-Bdynamic -Wl,--enable-stdcall-fixup
 
 # Source files
 _SOURCE_DIRS = DetourXS features
@@ -63,7 +63,7 @@ OBJS = $(ODIR)/DetourXS/ADE32.o \
 # Linking rule
 $(OUT): $(OBJS)
 	@mkdir -p $(dir $(OUT))
-	$(CC) $(OFLAGS) rsrc/sof_buddy.def $^ -o $(OUT) -lws2_32 -lwinmm -lshlwapi -lpsapi
+	$(CC) $(OFLAGS) rsrc/sof_buddy.def $^ -o $(OUT) -Wl,--wrap,GetTickCount64 -lws2_32 -lwinmm -lshlwapi -lpsapi
 
 # Debug target
 debug: CFLAGS = $(DBG_CFLAGS)
