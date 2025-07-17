@@ -21,12 +21,12 @@ SDIR = src
 INC = -Ihdr
 
 # Compiler flags -w (removes warnings)
-COMMON_CFLAGS = -Wno-write-strings -w -fpermissive -std=c++14
+COMMON_CFLAGS = -D_WIN32_WINNT=0x0501 -Wno-write-strings -w -fpermissive -std=c++14
 
 # Release compiler flags
 CFLAGS = $(COMMON_CFLAGS) 
 # Debug compiler flags (add -g for debugging symbols)
-DBG_CFLAGS = $(COMMON_CFLAGS) -g
+DBG_CFLAGS = $(COMMON_CFLAGS)
 
 # Linker flags
 OFLAGS = -static -lpthread -shared -static-libgcc -static-libstdc++ -Wl,--enable-stdcall-fixup
