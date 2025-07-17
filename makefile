@@ -11,7 +11,7 @@
 OUT = bin/sof_buddy.dll
 
 # Compiler
-CC = i686-w64-mingw32-g++
+CC = i686-w64-mingw32-g++-posix
 
 # Directories
 ODIR = obj
@@ -28,8 +28,20 @@ CFLAGS = $(COMMON_CFLAGS)
 # Debug compiler flags (add -g for debugging symbols)
 DBG_CFLAGS = $(COMMON_CFLAGS)
 
+#What -static does: This is a broad, powerful linker flag that acts like a "hammer." 
+#It tells the linker: "For every library that follows, attempt to use the static version (.a archive) instead
+# of the shared version (linking to a .dll)."
+#The Problem: While this correctly forces -lpthread to link the static libpthread.a, it also affects every other
+# library linked later on, including the system libraries (-lws2_32, -lwinmm, etc.).
+# It essentially tries to pull the code from those libraries directly into your DLL instead of just making your DLL
+# call the ws2_32.dll that already exists on the user's Windows system.
+#Why this is bad:
+#Bloat: Your DLL would become huge because it would contain copies of Windows system functions.
+#Instability/Errors: You should always link dynamically against core Windows system DLLs. They are the operating system.
+# Attempting to statically link them is incorrect and often fails or produces unstable results.
 # Linker flags
-OFLAGS = -static -lpthread -shared -static-libgcc -static-libstdc++ -Wl,--enable-stdcall-fixup
+#OFLAGS = -static -lpthread -shared -static-libgcc -static-libstdc++ -Wl,--enable-stdcall-fixup
+OFLAGS = -shared -static-libgcc -static-libstdc++ -Wl,-Bstatic -lpthread -Wl,-Bdynamic -Wl,--enable-stdcall-fixup
 
 # Source files
 _SOURCE_DIRS = DetourXS features
