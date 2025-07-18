@@ -13,46 +13,53 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install MinGW-w64
-        # The mingw-w64-i686-dev package will be installed from a specific .deb in the next step
-        run: sudo apt-get install -y g++-mingw-w64-i686 mingw-w64-i686-dev
-
-      #- name: Download and install mingw-w64-i686-dev package
-      #  run: |
-      #    wget http://ftp.de.debian.org/debian/pool/main/m/mingw-w64/mingw-w64-i686-dev_12.0.0-5_all.deb
-      #    sudo dpkg -i mingw-w64-i686-dev_12.0.0-5_all.deb
-      #    rm mingw-w64-i686-dev_12.0.0-5_all.deb
-
-      #echo "Searching for libwinpthread.a..."
-      #sudo find / -name libwinpthread.a 2>/dev/null
-      #/usr/i686-w64-mingw32/lib/libwinpthread.a
-
-      - name: Download and install additional libraries
+      - name: Install MinGW-w64 from Debian Packages
         run: |
-          # Create a temporary directory for the download
-          mkdir temp_deb
-          cd temp_deb
-          
-          # Download the .deb file
-          wget http://ftp.de.debian.org/debian/pool/main/m/mingw-w64/mingw-w64-i686-dev_12.0.0-5_all.deb
-          
-          # Extract the .deb file
-          dpkg-deb -x mingw-w64-i686-dev_12.0.0-5_all.deb .
-          
-          # Move the required files to the MinGW-w64 library directory
-          sudo mv usr/i686-w64-mingw32/lib/libwinpthread.dll.a /usr/i686-w64-mingw32/lib/
-          sudo mv usr/i686-w64-mingw32/lib/libwinpthread-1.dll /usr/i686-w64-mingw32/lib/
-          sudo mv usr/i686-w64-mingw32/lib/libwinpthread.a /usr/i686-w64-mingw32/lib/
-          
-          # Clean up the temporary directory
+          # Use set -e to exit immediately if a command fails.
+          set -e
+
+          # Create a temporary directory for downloads and extraction.
+          mkdir mingw_install && cd mingw_install
+
+          # Define the base URL and the packages required for the full toolchain.
+          # We need the compiler (g++), development headers/libs (dev), and common files.
+          DEBIAN_URL="http://ftp.de.debian.org/debian/pool/main/m/mingw-w64"
+          PACKAGES=(
+            "mingw-w64-common_12.0.0-5_all.deb"
+            "g++-mingw-w64-i686_12.0.0-5_all.deb"
+            "mingw-w64-i686-dev_12.0.0-5_all.deb"
+          )
+
+          # Download all the required packages.
+          echo "Downloading packages..."
+          for pkg in "${PACKAGES[@]}"; do
+            wget -q "${DEBIAN_URL}/${pkg}"
+          done
+
+          # Extract all downloaded packages. The contents will be placed in usr/, etc.
+          # We use dpkg-deb to extract without installing or checking dependencies.
+          echo "Extracting packages..."
+          for pkg in "${PACKAGES[@]}"; do
+            dpkg-deb -x "${pkg}" .
+          done
+
+          # Copy the extracted toolchain to the system's root directory.
+          # The 'usr' directory from the .deb files will be merged into /usr.
+          echo "Installing the toolchain..."
+          sudo cp -a usr/. /usr/
+
+          # Clean up the temporary directory.
           cd ..
-          rm -rf temp_deb
+          rm -rf mingw_install
 
-      - name: Compile Code
-        run: make clean
+          # Verify that the compiler is installed and accessible.
+          echo "Verifying installation..."
+          i686-w64-mingw32-g++ --version
 
-      - name: Make
-        run: make
+      - name: Build Project
+        run: |
+          make clean
+          make
 
       - name: Prepare Release
         run: |
