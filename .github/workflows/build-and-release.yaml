@@ -16,6 +16,27 @@ jobs:
       - name: Install MinGW-w64
         run: sudo apt-get install -y g++-mingw-w64-i686 mingw-w64-i686-dev
 
+      - name: Download and install additional libraries
+        run: |
+          # Create a temporary directory for the download
+          mkdir temp_deb
+          cd temp_deb
+          
+          # Download the .deb file
+          wget http://ftp.de.debian.org/debian/pool/main/m/mingw-w64/mingw-w64-i686-dev_12.0.0-5_all.deb
+          
+          # Extract the .deb file
+          dpkg-deb -x mingw-w64-i686-dev_12.0.0-5_all.deb .
+          
+          # Move the required files to the MinGW-w64 library directory
+          sudo mv usr/i686-w64-mingw32/lib/libwinpthread.dll.a /usr/i686-w64-mingw32/lib/
+          sudo mv usr/i686-w64-mingw32/lib/libwinpthread-1.dll /usr/i686-w64-mingw32/lib/
+          sudo mv usr/i686-w64-mingw32/lib/libwinpthread.a /usr/i686-w64-mingw32/lib/
+          
+          # Clean up the temporary directory
+          cd ..
+          rm -rf temp_deb
+
       - name: Compile Code
         run: make clean
 
