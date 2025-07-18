@@ -40,7 +40,7 @@ DBG_CFLAGS = $(COMMON_CFLAGS)
 #Instability/Errors: You should always link dynamically against core Windows system DLLs. They are the operating system.
 # Attempting to statically link them is incorrect and often fails or produces unstable results.
 # Linker flags
-OFLAGS = -static -lpthread -shared -static-libgcc -static-libstdc++ -Wl,--enable-stdcall-fixup
+OFLAGS = -static -pthread -shared -static-libgcc -static-libstdc++ -Wl,--enable-stdcall-fixup
 #OFLAGS = -shared -static-libgcc -static-libstdc++ -Wl,-Bdynamic -Wl,--enable-stdcall-fixup
 
 # Source files
