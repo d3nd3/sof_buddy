@@ -23,6 +23,9 @@ jobs:
           sudo dpkg -i mingw-w64-i686-dev_12.0.0-5_all.deb
           rm mingw-w64-i686-dev_12.0.0-5_all.deb
 
+          echo "Searching for libwinpthread.a..."
+          sudo find / -name libwinpthread.a 2>/dev/null
+
 #      - name: Download and install additional libraries
 #        run: |
 #          # Create a temporary directory for the download
