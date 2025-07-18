@@ -7,56 +7,29 @@ on:
 
 jobs:
   build:
+    # The job still runs on a standard GitHub-hosted runner,
+    # but the steps will execute inside the container specified below.
     runs-on: ubuntu-latest
 
+    # Define the container to use for this job's steps
+    container:
+      # Use the official Ubuntu 24.10 image from Docker Hub
+      image: ubuntu:24.10
+
     steps:
+      # The base ubuntu:24.10 image is minimal. We need to install all
+      # necessary tools first, including git for the checkout action.
+      # The container runs as root, so 'sudo' is not needed.
+      - name: Install Dependencies
+        run: |
+          apt-get update
+          apt-get install -y git build-essential g++-mingw-w64-i686 zip
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install MinGW-w64 from Debian Packages
-        run: |
-          # Use set -e to exit immediately if a command fails.
-          set -e
-
-          # Create a temporary directory for downloads and extraction.
-          mkdir mingw_install && cd mingw_install
-
-          # Define the base URL and the packages required for the full toolchain.
-          # We need the compiler (g++), development headers/libs (dev), and common files.
-          DEBIAN_URL="http://ftp.de.debian.org/debian/pool/main/m/mingw-w64"
-          PACKAGES=(
-            "mingw-w64-common_12.0.0-5_all.deb"
-            "g++-mingw-w64-i686_12.0.0-5_all.deb"
-            "mingw-w64-i686-dev_12.0.0-5_all.deb"
-          )
-
-          # Download all the required packages.
-          echo "Downloading packages..."
-          for pkg in "${PACKAGES[@]}"; do
-            wget -q "${DEBIAN_URL}/${pkg}"
-          done
-
-          # Extract all downloaded packages. The contents will be placed in usr/, etc.
-          # We use dpkg-deb to extract without installing or checking dependencies.
-          echo "Extracting packages..."
-          for pkg in "${PACKAGES[@]}"; do
-            dpkg-deb -x "${pkg}" .
-          done
-
-          # Copy the extracted toolchain to the system's root directory.
-          # The 'usr' directory from the .deb files will be merged into /usr.
-          echo "Installing the toolchain..."
-          sudo cp -a usr/. /usr/
-
-          # Clean up the temporary directory.
-          cd ..
-          rm -rf mingw_install
-
-          # Verify that the compiler is installed and accessible.
-          echo "Verifying installation..."
-          i686-w64-mingw32-g++ --version
-
-      - name: Build Project
+      # Combined the two make steps into one for clarity
+      - name: Compile Code
         run: |
           make clean
           make
@@ -65,6 +38,7 @@ jobs:
         run: |
           zip release_windows.zip bin/sof_buddy.dll rsrc/win_scripts/patch_sof_binary.ps1 rsrc/win_scripts/set_sofplus_and_buddy_sof.cmd rsrc/win_scripts/set_sofplus_sof.cmd rsrc/win_scripts/set_vanilla_sof.cmd
           zip release_linux_wine.zip bin/sof_buddy.dll rsrc/lin_scripts/patch_sof_binary.sh rsrc/lin_scripts/set_sofplus_and_buddy_sof.sh rsrc/lin_scripts/set_sofplus_sof.sh rsrc/lin_scripts/set_vanilla_sof.sh
+        # The working-directory is not strictly necessary here as it's the default, but it's good for clarity.
         working-directory: ${{ github.workspace }}
 
       - name: Upload Windows Release Artifact
@@ -79,6 +53,8 @@ jobs:
           name: release-linux-artifact
           path: release_linux_wine.zip
 
+  # The 'release' job does not need to run in the 24.10 container.
+  # It only handles artifacts, so using ubuntu-latest is fine and efficient.
   release:
     needs: build
     runs-on: ubuntu-latest
@@ -89,14 +65,12 @@ jobs:
         with:
           name: release-windows-artifact
           path: windows_release
-          extract: false
 
       - name: Download Linux Release Artifact
         uses: actions/download-artifact@v4
         with:
           name: release-linux-artifact
           path: linux_release
-          extract: false
 
       - name: Create Release
         id: create_release
@@ -118,7 +92,6 @@ jobs:
           asset_path: windows_release/release_windows.zip
           asset_name: release_windows.zip
           asset_content_type: application/zip
-
 
       - name: Upload Linux Release Asset
         uses: actions/upload-release-asset@v1
