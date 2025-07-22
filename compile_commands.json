@@ -1,0 +1,52 @@
+[
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -o obj/DetourXS/ADE32.o src/DetourXS/ADE32.cpp -D_WIN32_WINNT=0x0501 -Wno-write-strings -w -fpermissive -std=c++14",
+        "directory": "/home/dinda/git-projects/sof_buddy",
+        "file": "/home/dinda/git-projects/sof_buddy/src/DetourXS/ADE32.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -o obj/DetourXS/detourxs.o src/DetourXS/detourxs.cpp -D_WIN32_WINNT=0x0501 -Wno-write-strings -w -fpermissive -std=c++14",
+        "directory": "/home/dinda/git-projects/sof_buddy",
+        "file": "/home/dinda/git-projects/sof_buddy/src/DetourXS/detourxs.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -o obj/wsock_entry.o src/wsock_entry.cpp -D_WIN32_WINNT=0x0501 -Wno-write-strings -w -fpermissive -std=c++14",
+        "directory": "/home/dinda/git-projects/sof_buddy",
+        "file": "/home/dinda/git-projects/sof_buddy/src/wsock_entry.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -o obj/sof_buddy.o src/sof_buddy.cpp -D_WIN32_WINNT=0x0501 -Wno-write-strings -w -fpermissive -std=c++14",
+        "directory": "/home/dinda/git-projects/sof_buddy",
+        "file": "/home/dinda/git-projects/sof_buddy/src/sof_buddy.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -o obj/crc32.o src/crc32.cpp -D_WIN32_WINNT=0x0501 -Wno-write-strings -w -fpermissive -std=c++14",
+        "directory": "/home/dinda/git-projects/sof_buddy",
+        "file": "/home/dinda/git-projects/sof_buddy/src/crc32.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -o obj/util.o src/util.cpp -D_WIN32_WINNT=0x0501 -Wno-write-strings -w -fpermissive -std=c++14",
+        "directory": "/home/dinda/git-projects/sof_buddy",
+        "file": "/home/dinda/git-projects/sof_buddy/src/util.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -o obj/cvars.o src/cvars.cpp -D_WIN32_WINNT=0x0501 -Wno-write-strings -w -fpermissive -std=c++14",
+        "directory": "/home/dinda/git-projects/sof_buddy",
+        "file": "/home/dinda/git-projects/sof_buddy/src/cvars.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -o obj/features/media_timers.o src/features/media_timers.cpp -D_WIN32_WINNT=0x0501 -Wno-write-strings -w -fpermissive -std=c++14",
+        "directory": "/home/dinda/git-projects/sof_buddy",
+        "file": "/home/dinda/git-projects/sof_buddy/src/features/media_timers.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -o obj/features/ref_fixes.o src/features/ref_fixes.cpp -D_WIN32_WINNT=0x0501 -Wno-write-strings -w -fpermissive -std=c++14",
+        "directory": "/home/dinda/git-projects/sof_buddy",
+        "file": "/home/dinda/git-projects/sof_buddy/src/features/ref_fixes.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -o obj/features/scaled_font.o src/features/scaled_font.cpp -D_WIN32_WINNT=0x0501 -Wno-write-strings -w -fpermissive -std=c++14",
+        "directory": "/home/dinda/git-projects/sof_buddy",
+        "file": "/home/dinda/git-projects/sof_buddy/src/features/scaled_font.cpp"
+    }
+]

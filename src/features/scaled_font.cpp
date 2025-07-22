@@ -13,7 +13,10 @@
 // for std
 #include <iostream>
 
+
 #ifdef FEATURE_FONT_SCALING
+
+void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, float & x, float & y);
 
 void( * orig_Draw_Char)(int, int, int, int) = NULL;
 void( * orig_Draw_String)(int a, int b, int c, int d) = NULL;
@@ -74,7 +77,7 @@ bool hudDmRanking = false;
 bool hudDmRanking_wasImage = false;
 
 bool hudInventoryAndAmmo = false;
-bool hudInventory_wasItem = false;
+bool hudInventory_wasItem = true;
 
 bool hudHealthArmor = false;
 
@@ -92,9 +95,10 @@ enum enumCroppedDrawMode {
   ITEM_INVEN_BOTTOM,
   ITEM_INVEN_SWITCH,
   ITEM_INVEN_SWITCH_LIP,
-  ITEM_ACTIVE_LOGO
+  ITEM_ACTIVE_LOGO,
+  OTHER_UNKNOWN
 };
-enumCroppedDrawMode hudCroppedEnum;
+enumCroppedDrawMode hudCroppedEnum = OTHER_UNKNOWN;
 
 int croppedWidth = 0;
 int croppedHeight = 0;
@@ -237,7 +241,7 @@ void my_DrawPicOptions(int x, int y, float w_scale, float h_scale, int pal, char
     if (!secondDigit) x += 18.0f * hudScale;
     // if (left) x -= test2->value * hudScale; //width
 
-    y = static_cast < float > (current_vid_h) - 7.0f * y_scale - 49.0f * hudScale;
+    y = static_cast < float > (current_vid_h) - 3.0f * y_scale - 49.0f * hudScale;
     // if (top) y -= 16.0f * hudScale; //height
 
     w_scale = hudScale;
@@ -298,10 +302,10 @@ void my_DrawCroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, 
           // This has icon of item pickup and Fonts for count of ammo and item count.
           if (hudInventory_wasItem) {
             //Gun+Ammo
-            hudCroppedEnum = GUN_AMMO_BOTTOM;
+            hudCroppedEnum = ITEM_INVEN_BOTTOM;
           } else {
             //Item
-            hudCroppedEnum = ITEM_INVEN_BOTTOM;
+            hudCroppedEnum = GUN_AMMO_BOTTOM;
           }
         } else if (!strcmp(name + 22, "top2")) {
           // PrintOut(PRINT_LOG,"frame_top2");
@@ -309,29 +313,29 @@ void my_DrawCroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, 
           if (hudInventory_wasItem) {
             // PrintOut(PRINT_LOG,"frame_top2 GUN");
             //Gun+Ammo
-            hudCroppedEnum = GUN_AMMO_TOP;
+            hudCroppedEnum = ITEM_INVEN_TOP;
           } else {
             // PrintOut(PRINT_LOG,"frame_top2 INVEN");
             //Item
-            hudCroppedEnum = ITEM_INVEN_TOP;
+            hudCroppedEnum = GUN_AMMO_TOP;
           }
         } else if (!strcmp(name + 22, "top")) {
           //texture around top of when you switch weapons or items, whilst it shows their naem in text.
           if (hudInventory_wasItem) {
             //Gun+Ammo
-            hudCroppedEnum = GUN_AMMO_SWITCH;
+            hudCroppedEnum = ITEM_INVEN_SWITCH;
           } else {
             //Item
-            hudCroppedEnum = ITEM_INVEN_SWITCH;
+            hudCroppedEnum = GUN_AMMO_SWITCH;
           }
         } else if (!strcmp(name + 22, "lip")) {
           //tiny pixels that appear when you switch weapons or items, whilst it shows thier name in text.
           if (hudInventory_wasItem) {
             //Gun+Ammo
-            hudCroppedEnum = GUN_AMMO_SWITCH_LIP;
+            hudCroppedEnum = ITEM_INVEN_SWITCH_LIP;
           } else {
             //Item
-            hudCroppedEnum = ITEM_INVEN_SWITCH_LIP;
+            hudCroppedEnum = GUN_AMMO_SWITCH_LIP;
           }
         }
       } else if (!strncmp(name + 16, "item_", 5)) {
@@ -362,13 +366,15 @@ void my_DrawCroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, 
     } else if (!strcmp(name, "pics/interface2/frame_stealth")) {
       hudCroppedEnum = STEALTH_FRAME;
     }
-
-    croppedWidth = c2x - c1x;
-    croppedHeight = c2y - c1y;
   }
+  croppedWidth = c2x - c1x;
+  croppedHeight = c2y - c1y;
 
   //Lets do vertex manipulation
   orig_DrawCroppedPicOptions(x, y, c1x, c1y, c2x, c2y, palette, name);
+
+  //Reset it.- in case we missed one.
+  hudCroppedEnum = OTHER_UNKNOWN;
 }
 
 //small(6px), medium(8px), title(12px), interface(18px)
@@ -456,38 +462,71 @@ void my_R_DrawFont(int screenX, int screenY, char * text, int colorPalette, char
 
     // wasHudDmRanking = true;
   }
-  /*else if (hudInventoryAndAmmo) {
+  else if (hudInventoryAndAmmo) {
+    if ( hudInventory_wasItem ) {
+      // The error here is a typo: 'test[0]' and 'test[1]' are used instead of 'text[0]' and 'text[1]'.
+      // It should be 'text[0]' and 'text[1]' in the condition.
+      if (text && ( (text[0] >= '0' && text[0] <= '8') || (text[0] =='9' && text[1] != 'm') ) ) {
+        float set_x,set_y;
+        enumCroppedDrawMode before = hudCroppedEnum;
+        hudCroppedEnum = ITEM_INVEN_BOTTOM;
+        //bottom-right
+        drawCroppedPicVertex(false,false,set_x,set_y);
+        hudCroppedEnum = before;
+
+        screenX = set_x + -52.0f * hudScale;
+        screenY = set_y + -29.0f * hudScale;
+      } else {
+        float set_x,set_y;
+        enumCroppedDrawMode before = hudCroppedEnum;
+        hudCroppedEnum = ITEM_INVEN_SWITCH;
+        set_x = screenY;
+        set_y = screenY;
+        //top-right
+        drawCroppedPicVertex(true,false,set_x,set_y);
+        hudCroppedEnum = before;
+
+        screenX = set_x + -111.0f * hudScale;
+        screenY = set_y;
+      }
+      
+      
+    } else {
+      if (text && ( (text[0] >= '0' && text[0] <= '8') || (text[0] =='9' && text[1] != 'M') ) ) {
+        float set_x,set_y;
+        enumCroppedDrawMode before = hudCroppedEnum;
+        hudCroppedEnum = GUN_AMMO_BOTTOM;
+
+        //bottom-right
+        drawCroppedPicVertex(false,false,set_x,set_y);
+        hudCroppedEnum = before;
+
+        screenX = set_x + -97.0f * hudScale;
+        screenY = set_y + -29.0f * hudScale;
+        
+      }
+      else {
+        //animation from screenY 433->406->433
+        float set_x,set_y;
+        enumCroppedDrawMode before = hudCroppedEnum;
+        hudCroppedEnum = GUN_AMMO_SWITCH;
+        set_x = screenY;
+        set_y = screenY;
+        //top-right
+        drawCroppedPicVertex(true,false,set_x,set_y);
+        hudCroppedEnum = before;
+
+        screenX = set_x + -79.0f * hudScale;
+        screenY = set_y;
+      }
+    }
+    /*
 		if ( !strcmp(text,"18")) {
 			__asm__("int $3");
 		}
+    */
 		// PrintOut(PRINT_LOG,"Inventory UI Font: %s\n",text);
-	}*/
-  orig_R_DrawFont(screenX, screenY, text, colorPalette, font, rememberLastColor);
-}
-
-void R_Draw_Font_WeapName(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor) {
-  int fontWidth = test2 -> value;
-  float x_scale = current_vid_w / 640;
-  float y_scale = current_vid_h / 480;
-
-  //Bottom-Right Corner - no centering is required here.
-  screenX = static_cast < float > (current_vid_w) - 13.0f * x_scale - 79.0f * hudScale; //79
-
-  float dynamic_pos = (static_cast < float > (current_vid_h) - 7.0f - 24.0f) - screenY; //33 - -9
-  // vertical center? Nvm. Only if text is resized. (Take aaway from current to "do nothing" for hudScale == 1 without using hudScale-1)
-  screenY = static_cast < float > (current_vid_h) - 7.0f * y_scale - 28.0f * hudScale - dynamic_pos * hudScale;
-  // if (top) y-= dynamic_pos * hudScale;
-  orig_R_DrawFont(screenX, screenY, text, colorPalette, font, rememberLastColor);
-}
-//and item count
-void R_Draw_Font_AmmoClips(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor) {
-  float x_scale = current_vid_w / 640;
-  float y_scale = current_vid_h / 480;
-
-  // Bottom-Left Corner - frame_bottom
-  screenX = 11.0f * x_scale + 76.0f * hudScale;
-  screenY = static_cast < float > (current_vid_h) - 7.0f * y_scale - 29.0f * hudScale;
-
+	}
   orig_R_DrawFont(screenX, screenY, text, colorPalette, font, rememberLastColor);
 }
 
@@ -789,6 +828,7 @@ center_x - 60 == start_pos.
 void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, float & x, float & y) {
   if (hudHealthArmor) {
     float y_scale = static_cast < float > (current_vid_h) / 480.0f;
+
     int center_x = current_vid_w / 2;
     float health_frame_start_x = center_x - 80.0f * hudScale;
     float health_frame_start_y = current_vid_h - 15.0f * y_scale;
@@ -885,12 +925,14 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
     float x_scale = static_cast < float > (current_vid_w) / 640.0f;
     float y_scale = static_cast < float > (current_vid_h) / 480.0f;
 
+    static float Y_BASE = 3.0f;
+
     switch (hudCroppedEnum) {
     case GUN_AMMO_BOTTOM:
       //Bottom-Right Corner - frame_bottom
       x = static_cast < float > (current_vid_w) - 13.0f * x_scale;
       if (left) x -= 128.0f * hudScale; //width
-      y = static_cast < float > (current_vid_h) - 7.0f * y_scale;
+      y = static_cast < float > (current_vid_h) - Y_BASE * y_scale;
       if (top) y -= 64.0f * hudScale; //height
       break;
 
@@ -898,7 +940,7 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
       // Bottom-Left Corner - frame_bottom
       x = 11.0f * x_scale;
       if (!left) x += 128.0f * hudScale; //width
-      y = static_cast < float > (current_vid_h) - 7.0f * y_scale;
+      y = static_cast < float > (current_vid_h) - Y_BASE * y_scale;
       if (top) y -= 64.0f * hudScale; //height
       break;
 
@@ -906,7 +948,7 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
       //Bottom-Right Corner - frame_top2 
       x = static_cast < float > (current_vid_w) - 13.0f * x_scale;
       if (left) x -= 128.0f * hudScale; //width=128
-      y = static_cast < float > (current_vid_h) - 7.0f * y_scale - 33.0f * hudScale;
+      y = static_cast < float > (current_vid_h) - Y_BASE * y_scale - 33.0f * hudScale;
       if (top) y -= 32.0f * hudScale; //height=28?
       break;
 
@@ -915,7 +957,7 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
       x = 11.0f * x_scale;
       if (!left) x += 128.0f * hudScale; //width
 
-      y = static_cast < float > (current_vid_h) - 7.0f * y_scale - 33.0f * hudScale;
+      y = static_cast < float > (current_vid_h) - Y_BASE * y_scale - 33.0f * hudScale;
       if (top) y -= 32.0f * hudScale; //height
       break;
 
@@ -926,7 +968,7 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
 
       // float dynamic_pos = (static_cast<float>(current_vid_h) - 7.0f - 33.0f - -9.0f ) - y; //33 - -9
       float dynamic_pos = (static_cast < float > (current_vid_h) - 7.0f - 24.0f) - y; //33 - -9
-      y = static_cast < float > (current_vid_h) - 7.0f * y_scale - 28.0f * hudScale; // 28
+      y = static_cast < float > (current_vid_h) - Y_BASE * y_scale - 28.0f * hudScale; // 28
       if (top) y -= dynamic_pos * hudScale;
     }
     break;
@@ -938,7 +980,7 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
 
       // float dynamic_pos = (static_cast<float>(current_vid_h) - 7.0f - 33.0f - -9.0f ) - y;
       float dynamic_pos = (static_cast < float > (current_vid_h) - 7.0f - 24.0f) - y; //33 - -9
-      y = static_cast < float > (current_vid_h) - 7.0f * y_scale - 28.0f * hudScale;
+      y = static_cast < float > (current_vid_h) - Y_BASE * y_scale - 28.0f * hudScale;
       if (top) y -= dynamic_pos * hudScale;
     }
     break;
@@ -949,7 +991,7 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
       if (left) x -= 128.0f * hudScale; //width=128
 
       // float dynamic_pos = (static_cast<float>(current_vid_h) - 7.0f - test->value ) - y; //33 - -9
-      y = static_cast < float > (current_vid_h) - 7.0f * y_scale - 33.0f * hudScale;
+      y = static_cast < float > (current_vid_h) - Y_BASE * y_scale - 33.0f * hudScale;
       if (top) y -= 32.0f * hudScale;
     }
     break;
@@ -960,7 +1002,7 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
       if (!left) x += 128.0f * hudScale; //width
 
       // float dynamic_pos = (static_cast<float>(current_vid_h) - 7.0f - test->value ) - y; //33 - -9
-      y = static_cast < float > (current_vid_h) - 7.0f * y_scale - 33.0f * hudScale;
+      y = static_cast < float > (current_vid_h) - Y_BASE * y_scale - 33.0f * hudScale;
       if (top) y -= 32.0f * hudScale;
     }
     break;
@@ -969,7 +1011,7 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
       // Bottom-Left Corner - frame_bottom
       x = 11.0f * x_scale + 29.0f * hudScale;
       if (!left) x += 39.0f * hudScale; //width
-      y = static_cast < float > (current_vid_h) - 7.0f * y_scale - 16.0f * hudScale;
+      y = static_cast < float > (current_vid_h) - Y_BASE * y_scale - 16.0f * hudScale;
       if (top) y -= 32.0f * hudScale; //height
     }
     break;
@@ -1083,6 +1125,7 @@ void __thiscall my_cInventory2_And_cGunAmmo2_Draw(void * self) {
   //This is the ammo (bottom right) and inventory (bottom left)
   // So positioned from left and bottom edge and right and bottom edge
 
+  
   hudInventoryAndAmmo = true;
   orig_cInventory2_And_cGunAmmo2_Draw(self);
   hudInventoryAndAmmo = false;
@@ -1314,6 +1357,7 @@ void scaledFont_init(void) {
 
   DetourRemove( & orig_glVertex2f);
   orig_glVertex2f = DetourCreate((void * ) glVertex2f, (void * ) & my_glVertex2f, DETOUR_TYPE_JMP, DETOUR_LEN_AUTO); //5
+  //orig_glVertex2f = glVertex2f;
 
   // DetourRemove(&orig_Draw_String_Color);
   // orig_Draw_String_Color = DetourCreate((void*)0x30001A40,(void*)&my_Draw_String_Color,DETOUR_TYPE_JMP, 5);
@@ -1352,6 +1396,9 @@ void scaledFont_init(void) {
   WriteE8Call(0x3000240E, & my_glVertex2f_CroppedPic_4);
   WriteByte(0x30002413, 0X90);
 
+  /*
+    Did we do this because its more efficient or we had to?
+  
   //And ItemCount
   WriteE8Call(0x20008925, & R_Draw_Font_AmmoClips);
   WriteByte(0x2000892A, 0X90);
@@ -1359,7 +1406,7 @@ void scaledFont_init(void) {
   //WeaponPickup
   WriteE8Call(0x20008760, & R_Draw_Font_WeapName);
   WriteByte(0x20008765, 0X90);
-
+*/
   //Missing Rounds
 
   // WriteE8Call(0xDEADBEEF, &R_Draw_Font_AmmoRounds);
