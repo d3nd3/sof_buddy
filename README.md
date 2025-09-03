@@ -49,6 +49,12 @@ A paste large text into console crash and 2048px or wider resolution console cra
 ### Obtaining
 Either compile the project using `make` or grab the pre-compiled from release section.  
 
+### Submodules
+If building from source, initialize the SDK submodules first:
+```bash
+git submodule update --init --recursive
+```
+
 ### Extracting
 It is recommended to delete your User/config.cfg file before install so that you get optimal defaults.  
 
