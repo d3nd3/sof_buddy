@@ -1,0 +1,6 @@
+[submodule "Quake-2"]
+	path = SDK/Quake-2
+	url = https://github.com/id-Software/Quake-2
+[submodule "sof-sdk"]
+	path = SDK/sof-sdk
+	url = https://code.idtech.space/raven/sof-sdk.git
