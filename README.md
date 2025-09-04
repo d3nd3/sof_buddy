@@ -135,7 +135,7 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 ## 💬 Need Help?
 - [Open an issue](https://github.com/d3nd3/sof_buddy/issues)
 - [SoF1.org Forums](https://www.sof1.org/)
-- **Discord Server:** [Join our Discord](https://discord.gg/zZjnsRKPEJ))
+- **Discord Server:** [Join our Discord](https://discord.gg/zZjnsRKPEJ)
 
 ---
 
