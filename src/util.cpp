@@ -266,3 +266,19 @@ size_t strlen_custom(const char *str) {
 
     return length;
 }
+
+// Helper function to extract the nth entry from a '/'-separated string (0-based)
+const char* get_nth_entry(const char* str, int n) {
+	int slashCount = 0;
+	const char* p = str;
+	while (*p) {
+	  if (*p == '/') {
+		++slashCount;
+		if (slashCount == n) {
+		  return p + 1; // nth entry starts after this slash
+		}
+	  }
+	  ++p;
+	}
+	return nullptr;
+  }

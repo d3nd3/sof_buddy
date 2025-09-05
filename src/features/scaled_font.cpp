@@ -13,6 +13,8 @@
 // for std
 #include <iostream>
 
+#include <stdint.h>
+
 
 #ifdef FEATURE_FONT_SCALING
 
@@ -26,20 +28,18 @@ void( * orig_Con_DrawNotify)(void) = NULL;
 void( * orig_Con_CheckResize)(void) = NULL;
 void( * orig_Con_Init)(void) = NULL;
 void( * orig_Con_Initialize)(void) = 0x20020720;
+
 void( * orig_DrawStretchPic)(int x, int y, int w, int h, int palette, char * name, int flags) = NULL;
 void( * orig_DrawPicOptions)(int x, int y, float w_scale, float h_scale, int palette, char * name) = NULL;
 void( * orig_DrawCroppedPicOptions)(int x, int y, int c1x, int c1y, int c2x, int c2y, int palette, char * name) = NULL;
 void( * orig_SRC_AddDirtyPoint)(int x, int y) = 0x200140B0;
 void( * orig_SCR_DirtyRect)(int x1, int y1, int x2, int y2) = 0x20014190;
-//R_DrawFont(int, int, char const *, paletteRGBA_c, basic_string<char, string_char_traits<char>, __default_alloc_template<true, 0>> &, bool)
-void( * orig_R_DrawFont)(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor) = NULL;
+
 
 void(__stdcall * orig_glVertex2f)(float one, float two) = NULL;
 
 void(__stdcall * orig_glVertex2i)(int x, int y) = NULL;
 
-//R_Strlen(char const *, basic_string<char, string_char_traits<char>, __default_alloc_template<true, 0>> &)
-void( * orig_R_Strlen)(char const * text1, char * font) = NULL;
 
 /*
 	Interface Draw Functions
@@ -54,6 +54,7 @@ void(__thiscall * orig_cDMRanking_Draw)(void * self);
 void(__thiscall * orig_cCtfFlag_Draw)(void * self);
 void(__thiscall * orig_cControlFlag_Draw)(void * self);
 
+
 void( * orig_SCR_CenterPrint)(char * text);
 void my_SCR_CenterPrint(char * text);
 
@@ -65,14 +66,29 @@ void my_Draw_String_Color(int, int, char
 void( * orig_SCR_ExecuteLayoutString)(char * text);
 void my_SCR_ExecuteLayoutString(char * text);
 
+//R_DrawFont(int, int, char const *, paletteRGBA_c, basic_string<char, string_char_traits<char>, __default_alloc_template<true, 0>> &, bool)
+void( * orig_R_DrawFont)(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor) = NULL;
+
+
+
 float fontScale = 1;
 float consoleSize = 0.5;
 bool isFontOuter = false;
 bool isFontInner = false;
 bool isNotFont = false;
+bool isDrawingLayout = false;
 
 float hudScale = 1;
 bool hudStretchPic = false;
+bool hudStretchPicCenter = false;
+
+bool menuSliderDraw = false;
+bool menuLoadboxDraw = false;
+bool menuVerticalScrollDraw = false;
+
+int menuLoadboxFirstItemX;
+int menuLoadboxFirstItemY;
+
 bool hudDmRanking = false;
 bool hudDmRanking_wasImage = false;
 
@@ -102,6 +118,12 @@ enumCroppedDrawMode hudCroppedEnum = OTHER_UNKNOWN;
 
 int croppedWidth = 0;
 int croppedHeight = 0;
+
+
+int DrawPicPivotCenterX = 0;
+int DrawPicPivotCenterY = 0;
+
+
 
 /*
 	It seems easier than imagined, because SoF calls Draw_String, instead of Draw_Char.
@@ -133,8 +155,12 @@ void my_Draw_Char(int a, int b, int c, int d)  {
 }
 */
 float draw_con_frac = 1.0;
-//int, int, int, int, paletteRGBA_c &, char const *, unsigned int
-//glVertex(x,y) -> glVertex(x+w,y+h)
+
+/*
+  The console font and notify font is called by:
+  DrawString and inside DrawChar
+  This is separate from R_DrawFont()
+*/
 void my_DrawStretchPic(int x, int y, int w, int h, int palette, char * name, int flags) {
   if (isFontOuter) {
     // orig_Com_Printf("Yes %i %i %i %i\n",x,y,w,h);
@@ -150,20 +176,86 @@ void my_DrawStretchPic(int x, int y, int w, int h, int palette, char * name, int
     return;
   }
   if (hudStretchPic) {
+
+    // orig_Com_Printf("Drawing flag\n");
+    /*
+      This only exists for the ctf flag carried icon top left...
+      layout images do call this function, but handled in glVertex2f hook 
+    */
     //Assume the game looks best in Some resolution, then scale automatically.
     // PrintOut(PRINT_LOG,"x : %i, y : %i, ",x,y);
     //TopLeft = 0,0 , BottomRight = Max,Max
     //x = 80, y = 195 at gl_mode 0 2560x1440
     //x = 20, y = 65 at gl_mode 3 640x480
-    //Ok so it scales automatically with resolution.
-    //Does the scaling have a bias to one side of the image? Doesnt' matter for this one because its origin faces the borders.
+    //Origin in top left
+    //We like this because it scales the offset(margin), usually you wouldn't do this.
     w = w * hudScale;
     h = h * hudScale;
     // x = x * hudScale;
     // y = y * hudScale;
+  } else if ( menuSliderDraw) {
+    /*
+    eg. slider_c in menu settings.
+    Not needed, the slider_c::Setup() function calls Draw_GetPicSize(). Which we detour.
+    */
+    #if 0
+    // static int centerSliderX;
+    static int centerSliderY;
+    // orig_Com_Printf("name is %s\n",name);
+    if ( !strcmp(name,"pics/menus/misc/bar") || !strcmp(name,"pics/menus/misc/barv") ) {
+      //IS bar
+      // centerSliderX = x + w*0.5;
+      centerSliderY = y + h*0.5;
+    }
+    
+    // x = centerSliderX + (x - centerSliderX) * screen_y_scale;
+    y = centerSliderY + (y - centerSliderY) * screen_y_scale;
+    
+    // w = w * screen_y_scale;
+    h = h * screen_y_scale;
+    #endif
+    
+  } else if ( menuVerticalScrollDraw ) {
+    //This is already big.
+    #if 0
+    int centerSliderX = x + w*0.5;;
+    x = centerSliderX + (x - centerSliderX) * screen_y_scale * 2;
+    // y = centerSliderY + (y - centerSliderY) * screen_y_scale;
+
+    w = w * screen_y_scale;
+    // h = h * screen_y_scale;
+    #endif
+  } else if (menuLoadboxDraw) {
+    /*
+      Too hard to scale these , not enough informatino
+    */
+    #if 0
+    static bool last_menuLoadboxDraw = false;
+    if ( !last_menuLoadboxDraw ) {
+      //first item, save co-ords
+      menuLoadboxFirstItemX = x;
+      menuLoadboxFirstItemY = y;
+    }
+    w = w * screen_y_scale;
+    h = h * screen_y_scale;
+
+    last_menuLoadboxDraw = menuLoadboxDraw;
+    #endif
   }
+
+  /*
+    Menu crosshair
+    and Some menu images are using this.
+    But not sure its wise to scale them, because the surrounding menu backgrounds/templates
+    Do not have large enough cut outs, I think its not meant to be scaled.
+    Or it has inbuilt scaling already?
+
+    Draw_GetPicSize() hooking, also affects these guys mostly.
+    Its a stronger hook because it gets used in menu logic.
+  */
   orig_DrawStretchPic(x, y, w, h, palette, name, flags);
 }
+
 
 //SOF FORMULA : vid_width - 40 * vid_width/640 - 16
 /*
@@ -179,14 +271,14 @@ void my_DrawPicOptions(int x, int y, float w_scale, float h_scale, int pal, char
   if (hudDmRanking) {
     float x_scale = current_vid_w / 640;
     int offsetEdge = 40; //36??
-    float y_scale = current_vid_h / 480;
+
     if (hudDmRanking_wasImage) {
       // PrintOut(PRINT_LOG,"Logo ypos = %i\n",y);
       //2nd image, means we in spec chasing someone. This image is a DM Logo.
       x = current_vid_w - 32 * hudScale - offsetEdge * x_scale;
       // y = y + (hudScale-1)*32;
       //go to start of border by removing fixed margin, add previous logo + new scaling margin
-      y = 20 * y_scale + 32 * hudScale + 6 * y_scale;
+      y = 20 * screen_y_scale + 32 * hudScale + 6 * screen_y_scale;
 
       w_scale = hudScale;
       h_scale = hudScale;
@@ -234,14 +326,14 @@ void my_DrawPicOptions(int x, int y, float w_scale, float h_scale, int pal, char
 
     // //Special Interface Font Wooo (also used in SoFPlus cl_showfps 2)
     float x_scale = static_cast < float > (current_vid_w) / 640.0f;
-    float y_scale = static_cast < float > (current_vid_h) / 480.0f;
+
 
     // //Bottom-Right Corner - frame_bottom
     x = static_cast < float > (current_vid_w) - 13.0f * x_scale - 63.0f * hudScale;
     if (!secondDigit) x += 18.0f * hudScale;
     // if (left) x -= test2->value * hudScale; //width
 
-    y = static_cast < float > (current_vid_h) - 3.0f * y_scale - 49.0f * hudScale;
+    y = static_cast < float > (current_vid_h) - 3.0f * screen_y_scale - 49.0f * hudScale;
     // if (top) y -= 16.0f * hudScale; //height
 
     w_scale = hudScale;
@@ -377,16 +469,52 @@ void my_DrawCroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, 
   hudCroppedEnum = OTHER_UNKNOWN;
 }
 
+
+
+enum realFontEnum_t {
+  REALFONT_TITLE,
+  REALFONT_SMALL,
+  REALFONT_MEDIUM,
+  REALFONT_INTERFACE,
+  REALFONT_UNKNOWN
+};
+
+// Font sizes for each realFontEnum_t, index by enum value
+const int realFontSizes[4] = {
+  12, // REALFONT_TITLE
+  6,  // REALFONT_SMALL
+  8,  // REALFONT_MEDIUM
+  18  // REALFONT_INTERFACE
+};
+
+realFontEnum_t realFont = REALFONT_UNKNOWN;
+//for glVertex hook passing per character. Reset by R_DrawFont()
+int characterIndex = 0;
+realFontEnum_t getRealFontEnum(const char* realFont) {
+  if (!realFont) return REALFONT_UNKNOWN;
+  if (!strcmp(realFont, "title")) return REALFONT_TITLE;
+  if (!strcmp(realFont, "small")) return REALFONT_SMALL;
+  if (!strcmp(realFont, "medium")) return REALFONT_MEDIUM;
+  if (!strcmp(realFont, "interface")) return REALFONT_INTERFACE;
+  return REALFONT_UNKNOWN;
+}
+
+/*
+  The console font and notify font is called by:
+  DrawString and inside DrawChar
+  This is separate from R_DrawFont()
+  R_DrawFont() is handling another font than conchars.png spritesheet
+*/
 //small(6px), medium(8px), title(12px), interface(18px)
 //type in console: menu fonts
 //to see them as example in action.
 //imagelist shows size of m32 images.
-//The formula for image position in default SoF is:
-//vid_width - 40 * vid_width/640 - 16 
 void my_R_DrawFont(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor) {
   // static bool wasHudDmRanking = false;
+  realFont = getRealFontEnum((char*)(* (int * )(font + 4)));
   if (hudDmRanking) {
-    char * realFont = * (int * )(font + 4);
+    static bool scorePhase = true;
+
     int fontWidth = 12;
     int offsetEdge = 40;
     /*
@@ -417,7 +545,7 @@ void my_R_DrawFont(int screenX, int screenY, char * text, int colorPalette, char
     //Spec Chase Mode
     //Spec OFF 
     float x_scale = current_vid_w / 640;
-    float y_scale = current_vid_h / 480;
+
 
     if (hudDmRanking_wasImage) {
       //We are SPEC or TEAM DMMODE playing.
@@ -441,17 +569,32 @@ void my_R_DrawFont(int screenX, int screenY, char * text, int colorPalette, char
         //x = width - scaled_border - scaledHud/2 + centered_text
         screenX = current_vid_w - offsetEdge * x_scale - 16 * hudScale + center_offset;
         // y = 20*y_scale + 32*hudScale + 6*y_scale;
-        screenY = 20 * y_scale + 64 * hudScale + 6 * y_scale;
+        screenY = 20 * screen_y_scale + 64 * hudScale + 6 * screen_y_scale;
       } else {
         // TEAM DM PLAYING - 1 Logo above.
         //Specifically for Team Deathmatch where a logo is shown above score.
-        screenX = current_vid_w - 16 * hudScale - offsetEdge * x_scale - fontWidth * strlen(text) / 2;
-        screenY = screenY + (hudScale - 1) * 32;
+        screenX = current_vid_w - 16 * hudScale - offsetEdge * x_scale - hudScale*fontWidth * strlen(text) / 2;
+        screenY = screenY + (hudScale - 1) * (32 + 3);
+
+        if ( scorePhase) {
+          scorePhase = false;
+        } else 
+        {
+          screenY = screenY + (hudScale - 1) * (realFontSizes[realFont] + 3);
+          scorePhase = true;
+        }
       }
 
     } else {
       //PLAYING IN NON-TEAM DM, so NO LOGO
-      screenX = current_vid_w - offsetEdge * x_scale - 16 * hudScale - fontWidth * strlen(text) / 2;
+      if ( scorePhase) {
+        scorePhase = false;
+      } else 
+      {
+        screenY = screenY + (hudScale - 1) * (realFontSizes[realFont] + 3);
+        scorePhase = true;
+      }
+      screenX = current_vid_w - offsetEdge * x_scale - 16 * hudScale - hudScale*fontWidth * strlen(text) / 2;
     }
     /*
     	Score -> 0
@@ -492,6 +635,7 @@ void my_R_DrawFont(int screenX, int screenY, char * text, int colorPalette, char
       
       
     } else {
+      //Positions the Font for UI
       if (text && ( (text[0] >= '0' && text[0] <= '8') || (text[0] =='9' && text[1] != 'M') ) ) {
         float set_x,set_y;
         enumCroppedDrawMode before = hudCroppedEnum;
@@ -528,7 +672,11 @@ void my_R_DrawFont(int screenX, int screenY, char * text, int colorPalette, char
 		// PrintOut(PRINT_LOG,"Inventory UI Font: %s\n",text);
 	}
   orig_R_DrawFont(screenX, screenY, text, colorPalette, font, rememberLastColor);
+
+  characterIndex = 0;
 }
+
+
 
 void my_SCR_CenterPrint(char * text) {
   PrintOut(PRINT_LOG, "SCR_CenterPrint()\n");
@@ -578,7 +726,7 @@ void my_SCR_CenterPrint(char * text) {
 
 
 */
-bool isDrawingLayout = false;
+
 void my_SCR_ExecuteLayoutString(char * text) {
   isDrawingLayout = true;
   orig_SCR_ExecuteLayoutString(text);
@@ -827,11 +975,11 @@ center_x - 60 == start_pos.
 
 void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, float & x, float & y) {
   if (hudHealthArmor) {
-    float y_scale = static_cast < float > (current_vid_h) / 480.0f;
+    
 
     int center_x = current_vid_w / 2;
     float health_frame_start_x = center_x - 80.0f * hudScale;
-    float health_frame_start_y = current_vid_h - 15.0f * y_scale;
+    float health_frame_start_y = current_vid_h - 15.0f * screen_y_scale;
     //Stealth meter takes up 10 of these 15px.
     //So if stealth meter scales with hudScale, it eats into the fixed border we wanted to preserve.
 
@@ -923,7 +1071,6 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
     }
   } else if (hudInventoryAndAmmo) {
     float x_scale = static_cast < float > (current_vid_w) / 640.0f;
-    float y_scale = static_cast < float > (current_vid_h) / 480.0f;
 
     static float Y_BASE = 3.0f;
 
@@ -932,7 +1079,7 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
       //Bottom-Right Corner - frame_bottom
       x = static_cast < float > (current_vid_w) - 13.0f * x_scale;
       if (left) x -= 128.0f * hudScale; //width
-      y = static_cast < float > (current_vid_h) - Y_BASE * y_scale;
+      y = static_cast < float > (current_vid_h) - Y_BASE * screen_y_scale;
       if (top) y -= 64.0f * hudScale; //height
       break;
 
@@ -940,7 +1087,7 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
       // Bottom-Left Corner - frame_bottom
       x = 11.0f * x_scale;
       if (!left) x += 128.0f * hudScale; //width
-      y = static_cast < float > (current_vid_h) - Y_BASE * y_scale;
+      y = static_cast < float > (current_vid_h) - Y_BASE * screen_y_scale;
       if (top) y -= 64.0f * hudScale; //height
       break;
 
@@ -948,7 +1095,7 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
       //Bottom-Right Corner - frame_top2 
       x = static_cast < float > (current_vid_w) - 13.0f * x_scale;
       if (left) x -= 128.0f * hudScale; //width=128
-      y = static_cast < float > (current_vid_h) - Y_BASE * y_scale - 33.0f * hudScale;
+      y = static_cast < float > (current_vid_h) - Y_BASE * screen_y_scale - 33.0f * hudScale;
       if (top) y -= 32.0f * hudScale; //height=28?
       break;
 
@@ -957,7 +1104,7 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
       x = 11.0f * x_scale;
       if (!left) x += 128.0f * hudScale; //width
 
-      y = static_cast < float > (current_vid_h) - Y_BASE * y_scale - 33.0f * hudScale;
+      y = static_cast < float > (current_vid_h) - Y_BASE * screen_y_scale - 33.0f * hudScale;
       if (top) y -= 32.0f * hudScale; //height
       break;
 
@@ -968,7 +1115,7 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
 
       // float dynamic_pos = (static_cast<float>(current_vid_h) - 7.0f - 33.0f - -9.0f ) - y; //33 - -9
       float dynamic_pos = (static_cast < float > (current_vid_h) - 7.0f - 24.0f) - y; //33 - -9
-      y = static_cast < float > (current_vid_h) - Y_BASE * y_scale - 28.0f * hudScale; // 28
+      y = static_cast < float > (current_vid_h) - Y_BASE * screen_y_scale - 28.0f * hudScale; // 28
       if (top) y -= dynamic_pos * hudScale;
     }
     break;
@@ -980,7 +1127,7 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
 
       // float dynamic_pos = (static_cast<float>(current_vid_h) - 7.0f - 33.0f - -9.0f ) - y;
       float dynamic_pos = (static_cast < float > (current_vid_h) - 7.0f - 24.0f) - y; //33 - -9
-      y = static_cast < float > (current_vid_h) - Y_BASE * y_scale - 28.0f * hudScale;
+      y = static_cast < float > (current_vid_h) - Y_BASE * screen_y_scale - 28.0f * hudScale;
       if (top) y -= dynamic_pos * hudScale;
     }
     break;
@@ -991,7 +1138,7 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
       if (left) x -= 128.0f * hudScale; //width=128
 
       // float dynamic_pos = (static_cast<float>(current_vid_h) - 7.0f - test->value ) - y; //33 - -9
-      y = static_cast < float > (current_vid_h) - Y_BASE * y_scale - 33.0f * hudScale;
+      y = static_cast < float > (current_vid_h) - Y_BASE * screen_y_scale - 33.0f * hudScale;
       if (top) y -= 32.0f * hudScale;
     }
     break;
@@ -1002,7 +1149,7 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
       if (!left) x += 128.0f * hudScale; //width
 
       // float dynamic_pos = (static_cast<float>(current_vid_h) - 7.0f - test->value ) - y; //33 - -9
-      y = static_cast < float > (current_vid_h) - Y_BASE * y_scale - 33.0f * hudScale;
+      y = static_cast < float > (current_vid_h) - Y_BASE * screen_y_scale - 33.0f * hudScale;
       if (top) y -= 32.0f * hudScale;
     }
     break;
@@ -1011,37 +1158,119 @@ void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, fl
       // Bottom-Left Corner - frame_bottom
       x = 11.0f * x_scale + 29.0f * hudScale;
       if (!left) x += 39.0f * hudScale; //width
-      y = static_cast < float > (current_vid_h) - Y_BASE * y_scale - 16.0f * hudScale;
+      y = static_cast < float > (current_vid_h) - Y_BASE * screen_y_scale - 16.0f * hudScale;
       if (top) y -= 32.0f * hudScale; //height
     }
     break;
     }
   }
 }
-
+/*
+===============================================================
+(Bottom Left HUD, Bottom Right HUD, center lower bar HUD)
+    CroppedPicOptions Vertex scaling. Each corner of Rect.
+    This is cInventory2 , cGunAmmo2, cHealthArmor2 classes
+============================================================
+*/
 void __stdcall my_glVertex2f_CroppedPic_1(float x, float y) {
   //top-left
   drawCroppedPicVertex(true, true, x, y);
-  // orig_glVertex2i(static_cast<int>(std::round(x)), static_cast<int>(std::round(y)));
+
   orig_glVertex2f(x, y);
 }
 void __stdcall my_glVertex2f_CroppedPic_2(float x, float y) {
   //top-right
   drawCroppedPicVertex(true, false, x, y);
-  // orig_glVertex2i(static_cast<int>(std::round(x)), static_cast<int>(std::round(y)));
+
   orig_glVertex2f(x, y);
 }
 void __stdcall my_glVertex2f_CroppedPic_3(float x, float y) {
   //bottom-right
   drawCroppedPicVertex(false, false, x, y);
-  // orig_glVertex2i(static_cast<int>(std::round(x)), static_cast<int>(std::round(y)));
+
   orig_glVertex2f(x, y);
 }
 void __stdcall my_glVertex2f_CroppedPic_4(float x, float y) {
   //bottom-left
   drawCroppedPicVertex(false, true, x, y);
-  // orig_glVertex2i(static_cast<int>(std::round(x)), static_cast<int>(std::round(y)));
+
   orig_glVertex2f(x, y);
+}
+/*
+===============================================================
+//For ui-font scaling ( _NOT_ DrawString DrawChar from console+notify. )
+============================================================
+*/
+/*
+enum realFontEnum_t {
+  REALFONT_TITLE,
+  REALFONT_SMALL,
+  REALFONT_MEDIUM,
+  REALFONT_INTERFACE,
+  REALFONT_UNKNOWN
+};
+The direct multiplication of glVertex parameters worked with console text because
+the characters existed all the way from x=0, thus there was no lost from initial scale.
+eg. imagine starting at x = 100, multiply by 2, now font starts at x=200.
+it has lost position.
+If start at x=0, its just changing a sequence of 0,2,4,6,8,10 to ... 0,4,8,12,12,16,20
+
+*/
+
+float pivotx;
+float pivoty;
+
+//This new character (iteration inside of r_drawfont), needs shift along further
+//Thus we need concept of character index. R_StrLen + size.
+void __stdcall my_glVertex2f_DrawFont_1(float x, float y) {
+  //top-left
+  //Anchor-point fixed top-left
+  //When we resize images, we use center as anchor-point, might be an issue.
+  pivotx = x;
+  pivoty = y;
+  if ( hudInventoryAndAmmo || hudDmRanking ) {
+    orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(hudScale-1), y);
+  } else 
+  orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
+}
+
+void __stdcall my_glVertex2f_DrawFont_2(float x, float y) {
+  //top-right
+  if ( hudInventoryAndAmmo || hudDmRanking ) {
+    x = pivotx + (x - pivotx) * hudScale;
+    orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(hudScale-1) , y);
+  } else {
+  x = pivotx + (x - pivotx) * screen_y_scale;
+  orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1) , y);
+  }
+}
+
+void __stdcall my_glVertex2f_DrawFont_3(float x, float y) {
+  //bottom-right
+  if ( hudInventoryAndAmmo || hudDmRanking ) {
+    x = pivotx + (x - pivotx) * hudScale;
+    y = pivoty + (y - pivoty) * hudScale;
+    orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(hudScale-1), y);
+  } else {
+    x = pivotx + (x - pivotx) * screen_y_scale;
+    y = pivoty + (y - pivoty) * screen_y_scale;
+    orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
+  }
+  
+}
+
+void __stdcall my_glVertex2f_DrawFont_4(float x, float y) {
+  //bottom-left
+  if ( hudInventoryAndAmmo || hudDmRanking ) {
+    y = pivoty + (y - pivoty) * hudScale;
+    orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(hudScale-1), y);
+  } else {
+    y = pivoty + (y - pivoty) * screen_y_scale;
+    orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
+  }
+  
+
+  characterIndex++;
 }
 
 /*
@@ -1058,15 +1287,13 @@ void __stdcall my_glVertex2f_CroppedPic_4(float x, float y) {
 
 	This makes believe that rounding to whole integers can do more damage. The floating precision needs to be preserved.
 */
-void __stdcall my_glVertex2f(float one, float two) {
+void __stdcall my_glVertex2f(float x, float y) {
   if ((isFontOuter && !isNotFont)) {
-    // Round to integers for pixel-perfect font rendering
-    // orig_glVertex2i(static_cast<int>(std::round(one * fontScale)),static_cast<int>(std::round(two * fontScale)));
-
     //Preserving the actual vertex position then letting it map naturally to pixels seems better than rounding
-    orig_glVertex2f(one * fontScale, two * fontScale);
+    orig_glVertex2f(x * fontScale, y * fontScale);
     return;
   } else if (isDrawingLayout) {
+    //This is vertices for font and images
 
     static int vertexCounter = 1;
     static float x_mid_offset;
@@ -1077,34 +1304,122 @@ void __stdcall my_glVertex2f(float one, float two) {
 
     if (vertexCounter == 1) {
       // PrintOut(PRINT_LOG,"Vertex: %f\n",one);
-      x_mid_offset = current_vid_w * 0.5f - one;
-      y_mid_offset = current_vid_h * 0.5f - two;
+      x_mid_offset = current_vid_w * 0.5f - x;
+      y_mid_offset = current_vid_h * 0.5f - y;
 
-      x_first_vertex = one;
-      y_first_vertex = two;
+      x_first_vertex = x;
+      y_first_vertex = y;
     }
-    //This is vertices for font and images
+    
 
     /*
     	Since Center Aligned.
     	  Save Position.
         Scale.
         Restore Position.
+
+        NewPoint = Pivot + (OldPoint - Pivot) * Scale
+
+        Px = current_vid_w * 0.5f
+        new_x = Px + (x - Px) * hudScale
+        
+        hudScale - 1 is a clean way to get the percentage of change that needs to be applied 
+        to a distance to calculate a positional correction.
+
+        (I calculated it by image in gkeep, scale image = creates correct size, but moves a lot)
+        so you shift it back into original place (except for when its 1, no shift needed Hence hudScale-1)
+        then subtract previous mid offset N-1 times (because its alrady shifted 1 time)
     */
-
-    // int iOne = static_cast<int>(std::round( one*hudScale - x_first_vertex*(hudScale-1) - x_mid_offset*(hudScale-1) ));
-    // int iTwo = static_cast<int>(std::round( two*hudScale - y_first_vertex*(hudScale-1) - y_mid_offset*(hudScale-1) ));
-    // orig_glVertex2i(iOne,iTwo);
-
+    
     //rounding is not necessary!
-    orig_glVertex2f(one * hudScale - x_first_vertex * (hudScale - 1) - x_mid_offset * (hudScale - 1),
-      two * hudScale - y_first_vertex * (hudScale - 1) - y_mid_offset * (hudScale - 1));
+    orig_glVertex2f(x * hudScale - x_first_vertex * (hudScale - 1) - x_mid_offset * (hudScale - 1),
+      y * hudScale - y_first_vertex * (hudScale - 1) - y_mid_offset * (hudScale - 1));
 
     vertexCounter++;
     if (vertexCounter > 4) vertexCounter = 1;
     return;
+  } else if (isDrawPicCenter) 
+  {
+    //Default DrawPic situation.
+    #if 1
+    static int vertexCounter = 1;
+    
+    if (vertexCounter == 1) {
+      DrawPicPivotCenterX = x + DrawPicWidth * 0.5f;
+      DrawPicPivotCenterY = y + DrawPicHeight * 0.5f;
+
+      // Ah it breaks TILED .m32, I didn't know there was such a thing as tiling.
+      // Same problem as anything laid out in sequence, needs to be repositioned.
+      // Should really targer higher level draw routines, for this reason.
+
+      // But such sequences, if start from pos=0, benefit from multiply co ordinates.
+
+      // orig_Com_Printf("%i %i\n",DrawPicWidth,DrawPicHeight);
+
+      if ( DrawPicWidth == 0 || DrawPicHeight == 0 ) {
+        // DrawPicWidth was not set, Draw_FindImage
+        orig_Com_Printf("This is not supposed to happen!\n");
+      }
+    }
+
+    x = DrawPicPivotCenterX + (x - DrawPicPivotCenterX) * hudScale;
+    y = DrawPicPivotCenterY + (y - DrawPicPivotCenterY) * hudScale;
+
+    
+    orig_glVertex2f(x, y);
+    vertexCounter++;
+    if (vertexCounter > 4) {
+      vertexCounter = 1;
+      DrawPicWidth = 0;
+      DrawPicHeight = 0;
+    }
+    return;
+    #endif
+  } else if ( isDrawPicTiled ) {
+    /*
+      For rare tile-based (pivot-point 0) textures. (eg. backdrop main menu)
+    */
+    //orig_Com_Printf("x: %f ... y: %f\n",x,y);
+    // orig_glVertex2f(x * current_vid_h/480, y*current_vid_h/480);
+    static int vertexCounter = 1;
+    static int startX;
+    static int startY;
+    if ( vertexCounter == 1 ) {
+      startX = x;
+      startY = y;
+    }
+
+    if ( vertexCounter > 1 && vertexCounter < 4 ) {
+      x = startX + DrawPicWidth;
+      
+    }
+
+    if ( vertexCounter > 2 ) {      
+      y = startY + DrawPicHeight;
+    }
+    orig_glVertex2f(x, y);
+
+    vertexCounter++;
+    if (vertexCounter > 4) {
+      vertexCounter = 1;
+      DrawPicWidth = 0;
+      DrawPicHeight = 0;
+    }
+    return;
+  } else if ( menuLoadboxDraw ) {
+    /*
+      Too hard to scale these. Not enough information.
+    */
+    #if 0
+    x = menuLoadboxFirstItemX + (x - menuLoadboxFirstItemX) * screen_y_scale;
+    y = menuLoadboxFirstItemY + (y - menuLoadboxFirstItemY) * screen_y_scale;
+    #endif
+    orig_glVertex2f(x, y);
   }
-  orig_glVertex2f(one, two);
+  else {
+    orig_glVertex2f(x, y);
+  }
+  
 }
 
 /*
@@ -1215,6 +1530,7 @@ void __thiscall my_cControlFlag_Draw(void * self) {
   orig_cControlFlag_Draw(self);
 }
 
+
 /*
 ===================================================================================================
 */
@@ -1302,6 +1618,10 @@ void scaledFont_cvars_init(void) {
 //Called before SoF.exe entrypoint.
 void scaledFont_early(void) {
 
+  
+  //=====================================================
+  //CONSOLE STUFF
+
   // for bottom of Con_NotifyConsole remain real width.
   writeIntegerAt(0x20020F6F, & real_refdef_width);
 
@@ -1318,17 +1638,15 @@ void scaledFont_early(void) {
   WriteByte(0x2002104B, 0x90);
   WriteByte(0x2002104C, 0x90);
   WriteByte(0x2002104D, 0x90);
+
   orig_Con_Init = DetourCreate((void * ) 0x200208E0, (void * ) & my_Con_Init, DETOUR_TYPE_JMP, 9);
+  //=====================================================
+  //=====================================================
 
-  //The idea for further UI scaling is to replace SCR_DrawPic() calls with SCR_DrawStretchPic().
-  //I think the glVertex idea also works !, and its good for preserving scale from edge of screen (border)
-  //The only case I can think this not working, is if its center positioned image.
-  //Also what if the object should be posititoned relative to the right edge?
-  //Multiplying the glVertex() works for left edge positioned elements
-  //Ye it depends on the image, whether its positioned relative to a certain edge of screen.
-  //We actually need to do some custom implementation for each of them to preserve the distance from the edge to which its located.
 
-  //Detour each Interface Draw function.
+  //=====================================================
+  //HUD Interface Draw function.
+
   // DetourCreate((void*)0x20006EA0,(void*)&my_cScope_Draw,DETOUR_TYPE_JMP,6);
   orig_cInventory2_And_cGunAmmo2_Draw = DetourCreate((void * ) 0x20008430, (void * ) & my_cInventory2_And_cGunAmmo2_Draw, DETOUR_TYPE_JMP, 5);
   orig_cHealthArmor2_Draw = DetourCreate((void * ) 0x20008C60, (void * ) & my_cHealthArmor2_Draw, DETOUR_TYPE_JMP, 5);
@@ -1336,13 +1654,14 @@ void scaledFont_early(void) {
   // DetourCreate((void*)0x20009100,(void*)&my_cInfoTicker_Draw,DETOUR_TYPE_JMP,6);
   // DetourCreate((void*)0x20009250,(void*)&my_cMissionStatus_Draw,DETOUR_TYPE_JMP,6);
   orig_cDMRanking_Draw = DetourCreate((void * ) 0x20007B30, (void * ) & my_cDMRanking_Draw, DETOUR_TYPE_JMP, 6);
-  // orig_cCtfFlag_Draw = DetourCreate((void*)0x20006920,(void*)&my_cCtfFlag_Draw,DETOUR_TYPE_JMP,6);
+  orig_cCtfFlag_Draw = DetourCreate((void*)0x20006920,(void*)&my_cCtfFlag_Draw,DETOUR_TYPE_JMP,6);
   // DetourCreate((void*)0x20006BC0,(void*)&my_cControlFlag_Draw,DETOUR_TYPE_JMP,6);
 
-  // orig_R_Strlen = *(int*)0x2040363C;
+  
+  //=====================================================
+  //Scoreboard
 
   // orig_SCR_CenterPrint = DetourCreate((void*)0x20012DB0,(void*)my_SCR_CenterPrint, DETOUR_TYPE_JMP,7);
-
   orig_SCR_ExecuteLayoutString = DetourCreate((void * ) 0x20014510, (void * ) my_SCR_ExecuteLayoutString, DETOUR_TYPE_JMP, 8);
 
 }
@@ -1353,37 +1672,72 @@ void scaledFont_early(void) {
 void scaledFont_init(void) {
 
   void * glVertex2f = * (int * ) 0x300A4670;
+  
   orig_glVertex2i = * (int * ) 0x300A46D0;
+  
 
+  #if 1
+  /*
+    Handles:
+      isFontOuter+!isNotFont == my_Con_DrawConsole ( !DrawStretchPic, DrawString->DrawChar() )
+      isDrawingLayout == my_SCR_ExecuteLayoutString ( DrawStretchPic, DrawStringColor )
+      isDrawPicCenter == my_Draw_Pic()
+      isDrawPicTiled == my_Draw_Pic() /w pics/menus/backdrop/*.m32
+      menuLoadboxDraw == *DISABLED* my_loadbox_c_Draw (This is load game menu UI)
+  */
   DetourRemove( & orig_glVertex2f);
   orig_glVertex2f = DetourCreate((void * ) glVertex2f, (void * ) & my_glVertex2f, DETOUR_TYPE_JMP, DETOUR_LEN_AUTO); //5
-  //orig_glVertex2f = glVertex2f;
+  #endif
 
-  // DetourRemove(&orig_Draw_String_Color);
-  // orig_Draw_String_Color = DetourCreate((void*)0x30001A40,(void*)&my_Draw_String_Color,DETOUR_TYPE_JMP, 5);
+  // orig_glVertex2f = glVertex2f;
+  
+  #if 1
+  
+
+  /*
+    isFontOuter == my_Con_DrawConsole
+    hudStretchPic == my_cCtfFlag_Draw (The flag appear on left when u carry it.)
+    menuSliderDraw == custom reposition of slider for menu scaling.
+    menuVerticalScrollDraw == *DISABLED*, same as menuSliderDraw
+    menuLoadboxDraw == *DISABLED*, same as menuSliderDraw
+  */
+  DetourRemove( & orig_DrawStretchPic);
+  orig_DrawStretchPic = DetourCreate((void * ) 0x30001D10, (void * ) & my_DrawStretchPic, DETOUR_TYPE_JMP, 5);
+
+  //hudDmRanking and hudInventoryAndAmmo - Scale _AND_ position set.
+  DetourRemove( & orig_DrawPicOptions);
+  orig_DrawPicOptions = DetourCreate((void * ) 0x30002080, (void * ) & my_DrawPicOptions, DETOUR_TYPE_JMP, 6);
+
+  //hudInventoryAndAmmo - sets hudCroppedEnum for glVertex2f to use.
+  DetourRemove( & orig_DrawCroppedPicOptions);
+  orig_DrawCroppedPicOptions = DetourCreate((void * ) 0x30002240, (void * ) & my_DrawCroppedPicOptions, DETOUR_TYPE_JMP, 5);
+
+  /*
+    Re-positions scaled HUD fonts, (the vertex hooks do the resizing.)
+    hudDmRanking == TopRight Ranking of HUD
+    hudInventoryAndAmmo = BottomLeft and BottomRight HUD
+  */
+  DetourRemove( & orig_R_DrawFont);
+  orig_R_DrawFont = DetourCreate((void * ) 0x300045B0, (void * ) & my_R_DrawFont, DETOUR_TYPE_JMP, 6);
+
+  // DetourRemove( & orig_Draw_String_Color);
+  // orig_Draw_String_Color = DetourCreate((void * ) 0x30001A40, (void * ) & my_Draw_String_Color, DETOUR_TYPE_JMP, 5);
 
   // DetourRemove(&orig_Draw_String);
   // orig_Draw_String = DetourCreate((void*)0x300019D0,(void*)&my_Draw_String,DETOUR_TYPE_JMP, 6);
 
   // DetourRemove(&orig_Draw_Char);
   // orig_Draw_Char = DetourCreate((void*)0x30001850 ,(void*)&my_Draw_Char,DETOUR_TYPE_JMP,7);
+#endif
 
-  DetourRemove( & orig_DrawStretchPic);
-  orig_DrawStretchPic = DetourCreate((void * ) 0x30001D10, (void * ) & my_DrawStretchPic, DETOUR_TYPE_JMP, 5);
-
-  DetourRemove( & orig_DrawPicOptions);
-  orig_DrawPicOptions = DetourCreate((void * ) 0x30002080, (void * ) & my_DrawPicOptions, DETOUR_TYPE_JMP, 6);
-
-  DetourRemove( & orig_DrawCroppedPicOptions);
-  orig_DrawCroppedPicOptions = DetourCreate((void * ) 0x30002240, (void * ) & my_DrawCroppedPicOptions, DETOUR_TYPE_JMP, 5);
-
-  DetourRemove( & orig_R_DrawFont);
-  orig_R_DrawFont = DetourCreate((void * ) 0x300045B0, (void * ) & my_R_DrawFont, DETOUR_TYPE_JMP, 6);
-
-  DetourRemove( & orig_Draw_String_Color);
-  orig_Draw_String_Color = DetourCreate((void * ) 0x30001A40, (void * ) & my_Draw_String_Color, DETOUR_TYPE_JMP, 5);
-
-  // Rquired for CroppedPicOptions Vertex scaling. Each corner of Rect.
+  /*
+    Does most of the HUD scaling.
+    my_DrawCroppedPicOptions sets an ENUM identify texture for screen_area
+    Required for CroppedPicOptions Vertex scaling. Each corner of Rect.
+    This is cInventory2 , cGunAmmo2, cHealthArmor2 classes
+    aka (Bottom Left HUD, Bottom Right HUD, center lower bar HUD)
+  */
+  #if 1
   WriteE8Call(0x3000239E, & my_glVertex2f_CroppedPic_1);
   WriteByte(0x300023A3, 0x90);
 
@@ -1395,6 +1749,29 @@ void scaledFont_init(void) {
 
   WriteE8Call(0x3000240E, & my_glVertex2f_CroppedPic_4);
   WriteByte(0x30002413, 0X90);
+
+  /*
+    Actual resizing on fonts
+    hudInventoryAndAmmo || hudDmRanking
+    All Font used in Menus
+  */
+  //R_DrawFont
+  WriteE8Call(0x30004860, & my_glVertex2f_DrawFont_1);
+  WriteByte(0x30004865, 0X90);
+
+  WriteE8Call(0x30004892, & my_glVertex2f_DrawFont_2);
+  WriteByte(0x30004897, 0X90);
+
+  WriteE8Call(0x300048D2, & my_glVertex2f_DrawFont_3);
+  WriteByte(0x300048D7, 0X90);
+
+  WriteE8Call(0x30004903, & my_glVertex2f_DrawFont_4);
+  WriteByte(0x30004908, 0X90);
+
+
+  #endif
+
+
 
   /*
     Did we do this because its more efficient or we had to?

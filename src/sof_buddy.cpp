@@ -349,6 +349,10 @@ void afterWsockInit(void)
 	scaledFont_early();
 #endif
 
+#ifdef FEATURE_MENU_SCALING
+	scaledMenu_early();
+#endif
+
 	PrintOut(PRINT_LOG,"Before refFixes\n");
 	refFixes_early();
 	PrintOut(PRINT_LOG,"After refFixes\n");

@@ -62,3 +62,5 @@ void setCvarByte(cvar_t * which, unsigned char val);
 void setCvarFloat(cvar_t * which, float val);
 void setCvarString(cvar_t * which, char * newstr);
 size_t strlen_custom(const char *str);
+
+const char* get_nth_entry(const char* str, int n);

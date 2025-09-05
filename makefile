@@ -39,9 +39,9 @@ DBG_CFLAGS = $(COMMON_CFLAGS)
 #Bloat: Your DLL would become huge because it would contain copies of Windows system functions.
 #Instability/Errors: You should always link dynamically against core Windows system DLLs. They are the operating system.
 # Attempting to statically link them is incorrect and often fails or produces unstable results.
-# Linker flags
+# Not sure why we don't use -Wl,-Bdynamic, we shouldn't want everything static?
 OFLAGS = -static -pthread -shared -static-libgcc -static-libstdc++ -Wl,--enable-stdcall-fixup
-#OFLAGS = -shared -static-libgcc -static-libstdc++ -Wl,-Bdynamic -Wl,--enable-stdcall-fixup
+
 
 # Source files
 _SOURCE_DIRS = DetourXS features
@@ -58,7 +58,8 @@ OBJS = $(ODIR)/DetourXS/ADE32.o \
 	$(ODIR)/cvars.o \
 	$(ODIR)/features/media_timers.o \
 	$(ODIR)/features/ref_fixes.o \
-	$(ODIR)/features/scaled_font.o
+	$(ODIR)/features/scaled_font.o \
+	$(ODIR)/features/scaled_menu.o
 
 # Linking rule
 $(OUT): $(OBJS)

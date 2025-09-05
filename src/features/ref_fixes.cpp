@@ -36,7 +36,6 @@ void (__stdcall *orig_glTexParameterf)(int target_tex, int param_name, float val
 int (*orig_R_SetMode)(void * deviceMode) = NULL;
 
 
-extern void scaledFont_init(void);
 
 HMODULE __stdcall RefInMemory(LPCSTR lpLibFileName);
 void on_ref_init(void);
@@ -320,7 +319,7 @@ void refFixes_cvars_init(void)
 	
 }
 
-
+float screen_y_scale;
 int current_vid_w;
 int current_vid_h;
 int * viddef_width = 0x2040365C;
@@ -334,6 +333,7 @@ void my_VID_CheckChanges(void)
 	orig_VID_CheckChanges();
 	current_vid_w = *viddef_width;
 	current_vid_h = *viddef_height;
+	screen_y_scale = current_vid_h / 480;
 }
 
 
@@ -665,6 +665,10 @@ void on_ref_init(void)
 
 #ifdef FEATURE_FONT_SCALING
 	scaledFont_init();
+#endif
+
+#ifdef FEATURE_MENU_SCALING
+	scaledMenu_init();
 #endif
 }
 
