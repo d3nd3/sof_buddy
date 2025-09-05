@@ -666,6 +666,10 @@ void on_ref_init(void)
 #ifdef FEATURE_FONT_SCALING
 	scaledFont_init();
 #endif
+
+#ifdef FEATURE_DEMO_ANALYZER
+	demoAnalyzer_init();
+#endif
 }
 
 /*
@@ -914,7 +918,17 @@ void my_drawTeamIcons(float * targetPlayerOrigin,char * playerName,char * imageN
 
 	teamviewFovAngle = diagonalFov;
 
+#ifdef FEATURE_DEMO_ANALYZER
+	// Mark begin of this player's icon draw for overlay capture
+	demoAnalyzer_begin(targetPlayerOrigin, playerName);
+#endif
+
 	orig_drawTeamIcons(targetPlayerOrigin,playerName,imageNameTeamIcon,redOrBlue);
+
+#ifdef FEATURE_DEMO_ANALYZER
+	// End capture for this player's icon
+	demoAnalyzer_end();
+#endif
 }
 
 int TeamIconInterceptFix(void)

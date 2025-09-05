@@ -35,6 +35,8 @@ void my_CinematicFreeze(bool bEnable);
 char *(*orig_Sys_GetClipboardData)( void ) = 0x20065E60;
 char *Sys_GetClipboardData( void );
 
+float * level_time = (float*)0x201E8FC8;
+
 void * my_Sys_GetGameApi(void * imports)
 {
 
@@ -57,6 +59,22 @@ void my_CinematicFreeze(bool bEnable)
 	if (before != after) {
 		*(char*)0x201E7F5B = after ? 0x1 : 0x00;
 	}
+}
+
+// ====================================
+// Per-frame tick via SCR_UpdateScreen
+// ====================================
+typedef void (*SCR_UpdateScreen_type)(BYTE, BYTE, BYTE, BYTE);
+static SCR_UpdateScreen_type orig_SCR_UpdateScreen = NULL;
+
+void SCR_UpdateScreen(BYTE arg00, BYTE arg01, BYTE arg02, BYTE arg03)
+{
+#ifdef FEATURE_DEMO_ANALYZER
+    // demoAnalyzer_tick();
+#endif
+    if (orig_SCR_UpdateScreen) {
+        orig_SCR_UpdateScreen(arg00, arg01, arg02, arg03);
+    }
 }
 /*
 	Testing if black nyc1 issue was caused by this function.
@@ -349,6 +367,10 @@ void afterWsockInit(void)
 	scaledFont_early();
 #endif
 
+#ifdef FEATURE_DEMO_ANALYZER
+	demoAnalyzer_early();
+#endif
+
 	PrintOut(PRINT_LOG,"Before refFixes\n");
 	refFixes_early();
 	PrintOut(PRINT_LOG,"After refFixes\n");
@@ -361,6 +383,9 @@ void afterWsockInit(void)
 
 	
 	orig_Sys_GetGameApi = DetourCreate((void*)0x20065F20,(void*)&my_Sys_GetGameApi,DETOUR_TYPE_JMP,5);
+
+	// Per-frame screen update hook becomes a generic tick for features
+	orig_SCR_UpdateScreen = (SCR_UpdateScreen_type)DetourCreate((void*)0x20015FA0,(void*)&SCR_UpdateScreen,DETOUR_TYPE_JMP,5);
 
 
 
@@ -593,7 +618,10 @@ void my_FS_InitFilesystem(void) {
 		scaledFont_cvars_init();
 	#endif
 
-	
+	#ifdef FEATURE_DEMO_ANALYZER
+		create_demo_analyzer_cvars();
+	#endif
+
 
 	//orig_Com_Printf("End FS_InitFilesystem\n");
 }

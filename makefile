@@ -56,9 +56,13 @@ OBJS = $(ODIR)/DetourXS/ADE32.o \
 	$(ODIR)/crc32.o \
 	$(ODIR)/util.o \
 	$(ODIR)/cvars.o \
+	$(ODIR)/ghoul.o \
+	$(ODIR)/matrix.o \
 	$(ODIR)/features/media_timers.o \
 	$(ODIR)/features/ref_fixes.o \
-	$(ODIR)/features/scaled_font.o
+	$(ODIR)/features/scaled_font.o \
+	$(ODIR)/features/demo_analyzer.o
+	
 
 # Linking rule
 $(OUT): $(OBJS)

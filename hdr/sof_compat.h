@@ -1,3 +1,5 @@
+
+
 typedef unsigned char 		byte;
 typedef unsigned short 		word;
 typedef int					qboolean;
@@ -91,3 +93,4 @@ extern void (*orig_Cmd_ExecuteString)(const char * string);
 extern void InitDefaults(void);
 
 
+extern float * level_time;

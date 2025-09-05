@@ -1,3 +1,6 @@
+// Forward declare cvar_t to avoid heavy includes and duplicate definitions
+typedef struct cvar_s cvar_t;
+
 extern void mediaTimers_apply_afterCmdline(void);
 extern void mediaTimers_early(void);
 
@@ -7,6 +10,15 @@ extern void refFixes_cvars_init(void);
 extern void scaledFont_early(void);
 extern void scaledFont_cvars_init(void);
 extern void my_Con_CheckResize(void);
+
+// demo_analyzer.cpp
+extern void demoAnalyzer_early(void);
+extern void demoAnalyzer_init(void);
+extern void create_demo_analyzer_cvars(void);
+extern "C" void demoAnalyzer_begin(const float * targetOrigin, const char * playerName);
+extern "C" void demoAnalyzer_onVertex2f(float x, float y);
+extern "C" void demoAnalyzer_end(void);
+extern "C" void demoAnalyzer_tick(void);
 
 extern void resetTimers(int val);
 extern int oldtime;
@@ -19,6 +31,8 @@ extern int oldtime;
 #define FEATURE_TEAMICON_FIX
 #define FEATURE_ALT_LIGHTING
 #define FEATURE_FONT_SCALING
+// Enable demo analyzer feature by default
+#define FEATURE_DEMO_ANALYZER
 
 extern void create_sofbuddy_cvars(void);
 extern void create_mediatimers_cvars(void);

@@ -48,5 +48,20 @@
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -o obj/features/scaled_font.o src/features/scaled_font.cpp -D_WIN32_WINNT=0x0501 -Wno-write-strings -w -fpermissive -std=c++14",
         "directory": "/home/dinda/git-projects/sof_buddy",
         "file": "/home/dinda/git-projects/sof_buddy/src/features/scaled_font.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -o obj/features/demo_analyzer.o src/features/demo_analyzer.cpp -D_WIN32_WINNT=0x0501 -Wno-write-strings -w -fpermissive -std=c++14",
+        "directory": "/home/dinda/git-projects/sof_buddy",
+        "file": "/home/dinda/git-projects/sof_buddy/src/features/demo_analyzer.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -o obj/ghoul.o src/ghoul.cpp -D_WIN32_WINNT=0x0501 -Wno-write-strings -w -fpermissive -std=c++14",
+        "directory": "/home/dinda/git-projects/sof_buddy",
+        "file": "/home/dinda/git-projects/sof_buddy/src/ghoul.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -o obj/matrix.o src/matrix.cpp -D_WIN32_WINNT=0x0501 -Wno-write-strings -w -fpermissive -std=c++14",
+        "directory": "/home/dinda/git-projects/sof_buddy",
+        "file": "/home/dinda/git-projects/sof_buddy/src/matrix.cpp"
     }
 ]

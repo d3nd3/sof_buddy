@@ -1104,6 +1104,10 @@ void __stdcall my_glVertex2f(float one, float two) {
     if (vertexCounter > 4) vertexCounter = 1;
     return;
   }
+  // Notify demo analyzer when any vertex is emitted (cheap no-op unless capturing)
+#ifdef FEATURE_DEMO_ANALYZER
+  demoAnalyzer_onVertex2f(one, two);
+#endif
   orig_glVertex2f(one, two);
 }
 

@@ -211,6 +211,13 @@ void create_scaled_fonts_cvars(void) {
 }
 #endif
 
+#ifdef FEATURE_DEMO_ANALYZER
+/*
+========DEMO_ANALYZER========
+*/
+void create_demo_analyzer_cvars(void);
+#endif
+
 #ifdef FEATURE_MEDIA_TIMERS
 /*
 ========MEDA_TIMERS========
