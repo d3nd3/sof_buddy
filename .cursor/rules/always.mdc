@@ -1,0 +1,7 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# Usage
+SoF 1 (Soldier of Fortune 1) is built upon the Quake 2 engine (./SDK/Quake-2). Raven released a SoF1 sdk (./SDK/sof-sdk) for the gamex86.dll file and the player.dll file only.  These two libraries are loaded by the server to implement MOD specific code unique to the MOD (SoF is a quake 2 MOD). Player.dll is also loaded by the client because some things are predicted clientside, so the server and client share some code. When discovering about functions which exist on the client or engine specific (.exe) functions, be sure to always look in ./SDK/Quake-2 instead of ./SDK/sof-sdk .
