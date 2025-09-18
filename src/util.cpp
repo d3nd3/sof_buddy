@@ -196,53 +196,53 @@ cvar_t * findCvar(char * cvarname)
 	return NULL;
 }
 
-void setCvarUnsignedInt(cvar_t * which,unsigned int val){
-	which->modified = true;
-	orig_Z_Free(which->string);
-	char intstring[64];
-	which->value = (float)val;
-	sprintf(intstring,"%u",val);
-	which->string = orig_CopyString(intstring);
+inline void setCvarUnsignedInt(cvar_t * which,unsigned int val){
+    which->modified = true;
+    orig_Z_Free(which->string);
+    char intstring[64];
+    which->value = (float)val;
+    sprintf(intstring,"%u",val);
+    which->string = orig_CopyString(intstring);
 }
 
 
-void setCvarInt(cvar_t * which,int val){
-	which->modified = true;
-	orig_Z_Free(which->string);
-	char intstring[64];
-	which->value = (float)val;
-	sprintf(intstring,"%d",val);
-	which->string = orig_CopyString(intstring);
+inline void setCvarInt(cvar_t * which,int val){
+    which->modified = true;
+    orig_Z_Free(which->string);
+    char intstring[64];
+    which->value = (float)val;
+    sprintf(intstring,"%d",val);
+    which->string = orig_CopyString(intstring);
 }
 
-void setCvarByte(cvar_t * which, unsigned char val) {
-	which->modified = true;
-	orig_Z_Free(which->string);
-	char bytestring[64];
-	sprintf(bytestring,"%hhu",val);
-	which->value = atof(bytestring);
-	which->string = orig_CopyString(bytestring);
+inline void setCvarByte(cvar_t * which, unsigned char val) {
+    which->modified = true;
+    orig_Z_Free(which->string);
+    char bytestring[64];
+    sprintf(bytestring,"%hhu",val);
+    which->value = atof(bytestring);
+    which->string = orig_CopyString(bytestring);
 }
 
 
-void setCvarFloat(cvar_t * which, float val) {
+inline void setCvarFloat(cvar_t * which, float val) {
 
-	which->modified = true;
-	orig_Z_Free(which->string);
-	char floatstring[64];
-	sprintf(floatstring,"%f",val);
-	which->string = orig_CopyString(floatstring);
-	which->value = val;
+    which->modified = true;
+    orig_Z_Free(which->string);
+    char floatstring[64];
+    sprintf(floatstring,"%f",val);
+    which->string = orig_CopyString(floatstring);
+    which->value = val;
 }
 
-void setCvarString(cvar_t * which, char * newstr) {
+inline void setCvarString(cvar_t * which, char * newstr) {
 
-	which->modified = true;
-	orig_Z_Free(which->string);
-	
-	
-	which->string = orig_CopyString(newstr);
-	which->value = atof(which->string);
+    which->modified = true;
+    orig_Z_Free(which->string);
+    
+    
+    which->string = orig_CopyString(newstr);
+    which->value = atof(which->string);
 }
 
 size_t strlen_custom(const char *str) {
