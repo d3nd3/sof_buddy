@@ -1,14 +1,14 @@
 #include "ighoul.h"
 
-unsigned int * ghoulmain 	= 	NULL;
+IGhoul * ghoulmain 	= 	NULL;
 unsigned int * clientinst 	= 	NULL;
-unsigned int * objinst 	=	NULL;
+unsigned int * objinst = NULL;
 
 GetGhoul_type orig_GetGhoul = (GetGhoul_type)0x20069630;
-FindClientInst_type orig_FindClientInst = (FindClientInst_type)NULL;//0x2006CBC0;
-GetXForm_type orig_GetXForm = (GetXForm_type)NULL;
-SetTintOnAll_type orig_SetTintOnAll = (SetTintOnAll_type)NULL; // 40
-SetTint_type orig_SetTint = (SetTint_type)NULL;
+FindClientInst_type orig_FindClientInst = nullptr; //0x2006CBC0;
+GetXForm_type orig_GetXForm = nullptr;
+SetTintOnAll_type orig_SetTintOnAll = nullptr; // 40
+SetTint_type orig_SetTint = nullptr;
 GetTint_type orig_GetTint = (GetTint_type)NULL;
 AddNoteCallBack_type orig_AddNoteCallBack = (AddNoteCallBack_type)NULL;
 GetUserData_type orig_GetUserData = (GetUserData_type)NULL; //58

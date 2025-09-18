@@ -58,6 +58,7 @@ OBJS = $(ODIR)/DetourXS/ADE32.o \
 	$(ODIR)/cvars.o \
 	$(ODIR)/ghoul.o \
 	$(ODIR)/matrix.o \
+	$(ODIR)/core.o \
 	$(ODIR)/features/media_timers.o \
 	$(ODIR)/features/ref_fixes.o \
 	$(ODIR)/features/scaled_font.o \

@@ -9,19 +9,24 @@
 
 #include "util.h"
 
+// core API (defined in src/core.cpp)
+void core_cvars_init(void);
+void core_early(void);
+void demoAnalyzer_cvars_init(void);
+
 //__ioinit
 void (*orig_FS_InitFilesystem)(void) = NULL;
 void my_FS_InitFilesystem(void);
 void my_orig_Qcommon_Init(int argc, char **argv);
 qboolean my_Cbuf_AddLateCommands(void);
 
-cvar_t *(*orig_Cvar_Get)(const char * name, const char * value, int flags, cvarcommand_t command) = 0x20021AE0;
-cvar_t *(*orig_Cvar_Set2) (char *var_name, char *value, qboolean force) = 0x20021D70;
-void (*orig_Cvar_SetInternal)(bool active) = 0x200216C0;
+cvar_t *(*orig_Cvar_Get)(const char * name, const char * value, int flags, cvarcommand_t command) = (cvar_t *(*)(const char *, const char *, int, cvarcommand_t))0x20021AE0;
+cvar_t *(*orig_Cvar_Set2) (char *var_name, char *value, qboolean force) = (cvar_t *(*)(char *, char *, qboolean))0x20021D70;
+void (*orig_Cvar_SetInternal)(bool active) = (void (*)(bool))0x200216C0;
 void ( *orig_Com_Printf)(char * msg, ...) = NULL;
-void (*orig_Qcommon_Frame) (int msec) = 0x2001F720;
+void (*orig_Qcommon_Frame) (int msec) = (void (*)(int))0x2001F720;
 
-void (*orig_Qcommon_Init) (int argc, char **argv) = 0x2001F390;
+void (*orig_Qcommon_Init) (int argc, char **argv) = (void (*)(int, char **))0x2001F390;
 qboolean (*orig_Cbuf_AddLateCommands)(void) = NULL;
 
 void (*orig_CL_UpdateSimulationTimeInfo)(float extratime) = NULL;
@@ -61,21 +66,7 @@ void my_CinematicFreeze(bool bEnable)
 	}
 }
 
-// ====================================
-// Per-frame tick via SCR_UpdateScreen
-// ====================================
-typedef void (*SCR_UpdateScreen_type)(BYTE, BYTE, BYTE, BYTE);
-static SCR_UpdateScreen_type orig_SCR_UpdateScreen = NULL;
 
-void SCR_UpdateScreen(BYTE arg00, BYTE arg01, BYTE arg02, BYTE arg03)
-{
-#ifdef FEATURE_DEMO_ANALYZER
-    // demoAnalyzer_tick();
-#endif
-    if (orig_SCR_UpdateScreen) {
-        orig_SCR_UpdateScreen(arg00, arg01, arg02, arg03);
-    }
-}
 /*
 	Testing if black nyc1 issue was caused by this function.
 	Seems it is not.
@@ -367,9 +358,10 @@ void afterWsockInit(void)
 	scaledFont_early();
 #endif
 
-#ifdef FEATURE_DEMO_ANALYZER
-	demoAnalyzer_early();
-#endif
+
+core_early();
+
+
 
 	PrintOut(PRINT_LOG,"Before refFixes\n");
 	refFixes_early();
@@ -384,8 +376,8 @@ void afterWsockInit(void)
 	
 	orig_Sys_GetGameApi = DetourCreate((void*)0x20065F20,(void*)&my_Sys_GetGameApi,DETOUR_TYPE_JMP,5);
 
-	// Per-frame screen update hook becomes a generic tick for features
-	orig_SCR_UpdateScreen = (SCR_UpdateScreen_type)DetourCreate((void*)0x20015FA0,(void*)&SCR_UpdateScreen,DETOUR_TYPE_JMP,5);
+	// Per-frame screen update hook moved to core
+	// core_early() will install SCR_UpdateScreen detour to point at core's handler
 
 
 
@@ -611,6 +603,10 @@ void my_FS_InitFilesystem(void) {
 	//Idea = Cvar_Get() cvar creation with modified callback.
 	//Since config.cfg represents the user's saved values. It is important they trigger the callback to set internal values.
 
+
+	// Initialize core cvars and hooks
+	core_cvars_init();
+
 	// FEATURE_HD_TEX FEATURE_ALT_LIGHTING etc...
 	refFixes_cvars_init();
 
@@ -619,7 +615,8 @@ void my_FS_InitFilesystem(void) {
 	#endif
 
 	#ifdef FEATURE_DEMO_ANALYZER
-		create_demo_analyzer_cvars();
+		demoAnalyzer_cvars_init();
+
 	#endif
 
 
@@ -671,7 +668,7 @@ Cbuf_AddLateCommands
 	<OR HERE>
 	
 	Maybe the purpose of this hook is so that we do stuff before the:
-	Soldier of Fortune Iniitalised print line. Thats all.
+	Soldier of Fortune Iniitalised print line. (And the obvious of parsing the launch command line)
 */
 //this is called inside Qcommon_Init()
 qboolean my_Cbuf_AddLateCommands(void)

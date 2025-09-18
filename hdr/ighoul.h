@@ -461,14 +461,15 @@ enum MatrixType
 	EntityInv
 };
 
-//IGhoul *GetGhoul(bool Client,bool Menu);
-//dende's ghoul funcs
+typedef IGhoul *(*GetGhoul_type)(bool Client,bool Menu);
+extern GetGhoul_type orig_GetGhoul;
+
 extern bool GhoulGetInst(int slot);
 extern void GhoulSetTint(float r,float g,float b,float alpha);
 extern void GhoulGetTint(float *r,float *g,float *b,float *a);
 extern void GhoulSetTintOnAll(float r,float g,float b,float alpha);
 extern void GhoulAddNoteCallBack(IGhoulCallBack *c,GhoulID Token=0);
-extern unsigned int * ghoulmain;
+extern IGhoul * ghoulmain;
 extern unsigned int * clientinst;
 extern void GhoulGetXform(float *m);
 extern unsigned short GhoulFindPart(const char * partname);
@@ -488,7 +489,7 @@ extern void VectorCopy(vec3_t in, vec3_t out);
 extern void VectorScale (vec3_t in, vec_t scale, vec3_t out);
 extern void AngleVectors (vec3_t angles, vec3_t forward, vec3_t right, vec3_t up);
 
-typedef unsigned int * __attribute__ ((cdecl))(* GetGhoul_type)(bool Client,bool Menu);
+// typedef unsigned int * __attribute__ ((cdecl))(* GetGhoul_type)(bool Client,bool Menu);
 typedef unsigned int * __attribute__ ((stdcall))(* FindClientInst_type)(GhoulUUID key);
 typedef void __attribute__ ((stdcall))(* GetXForm_type)(float *m);
 typedef void __attribute__ ((stdcall))(* SetTintOnAll_type)(float r,float g,float b,float a);

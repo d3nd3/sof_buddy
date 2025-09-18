@@ -215,7 +215,7 @@ void create_scaled_fonts_cvars(void) {
 /*
 ========DEMO_ANALYZER========
 */
-void create_demo_analyzer_cvars(void);
+void demoAnalyzer_cvars_init(void);
 #endif
 
 #ifdef FEATURE_MEDIA_TIMERS

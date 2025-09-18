@@ -7,6 +7,8 @@
 #include "features.h"
 
 #include "ighoul.h"
+#include <unordered_map>
+#include <utility>
 
 #include "../DetourXS/detourxs.h"
 
@@ -42,72 +44,13 @@ static cvar_t * _sofbuddy_da_log = NULL;         // 0/1
 static cvar_t * _sofbuddy_da_hist_bin_deg = NULL;// histogram bin size
 static cvar_t * _sofbuddy_da_csv = NULL;         // output csv path
 
-// Per-frame cvars (lazily created)
-static cvar_t * frame_valid_cvar = NULL;
-static cvar_t * frame_serverframe_cvar = NULL;
-static cvar_t * frame_servertime_cvar = NULL;
-static cvar_t * frame_deltaframe_cvar = NULL;
-static cvar_t * frame_ghoultime_cvar = NULL;
-static cvar_t * frame_num_entities_cvar = NULL;
-
-// playerstate / pmove
-static cvar_t * frame_playerstate_pmove_pm_type_cvar = NULL;
-static cvar_t * frame_playerstate_pmove_origin0_cvar = NULL;
-static cvar_t * frame_playerstate_pmove_origin1_cvar = NULL;
-static cvar_t * frame_playerstate_pmove_origin2_cvar = NULL;
-static cvar_t * frame_playerstate_pmove_velocity0_cvar = NULL;
-static cvar_t * frame_playerstate_pmove_velocity1_cvar = NULL;
-static cvar_t * frame_playerstate_pmove_velocity2_cvar = NULL;
-static cvar_t * frame_playerstate_pmove_pm_flags_cvar = NULL;
-static cvar_t * frame_playerstate_pmove_pm_time_cvar = NULL;
-static cvar_t * frame_playerstate_pmove_gravity_cvar = NULL;
-static cvar_t * frame_playerstate_pmove_delta0_cvar = NULL;
-static cvar_t * frame_playerstate_pmove_delta1_cvar = NULL;
-static cvar_t * frame_playerstate_pmove_delta2_cvar = NULL;
-
-static cvar_t * frame_playerstate_viewangles0_cvar = NULL;
-static cvar_t * frame_playerstate_viewangles1_cvar = NULL;
-static cvar_t * frame_playerstate_viewangles2_cvar = NULL;
-static cvar_t * frame_playerstate_viewoffset0_cvar = NULL;
-static cvar_t * frame_playerstate_viewoffset1_cvar = NULL;
-static cvar_t * frame_playerstate_viewoffset2_cvar = NULL;
-
-static cvar_t * frame_playerstate_remote_id_cvar = NULL;
-static cvar_t * frame_playerstate_remote_type_cvar = NULL;
-
-static cvar_t * frame_playerstate_gunptr_cvar = NULL;
-static cvar_t * frame_playerstate_gunUUID_cvar = NULL;
-static cvar_t * frame_playerstate_gunType_cvar = NULL;
-static cvar_t * frame_playerstate_gunClip_cvar = NULL;
-static cvar_t * frame_playerstate_gunAmmo_cvar = NULL;
-
-static cvar_t * frame_playerstate_bodptr_cvar = NULL;
-static cvar_t * frame_playerstate_bodUUID_cvar = NULL;
-
-static cvar_t * frame_playerstate_fov_cvar = NULL;
-static cvar_t * frame_playerstate_rdflags_cvar = NULL;
-static cvar_t * frame_playerstate_soundID_cvar = NULL;
-static cvar_t * frame_playerstate_musicID_cvar = NULL;
-static cvar_t * frame_playerstate_damageLoc_cvar = NULL;
-static cvar_t * frame_playerstate_damageDir_cvar = NULL;
-
-static cvar_t * frame_playerstate_dmRank_cvar = NULL;
-static cvar_t * frame_playerstate_dmRankedPlyrs_cvar = NULL;
-static cvar_t * frame_playerstate_spectatorId_cvar = NULL;
-static cvar_t * frame_playerstate_cinematicfreeze_cvar = NULL;
-
-// helper to lazily create cvars
-static cvar_t * ensure_cvar(const char *name, cvar_t **slot)
-{
-    if (*slot) return *slot;
-    if (!orig_Cvar_Get) return NULL;
-    *slot = orig_Cvar_Get(name, "0", CVAR_INTERNAL, NULL);
-    return *slot;
-}
+// core-managed frame cvars moved to src/core.cpp
 
 // External state/functions we reuse
 extern int current_vid_w;
 extern int current_vid_h;
+// core initialization (hooks) implemented in src/core.cpp
+extern "C" void core_init(void);
 
 // Option A: original Draw_String_Color (may expect old std string/palette)
 extern void ( * orig_Draw_String_Color)(int, int, char const *, int, int);
@@ -122,85 +65,7 @@ static short * const scurrent_gun = (short*)0x201E7F06; // 8 == shotgun
 // Client frame/playerstate access for spectate gun IGhoulInst* and spectatorId
 // ======================================================================================
 
-// Minimal Quake2 pmove_state_t used by player_state_t
-typedef enum {
-    PM_NORMAL,
-    PM_SPECTATOR,
-    PM_DEAD,
-    PM_GIB,
-    PM_FREEZE
-} pmtype_t;
-
-typedef struct
-{
-    pmtype_t pm_type;
-    short    origin[3];
-    short    velocity[3];
-    byte     pm_flags;
-    byte     pm_time;
-    short    gravity;
-    short    delta_angles[3];
-} pmove_state_t;
-
-#ifndef MAX_STATS
-#define MAX_STATS 32
-#endif
-
-#ifndef MAX_MAP_AREAS
-#define MAX_MAP_AREAS 256
-#endif
-
-typedef struct
-{
-    pmove_state_t    pmove;             // for prediction 0x4
-    vec3_t           viewangles;        // for fixed views 0x10
-    vec3_t           viewoffset;        // add to pmovestate->origin 0x1C
-    vec3_t           kick_angles;       // add to view direction to get render angles 0x28
-    vec3_t           weaponkick_angles; // add to view direction to get render angles 0x34
-    vec3_t           remote_vieworigin; //0x40
-    vec3_t           remote_viewangles; //0x4C
-    int              remote_id; //0x58
-    byte             remote_type;
-    IGhoulInst*      gun;               // view weapon instance 6C
-    short            gunUUID;
-    short            gunType;
-    short            gunClip;
-    short            gunAmmo;
-    byte             gunReload;
-    byte             restart_count;
-    byte             buttons_inhibit;
-    IGhoulInst*      bod;
-    short            bodUUID;
-    float            blend[4];
-    float            fov; //94
-    int              rdflags; //98
-    short            soundID; //9C
-    byte             musicID; //9E
-    short            damageLoc; //A0
-    short            damageDir; //A2
-    byte             stats[MAX_STATS]; //mb changing this from short to byte fixed it.
-    byte             dmRank; //C4 in-game: 48, here: 80, 32 too many
-    byte             dmRankedPlyrs; //C5
-    byte             spectatorId;       // Index [1-(MAXCLIENTS-1)] //C6
-    byte             cinematicfreeze; //C7
-} player_state_t;
-//actual player_state_t size 200
-//compiler thinks its 232
-typedef unsigned int fakebyte;
-typedef struct frame_s
-{
-    fakebyte            valid; //byte
-    int             serverframe; //0x4
-    int             servertime; //0x8
-    int             deltaframe; //0xC
-    float           ghoultime; //0x10
-    byte            areabits[MAX_MAP_AREAS/8]; //0x10 0x14 0x18 0x1C 0x20 0x24 0x28 0x2C
-    
-    player_state_t  playerstate; //0x34
-    int             num_entities;
-    int             parse_entities;
-} frame_t;
-
+// frame/playerstate types are provided by hdr/sof_compat.h
 static frame_t * const cl_frame = (frame_t*)0x201E7E60;
 
 // ======================================================================================
@@ -220,9 +85,7 @@ public:
             serverframe = cl_frame->serverframe;
             num_entities = cl_frame->num_entities;
         }
-        if (orig_Com_Printf) {
-            orig_Com_Printf("[DA] gun fire note (spec %u) serverframe=%d num_entities=%d\n", (unsigned)spec, serverframe, num_entities);
-        }
+        orig_Com_Printf("[DA] gun fire note (spec %u) serverframe=%d num_entities=%d\n", (unsigned)spec, serverframe, num_entities);
         return true;
     }
 };
@@ -230,111 +93,90 @@ public:
 static DA_GunFireCallback g_daGunFireCb;
 static IGhoulInst * g_lastRegisteredGun = NULL;
 static byte g_lastSpectatorId = 0;
+// Cache mapping gunUUID -> (resolved IGhoulInst*, callbackRegistered)
+static std::unordered_map<short, std::pair<IGhoulInst*, bool>> g_gunInstCache;
+// Track ghoulmain to detect reloads and invalidate cache
+static decltype(ghoulmain) g_prevGhoulMain = NULL;
 
+
+/*
+    These note callbacks only work if the client is not predicting the server. (cl_predict_weapon 0)
+    Not sure why this is, maybe the ghoul system is in a intermittent state when the client is predicting.
+    Well, you'd have to use another function to get the cloned instance, thats all.
+*/
 static void da_try_register_fire_note_on_current_gun()
 {
+    ghoulmain = orig_GetGhoul(1,0);
+
     if (!cl_frame) {
-        if (orig_Com_Printf) orig_Com_Printf("\x02[DA] no cl_frame\n");
+        orig_Com_Printf("\x02[DA] no cl_frame\n");
         return;
     }
     player_state_t &ps = cl_frame->playerstate;
 
-    long ps_offset = (long)((unsigned char*)&ps - (unsigned char*)cl_frame);
-    if (orig_Com_Printf) orig_Com_Printf("[DA] playerstate offset=%ld bytes\n", ps_offset);
-    size_t off_fov = (size_t)((unsigned char*)&ps.fov - (unsigned char*)&ps);
-    size_t off_dm = (size_t)((unsigned char*)&ps.dmRank - (unsigned char*)&ps);
-    if (orig_Com_Printf) orig_Com_Printf("[DA] dmRank-fov offset = %ld bytes\n", (long)(off_dm - off_fov));
-
     // Track spectator change
     byte spec = ps.spectatorId;
-    IGhoulInst * gun = ps.gun;
 
-    
-    short gunUUID = ps.gunUUID;
-    float fov = ps.fov;
-    
-    if (orig_Com_Printf) orig_Com_Printf("[DA] current gunUUID=%d fov=%.1f\n", (int)gunUUID, fov);
-    short da0 = ps.pmove.delta_angles[0];
-    short da1 = ps.pmove.delta_angles[1];
-    short da2 = ps.pmove.delta_angles[2];
-    if (orig_Com_Printf) orig_Com_Printf("[DA] pmove.delta_angles = %d, %d, %d\n", (int)da0, (int)da1, (int)da2);
-    short o0 = ps.pmove.origin[0];
-    short o1 = ps.pmove.origin[1];
-    short o2 = ps.pmove.origin[2];
-    if (orig_Com_Printf) orig_Com_Printf("[DA] pmove.origin = %d, %d, %d\n", (int)o0, (int)o1, (int)o2);
-    pmtype_t pmtype = ps.pmove.pm_type;
-    if (orig_Com_Printf) orig_Com_Printf("[DA] pmove.pm_type = %d\n", (int)pmtype);
-    unsigned char *ps_bytes = (unsigned char*)&ps;
-    char ps_hex[16*3 + 1];
-    int ps_hx = 0;
-    for (int i = 0; i < 16; ++i) {
-        ps_hx += snprintf(ps_hex + ps_hx, sizeof(ps_hex) - ps_hx, "%02X ", ps_bytes[i]);
-    }
-    if (ps_hx > 0) ps_hex[ps_hx-1] = '\0';
-    if (orig_Com_Printf) orig_Com_Printf("[DA] ps[0..15] = %s\n", ps_hex);
-    
-
-    if (cl_frame) {
-        int sf = cl_frame->serverframe;
-        int st = cl_frame->servertime;
-        float gt = cl_frame->ghoultime;
-        if (orig_Com_Printf) orig_Com_Printf("[DA] frame: serverframe=%d servertime=%d ghoultime=%.3f\n", sf, st, gt);
-        int dmRank = (int)ps.dmRank;
-        int spectator = (int)ps.spectatorId;
-        int num_entities = cl_frame->num_entities;
-        if (orig_Com_Printf) orig_Com_Printf("[DA] dmRank=%d spectatorId=%d num_entities=%d\n", dmRank, spectator, num_entities);
+    // Invalidate cache if ghoulmain changed (ghoul objects reloaded)
+    if (g_prevGhoulMain != ghoulmain) {
+        g_gunInstCache.clear();
+        g_prevGhoulMain = ghoulmain;
     }
 
-    if (!gun) {
-        // if (orig_Com_Printf) orig_Com_Printf("\x02[DA] no gun (spec %u %i)\n", (unsigned)spec, sizeof(player_state_t));
-        return;
+    #if 0
+    // Try cache first (cache stores {inst, callbackRegistered})
+    auto it = g_gunInstCache.find(ps.gunUUID);
+    bool callbackAlready = false;
+    IGhoulInst * resolved = NULL;
+    if (it != g_gunInstCache.end()) {
+        resolved = it->second.first;
+        callbackAlready = it->second.second;
+        if (resolved) clientinst = (unsigned int*)resolved;
     }
-
-    // Avoid duplicate registrations on same gun pointer
-    if (gun == g_lastRegisteredGun ) {
-        if (orig_Com_Printf) orig_Com_Printf("\x02[DA] gun already registered (spec %u)\n", (unsigned)spec);
-        return;
-    }
-    // Point ghoul helper at this IGhoulInst
-    // Prefer resolving clientinst via GhoulInstFromID(gunUUID). Fall back to using
-    // the raw gun pointer only if it looks plausible. This avoids assigning
-    // clientinst to small/invalid pointers which cause page faults.
-    bool gotClientInst = false;
-    if (gunUUID != 0) {
-        if (GhoulInstFromID(gunUUID)) {
-            gotClientInst = true;
-        } else {
-            if (orig_Com_Printf) orig_Com_Printf("\x02[DA] GhoulInstFromID(%d) failed\n", (int)gunUUID);
+    if (!resolved) {
+        // Resolve GHoul instance from gun UUID so clientinst is set
+        if (!GhoulInstFromID(ps.gunUUID)) {
+            // orig_Com_Printf("\x02gun inst null\n");
+            return;
+        }
+        resolved = (IGhoulInst*)clientinst;
+        if (resolved) {
+            g_gunInstCache[ps.gunUUID] = std::make_pair(resolved, false);
         }
     }
-    if (!gotClientInst) {
-        unsigned int gunAddr = (unsigned int)gun;
-        if (gunAddr > 0x1000) {
-            clientinst = (unsigned int*)gun;
-            gotClientInst = true;
-        } else {
-            if (orig_Com_Printf) orig_Com_Printf("\x02[DA] gun pointer invalid: %p\n", gun);
-        }
+    
+    if (clientinst == NULL) return;
+    #else
+    if (!GhoulInstFromID(ps.gunUUID)) {
+        orig_Com_Printf("\x02gun inst null\n");
+        return;
     }
-
-    if (orig_Com_Printf) orig_Com_Printf("[DA] current gunUUID=%d fov=%.1f\n", (int)gunUUID, fov);
-
+    #endif
+    #if 0
+    // If we've already applied our callback to this inst, skip
+    if (callbackAlready || (resolved && resolved == g_lastRegisteredGun)) {
+        orig_Com_Printf("\x02[DA] gun already registered (spec %u)\n", (unsigned)spec);
+        return;
+    }
+    #endif
     // Resolve token and register callback
-    if (gotClientInst && GhoulGetObject()) {
+    if ( GhoulGetObject()) {
         orig_Com_Printf("Calling GhoulFindNoteToken\n");
         GhoulID tok = GhoulFindNoteToken("fire");
+        orig_Com_Printf("[DA DBG] GhoulFindNoteToken returned %p\n", (void*)tok);
         if (tok) {
             GhoulAddNoteCallBack(&g_daGunFireCb, tok);
-            g_lastRegisteredGun = gun;
+            g_lastRegisteredGun = (IGhoulInst*)clientinst;
             g_lastSpectatorId = spec;
-            if (orig_Com_Printf) orig_Com_Printf("\x03[DA] registered fire note cb (spec %u)\n", (unsigned)spec);
+            // mark cache entry as having our callback
+            g_gunInstCache[ps.gunUUID].second = true;
+            orig_Com_Printf("\x03[DA] registered fire note cb (spec %u)\n", (unsigned)spec);
         } else {
-            if (orig_Com_Printf) orig_Com_Printf("\x02[DA] GhoulFindNoteToken failed (spec %u)\n", (unsigned)spec);
+            orig_Com_Printf("\x02[DA] GhoulFindNoteToken failed (spec %u)\n", (unsigned)spec);
         }
     } else {
-        if (orig_Com_Printf) orig_Com_Printf("\x02[DA] GhoulGetObject failed (spec %u)\n", (unsigned)spec);
+        orig_Com_Printf("\x02[DA] GhoulGetObject failed (spec %u)\n", (unsigned)spec);
     }
-    orig_Com_Printf("end of da_try_register_fire_note_on_current_gun\n");
 }
 
 // Capture state for the current team icon being drawn
@@ -356,15 +198,23 @@ static int   g_shot_logged = 0;
 static DWORD g_shot_pending_ms = 0;
 
 // Forward declarations used by ref_fixes.cpp and scaled_font.cpp
-extern "C" {
-    // Called from ref_fixes.cpp during team icon draw begin for each player
-    //   see: ref_fixes.cpp around demoAnalyzer_begin/End usage
-    void demoAnalyzer_begin(const float * targetOrigin, const char * playerName);
-    void demoAnalyzer_onVertex2f(float x, float y);
-    void demoAnalyzer_end(void);
-    // Called once per frame via SCR_UpdateScreen detour (see sof_buddy.cpp),
-    // originally intended as a general per-frame hook (e.g., via Qcommon_Frame)
-    void demoAnalyzer_tick(void);
+// Called from ref_fixes.cpp during team icon draw begin for each player
+//   see: ref_fixes.cpp around demoAnalyzer_begin/End usage
+void demoAnalyzer_begin(const float * targetOrigin, const char * playerName);
+void demoAnalyzer_onVertex2f(float x, float y);
+void demoAnalyzer_end(void);
+// Called once per frame via SCR_UpdateScreen detour (see core.cpp)
+void demoAnalyzer_tick(void)
+{
+    // Minimal per-frame processing: reset per-frame shot fired flag and
+    // perform light housekeeping. Keep implementation small to satisfy
+    // linker and avoid depending on other init ordering.
+    g_da_shotFiredThisFrame = 0;
+    // If we have a pending shot that has been logged, clear pending state
+    if (g_shot_pending && g_shot_logged) {
+        g_shot_pending = 0;
+        g_shot_logged = 0;
+    }
 }
 
 // Shot CSV logging
@@ -374,9 +224,41 @@ static float g_shot_theta_deg[MAX_SHOT_RECORDS];
 static float g_shot_sim[MAX_SHOT_RECORDS];
 static DWORD g_shot_time_ms[MAX_SHOT_RECORDS];
 static int   g_shot_count = 0;
-static void da_log_shot(float err_deg, float theta_deg, float sim);
-static void da_flush_csv(void);
-static void da_enable_change(cvar_t * cvar);
+static void da_log_shot(float err_deg, float theta_deg, float sim)
+{
+    orig_Com_Printf("[DA DBG] da_log_shot err=%.3f theta=%.3f sim=%.6f count=%d\n", err_deg, theta_deg, sim, g_shot_count);
+    if (g_shot_count >= MAX_SHOT_RECORDS) return;
+    g_shot_err_deg[g_shot_count] = err_deg;
+    g_shot_theta_deg[g_shot_count] = theta_deg;
+    g_shot_sim[g_shot_count] = sim;
+    // use system tick as fallback so function doesn't depend on g_time_ms declaration order
+    g_shot_time_ms[g_shot_count] = GetTickCount();
+    g_shot_count++;
+}
+static void da_flush_csv(void)
+{
+    if (!_sofbuddy_da_csv || !_sofbuddy_da_csv->string || g_shot_count <= 0) return;
+    const char * path = _sofbuddy_da_csv->string;
+    FILE * f = fopen(path, "w");
+    if (!f) {
+        orig_Com_Printf("da_flush_csv: failed to open %s\n", path);
+        return;
+    }
+    fprintf(f, "time_ms,err_deg,theta_deg,sim\n");
+    for (int i=0; i<g_shot_count; ++i) {
+        fprintf(f, "%lu,%.4f,%.4f,%.6f\n", (unsigned long)g_shot_time_ms[i], g_shot_err_deg[i], g_shot_theta_deg[i], g_shot_sim[i]);
+    }
+    fclose(f);
+    orig_Com_Printf("da_flush_csv: wrote %d records to %s\n", g_shot_count, path);
+    g_shot_count = 0;
+}
+static void da_enable_change(cvar_t * cvar)
+{
+    // On disable, flush CSV
+    if (cvar && cvar->value == 0.0f) {
+        da_flush_csv();
+    }
+}
 
 static inline float clamp01(float v) {
     if (v < 0.0f) return 0.0f;
@@ -390,6 +272,7 @@ static inline float clamp01(float v) {
 */
 void demoAnalyzer_begin(const float * /*targetOrigin*/, const char * playerName)
 {
+    
     if (!_sofbuddy_demo_analyzer || _sofbuddy_demo_analyzer->value == 0.0f) return;
     // Ensure fire callback is registered for current spectated player's gun
     da_try_register_fire_note_on_current_gun();
@@ -416,6 +299,7 @@ void demoAnalyzer_begin(const float * /*targetOrigin*/, const char * playerName)
 
 void demoAnalyzer_onVertex2f(float x, float y)
 {
+    // orig_Com_Printf("[DA DBG] demoAnalyzer_onVertex2f x=%.2f y=%.2f capturing=%d\n", x, y, g_isCapturing?1:0);
     if (!g_isCapturing) return;
     if (!g_haveV1) {
         g_v1x = x; g_v1y = y; g_haveV1 = true; return;
@@ -577,8 +461,12 @@ static void draw_string_raw(int x, int y, const char * text, int colorIdx)
 }
 
 // Public init APIs
-void create_demo_analyzer_cvars(void)
+void demoAnalyzer_cvars_init(void)
 {
+#ifdef DISABLE_DEMO_ANALYZER_TEST
+    // Temporarily disabled for crash triage
+    return;
+#endif
     _sofbuddy_demo_analyzer = orig_Cvar_Get("_sofbuddy_demo_analyzer", "1", CVAR_ARCHIVE, &da_enable_change);
     _sofbuddy_da_mode = orig_Cvar_Get("_sofbuddy_da_mode", "1", CVAR_ARCHIVE, NULL);
     _sofbuddy_da_thresh_deg = orig_Cvar_Get("_sofbuddy_da_thresh_deg", "1.0", CVAR_ARCHIVE, NULL);
@@ -589,6 +477,8 @@ void create_demo_analyzer_cvars(void)
     _sofbuddy_da_hist_bin_deg = orig_Cvar_Get("_sofbuddy_da_hist_bin_deg", "0.25", CVAR_ARCHIVE, NULL);
     _sofbuddy_da_csv = orig_Cvar_Get("_sofbuddy_da_csv", "shot_accuracy.csv", CVAR_ARCHIVE, NULL);
 }
+
+
 
 // FireClient hook storage and body
 static void (__cdecl *orig_FireClient)(void*,void*,void*) = NULL;
@@ -614,25 +504,26 @@ static void __cdecl da_my_FireClient(void* a, void* b, void* c)
     if (orig_FireClient) orig_FireClient(a,b,c);
 }
 
-void demoAnalyzer_early(void)
+void demoAnalyzer_init(void)
 {
+#ifdef DISABLE_DEMO_ANALYZER_TEST
+    // Temporarily disabled for crash triage
+    return;
+#endif
     // Install FireClient detour (sharedEdict_s &, edict_s &, inven_c &)
     if (!orig_FireClient) {
         orig_FireClient = (decltype(orig_FireClient))DetourCreate((void*)0x200126E0, (void*)&da_my_FireClient, DETOUR_TYPE_JMP, 5);
     }
-    // Install CL_ParseFrame detour to populate frame cvars after parsing
-    static void (*orig_CL_ParseFrame)(void) = NULL;
-    // handler is defined in src/core.cpp; forward declaration only
-    extern void my_CL_ParseFrame(void);
-    if (!orig_CL_ParseFrame) {
-        orig_CL_ParseFrame = (decltype(orig_CL_ParseFrame))DetourCreate((void*)0x20002E90, (void*)&my_CL_ParseFrame, DETOUR_TYPE_JMP, 8);
-    }
+    // core_init() is called from sof_buddy after WSA startup; nothing to do here
 }
 
 // helper to set cvar value (string) using orig_Cvar_Set2 if available
 static void set_cvar_from_str(cvar_t **slot, const char *name, const char *valstr)
 {
-    ensure_cvar(name, slot);
+    // ensure_cvar is now in core; fallback to calling orig_Cvar_Get directly
+    if (!*slot && orig_Cvar_Get) {
+        *slot = orig_Cvar_Get(name, "0", CVAR_INTERNAL, NULL);
+    }
     if (orig_Cvar_Set2) {
         orig_Cvar_Set2((char*)name, (char*)valstr, 1);
         return;

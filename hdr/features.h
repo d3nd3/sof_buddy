@@ -14,11 +14,11 @@ extern void my_Con_CheckResize(void);
 // demo_analyzer.cpp
 extern void demoAnalyzer_early(void);
 extern void demoAnalyzer_init(void);
-extern void create_demo_analyzer_cvars(void);
-extern "C" void demoAnalyzer_begin(const float * targetOrigin, const char * playerName);
-extern "C" void demoAnalyzer_onVertex2f(float x, float y);
-extern "C" void demoAnalyzer_end(void);
-extern "C" void demoAnalyzer_tick(void);
+extern void demoAnalyzer_cvars_init(void);
+extern void demoAnalyzer_begin(const float * targetOrigin, const char * playerName);
+extern void demoAnalyzer_onVertex2f(float x, float y);
+extern void demoAnalyzer_end(void);
+extern void demoAnalyzer_tick(void);
 
 extern void resetTimers(int val);
 extern int oldtime;
