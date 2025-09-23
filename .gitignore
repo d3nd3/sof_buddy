@@ -1,5 +1,14 @@
 *.o
 *.exe
 *.dll
+*.a
+*.lib
+*.obj
 
 .cache/
+bin/
+obj/
+
+# SDK submodules (these are tracked by git)
+# SDK/
+# SDK/*/
