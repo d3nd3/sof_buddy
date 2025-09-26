@@ -1,3 +1,8 @@
+#ifndef SOF_BUDDY_UTIL_H
+#define SOF_BUDDY_UTIL_H
+#include "sof_compat.h"
+#include <stddef.h>
+
 #define PRINT_GOOD 1
 #define PRINT_BAD 2
 #define PRINT_LOG 3
@@ -47,7 +52,7 @@
 #define P_LBROWN   	"\036"
 #define P_ORANGE   	"\037"
 
-void PrintOut(int mode,char *msg,...);
+void PrintOut(int mode, const char *msg, ...);
 
 void writeUnsignedIntegerAt(void * addr, unsigned int value);
 void writeIntegerAt(void * addr, int value);
@@ -62,3 +67,5 @@ void setCvarByte(cvar_t * which, unsigned char val);
 void setCvarFloat(cvar_t * which, float val);
 void setCvarString(cvar_t * which, char * newstr);
 size_t strlen_custom(const char *str);
+
+#endif // SOF_BUDDY_UTIL_H

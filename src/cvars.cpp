@@ -4,117 +4,27 @@
 #include "features.h"
 
 /*
-	==UPDATED NOTES==
-	(IF MODIFIED==TRUE : Cvar_Get() will fire callback else not. (Unless its creating new cvar))
-	Cvar_Get() - (Only sets modified=1 upon Creation).
-     --2 PATHWAYS.--
-     OnCreation : 
-          //fires the callback unless NULL for callback in fn call.
-          if ( cvar->callback ) fire callback()
+-commands are processed elsewhere by main() program init code.
+===============================================
+Cbuf_AddEarlyCommands (false); run it once for getting the basedir/cddir/game/user etc
+  create/set basedir/cddir/game/user etc...
+  exec default.cfg - now we have basedir/cddir/game/user etc we can exec this
+  exec config.cfg - now we have basedir/cddir/game/user etc we can exec this
+Cbuf_AddEarlyCommands (true); apply again and clear the +set parts as processed.
+  NET_Init()/WSA_Startup/SoFPlus Init/exec sofplus/sofplus.cfg
+  CL_Init()/exec autoexec.cfg (autoexec overrides +set in commmand line)
+Cbuf_AddLateCommands() - processes all other commands that start with + (except +set)
+(alias dedicated_start)exec dedicated.cfg // (alias start)menu disclaimer
+===============================================
+TLDLR: Above priority startup highest to lowest:
+	dedicated.cfg -----------(highest)
+	+command commandlines
+	autoexec.cfg
+	sofplus addons
+	+set commandlines
+	config.cfg
+	default.cfg -------------(lowest)
 
-     OnExist : 
-          //fires the callback if callback arg AND modified == 1
-         if (cvar->modified && cvar->callback)
-              fire callback();
-
-     This means Cvar_Get depends on modified being true, to fire its callback. ( if the cvar already exists)
-
-
-
-Cvar_Set2() - force=0 force=1 force=>1
-     Will call Cvar_Get() and return, if the var is not existing already. (calls Cvar_Get() in creation mode/pathway).
-     won't set the var->value(float) if CVAR_INTERNAL
-
-    //fires the callback if the cvar has a callback associated to it, and if the value is changed.
-    if ( !strcmp(newval,oldval)) {
-        if ( cvar->callback ) fire callback()
-    }
-     
-     if force >1 , also force CVAR_INTERNAL's to be set. (Warning: don't use for latched cvars, memory leak).
-
-    server CVAR_LATCH - just sets cvar->latched_string
-    client CVAR_LATCH - (protected with CVAR_INTERNAL) (specific for game cvar). - bypasses modified and userinfo_modified (Also calls UpdateViolence here).
-
-  ----------------------
-
-  Cvar_Get() - Used for 'Creating Cvar'
-  Cvar_Set2() - Used for 'Setting Cvar'
-  
-	Cvar_Get -> If the variable already exists, the value will not be set
-	
-	==Cvar_Get Quirks==
-	--flags--
-		Cvar flags are or'ed in, thus multiple calls to Cvar_Get stack the flags, but doesn't remove flags.
-	--NULL callback argument--
-		Does the command with NULL, remove the command or create multiple?
-	  	NULL does not remove previous set modified callbacks.
-	  	With a new modified callback, it overrides the currently set one.
-
-	--Cvar already exists--
-		If the cvar already exists when calling Cvar_Get(), the callback is still fired if the value has been modified since.
-		I assume this needs the modified value to be reset to false, not sure how that happens, or if it does. 
-
-	 If you want your cvar's onChange callback to be triggered by config.cfg (which sets cvars).
-	 They have to be first created before config.cfg, thus it would have 2 calls to the callback, if the config.cfg contains a different value,
-	 than the default we supply here.
-
-	Modified callback is called _WHEN_:
-		Upon Cvar Creation in Cvar_Get()
-			If the Cvar already exists, it checks it has a modified=true AND a callback, then fires callback()
-			If the Cvar didn't exist, it checks ONLY if it has a callback, then fires callback()
-
-		Upon Cvar change in Cvar_Set2()
-		  If the value being set is DIFFERENT than current value _AND_ has a callback, then fires callback()
-
-
-	IMPORTANT:
-	  A cvar's modified function cannot use the global pointer because it hasnt' returned yet...
-
-	For cvar creation which requires to change other config.cfg cvars
-	By definition cvars which change other cvars cannot both have CVAR_ARCHIVE flags
-	Because then the order of them would matter inside the config.cfg (Race Condition).
-
-	SO: EVERY CVAR_ARCHIVE CVAR MUST NOT SHARE IMPLEMENTATION VARIABLE MAPPINGS, ELSE THEY CONFLICT WITH THEMSELVES,
-	THEY'RE ESSENTIALLY ALIASES FOR EACH OTHER, WHICH IS INVALID.
-
-
-	==Understanding cvar Race conditions==
-		Qcommon_Init()
-
-			//We do it twice incase a basedir or cddir etc are set
-			//To change behaviour of exec config.cfg etc...
-
-			//only process commandline "+set" commands
-			Cbuf_AddEarlyCommands (false);
-			Cbuf_Execute ();
-
-			//Process some launch options: -user -cddir -basedir -game
-			FS_InitFileSystem():
-
-			Cbuf_AddText ("exec default.cfg\n");
-			Cbuf_AddText ("exec config.cfg\n");
-
-			//Repeat the previous +set commands to override anything set by the config.cfg or default.cfg
-			//only process commandline "+set" commands
-			Cbuf_AddEarlyCommands (true);
-			Cbuf_Execute ();
-
-			//Exec autoexec.cfg
-		  CL_Init()
-		    FS_ExecAutoexec()
-
-			//Add all of the other commands with +CMD which are not +set and not -user etc (launch options)
-		  Cbuf_AddLateCommands()
-
-
-		TLDR:
-			default.cfg
-			config.cfg
-			launch_+set's
-			autoexec.cfg
-			launch_+cmd's
-
-		
 */
 
 
@@ -204,8 +114,8 @@ void create_scaled_fonts_cvars(void) {
 	con_maxlines = orig_Cvar_Get("con_maxlines","512",CVAR_ARCHIVE,NULL);
 	con_buffersize = orig_Cvar_Get("con_buffersize","32768",CVAR_ARCHIVE,NULL);
 
-	test = orig_Cvar_Get("test","21.1",NULL,NULL);
-	test2 = orig_Cvar_Get("test2","21.1",NULL,NULL);
+    test = orig_Cvar_Get("test","21.1",0,0);
+    test2 = orig_Cvar_Get("test2","21.1",0,0);
 
 	// test = orig_Cvar_Get("test","0",NULL,NULL);
 }

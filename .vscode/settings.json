@@ -1,4 +1,5 @@
 {
     "C_Cpp.default.compilerPath": "/usr/bin/i686-w64-mingw32-g++-posix",
     "makefile.compileCommandsPath": "compile_commands.json",
+    "cmake.ignoreCMakeListsMissing": true
  }

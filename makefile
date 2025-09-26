@@ -20,8 +20,8 @@ SDIR = src
 # Include directory
 INC = -Ihdr
 
-# Compiler flags -w (removes warnings)
-COMMON_CFLAGS = -D_WIN32_WINNT=0x0501 -Wno-write-strings -w -fpermissive -std=c++14
+# Compiler flags (default warnings)
+COMMON_CFLAGS = -D_WIN32_WINNT=0x0501 -std=c++14
 
 # Release compiler flags
 CFLAGS = $(COMMON_CFLAGS) 
@@ -51,19 +51,27 @@ _OBJS = $(patsubst $(SDIR)/%.cpp,$(ODIR)/%.o,$(SOURCES))
 # Object files
 OBJS = $(ODIR)/DetourXS/ADE32.o \
 	$(ODIR)/DetourXS/detourxs.o \
+	$(ODIR)/detour_tracker.o \
 	$(ODIR)/wsock_entry.o \
+	$(ODIR)/core.o \
+	$(ODIR)/ref_gl.o \
 	$(ODIR)/sof_buddy.o \
 	$(ODIR)/crc32.o \
 	$(ODIR)/util.o \
 	$(ODIR)/cvars.o \
-	$(ODIR)/features/media_timers.o \
-	$(ODIR)/features/ref_fixes.o \
-	$(ODIR)/features/scaled_font.o
+	$(ODIR)/features/feature_flags.o \
+	$(ODIR)/features/cinematic_freeze/hooks.o \
+	$(ODIR)/features/ref_fixes/hooks.o \
+	$(ODIR)/features/media_timers/hooks.o \
+	$(ODIR)/features/media_timers/media_timers.o \
+	$(ODIR)/features/ref_fixes/ref_fixes.o \
+	$(ODIR)/features/scaled_font/scaled_font.o
 
 # Linking rule
-$(OUT): $(OBJS)
+
+$(OUT): detours-prebuild $(OBJS)
 	@mkdir -p $(dir $(OUT))
-	$(CC) $(OFLAGS) rsrc/sof_buddy.def $^ -o $(OUT) -lws2_32 -lwinmm -lshlwapi -lpsapi
+	$(CC) $(OFLAGS) rsrc/sof_buddy.def $(OBJS) -o $(OUT) -lws2_32 -lwinmm -lshlwapi -lpsapi
 
 # Debug target
 debug: CFLAGS = $(DBG_CFLAGS)
@@ -78,5 +86,17 @@ $(ODIR)/%.o: $(SDIR)/%.cpp
 # Clean rule
 .PHONY: clean
 clean:
-	rm -rf $(ODIR) $(OUT)
+	rm -rf $(ODIR) $(OUT) rsrc/detours_prebuild.md rsrc/detours_prebuild.txt
+
+# Prebuild: generate detours list/header
+.PHONY: detours-prebuild detours
+detours-prebuild:
+	@echo "Running detours prebuild script..."
+	python3 scripts/list_detours.py || true
+
+detours:
+	@echo "Running detours prebuild script (detours target)..."
+	python3 scripts/list_detours.py || true
+	@echo "TXT: rsrc/detours_prebuild.txt" && head -n 20 rsrc/detours_prebuild.txt | cat
+	@echo && echo "MD: rsrc/detours_prebuild.md" && head -n 40 rsrc/detours_prebuild.md | cat
 

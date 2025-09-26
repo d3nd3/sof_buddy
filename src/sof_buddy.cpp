@@ -1,13 +1,17 @@
 #include "sof_buddy.h"
 
-#include <iostream>
+/* <iostream> intentionally unused; removed to silence linter */
 
 #include "sof_compat.h"
-#include "features.h"
+#include "feature_flags.h"
 
 #include "./DetourXS/detourxs.h"
+#define DETOUR_TRACKER_AUTOWRAP
+#include "detour_tracker.h"
+#include "core_hooks.h"
 
 #include "util.h"
+// #include "features/cinematic_freeze/hooks.h"  // Function declared but used indirectly through core.cpp
 
 //__ioinit
 void (*orig_FS_InitFilesystem)(void) = NULL;
@@ -15,14 +19,14 @@ void my_FS_InitFilesystem(void);
 void my_orig_Qcommon_Init(int argc, char **argv);
 qboolean my_Cbuf_AddLateCommands(void);
 
-cvar_t *(*orig_Cvar_Get)(const char * name, const char * value, int flags, cvarcommand_t command) = 0x20021AE0;
-cvar_t *(*orig_Cvar_Set2) (char *var_name, char *value, qboolean force) = 0x20021D70;
-void (*orig_Cvar_SetInternal)(bool active) = 0x200216C0;
-void ( *orig_Com_Printf)(char * msg, ...) = NULL;
-void (*orig_Qcommon_Frame) (int msec) = 0x2001F720;
+cvar_t *(*orig_Cvar_Get)(const char * name, const char * value, int flags, cvarcommand_t command) = reinterpret_cast<cvar_t*(*)(const char*,const char*,int,cvarcommand_t)>(0x20021AE0);
+cvar_t *(*orig_Cvar_Set2) (char *var_name, char *value, qboolean force) = reinterpret_cast<cvar_t*(*)(char*,char*,qboolean)>(0x20021D70);
+void (*orig_Cvar_SetInternal)(bool active) = reinterpret_cast<void(*)(bool)>(0x200216C0);
+void ( *orig_Com_Printf)(const char * msg, ...) = NULL;
+void (*orig_Qcommon_Frame) (int msec) = reinterpret_cast<void(*)(int)>(0x2001F720);
 
-void (*orig_Qcommon_Init) (int argc, char **argv) = 0x2001F390;
-qboolean (*orig_Cbuf_AddLateCommands)(void) = NULL;
+void (*orig_Qcommon_Init) (int argc, char **argv) = reinterpret_cast<void(*)(int,char**)>(0x2001F390);
+qboolean (*orig_Cbuf_AddLateCommands)(void) = nullptr;
 
 void (*orig_CL_UpdateSimulationTimeInfo)(float extratime) = NULL;
 void (*orig_CL_ReadPackets)(void) = NULL;
@@ -32,7 +36,7 @@ void (*orig_CinematicFreeze)(bool bEnable) = NULL;
 void my_CinematicFreeze(bool bEnable);
 
 
-char *(*orig_Sys_GetClipboardData)( void ) = 0x20065E60;
+char *(*orig_Sys_GetClipboardData)( void ) = reinterpret_cast<char*(*)(void)>(0x20065E60);
 char *Sys_GetClipboardData( void );
 
 void * my_Sys_GetGameApi(void * imports)
@@ -42,22 +46,14 @@ void * my_Sys_GetGameApi(void * imports)
 	// calls LoadLibrary
 	pv_ret = orig_Sys_GetGameApi(imports);
 
-	//Fixing cl_maxfps limitter for singleplayer-bug cinematics
-	DetourRemove(&orig_CinematicFreeze);
-	orig_CinematicFreeze = DetourCreate(0x50075190,&my_CinematicFreeze,DETOUR_TYPE_JMP,7);
+    //Fixing cl_maxfps limitter for singleplayer-bug cinematics
+    DetourRemove(&orig_CinematicFreeze);
+    orig_CinematicFreeze = reinterpret_cast<void(*)(bool)>(DetourCreateRF(reinterpret_cast<void*>(0x50075190),&core_CinematicFreeze,DETOUR_TYPE_JMP,7,"Cinematic Freeze Fix","Cinematic Freeze Fix"));
 
 	return pv_ret;
 }
-void my_CinematicFreeze(bool bEnable)
-{
-	bool before = *(char*)0x5015D8D5 == 1 ? true : false;
-	orig_CinematicFreeze(bEnable);
-	bool after = *(char*)0x5015D8D5 == 1 ? true : false;
-
-	if (before != after) {
-		*(char*)0x201E7F5B = after ? 0x1 : 0x00;
-	}
-}
+// Delegate feature behavior to features/cinematic_freeze/hooks.cpp
+// moved to core.cpp as core_CinematicFreeze
 /*
 	Testing if black nyc1 issue was caused by this function.
 	Seems it is not.
@@ -101,18 +97,18 @@ void my_Con_Draw_Console(void)
 		int		i;
 		char	*text;
 
-		static int* edit_line = 0x20367EA4;
-		static char* key_lines = 0x20365EA0;
+    static int* edit_line = reinterpret_cast<int*>(0x20367EA4);
+    static char* key_lines = reinterpret_cast<char*>(0x20365EA0);
 
-		static int* key_linepos = 0x20365E9C;
-		static int* cls_realtime = 0x201C1F0C;
-		static int* con_linewidth = 0x2024AF98;
-		static int* con_vislines = 0x2024AFA0;
+    static int* key_linepos = reinterpret_cast<int*>(0x20365E9C);
+    static int* cls_realtime = reinterpret_cast<int*>(0x201C1F0C);
+    static int* con_linewidth = reinterpret_cast<int*>(0x2024AF98);
+    static int* con_vislines = reinterpret_cast<int*>(0x2024AFA0);
 
-		static int* cls_key_dest = 0x201C1F04;
-		static int* cls_state = 0x201C1F00;
+    static int* cls_key_dest = reinterpret_cast<int*>(0x201C1F04);
+    static int* cls_state = reinterpret_cast<int*>(0x201C1F00);
 
-		static void (*ref_draw_char) (int, int, int, int) = *(int*)0x204035C8;
+    static void (*ref_draw_char) (int, int, int, paletteRGBA_s *) = reinterpret_cast<void(*)(int,int,int,paletteRGBA_s*)>(*reinterpret_cast<void**>(0x204035C8));
 		
 		//key_menu
 		if (*cls_key_dest == 3)
@@ -188,36 +184,15 @@ void my_Con_Draw_Console(void)
 		}
 }
 
-/*
-char *Sys_GetClipboardData( void ) {
-	char *data = NULL;
-	char *cliptext;
-
-	if ( OpenClipboard( NULL ) != 0 ) {
-		HANDLE hClipboardData;
-
-		if ( ( hClipboardData = GetClipboardData( CF_TEXT ) ) != 0 ) {
-			if ( ( cliptext = (char *) GlobalLock( hClipboardData ) ) != 0 ) {
-				data = (char *) Z_Malloc( GlobalSize( hClipboardData ) + 1, TAG_CLIPBOARD, qfalse);
-				strcpy( data, cliptext );
-				GlobalUnlock( hClipboardData );
-				
-				strtok( data, "\n\r\b" );
-			}
-		}
-		CloseClipboard();
-	}
-	return data;
-}
-*/
+// original Sys_GetClipboardData reference moved to feature docs
 
 char *my_Sys_GetClipboardData( void )
 {
 	char *cbd;
-	static void (*Z_Free)(void *pvAddress) = 0x200F9D32;
-	static int* key_linepos = 0x20365E9C;
-	static char* key_lines = 0x20365EA0;
-	static int* edit_line = 0x20367EA4;
+    static void (*Z_Free)(void *pvAddress) = reinterpret_cast<void(*)(void*)>(0x200F9D32);
+    static int* key_linepos = reinterpret_cast<int*>(0x20365E9C);
+    static char* key_lines = reinterpret_cast<char*>(0x20365EA0);
+    static int* edit_line = reinterpret_cast<int*>(0x20367EA4);
 
 	if ( ( cbd = orig_Sys_GetClipboardData() ) != 0 )
 	{
@@ -263,39 +238,19 @@ char *my_Sys_GetClipboardData( void )
 }
 
 /*
-	DllMain of WSOCK32 library
-	Implicit Linking (Static Linking to the Import Library)
-	the application is linked with an import library (.lib) file during the build process.
-	This import library contains information about the functions and data exported by the .dll.
-	When the application starts, the Windows loader automatically loads the .dll specified by the import library.
-	If the .dll is not found at runtime, the application will fail to start.
-
-	Before the application’s main entry point (e.g., main() or WinMain()) is called, 
-	the loader inspects the import table of the executable to determine the required .dll files
-	The loader attempts to load each .dll specified in the import table. This includes resolving the addresses 
-	of the functions and variables that the application imports from the .dlls.
-
-	Once a .dll is loaded, the loader calls the DllMain function of the .dll (if it exists) with the 
-	DLL_PROCESS_ATTACH notification. This allows the .dll to perform any necessary initialization.
-
+	
+	==Implicit Linking (Load-time dynamic linking)==
+	  .def and .lib files are used to link to the library.
+	==DelayLoad Linking==
+	  Same as ImplicitLinking, but with a delay, until first function called. This is the default in linux.
+	  When a Linux program is linked to a shared library (.so), a Procedure Linkage Table (PLT) and a Global Offset Table (GOT) are created.
+      But its not the default in windows.
+	==Explicit Linking (Run-time dynamic linking)==
+	  LoadLibrary
+	  
 	Each library exports the full set of winsock functions.
-	SoF.exe [Implicit]-> sof_buddy.dll [Explicit]->sof_plus.dll [Implicit]->native_winsock.dll
-
-	Module Definition File (.def): A module definition file gives you fine-grained control over linking. 
-	You can list the specific functions you want to import from a DLL:
-	LIBRARY    MyProgram
-	EXPORTS
-	    MyFunction
-	IMPORTS
-	    WSOCK32.dll.bind
-	    WSOCK32.dll.sendto
-	    ; ... (other functions)
-
-	Linker Options: Some linkers might have options to specify individual functions to import.
-	__declspec(dllimport) is a storage-class specifier that tells the compiler that a function or object or data type is 
-	defined in an external DLL.
-
-	The function or object or data type is exported from a DLL with a corresponding __declspec(dllexport).
+	So sofplus is using Implicit Linking to wsock32.dll and sof_buddy.dll is using Explicit Linking.
+	  SoF.exe [Implicit]-> sof_buddy.dll [Explicit]->sof_plus.dll [Implicit]->native_winsock.dll
 
 	spcl.dll selectively imports:
 	  bind
@@ -307,6 +262,7 @@ char *my_Sys_GetClipboardData( void )
 	  inet_addr
 
 	 I could had used implicit linking if I had known about it, so if I renamed the wsock.lib file it links to spcl.dll? weird?
+	 (The surprise is that you can list imports in the .def file)
 
 	 Initialization Order: 
 	   The operating system loader calls the DllMain functions of these DLLs in the order they are loaded.
@@ -316,13 +272,7 @@ char *my_Sys_GetClipboardData( void )
 	Even if your code has a single successful LoadLibrary call, multiple DllMain functions in other DLLs might have already executed.
 
 	So by default, spcl DllMain is called first, when we call LoadLibrary.
-	SoF.exe -> sof_buddy.dll -> spcl.dll
-
-	Cbuf_AddText - appends to buffer
-	Cbuf_Execute() called by CL_Init() and Qcommon_Init() and Qcommon_Frame()
-
-	sp sp_sc_timers callback code is executed by Qcommon_Frame()
-
+	SoF.exe -> sof_buddy.dll -> spcl.dll (called before sof_buddy)
 */
 void afterWsockInit(void)
 {
@@ -349,35 +299,39 @@ void afterWsockInit(void)
 	scaledFont_early();
 #endif
 
-	PrintOut(PRINT_LOG,"Before refFixes\n");
-	refFixes_early();
-	PrintOut(PRINT_LOG,"After refFixes\n");
+    #if defined(FEATURE_HD_TEX) || defined(FEATURE_TEAMICON_FIX) || defined(FEATURE_ALT_LIGHTING) || defined(FEATURE_FONT_SCALING)
+    PrintOut(PRINT_LOG,"Before refFixes\n");
+    refFixes_early();
+    PrintOut(PRINT_LOG,"After refFixes\n");
+    #endif
 	
 
 	//orig_Qcommon_Init = DetourCreate(orig_Qcommon_Init,&my_orig_Qcommon_Init,DETOUR_TYPE_JMP,5);
 	
-	orig_FS_InitFilesystem = DetourCreate(0x20026980, &my_FS_InitFilesystem,DETOUR_TYPE_JMP,6);
-	orig_Cbuf_AddLateCommands = DetourCreate(0x20018740,&my_Cbuf_AddLateCommands,DETOUR_TYPE_JMP,5);
+    orig_FS_InitFilesystem = reinterpret_cast<void(*)(void)>(DetourCreateRF(reinterpret_cast<void*>(0x20026980), &my_FS_InitFilesystem,DETOUR_TYPE_JMP,6,"Core filesystem init hook","Core"));
+    #ifdef FEATURE_MEDIA_TIMERS
+    orig_Cbuf_AddLateCommands = reinterpret_cast<qboolean(*)(void)>(DetourCreateRF(reinterpret_cast<void*>(0x20018740),&my_Cbuf_AddLateCommands,DETOUR_TYPE_JMP,5,"Post-cmdline init hook","Media Timers"));
+    #endif
 
 	
-	orig_Sys_GetGameApi = DetourCreate((void*)0x20065F20,(void*)&my_Sys_GetGameApi,DETOUR_TYPE_JMP,5);
+    orig_Sys_GetGameApi = reinterpret_cast<void*(*)(void*)>(DetourCreateRF(reinterpret_cast<void*>(0x20065F20),(void*)&my_Sys_GetGameApi,DETOUR_TYPE_JMP,5,"Game API hook","Core"));
 
 
 
 
 //=================== B U G  F I X I N G =========================
 
-	//PASTING INTO CONSOLE CRASH/OVERFLOW
-	// orig_Sys_GetClipboardData = DetourCreate((void*)0x20065E60,(void*)&my_Sys_GetClipboardData,DETOUR_TYPE_JMP,10);
-	WriteE8Call(0x2004BB63,&my_Sys_GetClipboardData);
-	// WriteByte(0x2004BB6E,0x8C); //Skip to end, we re-implement this section.
-	WriteE9Jmp(0x2004BB6C,0x2004BBFE);
+    //PASTING INTO CONSOLE CRASH/OVERFLOW
+    // orig_Sys_GetClipboardData = DetourCreate((void*)0x20065E60,(void*)&my_Sys_GetClipboardData,DETOUR_TYPE_JMP,10);
+    WriteE8Call(reinterpret_cast<void*>(0x2004BB63), reinterpret_cast<void*>(&my_Sys_GetClipboardData));
+    // WriteByte(0x2004BB6E,0x8C); //Skip to end, we re-implement this section.
+    WriteE9Jmp(reinterpret_cast<void*>(0x2004BB6C),reinterpret_cast<void*>(0x2004BBFE));
 
-	//Below causes this issue : Black Loading After Cinematic nyc1
-	//https://github.com/d3nd3/sof_buddy/issues/3
-	//Patch CL_Frame() to allow client frame limitting whilst in "single-player/non-dedicated" mode.
-	//Ths bug was fixed with hooking void CinematicFreeze(bool bEnable) and setting cl.frame.cinematicFreeze instantly.
-	WriteByte(0x2000D973,0x90);WriteByte(0x2000D974,0x90);
+    //Below causes this issue : Black Loading After Cinematic nyc1
+    //https://github.com/d3nd3/sof_buddy/issues/3
+    //Patch CL_Frame() to allow client frame limitting whilst in "single-player/non-dedicated" mode.
+    //Ths bug was fixed with hooking void CinematicFreeze(bool bEnable) and setting cl.frame.cinematicFreeze instantly.
+    WriteByte(reinterpret_cast<void*>(0x2000D973),0x90);WriteByte(reinterpret_cast<void*>(0x2000D974),0x90);
 
 #if 0
 
@@ -452,71 +406,18 @@ void afterWsockInit(void)
 //===================================================================================================
 //===================================================================================================
 #else
-	// WriteE8Call(0x2002111D,&my_Con_Draw_Console);
-	WriteE9Jmp(0x2002111D,&my_Con_Draw_Console);
-	WriteE9Jmp(0x20020C90, 0x20020D6C);
+    #ifdef FEATURE_CONSOLE_PASTE_FIX
+    // WriteE8Call(0x2002111D,&my_Con_Draw_Console);
+    WriteE9Jmp(0x2002111D,&my_Con_Draw_Console);
+    WriteE9Jmp(0x20020C90, 0x20020D6C);
+    #endif
 #endif
 
 
-	/*
-		So ye, there is a race condition.
-		If we call this init function before our detour/patches.
-		They get overriden it seems.
-		WSA_Startup calls Cmd_AddCommand etc in sofplus.
-		Specifically _sp_sc_on_change_CVARNAME feature.
-
-		Ah I remember now, it was because I was fustrated that I could not modify
-		any of the code that was in DllMain, because the code would execute instantly after
-		LoadLibrary(), so I had no chance to edit the memory. I wanted full control, thats all.
-		Kinda Naive reasoning.
-	*/
-	// Why do we need control of this?
-	/*
-	    He doesn't use detours, so they are fully compatible with detours,
-	    just it calls his hook first, then mine, then mine calls orig.
-	    his -> mine -> orig
-		Perhaps to ensure the same order each run, just in-case? Since the order of DllMain is not guaranteed?
-		I think this is not needed.
-		SoF plus memory edits in DllMain
-			2000F2B0 = CL_ParseServerMessage: svc_stufftext handle
-			2000C216 = ConnectionlessPacket() "cmd" disabled fully, even in singleplayer.
-			2000C5EA = Hook ConnectionlessPacket()
-			2000C04C = Ip of ConnectionlessPacket shown in Developer Print instead of normal Print
-			2001F8F6 = CL_Frame() hook
-			20066D86 = VID_LoadRefresh() hook
-			2006702A = R_Init hook
-			20066E25 = R_Shutdown hook
-			200160F5 = V_RenderView hook
-			2000D857 = cl_showfps print hook
-			2001610D = SCR_DrawInterface hook
-			20016126 = SCR_ExecuteLayoutString hook
-			2000C75D = LoadSoundModule hook
-
-			20066413 = Sys_Millisec hook
-			==Cmd_TokenizeString with macroExpand=True==
-				2000C01B = CL_ConnectionlessPacket
-				2001233F = CL_PredictWeapons
-				200194FC = Cmd_ExecuteString
-				20019549 = Cmd_ExecuteString
-				2005EEC8 = SV_ConnectionlessPacket
-				20063970 = SV_ExecuteClientMessage
-	*/
-	/*
-	//The media_timers.cpp is calling 
-		if ( o_sofplus ) {
-			spcl_Timers();
-			resetTimers(newtime);
-		}
-	And fully disables spcl's sys_millisecond hook.
-	But this all occurs within QCommon_Init(). Very later than here.
-	*/
-	
-	#if 0
+	#ifdef NOP_SOFPLUS_INIT_FUNCTION
 	if ( o_sofplus ) {
-		PrintOut(PRINT_LOG,"Before sofplusEntry\n");
 		BOOL (*sofplusEntry)(void) = o_sofplus + 0xF590;
 		BOOL result = sofplusEntry();
-		PrintOut(PRINT_LOG,"After sofplusEntry\n");
 	}
 	#endif
 
@@ -551,36 +452,36 @@ void InitDefaults(void)
 }
 
 /*
-	Inside Qcommon_Init()
-	After:
-	Cbuf_AddEarlyCommands (false);
-	Cbuf_Execute ();
+	Inside Qcommon_Init() - before any cvar is processed.
+	(earliest, but user/game/base paths are set)
 
-	<HERE>
-	default.cfg
-	config.cfg
-	launch_+set's
-	autoexec.cfg
-	launch_+cmd's
+	TLDLR: Above priority startup highest to lowest:
+		dedicated.cfg -----------(highest) (later)
+		+command commandlines
+		autoexec.cfg
+		sofplus addons
+		+set commandlines
+		config.cfg
+		default.cfg -------------(lowest) (earlier)
+		<HERE> (before any cvar is processed)
 
 	So we are trying to create cvars with modified callback functitons _BEFORE_ config.cfg.
 	Yet we can't use QCommon_Init hook because Cbuf_Init() is then not called.
+
 */
 void my_FS_InitFilesystem(void) {
 	orig_FS_InitFilesystem(); //processes cddir user etc setting dirs
 
 	/*
-		This is super early and no cvars from default.cfg or config.cfg or autoexec.cfg or +cmd  have been issued.
-		So values can be overwritten easily later.
-
-		HOWEVER:
 		This is the best place to create cvars as it ensures that the callbacks are executed by every other cvar creator function hereafter.
 		eg. config.cfg autoexec.cfg etc.
-
 	*/
 
-	//Allow PrintOut to use Com_Printf now.
-	orig_Com_Printf = 0x2001C6E0;
+    //Allow PrintOut to use Com_Printf now.
+    orig_Com_Printf = reinterpret_cast<void(*)(const char*,...)>(0x2001C6E0);
+
+	// Now we can print a clear feature summary in-game
+	features_print_summary();
 
 	//Best (Earliest)(before exec config.cfg) place for cvar creation, if you want config.cfg induced triggering of modified events.
 	//Idea = Cvar_Get() cvar creation with modified callback.
@@ -598,15 +499,15 @@ void my_FS_InitFilesystem(void) {
 	//orig_Com_Printf("End FS_InitFilesystem\n");
 }
 /*
-	A long standing bug, was related to the order of initializing cvars, which behaved different for a user without
-	a config.cfg than one with one. If getting crashes, always remember this!.
-
 	<HERE>
-	default.cfg
-	config.cfg
-	launch_+set's
-	autoexec.cfg
-	launch_+cmd's
+	TLDLR: Above priority startup highest to lowest:
+		dedicated.cfg -----------(highest)
+		+command commandlines
+		autoexec.cfg
+		sofplus addons
+		+set commandlines
+		config.cfg
+		default.cfg -------------(lowest)
 	<OR HERE>
 
 	This is currently unused/un-needed.
@@ -622,28 +523,34 @@ void my_orig_Qcommon_Init(int argc, char **argv)
 
 
 /*
-Earliest Init Location for where launch commands have fully been processed/executed.
-
-Cbuf_AddEarlyCommands
-  processes all `+set` commands first.
-
-Later in frame...
-Cbuf_AddLateCommands
-  all other commands that start with + are processed.
-  Ignores launch options eg. -user 
-
-"public 1" must be set inside dedicated.cfg because dedicated.cfg overrides it? If no dedicated.cfg in user, the dedicated.cfg from pak0.pak is used.
-
-	default.cfg
-	config.cfg
-	launch_+set's
+-commands are processed elsewhere by main() program init code.
+===============================================
+Cbuf_AddEarlyCommands (false); run it once for getting the basedir/cddir/game/user etc
+  create/set basedir/cddir/game/user etc...
+  exec default.cfg - now we have basedir/cddir/game/user etc we can exec this
+  exec config.cfg - now we have basedir/cddir/game/user etc we can exec this
+Cbuf_AddEarlyCommands (true); apply again and clear the +set parts as processed.
+  NET_Init()/WSA_Startup/SoFPlus Init/exec sofplus/sofplus.cfg
+  CL_Init()/exec autoexec.cfg (autoexec overrides +set in commmand line)
+Cbuf_AddLateCommands() - processes all other commands that start with + (except +set)
+(alias dedicated_start)exec dedicated.cfg // (alias start)menu disclaimer
+===============================================
+TLDLR: Above priority startup highest to lowest:
+	dedicated.cfg -----------(highest)
+	+command commandlines
 	autoexec.cfg
-	<HERE>
-	launch_+cmd's
-	<OR HERE>
-	
-	Maybe the purpose of this hook is so that we do stuff before the:
-	Soldier of Fortune Iniitalised print line. Thats all.
+	sofplus addons
+	+set commandlines
+	config.cfg
+	default.cfg -------------(lowest)
+
+
+If no dedicated.cfg in user, the dedicated.cfg from pak0.pak is used. (which contains public 0)
+
+
+	Do _FINALLY_ at init
+
+	But why does the order matter? For Us?
 */
 //this is called inside Qcommon_Init()
 qboolean my_Cbuf_AddLateCommands(void)

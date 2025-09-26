@@ -1,3 +1,5 @@
+#include "sof_compat.h"
+
 extern void mediaTimers_apply_afterCmdline(void);
 extern void mediaTimers_early(void);
 

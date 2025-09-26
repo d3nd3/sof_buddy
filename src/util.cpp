@@ -2,19 +2,21 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include "sof_compat.h"
 #include "util.h"
 
 // see util.h for debugging toggles 
 
-void (*orig_Z_Free) (void * v) = 0x2001EBC0;
-char *(*orig_CopyString) (char *in) = 0x2001EA20;
-void (*orig_Cmd_ExecuteString)(const char * string) = 0x200194F0;
+void (*orig_Z_Free) (void * v) = (void (*)(void *))0x2001EBC0;
+char *(*orig_CopyString) (char *in) = (char *(*)(char *))0x2001EA20;
+void (*orig_Cmd_ExecuteString)(const char * string) = (void (*)(const char *))0x200194F0;
 
 FILE * go_logfile = NULL;
 
-void PrintOut(int mode,char *msg,...)
+void PrintOut(int mode, const char *msg,...)
 {
 	
 	char ac_buf[1464];
@@ -31,8 +33,8 @@ void PrintOut(int mode,char *msg,...)
 #endif
 
 	//printf("length = %i\n",strlen(ac_buf));
-	if ( strlen(ac_buf) <= 1400)
-		strcpy(ac_tmp,ac_buf);
+    if ( strlen(ac_buf) <= 1400)
+        strcpy(ac_tmp,ac_buf);
 	else
 		return;
 	//printf("length = %i\n",strlen(ac_tmp));
@@ -99,12 +101,12 @@ void PrintOut(int mode,char *msg,...)
 	
 #endif
 
-	if ( orig_Com_Printf == NULL) return;
+    if ( orig_Com_Printf == NULL) return;
 	//in-game print
 	switch (mode) {
 		case PRINT_LOG :
 
-				strcpy(ac_buf,P_CYAN"~~~~~~~~~~"P_BLACK"\x24\xF8\x46"P_CYAN"\xAE\xC9\xC9 : "P_ORANGE);
+                strcpy(ac_buf, P_CYAN "~~~~~~~~~~" P_BLACK "\x24\xF8\x46" P_CYAN "\xAE\xC9\xC9 : " P_ORANGE);
 				strcat(ac_buf,ac_tmp);
 				orig_Com_Printf("%s",ac_buf);
 
@@ -114,14 +116,14 @@ void PrintOut(int mode,char *msg,...)
 		break;
 		case PRINT_GOOD :
 
-				strcpy(ac_buf,P_CYAN"~~~~~~~~~~"P_BLACK"\x24\xF8\x46"P_CYAN"\xAE\xC9\xC9 : "P_GREEN);
+                strcpy(ac_buf, P_CYAN "~~~~~~~~~~" P_BLACK "\x24\xF8\x46" P_CYAN "\xAE\xC9\xC9 : " P_GREEN);
 				strcat(ac_buf,ac_tmp);
 				orig_Com_Printf("%s",ac_buf);
 
 		break;
 		case PRINT_BAD :
 
-				strcpy(ac_buf,P_CYAN"~~~~~~~~~~"P_BLACK"\x24\xF8\x46"P_CYAN"\xAE\xC9\xC9 : "P_RED);
+                strcpy(ac_buf, P_CYAN "~~~~~~~~~~" P_BLACK "\x24\xF8\x46" P_CYAN "\xAE\xC9\xC9 : " P_RED);
 				strcat(ac_buf,ac_tmp);
 				orig_Com_Printf("%s",ac_buf);
 		break;
@@ -134,7 +136,7 @@ void PrintOut(int mode,char *msg,...)
 
 void writeUnsignedIntegerAt(void * addr, unsigned int value)
 {
-	DWORD dwProt=NULL;
+    DWORD dwProt=0;
 	// Enable writing to original
 	VirtualProtect(addr, 4, PAGE_READWRITE, &dwProt);
 	*(unsigned int*)(addr) = (unsigned int)value;
@@ -144,7 +146,7 @@ void writeUnsignedIntegerAt(void * addr, unsigned int value)
 
 void writeIntegerAt(void * addr, int value)
 {
-	DWORD dwProt=NULL;
+    DWORD dwProt=0;
 	// Enable writing to original
 	VirtualProtect(addr, 4, PAGE_READWRITE, &dwProt);
 	*(int*)(addr) = (int)value;
@@ -154,11 +156,11 @@ void writeIntegerAt(void * addr, int value)
 
 void WriteE8Call(void * where,void * dest)
 {
-	DWORD dwProt=NULL;
-	VirtualProtect(where, 5, PAGE_READWRITE, &dwProt);
-	*(unsigned char*)where = 0xE8;
-	*(int*)(where+1) = dest - (int)where - 5;
-	VirtualProtect(where, 5, dwProt, &dwProt);
+    DWORD dwProt=0;
+    VirtualProtect(where, 5, PAGE_READWRITE, &dwProt);
+    *(unsigned char*)where = 0xE8;
+    *(int*)((unsigned char*)where + 1) = (int)((char*)dest - (char*)where - 5);
+    VirtualProtect(where, 5, dwProt, &dwProt);
 }
 
 /*
@@ -167,19 +169,19 @@ void WriteE8Call(void * where,void * dest)
 */
 void WriteE9Jmp(void * where, void * dest)
 {
-	DWORD dwProt=NULL;
-	VirtualProtect(where, 5, PAGE_READWRITE, &dwProt);
-	*(unsigned char*)where = 0xE9;
-	*(int*)(where+1) = dest - (int)where - 5;
-	VirtualProtect(where, 5, dwProt, &dwProt);
+    DWORD dwProt=0;
+    VirtualProtect(where, 5, PAGE_READWRITE, &dwProt);
+    *(unsigned char*)where = 0xE9;
+    *(int*)((unsigned char*)where + 1) = (int)((char*)dest - (char*)where - 5);
+    VirtualProtect(where, 5, dwProt, &dwProt);
 }
 
 void WriteByte(void * where, unsigned char value)
 {
-	DWORD dwProt=NULL;
-	VirtualProtect(where, 1, PAGE_READWRITE, &dwProt);
-	*(unsigned char*)where = value;
-	VirtualProtect(where, 1, dwProt, &dwProt);
+    DWORD dwProt=0;
+    VirtualProtect(where, 1, PAGE_READWRITE, &dwProt);
+    *(unsigned char*)where = value;
+    VirtualProtect(where, 1, dwProt, &dwProt);
 }
 
 /*
@@ -188,7 +190,7 @@ Cvar Util Funcs
 cvar_t * findCvar(char * cvarname)
 {
 	cvar_t	*var;
-	cvar_t * cvar_vars = *(unsigned int*)0x2024B1D8;
+    cvar_t * cvar_vars = (cvar_t *)*(unsigned int*)0x2024B1D8;
 	
 	for (var=cvar_vars ; var ; var=var->next)
 		if (!strcmp (cvarname, var->name))

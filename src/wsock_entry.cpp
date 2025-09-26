@@ -1,14 +1,18 @@
-#define _WIN32_WINNT 0x501
+// Ensure target Windows version is set, but don't redefine if provided via build flags
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0501
+#endif
 
 // #define WINSOCK_ASSERT
 // #define WINSOCK_LOGGING
 
+// Winsock must be included before windows.h
+#include <winsock2.h>
 #include <windows.h>
 #include <shlwapi.h>
 
-#include <io.h> 
+#include <io.h>
 // #include <unistd.h>
-#include <winsock2.h>
 
 #include <stdio.h>
 #include <stdint.h>
@@ -30,7 +34,7 @@
 #include "util.h"
 #include "crc32.h"
 
-#include "features.h"
+#include "feature_flags.h"
 
 /*
 	CAUTION: Don't use directly without void* typecast
@@ -41,8 +45,8 @@
 	typedef struct HINSTANCE__ *HINSTANCE; // HINSTANCE is a pointer to this incomplete struct.
 	                                     // This is now an opaque pointer.
 */
-//Lets make it a void* instead, to future-proof code.
-void *o_sofplus = NULL;
+// Handle to sofplus module
+HMODULE o_sofplus = NULL;
 
 
 void GenerateRandomString(wchar_t* randomString, int length) {
@@ -57,7 +61,7 @@ void GenerateRandomString(wchar_t* randomString, int length) {
 
 
 
-bool SoFplusLoadFn(HMODULE sofplus,void ** out_fn,char * func);
+bool SoFplusLoadFn(HMODULE sofplus, void **out_fn, const char *func);
 
 // spcl.dll:  25 exports
 extern "C" BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved);
@@ -576,18 +580,12 @@ int sys_WSAGetLastError(void)
 }
 
 /*
-	Contains SoFPlus Init code.
-	Called by Qcommon_Init() -> NET_Init()
-	before Cbuf_AddLateCommands()
+	SoFPlus init timing notes
 
-	calls exec sofplus.cfg which initialises all addons
-
-	If an addon calls sp_sc_timer, its lines of code will be
-	Cbuf_AddText() inside WinMain loop. Which will be executed on next
-	Cbuf_Execute().
-
-	3 Stages of timer code.
-	Here -> WinMain -> Cbuf_Execute
+	- Called from NET_Init() (WSAStartup) during Qcommon_Init(), before Cbuf_AddLateCommands.
+	- SoFPlus runs addon init via Cbuf_AddText("exec sofplus.cfg").
+	- sp_sc_timer code enqueues commands that execute in the next Cbuf_Execute() inside the main loop.
+	- Effective timer stages: here (WSAStartup), then WinMain pacing, then Cbuf_Execute.
 */
 int sys_WSAStartup(WORD wVersionRequested,LPWSADATA lpWSAData)
 {
@@ -670,7 +668,7 @@ char* read_string(uintptr_t address,char * result) {
 }
 
 // A function that formats the error message from a given error code
-char* format_error_message(DWORD error_code) {
+const char* format_error_message(DWORD error_code) {
     char* message = NULL;
     DWORD length = FormatMessageA(
         FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -691,7 +689,7 @@ char* format_error_message(DWORD error_code) {
 
 void wsock_link(void)
 {
-	HANDLE o_wsock = LoadLibrary("WSOCK32");
+    HMODULE o_wsock = LoadLibrary("WSOCK32");
 	if ( o_wsock == NULL ) {
 		MessageBox(NULL, "LoadLibrary(WSOCK32)", "Error", MB_ICONERROR | MB_OK);
 		ExitProcess(1);
@@ -700,7 +698,7 @@ void wsock_link(void)
 	void **pv_funcs[24] = {(void**)&sp_bind,(void**)&sp_connect,(void**)&sp_getsockname,(void**)&sp_htonl,(void**)&sp_htons,(void**)&sp_inet_addr,(void**)&sp_inet_ntoa,(void**)&sp_ntohl,(void**)&sp_ntohs,(void**)&sp_recv,(void**)&sp_recvfrom,(void**)&sp_select,(void**)&sp_send,(void**)&sp_sendto,(void**)&sp_bind,(void**)&sp_setsockopt,(void**)&sp_shutdown,(void**)&sp_socket,(void**)&sp_gethostbyname,(void**)&sp_gethostname,(void**)&sp_WSAGetLastError,(void**)&sp_WSAStartup,(void**)&sp_WSACleanup,(void**)&sp___WSAFDIsSet};
 	bool wsockerror = false;
 	for ( int i = 0; i < 24; i++ ) {
-		if ( SoFplusLoadFn(o_wsock,(void**)pv_funcs[i],&ac_funcs[i][0]) == false )
+            if ( SoFplusLoadFn(o_wsock,(void**)pv_funcs[i],&ac_funcs[i][0]) == false )
 		{
 			MessageBox(NULL, (std::string(&ac_funcs[i][0]) + "Couldn't Load a wsock function").c_str(), "Error", MB_ICONERROR | MB_OK);
 			wsockerror = true;
@@ -767,13 +765,15 @@ void sofplus_copy(void)
 	    Why do we NOP this?
 		Nop the DllMain init function.
 	*/
+
+	#ifdef NOP_SOFPLUS_INIT_FUNCTION
 	void * p = pBuffer+0x9EBD;
 	WriteByte(p,0x90);
 	WriteByte(p+1,0x90);
 	WriteByte(p+2,0x90);
 	WriteByte(p+3,0x90);
 	WriteByte(p+4,0x90);
-	
+	#endif
 	// Force return SUCCESS.
 	#if 1
 	WriteByte(pBuffer+0x9EC4,0xEB);
@@ -945,9 +945,9 @@ void sofplus_copy(void)
 	if (o_sofplus == NULL) {
 		DWORD error = GetLastError();
 		MessageBoxW(NULL, (L"Cannot load sofplus!! Error code: " + std::to_wstring(error)).c_str(), L"Error", MB_ICONERROR | MB_OK);
-		ExitProcess(1);
-		// Handle error
-		return 1;
+        ExitProcess(1);
+        // Handle error
+        return;
 	} else {
 		//MessageBox(NULL, "Success", "Error", MB_ICONERROR | MB_OK);
 		PrintOut(PRINT_GOOD,"Successfully loaded sofplus! %08X\n",o_sofplus);
@@ -958,7 +958,7 @@ void sofplus_copy(void)
 		char ac_funcs[24][32] = {"bind","connect","getsockname","htonl","htons","inet_addr","inet_ntoa","ntohl","ntohs","recv","recvfrom","select","send","sendto","bind","setsockopt","shutdown","socket","gethostbyname","gethostname","WSAGetLastError","WSAStartup","WSACleanup","__WSAFDIsSet"};
 		void **pv_funcs[24] = {(void**)&sp_bind,(void**)&sp_connect,(void**)&sp_getsockname,(void**)&sp_htonl,(void**)&sp_htons,(void**)&sp_inet_addr,(void**)&sp_inet_ntoa,(void**)&sp_ntohl,(void**)&sp_ntohs,(void**)&sp_recv,(void**)&sp_recvfrom,(void**)&sp_select,(void**)&sp_send,(void**)&sp_sendto,(void**)&sp_bind,(void**)&sp_setsockopt,(void**)&sp_shutdown,(void**)&sp_socket,(void**)&sp_gethostbyname,(void**)&sp_gethostname,(void**)&sp_WSAGetLastError,(void**)&sp_WSAStartup,(void**)&sp_WSACleanup,(void**)&sp___WSAFDIsSet};
 		for ( int i = 0; i < 24; i++ ) {
-			if ( SoFplusLoadFn(o_sofplus,(void**)pv_funcs[i],&ac_funcs[i][0]) == false )
+            if ( SoFplusLoadFn(o_sofplus,(void**)pv_funcs[i],&ac_funcs[i][0]) == false )
 			{
 				#ifdef __LOGGING__
 				MessageBox(NULL, (std::string(&ac_funcs[i][0]) + "Couldn't Load a sofplus function").c_str(), "Error", MB_ICONERROR | MB_OK);
@@ -1020,6 +1020,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 			ExitProcess(1);
 			*/
 			
+			#ifdef FEATURE_SOFPLUS_INTEGRATION
 			if( access( ac_sofplus, F_OK ) != -1 ) {
 				PrintOut(PRINT_LOG,"spcl.dll exists\n");
 				//spcl.dll exists.
@@ -1047,8 +1048,15 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 					fclose(fp);
 				}
 			}
+			#endif
 			
-			if ( b_sofplus ) {
+			if (
+				#ifdef FEATURE_SOFPLUS_INTEGRATION
+				b_sofplus
+				#else
+				false
+				#endif
+			) {
 				PrintOut(PRINT_LOG,"SOFPLUS LOAD ATTEMPT\n");
 				PrintOut(PRINT_GOOD,"SoFplus detected\n");
 				sofplus_copy();
@@ -1079,7 +1087,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 }
 
 
-bool SoFplusLoadFn(HMODULE sofplus,void ** out_fn,char * func)
+bool SoFplusLoadFn(HMODULE sofplus, void **out_fn, const char *func)
 {
 	PrintOut(PRINT_LOG,"SoFplusLoadFn()\n");
 	*out_fn = (void*)GetProcAddress(sofplus,func);

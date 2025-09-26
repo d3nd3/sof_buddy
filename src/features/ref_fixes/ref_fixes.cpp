@@ -1,17 +1,21 @@
-#include "sof_buddy.h"
-
+#include <windows.h>
+#include <string.h>
 #include <unordered_map>
 #include <string>
 #include <math.h>
-#include <iostream>
+/* <iostream> intentionally unused; removed to silence linter */
 
 #include "sof_compat.h"
 #include "features.h"
 
-#include "../DetourXS/detourxs.h"
+#include "../../DetourXS/detourxs.h"
+#define DETOUR_TRACKER_AUTOWRAP
+#include "detour_tracker.h"
 
 
 #include "util.h"
+#include "features/ref_fixes/hooks.h"
+#include "ref_gl_hooks.h"
 
 typedef struct {
 	unsigned short w;
@@ -19,6 +23,31 @@ typedef struct {
 } m32size;
 std::unordered_map<std::string,m32size> default_textures;
 
+/*
+	Feature: Renderer fixes and GPU-side options
+
+	What it does:
+	- Hooks ref_gl.dll load/refresh to reapply detours across vid_restart and ref reloads.
+	- Provides texture filtering controls per type (mipped/unmipped/ui) and reliable gl_swapinterval reapply.
+	- Fixes team icon FOV/viewport positioning and HD m32 texture size reporting.
+	- Optional alternative lighting blend function tweaks (WhiteMagicRaven mode) via cvars.
+
+	Cinematic freeze / black screen (note moved from sof_buddy.cpp):
+	- The CL_Frame limiter interaction around cinematics required patching CinematicFreeze and a short NOP in CL_Frame.
+	  When enabled, sof_buddy sets cl.frame.cinematicFreeze immediately after toggles.
+
+	Detours and memory edits used by this feature:
+	- refFixes_early():
+	  * WriteE8Call(0x20066E75 -> RefInMemory); WriteByte(0x20066E7A, 0x90) to replace LoadLibrary for ref_gl.
+	  * DetourCreate(VID_LoadRefresh -> my_VID_LoadRefresh).
+	  * DetourCreate(VID_CheckChanges -> my_VID_CheckChanges) to re-trigger vsync on mode change.
+	- refFixes_cvars_init():
+	  * initDefaultTexSizes() when FEATURE_HD_TEX; create_reffixes_cvars() when FEATURE_ALT_LIGHTING.
+	- on_ref_init():
+	  * setup_minmag_filters(): WriteE8Call/WriteByte pairs to hook glTexParameterf for each texture category; mark gl_texturemode modified.
+	  * teamicon_fix_init(): hooks drawTeamIcons and writes FOV adjust pointers and intercepts.
+	  * lighting_fix_init(): DetourCreate(R_BlendLightmaps) and redirect glBlendFunc calls during blending.
+*/
 
 cvar_t * _gl_texturemode = NULL;
 cvar_t * gl_swapinterval = NULL;
@@ -83,12 +112,12 @@ void __stdcall glBlendFunc_R_BlendLightmaps(unsigned int sfactor,unsigned int df
 //defaults.
 int lightblend_src = GL_ZERO;
 int lightblend_dst = GL_SRC_COLOR;
-int *lightblend_target_src = 0x300A4610;
-int *lightblend_target_dst = 0x300A43FC;
+int *lightblend_target_src = reinterpret_cast<int*>(0x300A4610);
+int *lightblend_target_dst = reinterpret_cast<int*>(0x300A43FC);
 
 //15
 void lightblend_change(cvar_t * cvar) {
-	int value = cvar->string;
+    const char * value = cvar->string;
 	if (!strcmp(cvar->string,"GL_ZERO")) {
 		if (!strcmp(cvar->name,"_sofbuddy_lightblend_src")) {
 			lightblend_src = GL_ZERO;
@@ -193,20 +222,20 @@ void lightblend_change(cvar_t * cvar) {
 
 typedef struct
 {
-	char *name;
-	int gl_code;
+    const char *name;
+    int gl_code;
 } filter_mapping;
 filter_mapping min_filter_modes[] = {
-	{"GL_NEAREST",0x2600},
-	{"GL_LINEAR",0x2601},
-	{"GL_NEAREST_MIPMAP_NEAREST",0x2700},
-	{"GL_LINEAR_MIPMAP_NEAREST",0x2701},
-	{"GL_NEAREST_MIPMAP_LINEAR",0x2702},
-	{"GL_LINEAR_MIPMAP_LINEAR",0x2703}
+    {"GL_NEAREST",0x2600},
+    {"GL_LINEAR",0x2601},
+    {"GL_NEAREST_MIPMAP_NEAREST",0x2700},
+    {"GL_LINEAR_MIPMAP_NEAREST",0x2701},
+    {"GL_NEAREST_MIPMAP_LINEAR",0x2702},
+    {"GL_LINEAR_MIPMAP_LINEAR",0x2703}
 };
 filter_mapping mag_filter_modes[] = {
-	{"GL_NEAREST",0x2600},
-	{"GL_LINEAR",0x2601}
+    {"GL_NEAREST",0x2600},
+    {"GL_LINEAR",0x2601}
 };
 int minfilter_unmipped = 0x2600;
 int magfilter_unmipped = 0x2600;
@@ -284,13 +313,13 @@ void __stdcall orig_glTexParameterf_mag_ui(int target_tex, int param_name, float
 */
 void refFixes_early(void) {
 	//Direct LoadLibrary replacement.
-	WriteE8Call(0x20066E75,&RefInMemory);
-	WriteByte(0x20066E7A,0x90);
-
-	orig_VID_LoadRefresh = DetourCreate((void*)0x20066E10,(void*)&my_VID_LoadRefresh,DETOUR_TYPE_JMP,5);
-
-	//Fix gl_swapinterval on VID_CheckChanges
-	orig_VID_CheckChanges = DetourCreate((void*)0x200670C0 ,(void*)&my_VID_CheckChanges,DETOUR_TYPE_JMP,5);
+    WriteE8Call(reinterpret_cast<void*>(0x20066E75), reinterpret_cast<void*>(&RefInMemory));
+    WriteByte(reinterpret_cast<void*>(0x20066E7A),0x90);
+    
+    orig_VID_LoadRefresh = reinterpret_cast<qboolean(*)(char*)>(DetourCreateRF(reinterpret_cast<void*>(0x20066E10),(void*)&refgl_VID_LoadRefresh,DETOUR_TYPE_JMP,5,"Renderer reload hook","Renderer"));
+    
+    //Fix gl_swapinterval on VID_CheckChanges
+    orig_VID_CheckChanges = reinterpret_cast<void(*)(void)>(DetourCreateRF(reinterpret_cast<void*>(0x200670C0),(void*)&refgl_VID_CheckChanges,DETOUR_TYPE_JMP,5,"VSync reapply on mode change","Renderer"));
 
 
 }
@@ -323,8 +352,8 @@ void refFixes_cvars_init(void)
 
 int current_vid_w;
 int current_vid_h;
-int * viddef_width = 0x2040365C;
-int * viddef_height = 0x20403660;
+    int * viddef_width = reinterpret_cast<int*>(0x2040365C);
+    int * viddef_height = reinterpret_cast<int*>(0x20403660);
 void my_VID_CheckChanges(void)
 {
 	//trigger gl_swapinterval->modified for R_Init() -> GL_SetDefaultState()
@@ -370,7 +399,7 @@ int my_R_Init(void *hinstance, void *hWnd, void * unknown )
 {	
 	/*
 	DetourRemove(&orig_R_SetMode);
-	orig_R_SetMode = DetourCreate((void*)0x3001BBD0,&my_R_SetMode,DETOUR_TYPE_JMP,6);
+    orig_R_SetMode = reinterpret_cast<int(*)(void*)>(DetourCreate(reinterpret_cast<void*>(0x3001BBD0),&my_R_SetMode,DETOUR_TYPE_JMP,6));
 	*/
 	int retval = orig_R_Init(hinstance,hWnd,unknown);
 
@@ -387,7 +416,7 @@ void (__stdcall * orig_glBegin)(int mode) = NULL;
 void hd_fix_init(void) {
 	//texture uv coordinates scaling correctly.
 	DetourRemove(&orig_GL_BuildPolygonFromSurface);
-	orig_GL_BuildPolygonFromSurface = DetourCreate((void*)0x30016390,(void*)&my_GL_BuildPolygonFromSurface,DETOUR_TYPE_JMP,6);
+    orig_GL_BuildPolygonFromSurface = reinterpret_cast<void(*)(void*)>(DetourCreateRF(reinterpret_cast<void*>(0x30016390),(void*)&refgl_GL_BuildPolygonFromSurface,DETOUR_TYPE_JMP,6,"HD Textures","HD Textures"));
 }
 
 void teamicon_fix_init(void) {
@@ -396,18 +425,18 @@ void teamicon_fix_init(void) {
 	*/
 
 	DetourRemove(&orig_drawTeamIcons);
-	orig_drawTeamIcons = DetourCreate((void*)0x30003040,(void*)&my_drawTeamIcons,DETOUR_TYPE_JMP,6);
+    orig_drawTeamIcons = reinterpret_cast<void(*)(void*,void*,void*,void*)>(DetourCreateRF(reinterpret_cast<void*>(0x30003040),(void*)&refgl_drawTeamIcons,DETOUR_TYPE_JMP,6,"Teamicon Fix","Teamicon Fix"));
 
 
-	writeUnsignedIntegerAt(0x3000313F,(unsigned int)&fovfix_x);
-	writeUnsignedIntegerAt(0x30003157,(unsigned int)&fovfix_y);
+    writeUnsignedIntegerAt(reinterpret_cast<void*>(0x3000313F),(unsigned int)&fovfix_x);
+    writeUnsignedIntegerAt(reinterpret_cast<void*>(0x30003157),(unsigned int)&fovfix_y);
 
 	// 0x30003187 + 5 - something = TeamIconInterceptFix
-	writeIntegerAt(0x30003187,(int)&TeamIconInterceptFix - 0x30003187 - 4);
+    writeIntegerAt(reinterpret_cast<void*>(0x30003187),(int)&TeamIconInterceptFix - 0x30003187 - 4);
 
 	//orig_fovAdjustBytes = *(unsigned int*)(0x200157A8);
 	// fov adjust display
-	writeUnsignedIntegerAt(0x200157A8,&teamviewFovAngle);
+    writeUnsignedIntegerAt(reinterpret_cast<void*>(0x200157A8),(unsigned int)&teamviewFovAngle);
 }
 #ifdef FEATURE_ALT_LIGHTING
 void lighting_fix_init(void) {
@@ -440,31 +469,31 @@ void lighting_fix_init(void) {
 		For multiply blending /w gl_ext_multitexture 0.
 	*/
 	DetourRemove(&orig_R_BlendLightmaps);
-	orig_R_BlendLightmaps = DetourCreate((void*)0x30015440,(void*)&my_R_BlendLightmaps,DETOUR_TYPE_JMP,6);
+    orig_R_BlendLightmaps = reinterpret_cast<void(*)(void)>(DetourCreateRF(reinterpret_cast<void*>(0x30015440),(void*)&refgl_R_BlendLightmaps,DETOUR_TYPE_JMP,6,"Alt Lighting","FEATURE_ALT_LIGHTING"));
 	
 	lightblend_change(_sofbuddy_lightblend_src);
 	lightblend_change(_sofbuddy_lightblend_dst);
 
-	real_glBlendFunc = *(int*)0x300A426C;
+    real_glBlendFunc = reinterpret_cast<void(__stdcall*)(int,int)>(*(uintptr_t*)0x300A426C);
 	//Hook glBlendFuncs
-	WriteE8Call(0x3001B9A4,&glBlendFunc_R_BlendLightmaps);
-	WriteByte(0x3001B9A9,0x90);
-	WriteE8Call(0x3001B690,&glBlendFunc_R_BlendLightmaps);
-	WriteByte(0x3001B695,0x90);
+    WriteE8Call(reinterpret_cast<void*>(0x3001B9A4),reinterpret_cast<void*>(&glBlendFunc_R_BlendLightmaps));
+    WriteByte(reinterpret_cast<void*>(0x3001B9A9),0x90);
+    WriteE8Call(reinterpret_cast<void*>(0x3001B690),reinterpret_cast<void*>(&glBlendFunc_R_BlendLightmaps));
+    WriteByte(reinterpret_cast<void*>(0x3001B695),0x90);
 
 
 	//Disable setting blend_target in R_BlendLightmaps, we do this now.
-	WriteByte(0x30015584,0x90);
-	WriteByte(0x30015585,0x90);
-	WriteByte(0x30015586,0x90);
-	WriteByte(0x30015587,0x90);
-	WriteByte(0x30015588,0x90);
-	WriteByte(0x30015589,0x90);
-	WriteByte(0x3001558A,0x90);
-	WriteByte(0x3001558B,0x90);
-	WriteByte(0x3001558C,0x90);
-	WriteByte(0x3001558D,0x90);
-	WriteByte(0x3001558E,0x90);
+    WriteByte(reinterpret_cast<void*>(0x30015584),0x90);
+    WriteByte(reinterpret_cast<void*>(0x30015585),0x90);
+    WriteByte(reinterpret_cast<void*>(0x30015586),0x90);
+    WriteByte(reinterpret_cast<void*>(0x30015587),0x90);
+    WriteByte(reinterpret_cast<void*>(0x30015588),0x90);
+    WriteByte(reinterpret_cast<void*>(0x30015589),0x90);
+    WriteByte(reinterpret_cast<void*>(0x3001558A),0x90);
+    WriteByte(reinterpret_cast<void*>(0x3001558B),0x90);
+    WriteByte(reinterpret_cast<void*>(0x3001558C),0x90);
+    WriteByte(reinterpret_cast<void*>(0x3001558D),0x90);
+    WriteByte(reinterpret_cast<void*>(0x3001558E),0x90);
 }
 
 /*
@@ -575,26 +604,26 @@ void setup_minmag_filters(void) {
 
 	// This overpowers sofplus _sp_cl_vid_gl_texture_mag_filter.
 	// Could later allow his cvar to be used for mag_ui, maybe.
-	orig_glTexParameterf = *(int*)0x300A457C;
+    orig_glTexParameterf = reinterpret_cast<void(__stdcall*)(int,int,float)>(*(uintptr_t*)0x300A457C);
 
 	//Setup the glParameterf hooks for each individual one.
-	WriteE8Call(0x30006636 ,&orig_glTexParameterf_min_mipped);
-	WriteByte(0x3000663B,0x90);
+    WriteE8Call(reinterpret_cast<void*>(0x30006636), reinterpret_cast<void*>(&orig_glTexParameterf_min_mipped));
+    WriteByte(reinterpret_cast<void*>(0x3000663B),0x90);
 
-	WriteE8Call(0x30006660 ,&orig_glTexParameterf_mag_mipped);
-	WriteByte(0x30006665,0x90);
+    WriteE8Call(reinterpret_cast<void*>(0x30006660), reinterpret_cast<void*>(&orig_glTexParameterf_mag_mipped));
+    WriteByte(reinterpret_cast<void*>(0x30006665),0x90);
 
-	WriteE8Call(0x300065DF ,&orig_glTexParameterf_min_unmipped);
-	WriteByte(0x300065E4,0x90);
+    WriteE8Call(reinterpret_cast<void*>(0x300065DF), reinterpret_cast<void*>(&orig_glTexParameterf_min_unmipped));
+    WriteByte(reinterpret_cast<void*>(0x300065E4),0x90);
 
-	WriteE8Call(0x30006609 ,&orig_glTexParameterf_mag_unmipped);
-	WriteByte(0x3000660E,0x90);
+    WriteE8Call(reinterpret_cast<void*>(0x30006609), reinterpret_cast<void*>(&orig_glTexParameterf_mag_unmipped));
+    WriteByte(reinterpret_cast<void*>(0x3000660E),0x90);
 
-	WriteE8Call(0x3000659C ,&orig_glTexParameterf_min_ui);
-	WriteByte(0x300065A1,0x90);
+    WriteE8Call(reinterpret_cast<void*>(0x3000659C), reinterpret_cast<void*>(&orig_glTexParameterf_min_ui));
+    WriteByte(reinterpret_cast<void*>(0x300065A1),0x90);
 
-	WriteE8Call(0x300065B1 ,&orig_glTexParameterf_mag_ui);
-	WriteByte(0x300065B6,0x90);
+    WriteE8Call(reinterpret_cast<void*>(0x300065B1), reinterpret_cast<void*>(&orig_glTexParameterf_mag_ui));
+    WriteByte(reinterpret_cast<void*>(0x300065B6),0x90);
 
 	
 	// orig_Com_Printf("Triggering glTextureMOde!!\n");
@@ -603,8 +632,8 @@ void setup_minmag_filters(void) {
 
 
 	//==init== code for gl_swapinterval fix
-	gl_swapinterval = orig_Cvar_Get("gl_swapinterval","0",NULL,NULL);
-	vid_ref = orig_Cvar_Get("vid_ref","gl",NULL,NULL);
+    gl_swapinterval = orig_Cvar_Get("gl_swapinterval","0",0,0);
+    vid_ref = orig_Cvar_Get("vid_ref","gl",0,0);
 
 }
 
@@ -621,7 +650,7 @@ int my_R_SetMode(void * deviceMode) {
 	
 	return ret;
 }
-HMODULE (__stdcall *orig_LoadLibraryA)(LPCSTR lpLibFileName) = *(unsigned int*)0x20111178;
+HMODULE (__stdcall *orig_LoadLibraryA)(LPCSTR lpLibFileName) = reinterpret_cast<HMODULE(__stdcall*)(LPCSTR)>(0x20111178);
 
 /*
 	Direct LoadLibrary replacement.
@@ -637,8 +666,8 @@ HMODULE __stdcall RefInMemory(LPCSTR lpLibFileName)
 		/*
 			Get the exact moment that hardware-changed new setup files are exec'ed (cpu_ vid_card different to config.cfg)
 		*/
-		WriteE8Call(0x3000FA26,&InitDefaults);
-		WriteByte(0x3000FA2B,0x90);	
+        WriteE8Call(reinterpret_cast<void*>(0x3000FA26), reinterpret_cast<void*>(&InitDefaults));
+        WriteByte(reinterpret_cast<void*>(0x3000FA2B),0x90); 	
 	}
 	
 	return ret;
@@ -810,12 +839,12 @@ typedef struct image_s
 */
 void my_GL_BuildPolygonFromSurface(void *msurface_s) {
 	//orig_Com_Printf("my_GL_BuildPolygonFromSurface\n");
-	unsigned int *mtexinfo_t = (unsigned int*)(msurface_s+0x34);
-	unsigned int *image_s = *mtexinfo_t+0x2C;
-	unsigned short * img_w = *image_s+0x44;
-	unsigned short * img_h = *image_s+0x46;
+    unsigned int *mtexinfo_t = reinterpret_cast<unsigned int*>(reinterpret_cast<char*>(msurface_s) + 0x34);
+    unsigned int *image_s = reinterpret_cast<unsigned int*>(static_cast<uintptr_t>(*mtexinfo_t) + 0x2C);
+    unsigned short * img_w = reinterpret_cast<unsigned short*>(static_cast<uintptr_t>(*image_s) + 0x44);
+    unsigned short * img_h = reinterpret_cast<unsigned short*>(static_cast<uintptr_t>(*image_s) + 0x46);
 
-	char* name = *image_s;
+    char* name = reinterpret_cast<char*>(static_cast<uintptr_t>(*image_s));
 
 	//surface texture name to lowercase
 	std::string texName = name;
@@ -914,7 +943,7 @@ void my_drawTeamIcons(float * targetPlayerOrigin,char * playerName,char * imageN
 
 	teamviewFovAngle = diagonalFov;
 
-	orig_drawTeamIcons(targetPlayerOrigin,playerName,imageNameTeamIcon,redOrBlue);
+    orig_drawTeamIcons(reinterpret_cast<void*>(targetPlayerOrigin), reinterpret_cast<void*>(playerName), reinterpret_cast<void*>(imageNameTeamIcon), reinterpret_cast<void*>(static_cast<intptr_t>(redOrBlue)));
 }
 
 int TeamIconInterceptFix(void)
@@ -926,8 +955,11 @@ int TeamIconInterceptFix(void)
 	// virtualHeight to RealHeight
 	// (realHeight - virtualHeight) * 0.5
 	float thedata;
-	asm volatile(	"fstp %0;"
-					::"m"(thedata):);
+	/* Use the single-precision FPU store mnemonic to avoid an
+	   assembler warning about missing operand size. 'fstps' writes
+	   ST(0) as a 32-bit float. Use an output constraint so the
+	   compiler knows the memory is written. */
+	asm volatile ("fstps %0" : "=m" (thedata));
 	unsigned int realHeight = *(unsigned int*)0x3008FFC8;
 	unsigned int virtualHeight = *(unsigned int*)0x3008FCF8;
 

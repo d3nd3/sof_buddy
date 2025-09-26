@@ -3,22 +3,48 @@
 //for _controlfp
 #include "customfloat.h"
 
-#include <iostream>
+/* <iostream> intentionally unused; keep removed to silence linter */
 
 #include "sof_compat.h"
 #include "features.h"
 
 
 #include "util.h"
+#include "core_hooks.h"
+#include "features/media_timers/hooks.h"
 
 
-#include "../DetourXS/detourxs.h"
+#include "../../DetourXS/detourxs.h"
+#define DETOUR_TRACKER_AUTOWRAP
+#include "detour_tracker.h"
 
 #include <cmath>  // Include cmath for std::ceil
 
 #include <cassert>
 
 
+/*
+	Feature: Media timers (QPC-based) and main loop pacing
+
+	What it does:
+	- Replaces legacy timeGetTime()-based timing with QueryPerformanceCounter for smoother frame pacing.
+	- Implements a custom WinMain loop pacing (sleep + busyspin) respecting cl_maxfps and SP frame cadence.
+	- Integrates with SoFPlus timers when present, updating its timestamp variables to keep both in sync.
+
+	Init/race notes (moved from sof_buddy.cpp):
+	- SoFPlus is initialised in NET_Init() (WSAStartup) during Qcommon_Init(), and its addons run via Cbuf_AddText.
+	- Our early timer hook runs before addon code, but the first sp_sc_timer executes later during Cbuf_Execute in the frame.
+	- To avoid timing resets (e.g. curtime reset to 0) we hook Sys_Milliseconds very early and then patch the main loop.
+
+	Detours and memory edits used by this feature:
+	- mediaTimers_early():
+	  * DetourCreate(0x20055930 -> my_Sys_Milliseconds) // early Sys_Milliseconds hook
+	- mediaTimers_apply_afterCmdline():
+	  * WriteE8Call(0x20066412 -> winmain_loop)         // patch WinMain loop entry
+	  * WriteE9Jmp(0x20066417 -> 0x2006643C)            // skip original loop body, resume after
+	  * WriteE8Call(0x20065D5E -> my_Sys_Milliseconds); WriteByte(0x20065D63, 0x90) // Sys_SendKeyEvents uses our clock
+	  * SoFPlus integration: sets sp_Sys_Mil, sp_* timestamp pointers and resets (*sp_current_timestamp etc.)
+*/
 void high_priority_change(cvar_t * cvar);
 void sleep_change(cvar_t * cvar);
 bool sleep_mode = true;
@@ -90,7 +116,7 @@ void mediaTimers_early(void)
 	//sofplus only hooks into the sys_milli called by WinMain
 	int before_curtime = orig_sys_mil();
 	#endif
-	Sys_Mil_AfterHookThunk = DetourCreate(0x20055930,&my_Sys_Milliseconds,DETOUR_TYPE_JMP,5);
+    Sys_Mil_AfterHookThunk = reinterpret_cast<int(*)(void)>(DetourCreateRF(reinterpret_cast<void*>(0x20055930),(void*)&core_Sys_Milliseconds,DETOUR_TYPE_JMP,5,"Media Timers","Media Timers"));
 
 	#if 0
 	//Correct the timer value used in sofplus timers.
@@ -107,26 +133,13 @@ void mediaTimers_early(void)
 	#endif
 }
 #ifdef FEATURE_MEDIA_TIMERS
-/*
-	Also implements cl_maxfps in singleplayer
 
-	QCommon_Init() is called before any loop stuff.
-
-	SoFPlus Init (WSAStartup) is called by NET_Init() inside QCommon_Init() just before this function.
-
-	Because the sofplus addons are ran by WSA_Startup()-. Cbuf_AddText("exec sofplus.cfg").
-	The actual first call to sp_sc_timer occurs later when the console is executed.
-
-	This means the next call to Sys_Milliseconds() after WSA_Startup() is setting the curtime back again.
-
-	NOTE: Sys_Miliseconds is called inside Sys_Init() before NET_Init().
-*/
 void mediaTimers_apply_afterCmdline(void)
 {
 	//CVAR_ARCHIVE - save to config.cfg
 	//CVAR_NOSET - write-only.
 	//===Cvars====
-	cl_maxfps = orig_Cvar_Get("cl_maxfps","30",NULL,&cl_maxfps_change);
+    cl_maxfps = orig_Cvar_Get("cl_maxfps","30",0,&cl_maxfps_change);
 	
 	create_mediatimers_cvars();
 
@@ -144,10 +157,10 @@ void mediaTimers_apply_afterCmdline(void)
 	//Remember that this is where ctrl hooks the Sys_milliseconds()
 	//Patch call to sys_millisecond -
 
-	WriteE8Call(0x20066412,&winmain_loop);
+    WriteE8Call(reinterpret_cast<void*>(0x20066412), reinterpret_cast<void*>(&winmain_loop));
 
 	//continue the outer loop once sys_millisecond returns, nothing else.
-	WriteE9Jmp(0x20066417,0x2006643C);
+    WriteE9Jmp(reinterpret_cast<void*>(0x20066417),reinterpret_cast<void*>(0x2006643C));
 
 
 	//use Sys_Milliseconds() instead of timeGetTime() for: 
@@ -155,47 +168,47 @@ void mediaTimers_apply_afterCmdline(void)
 	//		Sys_SendKeyEvent()
 	//			sys_frame_time = timeGetTime();
 	//Wasn't originally an 0xE8 call, was 0xFF 0x15. Thus extra byte nopped.
-	WriteE8Call(0x20065D5E,&my_Sys_Milliseconds); // 5e 5f 60 61 62 63
-	WriteByte(0x20065D63,0x90);
+    WriteE8Call(reinterpret_cast<void*>(0x20065D5E), reinterpret_cast<void*>(&my_Sys_Milliseconds)); // 5e 5f 60 61 62 63
+    WriteByte(reinterpret_cast<void*>(0x20065D63),0x90);
 
 
 	//==SoF Plus integration==
 	if ( o_sofplus ) {
 		
-		spcl_FreeScript = o_sofplus+0x9D20;
-		spcl_Timers = o_sofplus+0x10190;
+        spcl_FreeScript = reinterpret_cast<void(*)(void)>(reinterpret_cast<char*>(o_sofplus) + 0x9D20);
+        spcl_Timers = reinterpret_cast<void(*)(void)>(reinterpret_cast<char*>(o_sofplus) + 0x10190);
 
-		
-		sp_Sys_Mil = o_sofplus+0xFA60; //sofplus sys_mil
+        
+        sp_Sys_Mil = reinterpret_cast<int(*)(void)>(reinterpret_cast<char*>(o_sofplus) + 0xFA60); //sofplus sys_mil
 		Sys_Mil = &my_Sys_Milliseconds;
 
-		sp_whileLoopCount = o_sofplus+0x33188;
-		*sp_whileLoopCount = 0;
+        sp_whileLoopCount = reinterpret_cast<int*>(reinterpret_cast<char*>(o_sofplus) + 0x33188);
+        *sp_whileLoopCount = 0;
 
 		//If framecount increased (CL_Frame ran) sets 
 
 		// sp_lastFullClientFrame = sp_current_timestamp
 		// inside CL_Frame Hook.
-		sp_lastFullClientFrame = o_sofplus+0x331F0;
-		*sp_lastFullClientFrame = 0;
+        sp_lastFullClientFrame = reinterpret_cast<int*>(reinterpret_cast<char*>(o_sofplus) + 0x331F0);
+        *sp_lastFullClientFrame = 0;
 
 		//Both set by Sys_Milli inside Main()
 
 		//This one only used by cmp to call timers within the sys_mill hook
-		sp_current_timestamp2 = o_sofplus+0x33220;
-		*sp_current_timestamp2 = 0;
+        sp_current_timestamp2 = reinterpret_cast<int*>(reinterpret_cast<char*>(o_sofplus) + 0x33220);
+        *sp_current_timestamp2 = 0;
 
 		//Used to set sp_lastFullClientFrame and SCR_DrawInterface fps
-		sp_current_timestamp = o_sofplus+0x331F4;
-		*sp_current_timestamp = 0;
+        sp_current_timestamp = reinterpret_cast<int*>(reinterpret_cast<char*>(o_sofplus) + 0x331F4);
+        *sp_current_timestamp = 0;
 
-		
-
+	
+	
 	}
 	else {
-		// Sys_Mil = 0x20055930; //original
-		Sys_Mil = &my_Sys_Milliseconds;
-	}
+        // Sys_Mil = 0x20055930; //original
+        Sys_Mil = &my_Sys_Milliseconds;
+    }
 
 	#if 0
 	//This was an idea to set 1 core affinity to make QueryPerformanceCounter behave nicer.
@@ -335,40 +348,18 @@ typedef NTSTATUS(WINAPI* pNtQueryTimerResolution)(PULONG, PULONG, PULONG);
 
 
 #if 1
-/*
-GOAL:
-the frames sacrifice equal distance from each other in time for equal frequency per second
-so more stutter, but the stutter is not noticeable if you are on 60hz refresh eg.
 
-msec sent to server is set:
-ms = cls.frametime * 1000;
-
-This variable is the actual msec when factoring in load + vsync etc.
-Not the target/max msec. (because of extratime - measured)
-
-cls.frametime is calculated in CL_Frame():
-cls.frametime = extratime/1000.0;
-
-Which makes sense, since its the extratime that triggered the frame to draw...
-When vsync is active the renderFrame will block, causing high time/msec value pushed into CL_Frame()
-Making extratime have a very large value.
-
-SoF uses 1/cls.frametime to compute fps display
-So if we modify extratime, we are messing with the fps display _AND_ that affects user speed, so its potentially
-unsafe.
-*/
 int winmain_loop(void)
 {
-	static int * const cls_state = 0x201C1F00;
+    static int * const cls_state = reinterpret_cast<int*>(0x201C1F00);
 	int newtime = 0, timedelta = 0;
-	static int * const extratime = 0x201E7578;
+    static int * const extratime = reinterpret_cast<int*>(0x201E7578);
 
 	bool didSleep = false;
 	bool isBeingBorrowed = false;
 
 	int last_extratime_resume = 0;
 	//detect fresh cl_frame()
-
 
 	if ( *extratime == 0 ) {
 		if ( extratime_resume > 0 ) {
@@ -508,8 +499,8 @@ int winmain_loop(void)
 
 	if ( o_sofplus ) {
 		//We call this one because it handles everything, timers,free,_sp_cl_info_state,_sp_cl_info_server
-		*(int*)(o_sofplus + 0x331AC) = 0x00;
-		*(int*)(o_sofplus + 0x331BC) = 0x00;
+        *reinterpret_cast<int*>(reinterpret_cast<char*>(o_sofplus) + 0x331AC) = 0x00;
+        *reinterpret_cast<int*>(reinterpret_cast<char*>(o_sofplus) + 0x331BC) = 0x00;
 		sp_Sys_Mil();
 	}
 
@@ -523,40 +514,7 @@ int winmain_loop(void)
 	//does not matter what we return here because we have jmp instruction immidiately after.
 	return 0;
 }
-/*
-========LOOP EDITED=========
 
-	while (1)
-	{
-		<--------------------EXIT/RESUME
-		// if at a full screen console, don't update unless needed
-		if (Minimized || (dedicated && dedicated->value) )
-		{
-			Sleep (1);
-		}
-
-		while (PeekMessage (&msg, NULL, 0, 0, PM_NOREMOVE))
-		{
-			if (!GetMessage (&msg, NULL, 0, 0))
-				Com_Quit ();
-			sys_msg_time = msg.time;
-			TranslateMessage (&msg);
-   			DispatchMessage (&msg);
-		}
-
-		do
-		{
-			newtime = Sys_Milliseconds (); <----------------ENTRY
-			time = newtime - oldtime;
-		} while (time < 1);
-
-		_controlfp( _PC_24, _MCW_PC );
-		Qcommon_Frame (time);
-
-		oldtime = newtime;
-		<--------------------EXIT/RESUME
-	}
-*/
 
 #else
 // This is called in place of Sys_Millisecond.
@@ -620,7 +578,7 @@ freq = 10,000,000, so resolution = 1/10,000,000 = 0.0000001 = 0.1 microseconds =
 1000 ms = 1s
 _sp_cl_cpu_cool 1 = 0.1 ms = 100 us
 */
-__attribute__((always_inline)) long long qpc_timers(bool force)
+inline long long qpc_timers(bool force)
 {
 	
 	LARGE_INTEGER cur = {0};
@@ -629,8 +587,7 @@ __attribute__((always_inline)) long long qpc_timers(bool force)
     {
 		if (!QueryPerformanceFrequency(&freq))
 		{
-			printf("QueryPerformanceFrequency failed\n");
-			orig_Com_Printf("QueryPerformanceFrequency failed\n");
+    orig_Com_Printf("QueryPerformanceFrequency failed\n");
 			ExitProcess(1);
 		}
 	}
@@ -639,8 +596,7 @@ __attribute__((always_inline)) long long qpc_timers(bool force)
 	{
 		if (!QueryPerformanceCounter(&base))
 		{
-			printf("QueryPerformanceCounter failed\n");
-			orig_Com_Printf("QueryPerformanceCounter failed\n");
+    orig_Com_Printf("QueryPerformanceCounter failed\n");
 			ExitProcess(1);
 		}
 	}
@@ -649,58 +605,7 @@ __attribute__((always_inline)) long long qpc_timers(bool force)
 	return (long long)(cur.QuadPart - base.QuadPart);
 }
 
-/*
-	
-The difference between an older and a newer value of the QueryPerformanceCounter can be negative.
-(This can happen when the thread moves from one CPU core to an other.)
 
-Consider explicitly binding the thread to a specific processor using SetThreadAffinityMask to avoid counter discrepancies caused by core switching.
-*/
-// SofPlus -> Us -> orig
-
-/*
-	This is actually called in Sys_Init() inside QCommon_Init()
-	By some cpu_analyse type code.
-
-	Next its called by: Netchan_Init()
-
-	Its also called every frame inside CL_Frame() , (not in q2). 
-	Seems to have no purpose too. (Ah unless its to set curtime (would make sense)).
-
-	Cbuf_Execute() in CL_Frame() is meant to handle the sp_sc_timer calbacks.
-	Cbuf_AddText() called by the spTimers() function.
-
-	analyze_cpu() - 20021183 , 200211a2
-	Netchan_Init() - 2004d256
-	CL_InitLocal() - 2000cad7 (cls.realtime = Sys_Milliseconds())
-	WinMain() - 20066373 (oldtime = Sys_Milliseconds ();)
-	_US_
-	M_PushMenu() - 200cb7fe, 200c7823 200c78a6 (main menu when game starts)
-	M_PushMenu() innerFunc() - 200e6171
-	IN_MenuMove() - 200cc079
-	CL_Frame() - 2000d91a
-	Sys_SendKeyEvents() - 20065d63
-	_US_
-	CL_Frame()
-	Sys_SendKeyEvents()
-	IN_MenuMove()
-	_US_
-	...
-
-	CL_ReadPackets()
-		CL_ParseServerMessage()
-			CL_ParseServerData() is what prints' the mapname.
-
-	(Net_Init())
-	WSA_Startup() is initialising the sofplus with the addon inits.
-
-	Because the cpu_analyze() calls to Sys_Milliseconds() eventually result in
-	curtime = 0.
-	The times which it got saved at no longer make any sense after it resets.
-
-	We have to find out what causes it to reset to 0.
-
-*/
 int my_Sys_Milliseconds(void)
 {
 	#if 0
@@ -757,8 +662,8 @@ int my_Sys_Milliseconds(void)
     //set curtime
 	*(int*)0x20390D38 = ret;
 
-	prev_val = ret;
-	return ret;
+    prev_val = ret;
+    return ret;
 }
 
 int qpcTimeStampNano(void)

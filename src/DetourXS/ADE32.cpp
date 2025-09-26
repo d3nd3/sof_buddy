@@ -549,9 +549,9 @@ repeat_prefix:
 		flag |= t;
 
 		if(t & C_67)
-			diza->disasm_defaddr ^= 2^4;
+			diza->disasm_defaddr ^= 1<<4;
 		else if(t & C_66)
-			diza->disasm_defdata ^= 2^4;
+			diza->disasm_defdata ^= 1<<4;
 		else if(t & C_SEG)
 			diza->disasm_seg = c;
 		else if(t & C_REP)

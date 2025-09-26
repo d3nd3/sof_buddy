@@ -6,13 +6,38 @@
 
 #include "features.h"
 
-#include "../DetourXS/detourxs.h"
+#include "../../DetourXS/detourxs.h"
+#define DETOUR_TRACKER_AUTOWRAP
+#include "detour_tracker.h"
 
 #include "util.h"
+#include <stdint.h>
 
 // for std
-#include <iostream>
 
+/*
+	Feature: Scaled console and HUD text rendering
+
+	What it does:
+	- Scales fonts and selected HUD elements with resolution (configurable via _sofbuddy_font_scale / _sofbuddy_console_size).
+	- Adjusts console draw and wrapping by hooking Con_DrawConsole/Con_DrawNotify and glVertex to preserve pixel-snapped clarity.
+	- Repositions HUD elements (DM ranking, inventory/ammo, health/armor, CTF flag) relative to screen edges when scaled.
+
+	Console overflow note (moved from sof_buddy.cpp):
+	- On very wide resolutions, console input drawing could overflow (>2048px wide path). We clamp character count and redraw cursor safely.
+
+	Detours and edits used by this feature:
+	- scaledFont_early():
+	  * NOP specific SCR_AddDirtyPoint calls inside Con_DrawConsole for controlled dirty rect updates.
+	  * DetourCreate(Con_Init -> my_Con_Init) to install resize logic and cvars early.
+	  * DetourCreate for cInterface draw functions to tag HUD state during scaled draws.
+	  * DetourCreate(SCR_ExecuteLayoutString -> my_SCR_ExecuteLayoutString) for scoreboard text layout adjustments.
+	- scaledFont_cvars_init():
+	  * DetourCreate(Con_DrawNotify/Con_DrawConsole) to wrap and set scaling flags.
+	- scaledFont_init():
+	  * DetourCreate(glVertex2f -> my_glVertex2f), DrawStretchPic/DrawPicOptions/DrawCroppedPicOptions/R_DrawFont/Draw_String_Color.
+	  * WriteE8Call at CroppedPic corners to call our vertex helpers.
+*/
 
 #ifdef FEATURE_FONT_SCALING
 
@@ -25,12 +50,12 @@ void( * orig_Con_DrawConsole)(float frac) = NULL;
 void( * orig_Con_DrawNotify)(void) = NULL;
 void( * orig_Con_CheckResize)(void) = NULL;
 void( * orig_Con_Init)(void) = NULL;
-void( * orig_Con_Initialize)(void) = 0x20020720;
+void( * orig_Con_Initialize)(void) = reinterpret_cast<void(*)(void)>((void*)0x20020720);
 void( * orig_DrawStretchPic)(int x, int y, int w, int h, int palette, char * name, int flags) = NULL;
 void( * orig_DrawPicOptions)(int x, int y, float w_scale, float h_scale, int palette, char * name) = NULL;
 void( * orig_DrawCroppedPicOptions)(int x, int y, int c1x, int c1y, int c2x, int c2y, int palette, char * name) = NULL;
-void( * orig_SRC_AddDirtyPoint)(int x, int y) = 0x200140B0;
-void( * orig_SCR_DirtyRect)(int x1, int y1, int x2, int y2) = 0x20014190;
+void( * orig_SRC_AddDirtyPoint)(int x, int y) = reinterpret_cast<void(*)(int,int)>((void*)0x200140B0);
+void( * orig_SCR_DirtyRect)(int x1, int y1, int x2, int y2) = reinterpret_cast<void(*)(int,int,int,int)>((void*)0x20014190);
 //R_DrawFont(int, int, char const *, paletteRGBA_c, basic_string<char, string_char_traits<char>, __default_alloc_template<true, 0>> &, bool)
 void( * orig_R_DrawFont)(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor) = NULL;
 
@@ -177,9 +202,9 @@ void my_DrawStretchPic(int x, int y, int w, int h, int palette, char * name, int
 */
 void my_DrawPicOptions(int x, int y, float w_scale, float h_scale, int pal, char * name) {
   if (hudDmRanking) {
-    float x_scale = current_vid_w / 640;
+    float x_scale = static_cast<float>(current_vid_w) / 640.0f;
     int offsetEdge = 40; //36??
-    float y_scale = current_vid_h / 480;
+    float y_scale = static_cast<float>(current_vid_h) / 480.0f;
     if (hudDmRanking_wasImage) {
       // PrintOut(PRINT_LOG,"Logo ypos = %i\n",y);
       //2nd image, means we in spec chasing someone. This image is a DM Logo.
@@ -386,7 +411,7 @@ void my_DrawCroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, 
 void my_R_DrawFont(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor) {
   // static bool wasHudDmRanking = false;
   if (hudDmRanking) {
-    char * realFont = * (int * )(font + 4);
+    char * realFont = reinterpret_cast<char*>(*reinterpret_cast<int*>(font + 4));
     int fontWidth = 12;
     int offsetEdge = 40;
     /*
@@ -416,8 +441,8 @@ void my_R_DrawFont(int screenX, int screenY, char * text, int colorPalette, char
     //Text is only drawn in:
     //Spec Chase Mode
     //Spec OFF 
-    float x_scale = current_vid_w / 640;
-    float y_scale = current_vid_h / 480;
+    float x_scale = static_cast<float>(current_vid_w) / 640.0f;
+    float y_scale = static_cast<float>(current_vid_h) / 480.0f;
 
     if (hudDmRanking_wasImage) {
       //We are SPEC or TEAM DMMODE playing.
@@ -445,13 +470,13 @@ void my_R_DrawFont(int screenX, int screenY, char * text, int colorPalette, char
       } else {
         // TEAM DM PLAYING - 1 Logo above.
         //Specifically for Team Deathmatch where a logo is shown above score.
-        screenX = current_vid_w - 16 * hudScale - offsetEdge * x_scale - fontWidth * strlen(text) / 2;
+        screenX = static_cast<int>(current_vid_w - 16 * hudScale - offsetEdge * x_scale - (fontWidth * strlen(text) / 2.0f));
         screenY = screenY + (hudScale - 1) * 32;
       }
 
     } else {
       //PLAYING IN NON-TEAM DM, so NO LOGO
-      screenX = current_vid_w - offsetEdge * x_scale - 16 * hudScale - fontWidth * strlen(text) / 2;
+      screenX = static_cast<int>(current_vid_w - offsetEdge * x_scale - 16 * hudScale - (fontWidth * strlen(text) / 2.0f));
     }
     /*
     	Score -> 0
@@ -620,7 +645,7 @@ void my_Draw_String_Color(int x, int y, char
   orig_Draw_String_Color(x, y, text, length, colorPalette);
 }
 
-int * cls_state = 0x201C1F00;
+int * cls_state = reinterpret_cast<int*>((void*)0x201C1F00);
 /*
 From JediKnight
 typedef enum {
@@ -825,7 +850,7 @@ center_x-79
 center_x - 60 == start_pos.
 */
 
-void __attribute__((always_inline)) drawCroppedPicVertex(bool top, bool left, float & x, float & y) {
+inline void drawCroppedPicVertex(bool top, bool left, float & x, float & y) {
   if (hudHealthArmor) {
     float y_scale = static_cast < float > (current_vid_h) / 480.0f;
 
@@ -1283,7 +1308,7 @@ void my_Con_Init(void) {
   //Adjusts con.linewidth because less characters fit on line for font-scaling.
   //This should adjust con.lightwidth based on fontScale.
   DetourRemove( & orig_Con_CheckResize);
-  orig_Con_CheckResize = DetourCreate((void * ) 0x20020880, (void * ) & my_Con_CheckResize, DETOUR_TYPE_JMP, 5);
+  orig_Con_CheckResize = reinterpret_cast<void(*)(void)>(DetourCreateRF((void * ) 0x20020880, (void * ) & my_Con_CheckResize, DETOUR_TYPE_JMP, 5, "Font Scaling", "FEATURE_FONT_SCALING"));
 }
 
 //Called at end of QCommon_Init()
@@ -1294,8 +1319,8 @@ void scaledFont_cvars_init(void) {
 
   create_scaled_fonts_cvars();
 
-  orig_Con_DrawNotify = DetourCreate((void * ) 0x20020D70, (void * ) & my_Con_DrawNotify, DETOUR_TYPE_JMP, 5);
-  orig_Con_DrawConsole = DetourCreate((void * ) 0x20020F90, (void * ) & my_Con_DrawConsole, DETOUR_TYPE_JMP, 5);
+  orig_Con_DrawNotify = reinterpret_cast<void(*)(void)>(DetourCreateRF((void * ) 0x20020D70, (void * ) & my_Con_DrawNotify, DETOUR_TYPE_JMP, 5, "Font Scaling", "FEATURE_FONT_SCALING"));
+  orig_Con_DrawConsole = reinterpret_cast<void(*)(float)>(DetourCreateRF((void * ) 0x20020F90, (void * ) & my_Con_DrawConsole, DETOUR_TYPE_JMP, 5, "Font Scaling", "FEATURE_FONT_SCALING"));
 
 }
 
@@ -1303,22 +1328,22 @@ void scaledFont_cvars_init(void) {
 void scaledFont_early(void) {
 
   // for bottom of Con_NotifyConsole remain real width.
-  writeIntegerAt(0x20020F6F, & real_refdef_width);
+  writeIntegerAt((void*)0x20020F6F, static_cast<int>(reinterpret_cast<intptr_t>(&real_refdef_width)));
 
   // NOP SCR_AddDirtyPoint, cos call ourselves with fixed args
   // In CON_DrawConsole()
-  WriteByte(0x20021039, 0x90);
-  WriteByte(0x2002103A, 0x90);
-  WriteByte(0x2002103B, 0x90);
-  WriteByte(0x2002103C, 0x90);
-  WriteByte(0x2002103D, 0x90);
+  WriteByte((void*)0x20021039, 0x90);
+  WriteByte((void*)0x2002103A, 0x90);
+  WriteByte((void*)0x2002103B, 0x90);
+  WriteByte((void*)0x2002103C, 0x90);
+  WriteByte((void*)0x2002103D, 0x90);
   // In CON_DrawConsole()
-  WriteByte(0x20021049, 0x90);
-  WriteByte(0x2002104A, 0x90);
-  WriteByte(0x2002104B, 0x90);
-  WriteByte(0x2002104C, 0x90);
-  WriteByte(0x2002104D, 0x90);
-  orig_Con_Init = DetourCreate((void * ) 0x200208E0, (void * ) & my_Con_Init, DETOUR_TYPE_JMP, 9);
+  WriteByte((void*)0x20021049, 0x90);
+  WriteByte((void*)0x2002104A, 0x90);
+  WriteByte((void*)0x2002104B, 0x90);
+  WriteByte((void*)0x2002104C, 0x90);
+  WriteByte((void*)0x2002104D, 0x90);
+  orig_Con_Init = reinterpret_cast<void(*)(void)>(DetourCreateRF((void * ) 0x200208E0, (void * ) & my_Con_Init, DETOUR_TYPE_JMP, 9, "Font Scaling", "FEATURE_FONT_SCALING"));
 
   //The idea for further UI scaling is to replace SCR_DrawPic() calls with SCR_DrawStretchPic().
   //I think the glVertex idea also works !, and its good for preserving scale from edge of screen (border)
@@ -1330,12 +1355,12 @@ void scaledFont_early(void) {
 
   //Detour each Interface Draw function.
   // DetourCreate((void*)0x20006EA0,(void*)&my_cScope_Draw,DETOUR_TYPE_JMP,6);
-  orig_cInventory2_And_cGunAmmo2_Draw = DetourCreate((void * ) 0x20008430, (void * ) & my_cInventory2_And_cGunAmmo2_Draw, DETOUR_TYPE_JMP, 5);
-  orig_cHealthArmor2_Draw = DetourCreate((void * ) 0x20008C60, (void * ) & my_cHealthArmor2_Draw, DETOUR_TYPE_JMP, 5);
+  orig_cInventory2_And_cGunAmmo2_Draw = reinterpret_cast<void(__thiscall *)(void*)>(DetourCreateRF((void * ) 0x20008430, (void * ) & my_cInventory2_And_cGunAmmo2_Draw, DETOUR_TYPE_JMP, 5, "Font Scaling", "FEATURE_FONT_SCALING"));
+  orig_cHealthArmor2_Draw = reinterpret_cast<void(__thiscall *)(void*)>(DetourCreateRF((void * ) 0x20008C60, (void * ) & my_cHealthArmor2_Draw, DETOUR_TYPE_JMP, 5, "Font Scaling", "FEATURE_FONT_SCALING"));
   // DetourCreate((void*)0x20007940,(void*)&my_cCountdown_Draw,DETOUR_TYPE_JMP,6);
   // DetourCreate((void*)0x20009100,(void*)&my_cInfoTicker_Draw,DETOUR_TYPE_JMP,6);
   // DetourCreate((void*)0x20009250,(void*)&my_cMissionStatus_Draw,DETOUR_TYPE_JMP,6);
-  orig_cDMRanking_Draw = DetourCreate((void * ) 0x20007B30, (void * ) & my_cDMRanking_Draw, DETOUR_TYPE_JMP, 6);
+  orig_cDMRanking_Draw = reinterpret_cast<void(__thiscall *)(void*)>(DetourCreateRF((void * ) 0x20007B30, (void * ) & my_cDMRanking_Draw, DETOUR_TYPE_JMP, 6, "Font Scaling", "FEATURE_FONT_SCALING"));
   // orig_cCtfFlag_Draw = DetourCreate((void*)0x20006920,(void*)&my_cCtfFlag_Draw,DETOUR_TYPE_JMP,6);
   // DetourCreate((void*)0x20006BC0,(void*)&my_cControlFlag_Draw,DETOUR_TYPE_JMP,6);
 
@@ -1343,7 +1368,7 @@ void scaledFont_early(void) {
 
   // orig_SCR_CenterPrint = DetourCreate((void*)0x20012DB0,(void*)my_SCR_CenterPrint, DETOUR_TYPE_JMP,7);
 
-  orig_SCR_ExecuteLayoutString = DetourCreate((void * ) 0x20014510, (void * ) my_SCR_ExecuteLayoutString, DETOUR_TYPE_JMP, 8);
+  orig_SCR_ExecuteLayoutString = reinterpret_cast<void(*)(char*)>(DetourCreateRF((void * ) 0x20014510, (void * ) my_SCR_ExecuteLayoutString, DETOUR_TYPE_JMP, 8, "Font Scaling", "FEATURE_FONT_SCALING"));
 
 }
 
@@ -1352,11 +1377,11 @@ void scaledFont_early(void) {
 */
 void scaledFont_init(void) {
 
-  void * glVertex2f = * (int * ) 0x300A4670;
-  orig_glVertex2i = * (int * ) 0x300A46D0;
+  void * glVertex2f = reinterpret_cast<void*>(*reinterpret_cast<intptr_t*>(0x300A4670));
+  orig_glVertex2i = reinterpret_cast<void(__stdcall *)(int,int)>(*reinterpret_cast<intptr_t*>(0x300A46D0));
 
   DetourRemove( & orig_glVertex2f);
-  orig_glVertex2f = DetourCreate((void * ) glVertex2f, (void * ) & my_glVertex2f, DETOUR_TYPE_JMP, DETOUR_LEN_AUTO); //5
+  orig_glVertex2f = reinterpret_cast<void(__stdcall *)(float,float)>(DetourCreateRF((void * ) glVertex2f, (void * ) & my_glVertex2f, DETOUR_TYPE_JMP, DETOUR_LEN_AUTO, "Font Scaling", "FEATURE_FONT_SCALING")); //5
   //orig_glVertex2f = glVertex2f;
 
   // DetourRemove(&orig_Draw_String_Color);
@@ -1369,32 +1394,32 @@ void scaledFont_init(void) {
   // orig_Draw_Char = DetourCreate((void*)0x30001850 ,(void*)&my_Draw_Char,DETOUR_TYPE_JMP,7);
 
   DetourRemove( & orig_DrawStretchPic);
-  orig_DrawStretchPic = DetourCreate((void * ) 0x30001D10, (void * ) & my_DrawStretchPic, DETOUR_TYPE_JMP, 5);
+  orig_DrawStretchPic = reinterpret_cast<void(*)(int,int,int,int,int,char*,int)>(DetourCreateRF((void * ) 0x30001D10, (void * ) & my_DrawStretchPic, DETOUR_TYPE_JMP, 5, "Font Scaling", "FEATURE_FONT_SCALING"));
 
   DetourRemove( & orig_DrawPicOptions);
-  orig_DrawPicOptions = DetourCreate((void * ) 0x30002080, (void * ) & my_DrawPicOptions, DETOUR_TYPE_JMP, 6);
+  orig_DrawPicOptions = reinterpret_cast<void(*)(int,int,float,float,int,char*)>(DetourCreateRF((void * ) 0x30002080, (void * ) & my_DrawPicOptions, DETOUR_TYPE_JMP, 6, "Font Scaling", "FEATURE_FONT_SCALING"));
 
   DetourRemove( & orig_DrawCroppedPicOptions);
-  orig_DrawCroppedPicOptions = DetourCreate((void * ) 0x30002240, (void * ) & my_DrawCroppedPicOptions, DETOUR_TYPE_JMP, 5);
+  orig_DrawCroppedPicOptions = reinterpret_cast<void(*)(int,int,int,int,int,int,int,char*)>(DetourCreateRF((void * ) 0x30002240, (void * ) & my_DrawCroppedPicOptions, DETOUR_TYPE_JMP, 5, "Font Scaling", "FEATURE_FONT_SCALING"));
 
   DetourRemove( & orig_R_DrawFont);
-  orig_R_DrawFont = DetourCreate((void * ) 0x300045B0, (void * ) & my_R_DrawFont, DETOUR_TYPE_JMP, 6);
+  orig_R_DrawFont = reinterpret_cast<void(*)(int,int,char*,int,char*,bool)>(DetourCreateRF((void * ) 0x300045B0, (void * ) & my_R_DrawFont, DETOUR_TYPE_JMP, 6, "Font Scaling", "FEATURE_FONT_SCALING"));
 
   DetourRemove( & orig_Draw_String_Color);
-  orig_Draw_String_Color = DetourCreate((void * ) 0x30001A40, (void * ) & my_Draw_String_Color, DETOUR_TYPE_JMP, 5);
+  orig_Draw_String_Color = reinterpret_cast<void(*)(int,int,const char*,int,int)>(DetourCreateRF((void * ) 0x30001A40, (void * ) & my_Draw_String_Color, DETOUR_TYPE_JMP, 5, "Font Scaling", "FEATURE_FONT_SCALING"));
 
   // Rquired for CroppedPicOptions Vertex scaling. Each corner of Rect.
-  WriteE8Call(0x3000239E, & my_glVertex2f_CroppedPic_1);
-  WriteByte(0x300023A3, 0x90);
+  WriteE8Call((void*)0x3000239E, reinterpret_cast<void*>(reinterpret_cast<intptr_t>(&my_glVertex2f_CroppedPic_1)));
+  WriteByte((void*)0x300023A3, 0x90);
 
-  WriteE8Call(0x300023CC, & my_glVertex2f_CroppedPic_2);
-  WriteByte(0X300023D1, 0X90);
+  WriteE8Call((void*)0x300023CC, reinterpret_cast<void*>(reinterpret_cast<intptr_t>(&my_glVertex2f_CroppedPic_2)));
+  WriteByte((void*)0x300023D1, 0x90);
 
-  WriteE8Call(0x300023F6, & my_glVertex2f_CroppedPic_3);
-  WriteByte(0x300023FB, 0X90);
+  WriteE8Call((void*)0x300023F6, reinterpret_cast<void*>(reinterpret_cast<intptr_t>(&my_glVertex2f_CroppedPic_3)));
+  WriteByte((void*)0x300023FB, 0x90);
 
-  WriteE8Call(0x3000240E, & my_glVertex2f_CroppedPic_4);
-  WriteByte(0x30002413, 0X90);
+  WriteE8Call((void*)0x3000240E, reinterpret_cast<void*>(reinterpret_cast<intptr_t>(&my_glVertex2f_CroppedPic_4)));
+  WriteByte((void*)0x30002413, 0x90);
 
   /*
     Did we do this because its more efficient or we had to?

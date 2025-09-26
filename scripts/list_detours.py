@@ -3,7 +3,7 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / 'src'
 OUT_TXT = ROOT / 'rsrc' / 'detours_prebuild.txt'
 OUT_MD = ROOT / 'rsrc' / 'detours_prebuild.md'

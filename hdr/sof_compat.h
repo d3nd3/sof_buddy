@@ -1,3 +1,7 @@
+// compatibility types and engine interfaces
+#ifndef SOF_COMPAT_H
+#define SOF_COMPAT_H
+
 typedef unsigned char 		byte;
 typedef unsigned short 		word;
 typedef int					qboolean;
@@ -74,7 +78,7 @@ extern void (*orig_Cvar_SetInternal)(bool active);
 #define CVAR_INFO    (CVAR_MENU_MASK | CVAR_USERINFO | CVAR_SERVERINFO)
 
 
-extern void ( *orig_Com_Printf)(char * msg, ...);
+extern void ( *orig_Com_Printf)(const char * msg, ...);
 extern void (*orig_Qcommon_Frame) (int msec);
 extern void (*orig_Qcommon_Init) (int argc, char **argv);
 extern qboolean (*orig_Cbuf_AddLateCommands)(void);
@@ -89,5 +93,7 @@ extern void (*orig_drawTeamIcons)(void * param1,void * param2,void * param3,void
 extern void (*orig_Cmd_ExecuteString)(const char * string);
 
 extern void InitDefaults(void);
+
+#endif // SOF_COMPAT_H
 
 
