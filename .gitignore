@@ -9,6 +9,11 @@
 bin/
 obj/
 
+# Generated detour files
+hdr/detours_prebuild.h
+rsrc/detours_prebuild.md
+rsrc/detours_prebuild.txt
+
 # SDK submodules (these are tracked by git)
 # SDK/
 # SDK/*/
