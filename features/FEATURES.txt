@@ -1,0 +1,12 @@
+// List feature tokens. Lines starting with // are disabled and will not be
+// registered. Keep tokens matched to the feature directory names under
+// src/features (e.g. media_timers, console_overflow).
+
+// cinematic_freeze
+console_overflow
+console_paste_fix
+media_timers
+ref_fixes
+scaled_font
+
+

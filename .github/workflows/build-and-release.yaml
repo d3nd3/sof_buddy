@@ -7,6 +7,7 @@ on:
 
 jobs:
   build:
+    if: github.event.inputs.ci-mode != 'manual-skip'
     # The job still runs on a standard GitHub-hosted runner,
     # but the steps will execute inside the container specified below.
     runs-on: ubuntu-latest
