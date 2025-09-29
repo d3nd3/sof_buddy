@@ -27,5 +27,4 @@ extern void detour_manifest_queue_definitions(const DetourDefinition *defs, int 
 static int ref_fixes_manifest_queued = (detour_manifest_queue_definitions(ref_fixes_detour_manifest, ref_fixes_detour_count), 0);
 
 
-extern void detour_manifest_register_detour_function(const char *name, void *func_ptr);
-static int _reg_ref_fixes_V_DrawScreen = (detour_manifest_register_detour_function("V_DrawScreen", (void*)&exe_V_DrawScreen), 0);
+// No detours defined in this manifest; no registration lines required.
