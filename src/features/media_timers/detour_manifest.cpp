@@ -1,6 +1,6 @@
 #include "../../../hdr/detour_manifest.h"
 
-// Detour definitions for scaled_font feature (empty scaffold)
+// Detour definitions for media_timers feature (empty scaffold)
 
 /* Example detour (commented out - does not apply)
 const DetourDefinition example_detour_manifest[] = {
@@ -13,19 +13,19 @@ const DetourDefinition example_detour_manifest[] = {
         DETOUR_PATCH_JMP,              // patch_type
         5,                             // detour_len (number of patched bytes)
         "void(void)",                 // signature (compact prototype)
-        "scaled_font"                  // feature_name
+        "media_timers"                  // feature_name
     }
 };
 */
 
-const DetourDefinition scaled_font_detour_manifest[] = {};
+const DetourDefinition media_timers_detour_manifest[] = {};
 
-const int scaled_font_detour_count = sizeof(scaled_font_detour_manifest) / sizeof(DetourDefinition);
+const int media_timers_detour_count = sizeof(media_timers_detour_manifest) / sizeof(DetourDefinition);
 
 // Queue these definitions for import during detour_manifest_init().
 extern void detour_manifest_queue_definitions(const DetourDefinition *defs, int count);
-static int scaled_font_manifest_queued = (detour_manifest_queue_definitions(scaled_font_detour_manifest, scaled_font_detour_count), 0);
+static int media_timers_manifest_queued = (detour_manifest_queue_definitions(media_timers_detour_manifest, media_timers_detour_count), 0);
 
 
 extern void detour_manifest_register_detour_function(const char *name, void *func_ptr);
-static int _reg_scaled_font_V_DrawScreen = (detour_manifest_register_detour_function("V_DrawScreen", (void*)&exe_V_DrawScreen), 0);
+static int _reg_media_timers_V_DrawScreen = (detour_manifest_register_detour_function("V_DrawScreen", (void*)&exe_V_DrawScreen), 0);
