@@ -25,6 +25,7 @@
 
 #include <wchar.h>
 #include <shlwapi.h> // Make sure to link against Shlwapi.lib
+#include <dbghelp.h>
 
 #include "DetourXS/detourxs.h"
 
@@ -34,7 +35,85 @@
 #include "util.h"
 #include "crc32.h"
 
-#include "feature_flags.h"
+// Vectored exception handler pointer
+static PVOID g_vectored_handler = NULL;
+static bool g_dbghelp_initialized = false;
+
+// Capture and print a simple stack backtrace (addresses + resolved symbols when possible)
+static void print_stack_backtrace(PEXCEPTION_POINTERS pExceptionInfo)
+{
+    void* backtrace[62];
+    USHORT frames = CaptureStackBackTrace(0, _countof(backtrace), backtrace, NULL);
+
+    PrintOut(PRINT_BAD, "Stack backtrace (frames=%u) thread=%lu:\n", frames, GetCurrentThreadId());
+
+    if (g_dbghelp_initialized) {
+        SYMBOL_INFO *symbol = (SYMBOL_INFO*)malloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char));
+        if (symbol) {
+            memset(symbol, 0, sizeof(SYMBOL_INFO) + 256 * sizeof(char));
+            symbol->MaxNameLen = 255;
+            symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+
+            IMAGEHLP_LINE64 lineInfo;
+            DWORD displacement = 0;
+
+            for (USHORT i = 0; i < frames; ++i) {
+                DWORD64 addr = (DWORD64)(uintptr_t)backtrace[i];
+                if (SymFromAddr(GetCurrentProcess(), addr, 0, symbol)) {
+                    memset(&lineInfo, 0, sizeof(lineInfo));
+                    DWORD displacement32 = 0;
+                    if (SymGetLineFromAddr64(GetCurrentProcess(), addr, &displacement32, &lineInfo)) {
+                        PrintOut(PRINT_BAD, "  #%02u: %s + 0x%llx (%s:%lu) [0x%p]\n", i, symbol->Name, (unsigned long long)(addr - symbol->Address), lineInfo.FileName, lineInfo.LineNumber, (void*)addr);
+                    } else {
+                        PrintOut(PRINT_BAD, "  #%02u: %s [0x%p]\n", i, symbol->Name, (void*)addr);
+                    }
+                } else {
+                    PrintOut(PRINT_BAD, "  #%02u: 0x%p\n", i, (void*)addr);
+                }
+            }
+
+            free(symbol);
+        }
+    } else {
+        for (USHORT i = 0; i < frames; ++i) {
+            PrintOut(PRINT_BAD, "  #%02u: 0x%p\n", i, backtrace[i]);
+        }
+    }
+}
+
+// Vectored exception handler to log access violations (page faults)
+LONG WINAPI vectored_exception_handler(PEXCEPTION_POINTERS pExceptionInfo)
+{
+    if (pExceptionInfo == NULL || pExceptionInfo->ExceptionRecord == NULL)
+        return EXCEPTION_CONTINUE_SEARCH;
+
+    DWORD code = pExceptionInfo->ExceptionRecord->ExceptionCode;
+    if (code == EXCEPTION_ACCESS_VIOLATION) {
+        ULONG_PTR violation_type = pExceptionInfo->ExceptionRecord->ExceptionInformation[0];
+        ULONG_PTR fault_addr = pExceptionInfo->ExceptionRecord->ExceptionInformation[1];
+        void *ip = pExceptionInfo->ExceptionRecord->ExceptionAddress;
+        const char *type_str = (violation_type == 0) ? "read" : (violation_type == 1) ? "write" : (violation_type == 8) ? "execute" : "unknown";
+
+        PrintOut(PRINT_BAD, "Unhandled page fault on %s access to 0x%p at ip=%p thread=%lu\n", type_str, (void*)fault_addr, ip, GetCurrentThreadId());
+
+        // Print a stack backtrace to help locate the cause
+        print_stack_backtrace(pExceptionInfo);
+
+#ifdef _M_X64
+        PrintOut(PRINT_BAD, "RIP=0x%p RSP=0x%p RAX=0x%p RBX=0x%p RCX=0x%p RDX=0x%p\n",
+            (void*)pExceptionInfo->ContextRecord->Rip, (void*)pExceptionInfo->ContextRecord->Rsp,
+            (void*)pExceptionInfo->ContextRecord->Rax, (void*)pExceptionInfo->ContextRecord->Rbx,
+            (void*)pExceptionInfo->ContextRecord->Rcx, (void*)pExceptionInfo->ContextRecord->Rdx);
+#else
+        PrintOut(PRINT_BAD, "EIP=0x%p ESP=0x%p EAX=0x%p EBX=0x%p ECX=0x%p EDX=0x%p\n",
+            (void*)pExceptionInfo->ContextRecord->Eip, (void*)pExceptionInfo->ContextRecord->Esp,
+            (void*)pExceptionInfo->ContextRecord->Eax, (void*)pExceptionInfo->ContextRecord->Ebx,
+            (void*)pExceptionInfo->ContextRecord->Ecx, (void*)pExceptionInfo->ContextRecord->Edx);
+#endif
+    }
+
+    return EXCEPTION_CONTINUE_SEARCH;
+}
 
 /*
 	CAUTION: Don't use directly without void* typecast
@@ -46,7 +125,8 @@
 	                                     // This is now an opaque pointer.
 */
 // Handle to sofplus module
-HMODULE o_sofplus = NULL;
+void* o_sofplus = NULL;
+bool sofplus_initialized = false;
 
 
 void GenerateRandomString(wchar_t* randomString, int length) {
@@ -610,6 +690,10 @@ int sys_WSAStartup(WORD wVersionRequested,LPWSADATA lpWSAData)
 	#ifdef WINSOCK_LOGGING
 	PrintOut(PRINT_LOG,"CALLING WSA_STARTUP_AFTERXX!\n");
 	#endif
+
+	// Mark sofplus as fully initialized
+	sofplus_initialized = true;
+	PrintOut(PRINT_LOG, "sofplus_initialized set to true\n");
 	return ret;
 }
 
@@ -905,7 +989,7 @@ void sofplus_copy(void)
 	//Now check if it has correct checksum of spcl.dll
 	FILE* fp;
 	char buf[32768];
-	if (fp = _wfopen(tempFileName, L"rb")) {
+    if ((fp = _wfopen(tempFileName, L"rb")) != NULL) {
 		uint32_t crc = 0;
 		while (!feof(fp) && !ferror(fp))
 			crc32(buf, fread(buf, 1, sizeof(buf), fp), &crc);
@@ -958,7 +1042,7 @@ void sofplus_copy(void)
 		char ac_funcs[24][32] = {"bind","connect","getsockname","htonl","htons","inet_addr","inet_ntoa","ntohl","ntohs","recv","recvfrom","select","send","sendto","bind","setsockopt","shutdown","socket","gethostbyname","gethostname","WSAGetLastError","WSAStartup","WSACleanup","__WSAFDIsSet"};
 		void **pv_funcs[24] = {(void**)&sp_bind,(void**)&sp_connect,(void**)&sp_getsockname,(void**)&sp_htonl,(void**)&sp_htons,(void**)&sp_inet_addr,(void**)&sp_inet_ntoa,(void**)&sp_ntohl,(void**)&sp_ntohs,(void**)&sp_recv,(void**)&sp_recvfrom,(void**)&sp_select,(void**)&sp_send,(void**)&sp_sendto,(void**)&sp_bind,(void**)&sp_setsockopt,(void**)&sp_shutdown,(void**)&sp_socket,(void**)&sp_gethostbyname,(void**)&sp_gethostname,(void**)&sp_WSAGetLastError,(void**)&sp_WSAStartup,(void**)&sp_WSACleanup,(void**)&sp___WSAFDIsSet};
 		for ( int i = 0; i < 24; i++ ) {
-            if ( SoFplusLoadFn(o_sofplus,(void**)pv_funcs[i],&ac_funcs[i][0]) == false )
+            if ( SoFplusLoadFn((HMODULE)o_sofplus,(void**)pv_funcs[i],&ac_funcs[i][0]) == false )
 			{
 				#ifdef __LOGGING__
 				MessageBox(NULL, (std::string(&ac_funcs[i][0]) + "Couldn't Load a sofplus function").c_str(), "Error", MB_ICONERROR | MB_OK);
@@ -974,19 +1058,42 @@ void sofplus_copy(void)
 		//(void**)&sp_ioctlsocket
 		sp_ioctlsocket = &ioctlsocket;
 
+		
 
 	}
 	
 }
 
 #define SPCL_CHECKSUM 4207493893
+/*
+DLL_PROCESS_ATTACH (1): DLL is loaded into a process.
+DLL_THREAD_ATTACH (2): A new thread is created in the process.
+DLL_THREAD_DETACH (3): A thread exits cleanly.
+DLL_PROCESS_DETACH (0): DLL is unloaded from the process.
+*/
 BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 {
-	
 	HANDLE hTempFile;
 	if ( dwReason == DLL_PROCESS_ATTACH )
 	{
 		DisableThreadLibraryCalls(hInstance);
+
+		// Register vectored exception handler to catch access violations early
+		if (g_vectored_handler == NULL) {
+			g_vectored_handler = AddVectoredExceptionHandler(1, vectored_exception_handler);
+			PrintOut(PRINT_LOG, "Registered vectored exception handler: %p\n", g_vectored_handler);
+		}
+
+		// Initialize dbghelp for symbol resolution
+		if (!g_dbghelp_initialized) {
+			if (SymInitialize(GetCurrentProcess(), NULL, TRUE)) {
+				SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS);
+				g_dbghelp_initialized = true;
+				PrintOut(PRINT_LOG, "DbgHelp initialized\n");
+			} else {
+				PrintOut(PRINT_LOG, "DbgHelp failed to initialize: %p\n", GetLastError());
+			}
+		}
 
 		static bool init = false;
 		if (init==false) {
@@ -1001,9 +1108,13 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 
 			strcpy(ac_sofplus,"spcl.dll");
 			PrintOut(PRINT_LOG,"DllMain 2\n");
+			PrintOut(PRINT_LOG,"=== About to get base address ===\n");
 			DWORD base_address = get_base_address(); // get the base address of the process
+			PrintOut(PRINT_LOG,"Base address: 0x%08X\n", base_address);
+			PrintOut(PRINT_LOG,"=== About to read memory ===\n");
 			DWORD offset = 0x11AD72; // the offset to the memory address
 			DWORD address = base_address + offset; // the absolute memory address
+			PrintOut(PRINT_LOG,"Reading from address: 0x%08X\n", address);
 			char result[256];
 		    read_string(address,result);
 			/*
@@ -1020,14 +1131,14 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 			ExitProcess(1);
 			*/
 			
-			#ifdef FEATURE_SOFPLUS_INTEGRATION
+			#if 1
 			if( access( ac_sofplus, F_OK ) != -1 ) {
 				PrintOut(PRINT_LOG,"spcl.dll exists\n");
 				//spcl.dll exists.
 				FILE *fp;
 
 				char buf[32768];
-				if( fp = fopen(ac_sofplus, "rb") ) {
+                if ((fp = fopen(ac_sofplus, "rb")) != NULL) {
 					uint32_t crc = 0;
 					while(!feof(fp) && !ferror(fp))
 						crc32(buf, fread(buf, 1, sizeof(buf), fp), &crc);
@@ -1051,7 +1162,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 			#endif
 			
 			if (
-				#ifdef FEATURE_SOFPLUS_INTEGRATION
+				#if 1
 				b_sofplus
 				#else
 				false
@@ -1065,8 +1176,8 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 				wsock_link();
 			}
 
-			PrintOut(PRINT_LOG,"Before afterWsockInit()\n");
-			afterWsockInit();
+			PrintOut(PRINT_LOG,"Before lifecycle_EarlyStartup()\n");
+			lifecycle_EarlyStartup();
 			//CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)sofbuddy_thread,NULL,0,NULL);
 			
 			init=true;
@@ -1074,6 +1185,19 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 
 	} else if ( dwReason == DLL_PROCESS_DETACH ) { 
 		//FreeLibrary(o_sofplus);
+		// Remove vectored exception handler if we registered one
+		if (g_vectored_handler != NULL) {
+			RemoveVectoredExceptionHandler(g_vectored_handler);
+			PrintOut(PRINT_LOG, "Removed vectored exception handler: %p\n", g_vectored_handler);
+			g_vectored_handler = NULL;
+		}
+
+		// Cleanup dbghelp
+		if (g_dbghelp_initialized) {
+			SymCleanup(GetCurrentProcess());
+			g_dbghelp_initialized = false;
+			PrintOut(PRINT_LOG, "DbgHelp cleaned up\n");
+		}
 		#if 0
 		if (!DeleteFileW(tempFileName)) {
 				// Handle error

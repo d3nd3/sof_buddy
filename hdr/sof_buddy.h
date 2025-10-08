@@ -1,8 +1,9 @@
 #ifndef sofbuddyh
 #define sofbuddyh
 #include <windows.h>
-extern HMODULE o_sofplus;
-void afterWsockInit(void);
+extern void* o_sofplus;
+extern bool sofplus_initialized;
+void lifecycle_EarlyStartup(void);
 
 DWORD WINAPI sofbuddy_thread(LPVOID lpParam);
 #endif

@@ -1,0 +1,47 @@
+
+===========================
+-commands are processed elsewhere by main() program init code.
+
+===============================================
+* Cbuf_AddEarlyCommands (false); run it once for getting the basedir/cddir/game/user etc
+* create/set basedir/cddir/game/user etc...
+* exec default.cfg - now we have basedir/cddir/game/user etc we can exec this
+* exec config.cfg - now we have basedir/cddir/game/user etc we can exec this
+* Cbuf_AddEarlyCommands (true); apply again and clear the +set parts as processed.
+* NET_Init()/WSA_Startup/SoFPlus Init/exec sofplus/sofplus.cfg
+* VID_Init (LoadLibrry("ref_gl")
+* exec autoexec.cfg (autoexec overrides +set in commmand line)
+* Cbuf_AddLateCommands() - processes all other commands that start with + (except +set)
+* (alias dedicated_start) exec dedicated.cfg // (alias start)menu disclaimer
+
+===============================================
+TLDLR: Above priority startup highest to lowest:
+	dedicated.cfg -----------(highest /late)
+	+command commandlines
+	autoexec.cfg
+	vid_init (c hook ref_gl loadlibrary)
+	sofplus addons (net_init)
+	+set commandlines
+	config.cfg
+	default.cfg -------------(lowest/early)
+======================================
+
+
+If no dedicated.cfg in user, the dedicated.cfg from pak0.pak is used. (which contains public 0)
+
+===============================================
+CVAR TIMING ISSUES
+===============================================
+IMPORTANT: Module loading phases (RefDllLoaded, GameDllLoaded, PlayerDllLoaded) 
+occur BEFORE the PostCvarInit phase. This means:
+
+- CVars created in PostCvarInit callbacks are NULL during module loading
+- Accessing CVars from RefDllLoaded/GameDllLoaded callbacks will crash
+- Plan your feature initialization accordingly
+
+Solutions:
+1. Create CVars in PreCvarInit instead of PostCvarInit
+2. Use default values in module loading, update via change callbacks
+3. Defer CVar-dependent logic until after PostCvarInit
+
+See src/features/FEATURES.md for detailed examples and solutions.

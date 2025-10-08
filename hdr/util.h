@@ -9,7 +9,7 @@
 #define PRINT_LOG_EMPTY 4
 
 // show debug-log-type-messages?
-// #define __LOGGING__
+// Controlled by __LOGGING__ define in makefile for debug builds
 
 //Extra output print places than in-game.
 // #define __FILEOUT__
@@ -67,5 +67,7 @@ void setCvarByte(cvar_t * which, unsigned char val);
 void setCvarFloat(cvar_t * which, float val);
 void setCvarString(cvar_t * which, char * newstr);
 size_t strlen_custom(const char *str);
+
+const char* get_nth_entry(const char* str, int n);
 
 #endif // SOF_BUDDY_UTIL_H

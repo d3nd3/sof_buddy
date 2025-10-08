@@ -1,7 +1,9 @@
 
 #include "windows.h"
 #include "detourxs.h"
+#include <stdio.h>
 #include "ADE32.h"
+#include "../../hdr/util.h"
 
 #pragma warning(disable: 4311)
 #pragma warning(disable: 4312)
@@ -38,7 +40,7 @@ LPVOID DetourCreate(LPVOID lpFuncOrig, LPVOID lpFuncDetour, int patchType, int d
 {
 
 	LPVOID lpMallocPtr = NULL;
-	DWORD dwProt = NULL;
+		DWORD dwProt = 0;
 	PBYTE pbMallocPtr = NULL;
 	PBYTE pbFuncOrig = (PBYTE)lpFuncOrig;
 	PBYTE pbFuncDetour = (PBYTE)lpFuncDetour;
@@ -53,38 +55,81 @@ LPVOID DetourCreate(LPVOID lpFuncOrig, LPVOID lpFuncDetour, int patchType, int d
 	if(detourLen != DETOUR_LEN_AUTO)
 		detLen = detourLen;
 
-	else if((detLen = GetDetourLenAuto(pbFuncOrig, minDetLen)) < minDetLen)
-		return NULL;
+	else
+	{
+		detLen = GetDetourLenAuto(pbFuncOrig, minDetLen);
+		if(detLen < minDetLen)
+			return NULL;
+		// Debug: log computed auto detour length
+		{
+			char dbg[256];
+			sprintf(dbg, "DetourCreate: AUTO detour length computed = %d (min=%d) for orig=0x%08X\n", detLen, minDetLen, (unsigned int)(uintptr_t)pbFuncOrig);
+			PrintOut(PRINT_LOG, "%s", dbg);
+		}
+	}
 
-	// Alloc mem for the overwritten bytes
-	if((lpMallocPtr = (LPVOID)malloc(detLen+JMP32_SZ+SIG_SZ)) == NULL)
-		return NULL;
+    // Alloc executable memory for the trampoline (must be executable for
+    // the CPU to jump into it). Using VirtualAlloc with PAGE_EXECUTE_READWRITE
+    // ensures the returned buffer is executable even on systems with DEP.
+    SIZE_T allocSize = detLen + JMP32_SZ + SIG_SZ;
+    lpMallocPtr = VirtualAlloc(NULL, allocSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    if (lpMallocPtr == NULL)
+        return NULL;
 
-	pbMallocPtr = (PBYTE)lpMallocPtr;
+    pbMallocPtr = (PBYTE)lpMallocPtr;
 
-	// Enable writing to original
-	VirtualProtect(lpFuncOrig, detLen, PAGE_READWRITE, &dwProt);
+    // Enable writing to original
+    if (!VirtualProtect(lpFuncOrig, detLen, PAGE_READWRITE, &dwProt)) {
+        char errbuf[256];
+        sprintf(errbuf, "DetourCreate: VirtualProtect failed for %p (detLen=%d)\n", lpFuncOrig, detLen);
+        PrintOut(PRINT_LOG, "%s", errbuf);
+        VirtualFree(lpMallocPtr, 0, MEM_RELEASE);
+        return NULL;
+    }
 
 	// Write overwritten bytes to the malloc
 	memcpy(lpMallocPtr, lpFuncOrig, detLen);
 	pbMallocPtr += detLen;
-	pbMallocPtr[0] = 0xE9;
-	*(DWORD*)(pbMallocPtr+1) = (DWORD)((pbFuncOrig+detLen)-pbMallocPtr)-JMP32_SZ;
+    pbMallocPtr[0] = 0xE9;
+    *(DWORD*)(pbMallocPtr+1) = (DWORD)((pbFuncOrig+detLen)-pbMallocPtr)-JMP32_SZ;
+    // Validate trampoline jmp back resolves to the expected resume address
+    {
+        DWORD rel = *(DWORD*)(pbMallocPtr+1);
+        DWORD jmp_from = (DWORD)(pbMallocPtr);
+        DWORD jmp_dest = jmp_from + JMP32_SZ + rel;
+        DWORD expected = (DWORD)(pbFuncOrig + detLen);
+        if (jmp_dest != expected) {
+            char errbuf[256];
+            sprintf(errbuf, "DetourCreate: trampoline jmp_dest=0x%08X != expected resume=0x%08X for orig=0x%08X\n", jmp_dest, expected, (unsigned int)(uintptr_t)pbFuncOrig);
+            PrintOut(PRINT_LOG, "%s", errbuf);
+            // continue; we still return trampoline but log mismatch
+        }
+    }
 	pbMallocPtr += JMP32_SZ;
 	pbMallocPtr[0] = SIG_OP_0;
 	pbMallocPtr[1] = SIG_OP_1;
 	pbMallocPtr[2] = SIG_OP_2;
 
-	// Create a buffer to prepare the detour bytes
-	pbPatchBuf = new BYTE[detLen];
-	memset(pbPatchBuf, 0x90, detLen);
+    // Create a buffer to prepare the detour bytes
+    pbPatchBuf = new BYTE[detLen];
+    memset(pbPatchBuf, 0x90, detLen);
 
 	switch(patchType)
 	{
-		case DETOUR_TYPE_JMP:
-			pbPatchBuf[0] = 0xE9;
-			*(DWORD*)&pbPatchBuf[1] = (DWORD)(pbFuncDetour - pbFuncOrig) - 5;
-			break;
+        case DETOUR_TYPE_JMP:
+            pbPatchBuf[0] = 0xE9;
+            *(DWORD*)&pbPatchBuf[1] = (DWORD)(pbFuncDetour - pbFuncOrig) - 5;
+            // Validate target address encoded in patch buffer
+            {
+                DWORD rel = *(DWORD*)&pbPatchBuf[1];
+                DWORD dest = (DWORD)((DWORD)pbFuncOrig + 5 + rel);
+                if (dest != (DWORD)(uintptr_t)pbFuncDetour) {
+                    char errbuf[256];
+                    sprintf(errbuf, "DetourCreate: patch jmp dest=0x%08X != detour_fn=0x%08X (orig=0x%08X)\n", dest, (unsigned int)(uintptr_t)pbFuncDetour, (unsigned int)(uintptr_t)pbFuncOrig);
+                    PrintOut(PRINT_LOG, "%s", errbuf);
+                }
+            }
+            break;
 
 		case DETOUR_TYPE_PUSH_RET:
 			pbPatchBuf[0] = 0x68;
@@ -123,16 +168,20 @@ LPVOID DetourCreate(LPVOID lpFuncOrig, LPVOID lpFuncDetour, int patchType, int d
 			return NULL;
 	}
 
-	// Write the detour
-	for(int i=0; i<detLen; i++)
-		pbFuncOrig[i] = pbPatchBuf[i];
+    // Write the detour into the original function
+    for(int i=0; i<detLen; i++)
+        pbFuncOrig[i] = pbPatchBuf[i];
 
-	delete pbPatchBuf;
+    // Ensure the CPU instruction cache is coherent after patching code
+    FlushInstructionCache(GetCurrentProcess(), lpFuncOrig, detLen);
 
-	// Reset original mem flags
-	VirtualProtect(lpFuncOrig, detLen, dwProt, new DWORD);
+    // Clean up patch buffer
+    delete [] pbPatchBuf;
 
-	return lpMallocPtr;
+    // Reset original mem flags
+    VirtualProtect(lpFuncOrig, detLen, dwProt, &dwProt);
+
+    return lpMallocPtr;
 }
 
 BOOL DetourRemove(void** lppDetourCreatePtr)
@@ -140,8 +189,8 @@ BOOL DetourRemove(void** lppDetourCreatePtr)
 
 	LPVOID lpDetourCreatePtr = *lppDetourCreatePtr;
 	PBYTE pbMallocPtr = NULL;
-	DWORD dwFuncOrig = NULL;
-	DWORD dwProt = NULL;
+	DWORD dwFuncOrig = 0;
+	DWORD dwProt = 0;
 	int i=0;
 
 	if((pbMallocPtr = (PBYTE)lpDetourCreatePtr) == NULL)
@@ -166,10 +215,14 @@ BOOL DetourRemove(void** lppDetourCreatePtr)
 	dwFuncOrig += (DWORD)pbMallocPtr; // Add this addr to 32bit jmp
 	dwFuncOrig -= (i-JMP32_SZ); // Dec by detour len to get to start of orig
 
-	// Write the overwritten bytes back to the original
-	VirtualProtect((LPVOID)dwFuncOrig, (i-JMP32_SZ), PAGE_READWRITE, &dwProt);
-	memcpy((LPVOID)dwFuncOrig, lpDetourCreatePtr, (i-JMP32_SZ));
-	VirtualProtect((LPVOID)dwFuncOrig, (i-JMP32_SZ), dwProt, new DWORD);
+    // Write the overwritten bytes back to the original
+    VirtualProtect((LPVOID)dwFuncOrig, (i-JMP32_SZ), PAGE_READWRITE, &dwProt);
+    memcpy((LPVOID)dwFuncOrig, lpDetourCreatePtr, (i-JMP32_SZ));
+
+    // Ensure CPU instruction cache coherency after restoring original code
+    FlushInstructionCache(GetCurrentProcess(), (LPVOID)dwFuncOrig, (i-JMP32_SZ));
+
+    VirtualProtect((LPVOID)dwFuncOrig, (i-JMP32_SZ), dwProt, &dwProt);
 
 	*lppDetourCreatePtr = NULL;
 	return TRUE;

@@ -1,102 +1,117 @@
-# $@ The filename representing the target.
-# $% The filename element of an archive member specification.
-# $< The filename of the first prerequisite.
-# $? The names of all prerequisites that are newer than the target, separated by spaces.
-# $^ The filenames of all the prerequisites, separated by spaces. This list has duplicate filenames removed since for most uses, such as # #compiling, copying, etc., duplicates are not wanted.
-# $+ Similar to $^, this is the names of all the prerequisites separated by spaces, except that $+ includes duplicates. This variable was #created for specific situations such as arguments to linkers where duplicate values have meaning.
-# $* The stem of the target filename. A stem is typically a filename without its suffix. Its use outside of pattern rules is discouraged.
-
-
-# Output binary
-OUT = bin/sof_buddy.dll
-
-# Compiler
-CC = i686-w64-mingw32-g++-posix
+# Cross-compilation makefile for SoF Buddy
+# Target: 32-bit Windows DLL
 
 # Directories
-ODIR = obj
 SDIR = src
+ODIR = obj
+BDIR = bin
+IDIR = hdr
+FEATURES_TXT = features/FEATURES.txt
+FEATURE_CONFIG_H = hdr/feature_config.h
 
-# Include directory
-INC = -Ihdr
+# Compiler settings
+CC = i686-w64-mingw32-g++-posix
+INC = -I$(IDIR) -I$(SDIR)
+COMMON_CFLAGS = -D_WIN32_WINNT=0x0501 -std=c++17
+LIBS = -lws2_32 -lwinmm -lshlwapi -lpsapi -ldbghelp
 
-# Compiler flags (default warnings)
-COMMON_CFLAGS = -D_WIN32_WINNT=0x0501 -std=c++14
+# Build configurations
+ifeq ($(BUILD),release)
+    CFLAGS = $(COMMON_CFLAGS) -O2 -DNDEBUG
+    TARGET_SUFFIX = 
+else
+    CFLAGS = $(COMMON_CFLAGS) -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__
+    TARGET_SUFFIX = 
+endif
 
-# Release compiler flags
-CFLAGS = $(COMMON_CFLAGS) 
-# Debug compiler flags (add -g for debugging symbols)
-DBG_CFLAGS = $(COMMON_CFLAGS)
+# Output
+OUT = $(BDIR)/sof_buddy.dll
+DEF_FILE = rsrc/sof_buddy.def
 
-#What -static does: This is a broad, powerful linker flag that acts like a "hammer." 
-#It tells the linker: "For every library that follows, attempt to use the static version (.a archive) instead
-# of the shared version (linking to a .dll)."
-#The Problem: While this correctly forces -lpthread to link the static libpthread.a, it also affects every other
-# library linked later on, including the system libraries (-lws2_32, -lwinmm, etc.).
-# It essentially tries to pull the code from those libraries directly into your DLL instead of just making your DLL
-# call the ws2_32.dll that already exists on the user's Windows system.
-#Why this is bad:
-#Bloat: Your DLL would become huge because it would contain copies of Windows system functions.
-#Instability/Errors: You should always link dynamically against core Windows system DLLs. They are the operating system.
-# Attempting to statically link them is incorrect and often fails or produces unstable results.
 # Linker flags
-OFLAGS = -static -pthread -shared -static-libgcc -static-libstdc++ -Wl,--enable-stdcall-fixup
-#OFLAGS = -shared -static-libgcc -static-libstdc++ -Wl,-Bdynamic -Wl,--enable-stdcall-fixup
+LFLAGS = -static -pthread -shared -static-libgcc -static-libstdc++ -Wl,--enable-stdcall-fixup
 
-# Source files
-_SOURCE_DIRS = DetourXS features
-SOURCES = $(wildcard $(addsuffix /*.cpp,$(_SOURCE_DIRS)))
-_OBJS = $(patsubst $(SDIR)/%.cpp,$(ODIR)/%.o,$(SOURCES))
+# Find all source files
+SOURCES = $(shell find $(SDIR) -name "*.cpp" | head -50)
+OBJECTS = $(SOURCES:$(SDIR)/%.cpp=$(ODIR)/%.o)
 
-# Object files
-OBJS = $(ODIR)/DetourXS/ADE32.o \
-	$(ODIR)/DetourXS/detourxs.o \
-	$(ODIR)/detour_tracker.o \
-	$(ODIR)/wsock_entry.o \
-	$(ODIR)/core.o \
-	$(ODIR)/ref_gl.o \
-	$(ODIR)/sof_buddy.o \
-	$(ODIR)/crc32.o \
-	$(ODIR)/util.o \
-	$(ODIR)/cvars.o \
-	$(ODIR)/features/feature_flags.o \
-	$(ODIR)/features/cinematic_freeze/hooks.o \
-	$(ODIR)/features/ref_fixes/hooks.o \
-	$(ODIR)/features/media_timers/hooks.o \
-	$(ODIR)/features/media_timers/media_timers.o \
-	$(ODIR)/features/ref_fixes/ref_fixes.o \
-	$(ODIR)/features/scaled_font/scaled_font.o
+# Default target
+all: $(FEATURE_CONFIG_H) $(OUT)
 
-# Linking rule
+# Generate feature configuration header from FEATURES.txt
+$(FEATURE_CONFIG_H): $(FEATURES_TXT)
+	@echo "Generating feature configuration from $(FEATURES_TXT)..."
+	@echo "Active features:"
+	@awk '{ line=$$0; sub(/\r$$/,"",line); gsub(/^[ \t]+|[ \t]+$$/,"",line); if(line=="") next; if(substr(line,1,1)=="#") next; if(substr(line,1,2)=="//") next; print " - " line }' $(FEATURES_TXT) || true
+	@echo "Active feature count: $$(awk '{ line=$$0; sub(/\r$$/,"",line); gsub(/^[ \t]+|[ \t]+$$/,"",line); if(line=="") next; if(substr(line,1,1)=="#") next; if(substr(line,1,2)=="//") next; print line }' $(FEATURES_TXT) | wc -l)"
+	@echo '#pragma once' > $@
+	@echo '' >> $@
+	@echo '/*' >> $@
+	@echo '    Compile-time Feature Configuration' >> $@
+	@echo '    ' >> $@
+	@echo '    Auto-generated from $(FEATURES_TXT)' >> $@
+	@echo '    Enable/disable features by commenting/uncommenting lines in $(FEATURES_TXT)' >> $@
+	@echo '    ' >> $@
+	@echo '    Format in $(FEATURES_TXT):' >> $@
+	@echo '    - feature_name     (enabled)' >> $@
+	@echo '    - // feature_name  (disabled)' >> $@
+	@echo '*/' >> $@
+	@echo '' >> $@
+	@grep -v '^#' $(FEATURES_TXT) | grep -v '^$$' | while read line; do \
+		if echo "$$line" | grep -q '^//'; then \
+			feature=$$(echo "$$line" | sed 's|^//[[:space:]]*||'); \
+			macro=$$(echo "FEATURE_$$feature" | tr '[:lower:]' '[:upper:]' | tr '-' '_'); \
+			echo "#define $$macro 0  // disabled" >> $@; \
+		else \
+			macro=$$(echo "FEATURE_$$line" | tr '[:lower:]' '[:upper:]' | tr '-' '_'); \
+			echo "#define $$macro 1  // enabled" >> $@; \
+		fi; \
+	done
+	@echo '' >> $@
+	@echo '/*' >> $@
+	@echo '    Usage in feature files:' >> $@
+	@echo '    ' >> $@
+	@echo '    #include "../../../hdr/feature_config.h"' >> $@
+	@echo '    ' >> $@
+	@echo '    #if FEATURE_MY_FEATURE' >> $@
+	@echo '    REGISTER_HOOK(MyFunction, 0x12345678, void, __cdecl);' >> $@
+	@echo '    // ... feature implementation' >> $@
+	@echo '    #endif' >> $@
+	@echo '*/' >> $@
+	@echo "Generated feature configuration with $$(grep -c '^#define' $@) features"
 
-$(OUT): detours-prebuild $(OBJS)
-	@mkdir -p $(dir $(OUT))
-	$(CC) $(OFLAGS) rsrc/sof_buddy.def $(OBJS) -o $(OUT) -lws2_32 -lwinmm -lshlwapi -lpsapi
+# Convenience target to print active features without building
+features:
+	@echo "Active features:"
+	@awk '{ line=$$0; sub(/\r$$/,"",line); gsub(/^[ \t]+|[ \t]+$$/,"",line); if(line=="") next; if(substr(line,1,1)=="#") next; if(substr(line,1,2)=="//") next; print " - " line }' $(FEATURES_TXT) || true
+	@echo "Active feature count: $$(awk '{ line=$$0; sub(/\r$$/,"",line); gsub(/^[ \t]+|[ \t]+$$/,"",line); if(line=="") next; if(substr(line,1,1)=="#") next; if(substr(line,1,2)=="//") next; print line }' $(FEATURES_TXT) | wc -l)"
 
-# Debug target
-debug: CFLAGS = $(DBG_CFLAGS)
-debug: $(OUT)
+# Build target
+$(OUT): $(FEATURE_CONFIG_H) $(OBJECTS)
+	@mkdir -p $(BDIR)
+	$(CC) $(LFLAGS) $(DEF_FILE) $(OBJECTS) -o $(OUT) $(LIBS)
 
-# Build rule
-$(ODIR)/%.o: $(SDIR)/%.cpp
+# Object file rules - all depend on feature config
+$(ODIR)/%.o: $(SDIR)/%.cpp $(FEATURE_CONFIG_H)
 	@mkdir -p $(dir $@)
 	$(CC) -c $(INC) -o $@ $< $(CFLAGS)
 
+# Build configurations
+debug: all
+release: 
+	$(MAKE) BUILD=release all
 
-# Clean rule
-.PHONY: clean
+# Clean
 clean:
-	rm -rf $(ODIR) $(OUT) rsrc/detours_prebuild.md rsrc/detours_prebuild.txt
+	rm -rf $(ODIR) $(OUT) $(FEATURE_CONFIG_H)
 
-# Prebuild: generate detours list/header
-.PHONY: detours-prebuild detours
-detours-prebuild:
-	@echo "Running detours prebuild script..."
-	python3 scripts/list_detours.py || true
+# Show configuration
+config:
+	@echo "Compiler: $(CC)"
+	@echo "Include: $(INC)"
+	@echo "Flags: $(CFLAGS)"
+	@echo "Libraries: $(LIBS)"
+	@echo "Sources found: $(words $(SOURCES))"
+	@echo "Target: $(OUT)"
 
-detours:
-	@echo "Running detours prebuild script (detours target)..."
-	python3 scripts/list_detours.py || true
-	@echo "TXT: rsrc/detours_prebuild.txt" && head -n 20 rsrc/detours_prebuild.txt | cat
-	@echo && echo "MD: rsrc/detours_prebuild.md" && head -n 40 rsrc/detours_prebuild.md | cat
-
+.PHONY: all debug release clean config features

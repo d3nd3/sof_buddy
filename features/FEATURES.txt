@@ -1,12 +1,25 @@
-// List feature tokens. Lines starting with // are disabled and will not be
-// registered. Keep tokens matched to the feature directory names under
-// src/features (e.g. media_timers, console_overflow).
+# SoF Buddy Features Configuration
+# Lines starting with # are comments
+# Uncommented lines = enabled features  
+# Commented lines (with //) = disabled features
 
-// cinematic_freeze
-console_overflow
-console_paste_fix
+# Core Features (always enabled)
 media_timers
-ref_fixes
-scaled_font
+
+# Graphics Features
+texture_mapping_min_mag
+font_scaling
+menu_scaling
+
+hd_textures
+vsync_toggle
+lighting_blend
 
 
+# Game Features  
+teamicons_offset
+
+# Bug fixes
+new_system_bug
+console_protection
+cl_maxfps_singleplayer  

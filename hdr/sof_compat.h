@@ -92,6 +92,9 @@ extern void (*orig_drawTeamIcons)(void * param1,void * param2,void * param3,void
 //util access
 extern void (*orig_Cmd_ExecuteString)(const char * string);
 
+// Renderer CVars (for texture filtering features)
+extern cvar_t* _gl_texturemode;  // OpenGL texture mode cvar
+
 extern void InitDefaults(void);
 
 #endif // SOF_COMPAT_H
