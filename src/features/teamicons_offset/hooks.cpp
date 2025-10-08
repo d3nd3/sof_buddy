@@ -7,13 +7,13 @@
 	- Fixing icon positioning based on real vs virtual screen dimensions
 */
 
-#include "../../../hdr/feature_config.h"
+#include "feature_config.h"
 
 #if FEATURE_TEAMICONS_OFFSET
 
-#include "../../../hdr/feature_macro.h"
-#include "../../../hdr/shared_hook_manager.h"
-#include "../../../hdr/util.h"
+#include "feature_macro.h"
+#include "shared_hook_manager.h"
+#include "util.h"
 #include <cmath>
 
 // Forward declarations

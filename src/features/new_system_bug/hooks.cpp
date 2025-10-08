@@ -14,13 +14,13 @@
 	This feature overrides those bad defaults with optimal settings.
 */
 
-#include "../../../hdr/feature_config.h"
+#include "feature_config.h"
 
 #if FEATURE_NEW_SYSTEM_BUG
 
-#include "../../../hdr/shared_hook_manager.h"
-#include "../../../hdr/util.h"
-#include "../../../hdr/sof_compat.h"
+#include "shared_hook_manager.h"
+#include "util.h"
+#include "sof_compat.h"
 #include <windows.h>
 
 // Forward declarations

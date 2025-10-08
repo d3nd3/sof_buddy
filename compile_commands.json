@@ -90,9 +90,29 @@
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/texture_mapping_min_mag/hooks.cpp"
     },
     {
-        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/features/scaled_menu/hooks.o src/features/scaled_menu/hooks.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__",
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/features/scaled_ui/menu.o src/features/scaled_ui/menu.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
-        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_menu/hooks.cpp"
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui/menu.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/features/scaled_ui/fonts.o src/features/scaled_ui/fonts.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui/fonts.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/features/scaled_ui/cvars.o src/features/scaled_ui/cvars.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui/cvars.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/features/scaled_ui/hooks.o src/features/scaled_ui/hooks.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui/hooks.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/features/scaled_ui/hud.o src/features/scaled_ui/hud.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui/hud.cpp"
     },
     {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/features/lighting_blend/cvars.o src/features/lighting_blend/cvars.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__",
@@ -103,16 +123,6 @@
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/features/lighting_blend/hooks.o src/features/lighting_blend/hooks.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/lighting_blend/hooks.cpp"
-    },
-    {
-        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/features/scaled_font/cvars.o src/features/scaled_font/cvars.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__",
-        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
-        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_font/cvars.cpp"
-    },
-    {
-        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/features/scaled_font/hooks.o src/features/scaled_font/hooks.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__",
-        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
-        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_font/hooks.cpp"
     },
     {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/shared_hook_manager.o src/shared_hook_manager.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__",

@@ -6,14 +6,14 @@
 	the source and destination blend factors for glBlendFunc().
 */
 
-#include "../../../hdr/feature_config.h"
+#include "feature_config.h"
 
 #if FEATURE_LIGHTING_BLEND
 
-#include "../../../hdr/feature_macro.h"
-#include "../../../hdr/shared_hook_manager.h"
-#include "../../../hdr/sof_compat.h"
-#include "../../../hdr/util.h"
+#include "feature_macro.h"
+#include "shared_hook_manager.h"
+#include "sof_compat.h"
+#include "util.h"
 #include <windows.h>
 #include <string.h>
 

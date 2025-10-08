@@ -4,11 +4,11 @@
 	This file contains all cvar declarations and registration for the lighting_blend feature.
 */
 
-#include "../../../hdr/feature_config.h"
+#include "feature_config.h"
 
 #if FEATURE_LIGHTING_BLEND
 
-#include "../../../hdr/sof_compat.h"
+#include "sof_compat.h"
 
 #ifndef NULL
 #define NULL 0

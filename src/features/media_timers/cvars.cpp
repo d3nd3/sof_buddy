@@ -4,12 +4,12 @@
 	This file contains all cvar declarations and registration for the media_timers feature.
 */
 
-#include "../../../hdr/feature_config.h"
+#include "feature_config.h"
 
 #if FEATURE_MEDIA_TIMERS
 
-#include "../../../hdr/sof_buddy.h"
-#include "../../../hdr/sof_compat.h"
+#include "sof_buddy.h"
+#include "sof_compat.h"
 
 // CVar declarations
 cvar_t * _sofbuddy_high_priority = NULL;

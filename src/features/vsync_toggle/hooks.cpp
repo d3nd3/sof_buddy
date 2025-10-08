@@ -5,13 +5,13 @@
 	applied when the video renderer changes by triggering its modified flag.
 */
 
-#include "../../../hdr/feature_config.h"
+#include "feature_config.h"
 
 #if FEATURE_VSYNC_TOGGLE
 
-#include "../../../hdr/shared_hook_manager.h"
-#include "../../../hdr/sof_compat.h"
-#include "../../../hdr/util.h"
+#include "shared_hook_manager.h"
+#include "sof_compat.h"
+#include "util.h"
 
 // Engine CVars are defined in cvars.cpp
 extern cvar_t * vid_ref;

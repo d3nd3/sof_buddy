@@ -1,124 +1,109 @@
-#include "../../../hdr/feature_config.h"
-#if FEATURE_MENU_SCALING
+/*
+	Scaled UI - Menu Scaling Functions (Experimental)
+	
+	This file contains all menu scaling functionality including:
+	- Menu element scaling
+	- Menu text scaling
+	- Menu rendering hooks
+	- Menu parsing and layout modifications
+*/
 
-#include "../../../hdr/sof_compat.h"
-#include "../../../hdr/features.h"
-#include "../../../hdr/util.h"
-#include "../../../hdr/shared_hook_manager.h"
-#include "../../../hdr/feature_macro.h"
+#include "feature_config.h"
+
+#if FEATURE_UI_SCALING
+
+#ifdef UI_MENU
+
+#include "sof_compat.h"
+#include "features.h"
+#include "util.h"
+#include "shared_hook_manager.h"
+#include "feature_macro.h"
+#include "scaled_ui.h"
 
 #include "DetourXS/detourxs.h"
-
 #include <math.h>
 #include <stdint.h>
+#include <string>
 
-// Lifecycle callback registration placed at the top for visibility
-static void scaledMenu_EarlyStartup(void);
-static void scaledMenu_RefDllLoaded(void);
-
-REGISTER_SHARED_HOOK_CALLBACK(EarlyStartup, scaled_menu, scaledMenu_EarlyStartup, 80, Post);
-REGISTER_SHARED_HOOK_CALLBACK(RefDllLoaded, scaled_menu, scaledMenu_RefDllLoaded, 70, Post);
-
-// Hook registrations for menu scaling
-REGISTER_HOOK(M_PushMenu, 0x200C7630, void, __cdecl, const char* name, const char* frame, bool force);
-
-// Note: Draw_Pic, GL_FindImage, and DrawStretchPic hooks are now in dispatchers/ref_gl.cpp
-REGISTER_HOOK_LEN(R_Strlen, 0x300042F0, 7, int, __cdecl, char * str, char * fontStd);
-REGISTER_HOOK_LEN(R_StrHeight, 0x300044C0, 7, int, __cdecl, char * fontStd);
-REGISTER_HOOK_LEN(stm_c_ParseStm, 0x200E7E70, 5, char*, __thiscall, void *self_stm_c, void * toke_c);
-
-// Function pointers for original functions
-void (__thiscall *orig_slider_c_Draw)(void * self);
-void (__thiscall *orig_loadbox_c_Draw)(void * self);
-void (__thiscall *orig_vbar_c_Draw)(void * self);
-void (__thiscall *orig_master_Draw)(void * rect_c_self);
-void (__thiscall *orig_frame_c_Constructor)(void* self, void * menu_c, char * width, char * height, void * frame_name) = (void(__thiscall*)(void*, void*, char*, char*, void*))0x200C60A0;
-// orig_stm_c_ParseStm is now handled by REGISTER_HOOK_LEN macro
-void (__thiscall *orig_stm_c_ParseBlank)(void *self_stm_c, void * toke_c);
-int (__thiscall *orig_toke_c_GetNTokens)(void * toke_c, int quantity) = (int(__thiscall*)(void*, int))0x200EAFE0;
-char * (__thiscall *orig_toke_c_Token)(void * toke_c, int idx) = (char*(__thiscall*)(void*, int))0x200EB440;
-void * (__cdecl *orig_new_std_string)(int length) = (void*(__cdecl*)(int))0x200FA352;
-
-
-// Legacy function pointers (keeping for compatibility)
-void (*orig_DrawGetPicSize)(void * stm_c, int *, int *, char * stdPicName);
-void (*orig_Draw_GetPicSize)(int *w, int *h, char *pic) = NULL;
-
-// Global variables for menu scaling
-bool isDrawPicTiled = false;
-bool isDrawPicCenter = false;
-int DrawPicWidth = 0;
-int DrawPicHeight = 0;
-bool isMenuSpmSettings = false;
-
-// Forward declarations
-// Note: hkDraw_Pic and hkGL_FindImage are now in dispatchers/ref_gl.cpp
-void my_Draw_GetPicSize(int *w, int *h, char *pic);
-int hkR_Strlen(char * str, char * fontStd);
-int hkR_StrHeight(char * fontStd);
-void my_M_PushMenu(const char * name, const char * frame, bool force);
-void hkM_PushMenu(const char * name, const char * frame, bool force);
-char * findClosingBracket(char * start);
-void mutateWidthTokeC_resize(void * toke_c);
-void mutateWidthTokeC_width_height(void * toke_c, char * match);
-void mutateBlankTokeC_width_height(void * toke_c);
-void __thiscall my_master_Draw(void * self);
-void __thiscall my_slider_c_Draw(void * self);
-void __thiscall my_loadbox_c_Draw(void * self);
-void __thiscall my_vbar_c_Draw(void * self);
-void __thiscall my_frame_c_Constructor(void* self, void * menu_c, char * width, char * height, void * frame_name);
-char * __thiscall hkstm_c_ParseStm(void *self_stm_c, void * toke_c);
-char * __thiscall my_rect_c_Parse(void* toke_c, int idx);
-void __thiscall my_stm_c_ParseBlank(void *self_stm_c, void * toke_c);
-
-// Note: hkDraw_Pic and hkGL_FindImage functions moved to dispatchers/ref_gl.cpp
+// Menu scaling function implementations
+const char* get_nth_entry(const char* str, int n) {
+    if (!str) return nullptr;
+    
+    const char* current = str;
+    int count = 0;
+    
+    while (*current && count < n) {
+        if (*current == '/') {
+            count++;
+        }
+        current++;
+    }
+    
+    if (count == n && *current) {
+        return current;
+    }
+    
+    return nullptr;
+}
 
 /*
-  For some menu images. Except icons directory.
+    This function is called internally by:
+    - cInterface::DrawNum()
+    - cDMRanking::Draw()
+    - SCR_FadePic()
+    - SCR_TouchPics()
+    - SCR_Crosshair()
+    - vbar_c::vbar_c()
+    - slider_c::Setup()
 */
 void my_Draw_GetPicSize(int *w, int *h, char *pic)
 {
-  // Split the pic string by '/' and check if the 3rd entry is "icons"
-  if (pic != nullptr) {
-    // 0-based: 2 is the 3rd entry
-    const char* thirdEntry = get_nth_entry(pic, 2); 
-    if (thirdEntry) {
-      // Find the end of the third entry
-      const char* end = thirdEntry;
-      while (*end && *end != '/') ++end;
-      size_t len = end - thirdEntry;
-      if ((len == 5 && strncmp(thirdEntry, "icons", 5) == 0) || ( len == 9 && strncmp(thirdEntry, "teamicons", 9) == 0) ) {
-        orig_Draw_GetPicSize (w, h, pic);
-        return;
-      } else if (len == 8 && strncmp(thirdEntry, "backdrop", 8) == 0) {
-        /*
-          This idea is good!, except the tiling system is forcing chunks of 128 it seems?
-          So if doesn't fully divide by 128, it gives nearest, leaving empty space.
-        */
-        orig_Draw_GetPicSize (w , h, pic);
-        *w = *w * screen_y_scale;
-        *h = *h * screen_y_scale;
-        return;
-      } else if (len == 4 && strncmp(thirdEntry, "misc", 4) == 0) {
-        // Check if the last 4 characters of the path are "vend"
-        size_t picLen = strlen(pic);
-        if (picLen >= 4 && strncmp(pic + picLen - 4, "vend", 4) == 0) {
-          orig_Draw_GetPicSize(w, h, pic);
-          // *w = *w * screen_y_scale;
-          // *h = *h * screen_y_scale;
-          return;
+    // Split the pic string by '/' and check if the 3rd entry is "icons"
+    if (pic != nullptr) {
+        // 0-based: 2 is the 3rd entry
+        const char* thirdEntry = get_nth_entry(pic, 2); 
+        if (thirdEntry) {
+            // Find the end of the third entry
+            const char* end = thirdEntry;
+            while (*end && *end != '/') ++end;
+            size_t len = end - thirdEntry;
+            if ((len == 5 && strncmp(thirdEntry, "icons", 5) == 0) || ( len == 9 && strncmp(thirdEntry, "teamicons", 9) == 0) ) {
+                extern void (*orig_Draw_GetPicSize)(int*, int*, char*);
+                orig_Draw_GetPicSize (w, h, pic);
+                return;
+            } else if (len == 8 && strncmp(thirdEntry, "backdrop", 8) == 0) {
+                /*
+                  This idea is good!, except the tiling system is forcing chunks of 128 it seems?
+                  So if doesn't fully divide by 128, it gives nearest, leaving empty space.
+                */
+                extern void (*orig_Draw_GetPicSize)(int*, int*, char*);
+                orig_Draw_GetPicSize (w , h, pic);
+                *w = *w * screen_y_scale;
+                *h = *h * screen_y_scale;
+                return;
+            } else if (len == 4 && strncmp(thirdEntry, "misc", 4) == 0) {
+                // Check if the last 4 characters of the path are "vend"
+                size_t picLen = strlen(pic);
+                if (picLen >= 4 && strncmp(pic + picLen - 4, "vend", 4) == 0) {
+                    extern void (*orig_Draw_GetPicSize)(int*, int*, char*);
+                    orig_Draw_GetPicSize(w, h, pic);
+                    // *w = *w * screen_y_scale;
+                    // *h = *h * screen_y_scale;
+                    return;
+                }
+            }
         }
-      }
     }
-  }
-  // orig_Com_Printf("pic %s\n",pic);
-  orig_Draw_GetPicSize (w, h, pic);
-  #if 1
-  *w = *w * screen_y_scale;
-  *h = *h * screen_y_scale;
-  #endif
+    // orig_Com_Printf("pic %s\n",pic);
+    extern void (*orig_Draw_GetPicSize)(int*, int*, char*);
+    orig_Draw_GetPicSize (w, h, pic);
+    #if 1
+    *w = *w * screen_y_scale;
+    *h = *h * screen_y_scale;
+    #endif
 }
- 
+
 //Returns endpointer that we interested in for options
 char * findClosingBracket(char * start) {
     char * ret = start;
@@ -130,7 +115,9 @@ char * findClosingBracket(char * start) {
     
     return ret;
 }
-
+/*
+    For : stm_c_ParseStm, edits the string/stream to resize the rects.
+*/
 void mutateWidthTokeC_resize(void * toke_c) {
     // Update the existing string structure to point to new data
     char** start_ptr = (char**)((char*)toke_c + 0);
@@ -210,7 +197,11 @@ void mutateWidthTokeC_resize(void * toke_c) {
     
     int out_len = out.length();
     
+    if (!changed) {
+        return;
+    }
     
+    extern void * (__cdecl *orig_new_std_string)(int length);
     char * new_string_data = (char*)orig_new_std_string(out_len + 1);
     if (new_string_data == NULL) {
         // orig_Com_Printf("ERROR: allocation failed!\n");
@@ -256,6 +247,9 @@ void mutateWidthTokeC_resize(void * toke_c) {
     // orig_Com_Printf("new length = %i\n", *length_ptr);
 }
 
+/*
+    Called by my_rect_c_Parse to resize the width and height of the rects.
+*/
 void mutateWidthTokeC_width_height(void * toke_c, char * match) {
     // Update the existing string structure to point to new data
     char** start_ptr = (char**)((char*)toke_c + 0);
@@ -362,6 +356,7 @@ void mutateWidthTokeC_width_height(void * toke_c, char * match) {
     int out_len = out.length();
     
     
+    extern void * (__cdecl *orig_new_std_string)(int length);
     char * new_string_data = (char*)orig_new_std_string(out_len + 1);
     if (new_string_data == NULL) {
         // orig_Com_Printf("ERROR: allocation failed!\n");
@@ -402,11 +397,13 @@ void mutateWidthTokeC_width_height(void * toke_c, char * match) {
 }
 
 /*
- blank <width> <height>
- When a page is loaded into a frame, the blank width is naturally rescaled to be a % of the frame's
- width. "Strange".
+    Called by stm_c_ParseStm
+    This represents the invisibile space, like tabs and indentation
+    blank <width> <height>
+    When a page is loaded into a frame, the blank width is naturally rescaled to be a % of the frame's
+    width. "Strange".
 
- But with larger font, the offset is too small.
+    But with larger font, the offset is too small.
 */
 void mutateBlankTokeC_width_height(void * toke_c) {
     // Access all relevant structure members, including the cursor
@@ -480,6 +477,7 @@ void mutateBlankTokeC_width_height(void * toke_c) {
     }
 
     int out_len = out.length();
+    extern void * (__cdecl *orig_new_std_string)(int length);
     char* new_string_data = (char*)orig_new_std_string(out_len + 1);
     if (new_string_data == NULL) {
         return; // Allocation failed
@@ -524,11 +522,13 @@ void __thiscall my_master_Draw(void * self)
 }
 
 /*
-Repositions the slider with DrawStretchPic
+Repositions the slider with Draw_StretchPic
 We were double scaling this, because Draw_GetPicSize is being used for this. duh.
 */
 void __thiscall my_slider_c_Draw(void * self) {
+    extern bool menuSliderDraw;
     menuSliderDraw = true;
+    extern void (__thiscall *orig_slider_c_Draw)(void * self);
     orig_slider_c_Draw(self);
     menuSliderDraw = false;
 }
@@ -538,7 +538,10 @@ Was going to try and scale the loadGame screenshots,
 but seems too hard atm. Disabled
 */
 void __thiscall my_loadbox_c_Draw(void * self) {
+    extern bool menuLoadboxDraw;
     menuLoadboxDraw = true;
+    
+    extern void (__thiscall *orig_loadbox_c_Draw)(void * self);
     orig_loadbox_c_Draw(self);
     menuLoadboxDraw = false;
 }
@@ -546,8 +549,11 @@ void __thiscall my_loadbox_c_Draw(void * self) {
 Disabled currently, but enables custom control of this object.
 */
 void __thiscall my_vbar_c_Draw(void * self) {
+    extern bool menuVerticalScrollDraw;
     menuVerticalScrollDraw = true;
-    orig_vbar_c_Draw(self);
+   
+    // extern void (__thiscall *orig_vbar_c_Draw)(void * self);
+    // orig_vbar_c_Draw(self);
     menuVerticalScrollDraw = false;
 }
 
@@ -654,12 +660,35 @@ void __thiscall my_frame_c_Constructor(void* self, void * menu_c, char * width, 
         }
         
         
+        extern void (__thiscall *orig_frame_c_Constructor)(void*, void*, char*, char*, void*);
         orig_frame_c_Constructor(self,menu_c,final_width,final_height,frame_name);
     } else { 
+        extern void (__thiscall *orig_frame_c_Constructor)(void*, void*, char*, char*, void*);
         orig_frame_c_Constructor(self,menu_c,width,height,frame_name);
     }
 }
 
+/*
+// Hypothetical structure for toke_c
+class toke_c {
+public:
+// [this+0]
+char* m_pBuffer;        // Pointer to the beginning of the allocated memory.
+
+// [this+4]
+char* m_pCursor;        // Pointer to the current read/write position (cursor) within the buffer.
+
+// [this+8]
+char* m_pEndOfBuffer;   // Pointer to the end of the allocated memory (one past the last valid byte).
+
+// [this+12]
+// This is actually how many lines have been passed
+
+// [this+16] ([esi+10h])
+size_t m_capacity;      // The total size/capacity of the allocated buffer.
+};
+
+*/
 char * __thiscall hkstm_c_ParseStm(void *self_stm_c, void * toke_c)
 {
     
@@ -680,6 +709,7 @@ char * __thiscall hkstm_c_ParseStm(void *self_stm_c, void * toke_c)
     orig_Com_Printf("\n");
 
     #endif
+    extern char * (__thiscall *ostm_c_ParseStm)(void*, void*);
     char * out_ret = ostm_c_ParseStm(self_stm_c, toke_c);
     
     return out_ret;
@@ -729,33 +759,39 @@ We remove the space from this calculation to improve centering.
 */
 int hkR_Strlen(char * str, char * fontStd)
 {
-  // INSERT_YOUR_CODE
-  int space_count = 0;
-  for (char *p = str; *p != '\0'; ++p) {
-    if (*p == ' ') {
-      space_count++;
+    // INSERT_YOUR_CODE
+    int space_count = 0;
+    for (char *p = str; *p != '\0'; ++p) {
+        if (*p == ' ') {
+            space_count++;
+        }
     }
-  }
-  
-  
-  #if 0
-  if ( !strcmp(str,"EXIT GAME") ) {
-    realFontEnum_t fontType = getRealFontEnum((char*)(* (int * )(fontStd + 4)));
-    char * teststr = "EXIT GAME";
-    int len = oR_Strlen(teststr, fontStd) * hudScale;
-    orig_Com_Printf("Len = %i %i %i %i\n",len , space_count, fontType, realFontSizes[fontType]);
-    return len;
-  }
-  #endif
+    
+    
+    #if 0
+    if ( !strcmp(str,"EXIT GAME") ) {
+        extern realFontEnum_t getRealFontEnum(const char* realFont);
+        extern const int realFontSizes[4];
+        extern float hudScale;
+        realFontEnum_t fontType = getRealFontEnum((char*)(* (int * )(fontStd + 4)));
+        char * teststr = "EXIT GAME";
+        extern int (__cdecl *oR_Strlen)(char*, char*);
+        int len = oR_Strlen(teststr, fontStd) * hudScale;
+        orig_Com_Printf("Len = %i %i %i %i\n",len , space_count, fontType, realFontSizes[fontType]);
+        return len;
+    }
+    #endif
 
-  return screen_y_scale * ( oR_Strlen(str, fontStd) - 5 * space_count);
+    extern int (__cdecl *oR_Strlen)(char*, char*);
+    return screen_y_scale * ( oR_Strlen(str, fontStd) - 5 * space_count);
 }
 
 int hkR_StrHeight(char * fontStd)
 {
-  // return orig_R_StrHeight(fontStd);
-  return screen_y_scale * oR_StrHeight(fontStd);
-  // return test2->value;
+    // return orig_R_StrHeight(fontStd);
+    extern int (__cdecl *oR_StrHeight)(char*);
+    return screen_y_scale * oR_StrHeight(fontStd);
+    // return test2->value;
 }
 
 /*
@@ -771,10 +807,12 @@ void my_M_PushMenu(const char * name, const char * frame, bool force)
     if ( !strcmp( name, "spm" ) || !strncmp(name,"spm_",4) ) {
         orig_Com_Printf("Detected sofplus settings menu!\n");
         isMenuSpmSettings = true;
+        extern void (__cdecl *oM_PushMenu)(const char*, const char*, bool);
         oM_PushMenu(name,frame,force);
         isMenuSpmSettings = false;
         return;
     }
+    extern void (__cdecl *oM_PushMenu)(const char*, const char*, bool);
     oM_PushMenu(name,frame,force);
 }
 
@@ -784,58 +822,6 @@ void hkM_PushMenu(const char * name, const char * frame, bool force)
     my_M_PushMenu(name, frame, force);
 }
 
-//Called before SoF.exe entrypoint.
-static void scaledMenu_EarlyStartup(void) {
-  
-    //Per Object Type fixes...
-    //Fixes the position of the slider so it can rescale?(centers it?)
-    //Careful _NOT_ to double-scale these because GetPicSize is often called.
-    //Specifically in object_c::Setup() function.
-    //Unlikely we need to use the draw hook..
-    // orig_slider_c_Draw = DetourCreate(0x200D1110 , &my_slider_c_Draw, DETOUR_TYPE_JMP, 5);
-    // orig_loadbox_c_Draw = DetourCreate(0x200DC250, &my_loadbox_c_Draw, DETOUR_TYPE_JMP, 7);
-    // orig_vbar_c_Draw = DetourCreate(0x200D5800, &my_vbar_c_Draw, DETOUR_TYPE_JMP, 5);
-    
-    //=====================================================
-    //===============STM ELEMENT PARSING===================
-    //Stm resize keyword scale - now handled by REGISTER_HOOK_LEN macro
-    
-    // frame element width height scale
-    // WriteE8Call(0x200E80CF, my_frame_c_Constructor); 
-    
-    //parsing width height on menu options
-    WriteE8Call((void*)0x200CF8BA, (void*)&my_rect_c_Parse);
+#endif // UI_MENU
 
-    //=====================================================
-    //=====================================================
-
-    //Menu Pictures sizing override except for icons/teamicons/vend
-    //This that need to remain the same size ... for now...
-    WriteE8Call((void*)0x200C8856, (void*)&my_Draw_GetPicSize);
-    WriteByte((void*)0x200C885B, 0x90);
-    
-    //stm_c::Render(void) - can be useful in future because can get type here
-    //Not used atm.
-    //WriteE8Call(0x200EA48B, &my_master_Draw);
-
-    //Filtering menus by 'filename' .rmf (To conditionally resize frame width height)
-    // orig_M_PushMenu = DetourCreate( 0x200C7630 , &my_M_PushMenu, DETOUR_TYPE_JMP, 6);
-
-    //Rescaling blank ( used for clickboxes/indentation/margins etc )
-    //blank <width> <height>
-    //It makes more sense to do this in ParseStm...
-    // orig_stm_c_ParseBlank = DetourCreate ( 0x200E81E0  , &my_stm_c_ParseBlank, DETOUR_TYPE_JMP,  7);
-    
-}
-
-static void scaledMenu_RefDllLoaded(void) {
-    orig_Draw_GetPicSize = (void(*)(int*, int*, char*))*(int*)0x204035B4;
-
-    /*
-        Hooks are now automatically registered using REGISTER_HOOK_LEN macros.
-        The hook manager intelligently checks addresses to determine which module they belong to.
-        No manual DetourCreate calls needed.
-    */
-}
-
-#endif // FEATURE_MENU_SCALING
+#endif // FEATURE_UI_SCALING

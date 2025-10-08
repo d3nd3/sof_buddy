@@ -2,8 +2,8 @@
 // Memory range: 0x200xxxxx
 // Main executable functions and core game engine
 
-#include "../hdr/feature_macro.h"
-#include "../hdr/shared_hook_manager.h"
+#include "feature_macro.h"
+#include "shared_hook_manager.h"
 // #include "../hdr/util.h"
 
 // =============================================================================
@@ -68,7 +68,7 @@ int current_vid_h = 0;
 int* viddef_width = (int*)0x2040365C;
 int* viddef_height = (int*)0x20403660;
 
-// External reference to screen_y_scale from scaled_font feature
+// External reference to screen_y_scale from scaled_ui feature
 extern float screen_y_scale;
 // Dispatcher for VID_CheckChanges (SoF.exe)
 // Allows multiple features to react before/after video/renderer changes
@@ -82,7 +82,7 @@ REGISTER_HOOK_VOID(VID_CheckChanges, 0x200670C0, void, __cdecl) {
     current_vid_w = *viddef_width;
 	current_vid_h = *viddef_height;
 	
-	// Update screen_y_scale for scaled_font feature
+	// Update screen_y_scale for scaled_ui feature
 	screen_y_scale = (float)current_vid_h / 480.0f;
 
     // Post-change callbacks (e.g., cache new resolution, update overlays)

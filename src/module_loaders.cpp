@@ -8,10 +8,10 @@
 	lifecycle system for all features.
 */
 
-#include "../hdr/feature_macro.h"
-#include "../hdr/shared_hook_manager.h"
-#include "../hdr/util.h"
-#include "../hdr/sof_compat.h"
+#include "feature_macro.h"
+#include "shared_hook_manager.h"
+#include "util.h"
+#include "sof_compat.h"
 #include "simple_hook_init.h"
 
 // Forward declarations

@@ -6,13 +6,13 @@
 	CVars to control GL_TEXTURE_MIN_FILTER and GL_TEXTURE_MAG_FILTER parameters.
 */
 
-#include "../../../hdr/feature_config.h"
+#include "feature_config.h"
 
 #if FEATURE_TEXTURE_MAPPING_MIN_MAG
 
-#include "../../../hdr/shared_hook_manager.h"
-#include "../../../hdr/sof_compat.h"
-#include "../../../hdr/util.h"
+#include "shared_hook_manager.h"
+#include "sof_compat.h"
+#include "util.h"
 #include <string.h>
 
 // OpenGL texture filtering constants

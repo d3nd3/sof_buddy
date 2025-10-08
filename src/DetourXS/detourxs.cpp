@@ -3,7 +3,7 @@
 #include "detourxs.h"
 #include <stdio.h>
 #include "ADE32.h"
-#include "../../hdr/util.h"
+#include "util.h"
 
 #pragma warning(disable: 4311)
 #pragma warning(disable: 4312)

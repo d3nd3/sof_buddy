@@ -6,14 +6,14 @@
 	2. Clipboard paste fix to prevent crashes/overflows when pasting into console
 */
 
-#include "../../../hdr/feature_config.h"
+#include "feature_config.h"
 
 #if FEATURE_CONSOLE_PROTECTION
 
 // #include "../../../hdr/feature_macro.h"
-#include "../../../hdr/shared_hook_manager.h"
-#include "../../../hdr/util.h"
-#include "../../../hdr/sof_compat.h"
+#include "shared_hook_manager.h"
+#include "util.h"
+#include "sof_compat.h"
 
 #include <windows.h>
 #include <string.h>

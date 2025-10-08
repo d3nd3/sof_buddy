@@ -1,9 +1,9 @@
 // Lifecycle callback system for feature initialization
 // #include "../hdr/hook_manager.h"
-#include "../hdr/shared_hook_manager.h"
-#include "../hdr/feature_macro.h"
-#include "../hdr/util.h"
-#include "../hdr/sof_buddy.h"
+#include "shared_hook_manager.h"
+#include "feature_macro.h"
+#include "util.h"
+#include "sof_buddy.h"
 #include <windows.h>
 
 #include "simple_hook_init.h"
@@ -75,11 +75,11 @@ void Cmd_SoFBuddy_ListFeatures_f(void) {
     #endif
     total_features++;
     
-    #if FEATURE_FONT_SCALING
-    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "font_scaling\n");
+    #if FEATURE_UI_SCALING
+    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "ui_scaling\n");
     feature_count++;
     #else
-    orig_Com_Printf(P_RED "[OFF] " P_WHITE "font_scaling\n");
+    orig_Com_Printf(P_RED "[OFF] " P_WHITE "ui_scaling\n");
     #endif
     total_features++;
     
@@ -139,13 +139,6 @@ void Cmd_SoFBuddy_ListFeatures_f(void) {
     #endif
     total_features++;
     
-    #if FEATURE_MENU_SCALING
-    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "menu_scaling\n");
-    feature_count++;
-    #else
-    orig_Com_Printf(P_RED "[OFF] " P_WHITE "menu_scaling\n");
-    #endif
-    total_features++;
     
     orig_Com_Printf("Total: " P_GREEN "%d" P_WHITE " active, " P_RED "%d" P_WHITE " disabled (%d total)\n", 
                     feature_count, total_features - feature_count, total_features);

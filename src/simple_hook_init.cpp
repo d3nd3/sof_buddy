@@ -1,6 +1,6 @@
 // Module-specific hook initialization for the new macro-based system
-#include "../hdr/hook_manager.h"
-#include "../hdr/util.h"
+#include "hook_manager.h"
+#include "util.h"
 
 // Initialize hooks targeting SoF.exe (0x200xxxxx addresses)
 // Called during EarlyStartup lifecycle phase

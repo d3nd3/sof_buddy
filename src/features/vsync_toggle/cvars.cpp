@@ -4,12 +4,12 @@
 	This file contains cvar declarations and registration for the vsync_toggle feature.
 */
 
-#include "../../../hdr/feature_config.h"
+#include "feature_config.h"
 
 #if FEATURE_VSYNC_TOGGLE
 
-#include "../../../hdr/sof_buddy.h"
-#include "../../../hdr/sof_compat.h"
+#include "sof_buddy.h"
+#include "sof_compat.h"
 
 // Engine CVars resolved when the renderer is loaded
 cvar_t * vid_ref = NULL;

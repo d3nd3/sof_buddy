@@ -1,7 +1,7 @@
 /*
-	Scaled Font - CVars
+	Scaled UI - CVars
 	
-	This file contains all cvar declarations and registration for the scaled_font feature.
+	This file contains all cvar declarations and registration for the scaled_ui feature.
 	
 	CVars:
 	- _sofbuddy_font_scale: Scale factor for console/UI fonts (default: 1.0)
@@ -9,12 +9,12 @@
 	- _sofbuddy_hud_scale: Scale factor for HUD elements (default: 1.0)
 */
 
-#include "../../../hdr/feature_config.h"
+#include "feature_config.h"
 
-#if FEATURE_FONT_SCALING
+#if FEATURE_UI_SCALING
 
-#include "../../../hdr/sof_buddy.h"
-#include "../../../hdr/sof_compat.h"
+#include "sof_buddy.h"
+#include "sof_compat.h"
 
 // CVar declarations
 cvar_t * _sofbuddy_font_scale = NULL;
@@ -27,13 +27,13 @@ extern void consolesize_change(cvar_t * cvar);
 extern void hudscale_change(cvar_t * cvar);
 
 /*
-	Create and register all scaled_font cvars
+	Create and register all scaled_ui cvars
 	
 	Called during initialization to register all CVars with the engine.
 	Note: The actual initialization happens in my_Con_Init() in hooks.cpp,
 	but we provide this function for consistency with the feature system.
 */
-void create_scaled_fonts_cvars(void) {
+void create_scaled_ui_cvars(void) {
     
 	// Font scale: rounds to nearest 0.25 (e.g., 1.0, 1.25, 1.5, 2.0)
     _sofbuddy_font_scale = orig_Cvar_Get("_sofbuddy_font_scale", "1", CVAR_ARCHIVE, fontscale_change);
@@ -46,4 +46,4 @@ void create_scaled_fonts_cvars(void) {
 
 }
 
-#endif // FEATURE_FONT_SCALING
+#endif // FEATURE_UI_SCALING

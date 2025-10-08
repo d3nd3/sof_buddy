@@ -35,7 +35,7 @@ extern cvar_t * _sofbuddy_lightblend_dst;
 extern cvar_t * _sofbuddy_whiteraven_lighting;
 
 // Scaled Font feature
-extern void create_scaled_fonts_cvars(void);
+extern void create_scaled_ui_cvars(void);
 extern void scaledFont_early(void);
 extern void scaledFont_init(void);
 extern void scaledFont_cvars_init(void);
@@ -47,7 +47,7 @@ extern cvar_t * con_buffersize;
 extern cvar_t * test;
 extern cvar_t * test2;
 
-// Menu scaling variables (shared between scaled_font and scaled_menu)
+// Menu scaling variables (part of scaled_ui feature)
 extern bool menuSliderDraw;
 extern bool menuLoadboxDraw;
 extern bool menuVerticalScrollDraw;

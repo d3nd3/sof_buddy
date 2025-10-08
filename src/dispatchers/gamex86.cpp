@@ -2,9 +2,9 @@
 // Memory range: 0x180xxxxx  
 // Game logic functions and gameplay systems
 
-#include "../hdr/feature_macro.h"
-#include "../hdr/shared_hook_manager.h"
-#include "../hdr/util.h"
+#include "feature_macro.h"
+#include "shared_hook_manager.h"
+#include "util.h"
 
 // =============================================================================
 // WEAPON SYSTEMS

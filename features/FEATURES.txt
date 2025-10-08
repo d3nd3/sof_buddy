@@ -8,8 +8,7 @@ media_timers
 
 # Graphics Features
 texture_mapping_min_mag
-font_scaling
-menu_scaling
+ui_scaling
 
 hd_textures
 vsync_toggle

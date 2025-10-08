@@ -1,7 +1,7 @@
 #include <windows.h>
-#include "../hdr/hook_manager.h"
+#include "hook_manager.h"
 #include "DetourXS/detourxs.h"
-#include "../hdr/util.h"
+#include "util.h"
 
 // Define patch types for DetourXS
 #define DETOUR_TYPE_JMP 0

@@ -1,5 +1,5 @@
-#include "../hdr/shared_hook_manager.h"
-#include "../hdr/util.h"
+#include "shared_hook_manager.h"
+#include "util.h"
 #include <algorithm>
 
 SharedHookManager& SharedHookManager::Instance() {

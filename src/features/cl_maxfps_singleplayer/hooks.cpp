@@ -6,15 +6,15 @@
 	in game.dll when it loads/reloads.
 */
 
-#include "../../../hdr/feature_config.h"
+#include "feature_config.h"
 
 #if FEATURE_CL_MAXFPS_SINGLEPLAYER
 
 #include <windows.h>
-#include "../../../hdr/feature_macro.h"
-#include "../../../hdr/shared_hook_manager.h"
-#include "../../../hdr/util.h"
-#include "../../../hdr/sof_buddy.h"
+#include "feature_macro.h"
+#include "shared_hook_manager.h"
+#include "util.h"
+#include "sof_buddy.h"
 
 // Forward declarations
 static void cl_maxfps_EarlyStartup(void);

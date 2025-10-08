@@ -13,8 +13,7 @@
 
 #define FEATURE_MEDIA_TIMERS 1  // enabled
 #define FEATURE_TEXTURE_MAPPING_MIN_MAG 1  // enabled
-#define FEATURE_FONT_SCALING 1  // enabled
-#define FEATURE_MENU_SCALING 1  // enabled
+#define FEATURE_UI_SCALING 1  // enabled
 #define FEATURE_HD_TEXTURES 1  // enabled
 #define FEATURE_VSYNC_TOGGLE 1  // enabled
 #define FEATURE_LIGHTING_BLEND 1  // enabled

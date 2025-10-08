@@ -5,13 +5,13 @@
 	This file needs to be populated with the full texture database.
 */
 
-#include "../../../hdr/feature_config.h"
+#include "feature_config.h"
 
 #if FEATURE_HD_TEXTURES
 
-#include "../../../hdr/feature_macro.h"
-#include "../../../hdr/shared_hook_manager.h"
-#include "../../../hdr/util.h"
+#include "feature_macro.h"
+#include "shared_hook_manager.h"
+#include "util.h"
 
 #include <unordered_map>
 #include <string>

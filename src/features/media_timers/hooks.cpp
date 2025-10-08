@@ -1,12 +1,12 @@
-#include "../../../hdr/feature_config.h"
+#include "feature_config.h"
 
 #if FEATURE_MEDIA_TIMERS
 
-#include "../../../hdr/feature_macro.h"
-#include "../../../hdr/shared_hook_manager.h"
-#include "../../../hdr/util.h"
-#include "../../../hdr/sof_buddy.h"
-#include "../../../hdr/sof_compat.h"
+#include "feature_macro.h"
+#include "shared_hook_manager.h"
+#include "util.h"
+#include "sof_buddy.h"
+#include "sof_compat.h"
 
 //for _controlfp
 #include "customfloat.h"
