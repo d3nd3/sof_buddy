@@ -16,11 +16,12 @@ COMMON_CFLAGS = -D_WIN32_WINNT=0x0501 -std=c++17
 LIBS = -lws2_32 -lwinmm -lshlwapi -lpsapi -ldbghelp
 
 # Build configurations
-ifeq ($(BUILD),release)
-    CFLAGS = $(COMMON_CFLAGS) -O2 -DNDEBUG
+ifeq ($(BUILD),debug)
+    CFLAGS = $(COMMON_CFLAGS) -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__
     TARGET_SUFFIX = 
 else
-    CFLAGS = $(COMMON_CFLAGS) -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__
+    # We don't use optimizations as it crashes the game.
+    CFLAGS = $(COMMON_CFLAGS) -O0 -DNDEBUG
     TARGET_SUFFIX = 
 endif
 
@@ -97,7 +98,8 @@ $(ODIR)/%.o: $(SDIR)/%.cpp $(FEATURE_CONFIG_H)
 	$(CC) -c $(INC) -o $@ $< $(CFLAGS)
 
 # Build configurations
-debug: all
+debug: 
+	$(MAKE) BUILD=debug all
 release: 
 	$(MAKE) BUILD=release all
 

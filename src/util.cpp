@@ -100,7 +100,7 @@ void PrintOut(int mode, const char *msg,...)
 	
 #endif
 
-    if ( orig_Com_Printf == NULL) return;
+    if ( orig_Com_Printf != (void(*)(const char*,...))0x2001C6E0) return;
 	//in-game print
 	switch (mode) {
 		case PRINT_LOG :

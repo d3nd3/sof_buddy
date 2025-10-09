@@ -23,6 +23,8 @@
 #include <stdint.h>
 
 /*
+    _sofbuddy_console_size
+    _sofbuddy_font_scale
     How much of the console covers the screen.
 */
 void hkCon_DrawConsole(float frac) {
@@ -61,6 +63,7 @@ void hkCon_DrawConsole(float frac) {
     fontBeingRendered = false;
 }
 /*
+    _sofbuddy_font_scale
     The last 4 lines of console that appears at the top of the screen in-game.
 */
 void hkCon_DrawNotify(void) {
@@ -75,6 +78,7 @@ void hkCon_DrawNotify(void) {
     *viddef_width = real_refdef_width;
 }
 /*
+    _sofbuddy_font_scale
     Called by Con_Init() and SCR_DrawConsole()
 */
 void hkCon_CheckResize(void) {
@@ -87,6 +91,9 @@ void hkCon_CheckResize(void) {
     *viddef_width = viddef_before;
 }
 
+/*
+    Not Active
+*/
 void hkDraw_String_Color(int x, int y, char const * text, int length, int colorPalette) {
     //Why is fontScale stuck at 2.0??
     /*
@@ -111,19 +118,9 @@ void hkDraw_String_Color(int x, int y, char const * text, int length, int colorP
             
         }
         */
-    oDraw_String_Color(x, y, text, length, colorPalette);
+    //oDraw_String_Color(x, y, text, length, colorPalette);
 }
 
-void hkSCR_ExecuteLayoutString(char * text) {
-    isDrawingScoreboard = true;
-    oSCR_ExecuteLayoutString(text);
-    isDrawingScoreboard = false;
-}
-
-void my_SCR_CenterPrint(char * text) {
-    PrintOut(PRINT_LOG, "SCR_CenterPrint()\n");
-    // orig_SCR_CenterPrint(text);
-}
 
 // Font scaling CVar change callbacks
 void fontscale_change(cvar_t * cvar) {
@@ -143,6 +140,16 @@ void fontscale_change(cvar_t * cvar) {
 void consolesize_change(cvar_t * cvar) {
     // Save raw console size from cvar; apply fontScale at runtime in my_Con_DrawConsole
     consoleSize = cvar->value;
+}
+
+/*
+    Hook for SCR_DrawPlayerInfo() to set isDrawingTeamicons flag
+    This prevents font scaling for team icons
+*/
+void hkSCR_DrawPlayerInfo(void) {
+    isDrawingTeamicons = true;
+    oSCR_DrawPlayerInfo();
+    isDrawingTeamicons = false;
 }
 
 #endif // FEATURE_UI_SCALING

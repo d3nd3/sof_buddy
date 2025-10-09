@@ -16,11 +16,10 @@
 #include "util.h"
 #include <cmath>
 
-// Forward declarations
-static double fovfix_x = 78.6f;
-static double fovfix_y = 78.6;
-
-static float teamviewFovAngle = 95.0f;
+// Intentionally NOT static
+double fovfix_x = 78.6;
+double fovfix_y = 78.6;
+float teamviewFovAngle = 95;
 
 // Engine addresses
 static float* engine_fovY = (float*)0x3008FD00;
@@ -35,9 +34,10 @@ extern "C" int TeamIconInterceptFix(void);
 static void teamicons_offset_RefDllLoaded();
 
 // Hook registrations placed after function declarations for visibility
-REGISTER_HOOK(drawTeamIcons, 0x30003040, void, __cdecl, 
-              float* targetPlayerOrigin, char* playerName, 
-              char* imageNameTeamIcon, int redOrBlue);
+// Use REGISTER_HOOK_LEN with 6-byte detour length to match original implementation
+REGISTER_HOOK_LEN(drawTeamIcons, 0x30003040, 6, void, __cdecl, 
+                  float* targetPlayerOrigin, char* playerName, 
+                  char* imageNameTeamIcon, int redOrBlue);
 REGISTER_SHARED_HOOK_CALLBACK(RefDllLoaded, teamicons_offset, teamicons_offset_RefDllLoaded, 70, Post);
 
 /*
@@ -86,7 +86,11 @@ extern "C" int TeamIconInterceptFix(void)
 {
 	// Extract the FPU stack value (ST0) containing preliminary Y position
 	float thedata;
-	asm volatile("fstps %0" : "=m"(thedata));
+	/* Use the single-precision FPU store mnemonic to avoid an
+	   assembler warning about missing operand size. 'fstps' writes
+	   ST(0) as a 32-bit float. Use an output constraint so the
+	   compiler knows the memory is written. */
+	asm volatile ("fstps %0" : "=m" (thedata));
 
 	// Get current screen dimensions
 	unsigned int rHeight = *realHeight;
@@ -120,7 +124,7 @@ static void teamicons_offset_RefDllLoaded() {
     // Patch diagonal FOV reference used for view angle calculations (in exe)
     writeUnsignedIntegerAt((void*)0x200157A8, (unsigned int)&teamviewFovAngle);
 
-    PrintOut(PRINT_GOOD, "TeamIcons Offset: Widescreen fixes applied\n");
+    PrintOut(PRINT_LOG, "TeamIcons Offset: Widescreen fixes applied\n");
 }
 
 #endif // FEATURE_TEAMICONS_OFFSET

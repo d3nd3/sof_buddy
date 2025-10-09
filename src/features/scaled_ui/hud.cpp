@@ -45,11 +45,12 @@ void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int pal, char
         float x_scale = static_cast<float>(current_vid_w) / 640.0f;
         int offsetEdge = 40; //36??
         if (hudDmRanking_wasImage) {
-            // PrintOut(PRINT_LOG,"Logo ypos = %i\n",y);
+            //This is the 2nd image from the top right corner.
+            //Below the eye image.
+
             //2nd image, means we in spec chasing someone. This image is a DM Logo.
             x = current_vid_w - 32 * hudScale - offsetEdge * x_scale;
-            // y = y + (hudScale-1)*32;
-            //go to start of border by removing fixed margin, add previous logo + new scaling margin
+            // 20px fixed border, 32px image above, 6px spacing to eye, 
             y = 20 * screen_y_scale + 32 * hudScale + 6 * screen_y_scale;
 
             w_scale = hudScale;
@@ -61,32 +62,17 @@ void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int pal, char
             // PrintOut(PRINT_LOG,"%s:: w : %f, h : %f\n",name,w,h);
             //x = 2384, y = 60 at gl_mode 0 2560x1440
             //x = 584, y = 20 at gl_mode 3 640x480
-            //x position is off by 12 pixels, suggesting a ride side bias, not taking pic width into consideration.
-            //assume they wanted a 640-584=56 , 56-32 = 24
 
-            //Compare 2 screenshots to see if a larger image gets shifted to the left
-            //Ok so it maintains its X position, when it increases in size.
-
-            //When the higher resolution is used, it is calculating the X position as a % from edge.
-            //This is fine, it either matches the left edge of the image or the right.
-            //It is impossible to match both, else image would get larger/smaller with reso.
-            //But by positioning left edge, the right border will appear larger on higher reso.
-            //Which is why i preferred to posititon it based on the right edge.
-
-            //Left Edge value = -56, Right Edge value would be -56-32 = -24.
-
-            //Used 48 instead because not enough space in 640x480 otherwise.
-            //We could just use 56 again perhaps.
-
-            //Since we are scaling the image.
-            //Correct its position
-
-            //We might have to NOP out SCR_DirtyRect calls
-            //Or just leave them and do an extra SCR_DirtyRect call.
-
+            //positioned by top left
+            
+            //we don't change y here, because y already uses 20*scren_y_scale border. 
             // float y_scale = vid_height/480; 
             x = current_vid_w - 32 * hudScale - offsetEdge * x_scale;
             //SOF FORMULA : vid_width - 40 * vid_width/640 - 16 
+            //== Fixed 16 pixels border + 40px scaled by screen resolution
+            //== 32px image image eats into fixed border.
+            //OUR FORMULA :
+            //== SPACE_FOR_IMAGE + 40px scaled by screen resolution
             w_scale = hudScale;
             h_scale = hudScale;
         }
@@ -213,6 +199,7 @@ void hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, 
 
 /*
     This function is called internally by:
+    - SCR_DrawPlayerInfo() - teamicons
     - cScope::Draw()
     - cCountdown::Draw()
     - cDMRanking::Draw()
@@ -240,11 +227,9 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
         float x_scale = static_cast<float>(current_vid_w) / 640.0f;
 
         if (hudDmRanking_wasImage) {
-            //We are SPEC or TEAM DMMODE playing.
             if ( * (int * ) 0x201E7E94 == 7) { //PM_SPECTATOR PM_SPECTATOR_FREEZE
                 //PLAYER NAME IN SPEC CHASE MODE.
 
-                // We are in spec chasing someone, so this font is the name of the player we chase.
                 // There is an eye and a LOGO above us, if in TEAM DM
                 // x = current_vid_w - 32*hudScale - offsetEdge*x_scale;
                 //Preserve their centering of text calculation.(Don't want to bother with colorCodes).
@@ -252,14 +237,15 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
                 //40 is a magic number here.
                 //It uses 40 as scaling border, and the remaining is 17px.
 
-                //Why is this negative?
-                //Oh because it extends to the left, for long names
-                int center_offset = screenX - (current_vid_w - (offsetEdge * x_scale));
+
+                //SoF Formula:40 * vid_width/640 - 16
+                //we do + 16 - 16 , to get the center! cancels out to + 0
+                int half_text_len = screenX - (current_vid_w - (offsetEdge * x_scale));
                 // PrintOut(PRINT_LOG,"Center offset is %i\n",center_offset);
                 // screenX -= -16 + 32*hudScale - center_offset*(hudScale-1);
                 // screenX = current_vid_w - 40 * x_scale - 16 
-                //x = width - scaled_border - scaledHud/2 + centered_text
-                screenX = current_vid_w - offsetEdge * x_scale - 16 * hudScale + center_offset;
+                //x = width - scaled_border - scaledHud/2(to get center) + half_text_len
+                screenX = current_vid_w - offsetEdge * x_scale - 16 * hudScale + half_text_len*hudScale;
                 // y = 20*y_scale + 32*hudScale + 6*y_scale;
                 screenY = 20 * screen_y_scale + 64 * hudScale + 6 * screen_y_scale;
             } else {
@@ -298,6 +284,7 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
         // wasHudDmRanking = true;
     }
     else if (hudInventoryAndAmmo) {
+        //repositions/centers text in item and ammo HUD
         if ( hudInventory_wasItem ) {
             // The error here is a typo: 'test[0]' and 'test[1]' are used instead of 'text[0]' and 'text[1]'.
             // It should be 'text[0]' and 'text[1]' in the condition.
@@ -315,7 +302,7 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
                 float set_x,set_y;
                 enumCroppedDrawMode before = hudCroppedEnum;
                 hudCroppedEnum = ITEM_INVEN_SWITCH;
-                set_x = screenY;
+                set_x = screenX; //bug - fix
                 set_y = screenY;
                 //top-right
                 drawCroppedPicVertex(true,false,set_x,set_y);
@@ -345,7 +332,7 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
                 float set_x,set_y;
                 enumCroppedDrawMode before = hudCroppedEnum;
                 hudCroppedEnum = GUN_AMMO_SWITCH;
-                set_x = screenY;
+                set_x = screenX; //bug - fix
                 set_y = screenY;
                 //top-right
                 drawCroppedPicVertex(true,false,set_x,set_y);
@@ -367,7 +354,14 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
     characterIndex = 0;
 }
 
-// HUD interface drawing functions
+/*
+    item and ammo HUD interface drawing functions
+    Used in:
+        hkDraw_CroppedPicOptions() - sub-texture identification
+            drawCroppedPicVertex() - rescale
+
+        my_glVertex2f_DrawFont_X() - font specific centering
+*/
 void __thiscall hkcInventory2_And_cGunAmmo2_Draw(void * self) {
     //This is the ammo (bottom right) and inventory (bottom left)
     // So positioned from left and bottom edge and right and bottom edge
@@ -384,9 +378,15 @@ void __thiscall hkcInventory2_And_cGunAmmo2_Draw(void * self) {
     }
 }
 
+/*
+    This is the health and armour bar at bottom, positioned from bottom edge
+     of screen, centered horizontally.
+    Used in : 
+      hkDraw_CroppedPicOptions() - string match texture name for sub-texture identification 
+        actual vertex manipulation in drawCroppedPicVertex()     
+*/
 void __thiscall hkcHealthArmor2_Draw(void * self) {
-    //This is the health and armour bar at bottom
-    //positioned from bottom edge of screen, centered horizontally.
+
 
     hudHealthArmor = true;
     extern void (__thiscall *ocHealthArmor2_Draw)(void * self);
@@ -394,6 +394,13 @@ void __thiscall hkcHealthArmor2_Draw(void * self) {
     hudHealthArmor = false;
 }
 
+/*
+    scale the DMRanking area of HUD
+    used in:
+      my_glVertex2f_DrawFont_X()
+      hkDraw_PicOptions()
+      hkR_DrawFont() 
+*/
 void __thiscall hkcDMRanking_Draw(void * self) {
     // Top right of screen, your score and rank
     // So relative to top and right edge
@@ -405,6 +412,11 @@ void __thiscall hkcDMRanking_Draw(void * self) {
     hudDmRanking_wasImage = false;
 }
 
+/*
+    scale the CTF Flag HUD Element
+    used in:
+        hkDraw_StretchPic()
+*/
 void __thiscall hkcCtfFlag_Draw(void * self) {
     hudStretchPic = true;
     //Whether you are carrying the flag or the flag is missing.
@@ -414,10 +426,21 @@ void __thiscall hkcCtfFlag_Draw(void * self) {
     hudStretchPic = false;
 }
 
-// HUD scaling CVar change callback
+/*
+    DrawingScoreboard?
+    used in:
+        hkglVertex2f() to scale+center the scoreboard
+*/
+void hkSCR_ExecuteLayoutString(char * text) {
+    isDrawingScoreboard = true;
+    oSCR_ExecuteLayoutString(text);
+    isDrawingScoreboard = false;
+}
+
 void hudscale_change(cvar_t * cvar) {
     //round to nearest quarter
     hudScale = roundf(cvar->value * 4.0f) / 4.0f;
 }
+
 
 #endif // FEATURE_UI_SCALING

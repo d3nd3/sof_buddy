@@ -34,6 +34,7 @@ bool fontBeingRendered = false;
 bool isFontInner = false;
 bool isConsoleBg = false;
 bool isDrawingScoreboard = false;
+bool isDrawingTeamicons = false;
 
 // HUD scaling variables
 float hudScale = 1;
@@ -155,6 +156,7 @@ REGISTER_SHARED_HOOK_CALLBACK(RefDllLoaded, scaled_ui, scaledUI_RefDllLoaded, 60
 // Font scaling hooks
 REGISTER_HOOK_VOID(Con_DrawNotify, 0x20020D70, void, __cdecl);
 REGISTER_HOOK(Con_DrawConsole, 0x20020F90, void, __cdecl, float frac);
+REGISTER_HOOK_VOID(SCR_DrawPlayerInfo, 0x20015B10, void, __cdecl);
 REGISTER_HOOK_VOID(Con_CheckResize, 0x20020880, void, __cdecl);
 REGISTER_HOOK_VOID(Con_Init, 0x200208E0, void, __cdecl);
 REGISTER_HOOK(SCR_ExecuteLayoutString, 0x20014510, void, __cdecl, char* text);
@@ -172,7 +174,7 @@ REGISTER_HOOK_LEN(GL_FindImage, 0x30007380, 6, void*, __cdecl, char *filename, i
 REGISTER_HOOK_LEN(Draw_PicOptions, 0x30002080, 6, void, __cdecl, int x, int y, float w_scale, float h_scale, int palette, char * name);
 REGISTER_HOOK_LEN(Draw_CroppedPicOptions, 0x30002240, 5, void, __cdecl, int x, int y, int c1x, int c1y, int c2x, int c2y, int palette, char * name);
 REGISTER_HOOK_LEN(R_DrawFont, 0x300045B0, 6, void, __cdecl, int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor);
-REGISTER_HOOK_LEN(Draw_String_Color, 0x30001A40, 5, void, __cdecl, int x, int y, char const * text, int length, int colorPalette);
+// REGISTER_HOOK_LEN(Draw_String_Color, 0x30001A40, 5, void, __cdecl, int x, int y, char const * text, int length, int colorPalette);
 
 #ifdef UI_MENU
 // Menu scaling hooks (experimental feature)
@@ -294,7 +296,9 @@ void* hkGL_FindImage(char *filename, int imagetype, char mimap, char allowPicmip
 // =============================================================================
 // VERTEX MANIPULATION FUNCTIONS
 // =============================================================================
-
+/*
+    Calculates the correct vertex x,y positions for each sub-texture after scaling.
+*/
 void drawCroppedPicVertex(bool top, bool left, float & x, float & y) {
     if (hudHealthArmor) {
         float y_scale = static_cast < float > (current_vid_h) / 480.0f;
@@ -524,6 +528,25 @@ void __stdcall my_glVertex2f_CroppedPic_4(float x, float y) {
     orig_glVertex2f(x, y);
 }
 
+
+/*
+===========================================================================
+Scale HUD text
+Scale MENU text
+This function is called internally by:
+- SCR_DrawPlayerInfo() - teamicons
+- cScope::Draw()
+- cCountdown::Draw()
+- cDMRanking::Draw()
+- cInventory2::Draw()
+- cInfoTicker::Draw()
+- cMissionStatus::Draw()
+- SCR_DrawPause()
+- rect_c::DrawTextItem()
+- loadbox_c::Draw()
+- various other menu items
+===========================================================================
+*/
 float pivotx;
 float pivoty;
 
@@ -535,14 +558,30 @@ void __stdcall my_glVertex2f_DrawFont_1(float x, float y) {
     //When we resize images, we use center as anchor-point, might be an issue.
     pivotx = x;
     pivoty = y;
+    
+    // Skip scaling for team icons
+    if (isDrawingTeamicons) {
+        orig_glVertex2f(x, y);
+        return;
+    }
+    
     if ( hudInventoryAndAmmo || hudDmRanking ) {
+        //We scale hud by hudScale
         orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(hudScale-1), y);
-    } else 
-    orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
+    } else {
+        //Everything else by screen_y scale
+        orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
+    }
 }
 
 void __stdcall my_glVertex2f_DrawFont_2(float x, float y) {
     //top-right
+    // Skip scaling for team icons
+    if (isDrawingTeamicons) {
+        orig_glVertex2f(x, y);
+        return;
+    }
+    
     if ( hudInventoryAndAmmo || hudDmRanking ) {
         x = pivotx + (x - pivotx) * hudScale;
         orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(hudScale-1) , y);
@@ -554,6 +593,12 @@ void __stdcall my_glVertex2f_DrawFont_2(float x, float y) {
 
 void __stdcall my_glVertex2f_DrawFont_3(float x, float y) {
     //bottom-right
+    // Skip scaling for team icons
+    if (isDrawingTeamicons) {
+        orig_glVertex2f(x, y);
+        return;
+    }
+    
     if ( hudInventoryAndAmmo || hudDmRanking ) {
         x = pivotx + (x - pivotx) * hudScale;
         y = pivoty + (y - pivoty) * hudScale;
@@ -568,6 +613,12 @@ void __stdcall my_glVertex2f_DrawFont_3(float x, float y) {
 
 void __stdcall my_glVertex2f_DrawFont_4(float x, float y) {
     //bottom-left
+    // Skip scaling for team icons
+    if (isDrawingTeamicons) {
+        orig_glVertex2f(x, y);
+        return;
+    }
+    
     if ( hudInventoryAndAmmo || hudDmRanking ) {
         y = pivoty + (y - pivoty) * hudScale;
         orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(hudScale-1), y);
@@ -579,17 +630,21 @@ void __stdcall my_glVertex2f_DrawFont_4(float x, float y) {
     characterIndex++;
 }
 
+
 /*
-    -Fonts
-    -Scoreboard
-    -DrawPicCenter (Draw_Pic)
-        SCR_ExecuteLayoutString() (scoreboard) (X)
-        SCR_Crosshair()
-        SCR_UpdateScreen->pics/console/net
-        backdrop_c::Draw() (For menu crosshair))
-    -DrawPicTiled (Draw_Pic backdrop)
-    -menuLoadboxDraw
-    -else
+===========================================================================
+-Console/Notify Text
+-Scoreboard
+-DrawPicCenter (Draw_Pic)
+    SCR_ExecuteLayoutString() (scoreboard) (X)
+    SCR_Crosshair()
+    SCR_UpdateScreen->pics/console/net
+    backdrop_c::Draw() (For menu crosshair))
+-DrawPicTiled (Draw_Pic backdrop)
+-menuLoadboxDraw
+-else
+===========================================================================
+    
 */
 void __stdcall hkglVertex2f(float x, float y) {
     /*

@@ -29,6 +29,7 @@ extern bool fontBeingRendered;
 extern bool isFontInner;
 extern bool isConsoleBg;
 extern bool isDrawingScoreboard;
+extern bool isDrawingTeamicons;
 
 // HUD scaling variables
 extern float hudScale;
@@ -117,7 +118,7 @@ void hkCon_DrawNotify(void);
 void hkCon_CheckResize(void);
 void hkDraw_String_Color(int x, int y, char const * text, int length, int colorPalette);
 void hkSCR_ExecuteLayoutString(char * text);
-void my_SCR_CenterPrint(char * text);
+void hkSCR_DrawPlayerInfo(void);
 void fontscale_change(cvar_t * cvar);
 void consolesize_change(cvar_t * cvar);
 
@@ -140,6 +141,7 @@ extern void (*oDraw_String_Color)(int x, int y, char const * text, int length, i
 extern int (*oR_Strlen)(char * str, char * fontStd);
 extern int (*oR_StrHeight)(char * fontStd);
 extern void (*oSCR_ExecuteLayoutString)(char * text);
+extern void (*oSCR_DrawPlayerInfo)(void);
 extern void (*oM_PushMenu)(const char * name, const char * frame, bool force);
 extern char* (*ostm_c_ParseStm)(void *self_stm_c, void * toke_c);
 extern void (__thiscall *ocInventory2_And_cGunAmmo2_Draw)(void * self);
