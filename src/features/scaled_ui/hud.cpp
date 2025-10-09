@@ -113,9 +113,12 @@ void hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, 
     if (hudInventoryAndAmmo) {
         if (!strncmp(name, "pics/interface2/", 16)) {
 
+            //starts with frame_
             if (!strncmp(name + 16, "frame_", 6)) {
                 // All used on both left(items) and right(guns).
                 if (!strcmp(name + 22, "bottom")) {
+                    //pics/interface2/frame_bottom.m32
+
                     // texture around bottom of default number display
                     // This has icon of item pickup and Fonts for count of ammo and item count.
                     if (hudInventory_wasItem) {
@@ -126,7 +129,8 @@ void hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, 
                         hudCroppedEnum = GUN_AMMO_BOTTOM;
                     }
                 } else if (!strcmp(name + 22, "top2")) {
-                    // PrintOut(PRINT_LOG,"frame_top2");
+                    //pics/interface2/frame_top2.m32
+
                     //texture around top of default number display
                     if (hudInventory_wasItem) {
                         // PrintOut(PRINT_LOG,"frame_top2 GUN");
@@ -138,6 +142,8 @@ void hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, 
                         hudCroppedEnum = GUN_AMMO_TOP;
                     }
                 } else if (!strcmp(name + 22, "top")) {
+                    //pics/interface2/frame_top.m32
+
                     //texture around top of when you switch weapons or items, whilst it shows their naem in text.
                     if (hudInventory_wasItem) {
                         //Gun+Ammo
@@ -157,6 +163,7 @@ void hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, 
                     }
                 }
             } else if (!strncmp(name + 16, "item_", 5)) {
+                //starts with item_
                 // cGunAmmo2::DrawDescription() (Icon of Active Item)
                 if (!strcmp(name + 21, "c4") || !strcmp(name + 21, "flash") || !strcmp(name + 21, "neuro") || !strcmp(name + 21, "nightvision") ||
                     !strcmp(name + 21, "claymore") || !strcmp(name + 21, "medkit") || !strcmp(name + 21, "h_grenade") ||
@@ -302,7 +309,7 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
                 float set_x,set_y;
                 enumCroppedDrawMode before = hudCroppedEnum;
                 hudCroppedEnum = ITEM_INVEN_SWITCH;
-                set_x = screenX; //bug - fix
+                set_x = screenX;
                 set_y = screenY;
                 //top-right
                 drawCroppedPicVertex(true,false,set_x,set_y);
@@ -332,7 +339,8 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
                 float set_x,set_y;
                 enumCroppedDrawMode before = hudCroppedEnum;
                 hudCroppedEnum = GUN_AMMO_SWITCH;
-                set_x = screenX; //bug - fix
+                // orig_Com_Printf("screenX: %i ... screenY: %i\n",screenX,screenY);
+                set_x = screenX;
                 set_y = screenY;
                 //top-right
                 drawCroppedPicVertex(true,false,set_x,set_y);
