@@ -1,3 +1,8 @@
+#ifndef DETOURXS_H
+#define DETOURXS_H
+
+#include <windows.h>
+
 #define DETOUR_LEN_AUTO 0 // Finds the detour length automatically
 
 enum
@@ -13,3 +18,5 @@ enum
 LPVOID DetourCreate(LPVOID lpFuncOrig, LPVOID lpFuncDetour, int patchType, int detourLen=DETOUR_LEN_AUTO);
 LPVOID DetourCreate(LPCSTR lpModuleName, LPCSTR lpProcName, LPVOID lpFuncDetour, int patchType, int detourLen=DETOUR_LEN_AUTO);
 BOOL DetourRemove(void** lppDetourCreatePtr);
+
+#endif // DETOURXS_H

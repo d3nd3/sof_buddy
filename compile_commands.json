@@ -10,6 +10,11 @@
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/module_loaders.cpp"
     },
     {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/pe_utils.o src/pe_utils.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -O0 -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/pe_utils.cpp"
+    },
+    {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/wsock_entry.o src/wsock_entry.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -O0 -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/wsock_entry.cpp"
@@ -95,9 +100,9 @@
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui/menu.cpp"
     },
     {
-        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/features/scaled_ui/fonts.o src/features/scaled_ui/fonts.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -O0 -DNDEBUG",
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/features/scaled_ui/text.o src/features/scaled_ui/text.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -O0 -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
-        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui/fonts.cpp"
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui/text.cpp"
     },
     {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/features/scaled_ui/cvars.o src/features/scaled_ui/cvars.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -O0 -DNDEBUG",
@@ -113,6 +118,11 @@
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/features/scaled_ui/hud.o src/features/scaled_ui/hud.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -O0 -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui/hud.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/features/scaled_ui/console.o src/features/scaled_ui/console.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -O0 -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui/console.cpp"
     },
     {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/features/lighting_blend/cvars.o src/features/lighting_blend/cvars.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -O0 -DNDEBUG",
@@ -158,5 +168,15 @@
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/DetourXS/detourxs.o src/DetourXS/detourxs.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -O0 -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/DetourXS/detourxs.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/callsite_classifier.o src/callsite_classifier.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -O0 -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/callsite_classifier.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/parent_recorder.o src/parent_recorder.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -O0 -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/parent_recorder.cpp"
     }
 ]

@@ -29,6 +29,13 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Read Version
+        id: version
+        run: |
+          VERSION=$(cat VERSION | tr -d '\r\n')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current SoF Buddy version: $VERSION"
+
       # Combined the two make steps into one for clarity
       - name: Compile Code
         run: |
@@ -37,8 +44,8 @@ jobs:
 
       - name: Prepare Release
         run: |
-          zip release_windows.zip bin/sof_buddy.dll rsrc/win_scripts/patch_sof_binary.ps1 rsrc/win_scripts/set_sofplus_and_buddy_sof.cmd rsrc/win_scripts/set_sofplus_sof.cmd rsrc/win_scripts/set_vanilla_sof.cmd
-          zip release_linux_wine.zip bin/sof_buddy.dll rsrc/lin_scripts/patch_sof_binary.sh rsrc/lin_scripts/set_sofplus_and_buddy_sof.sh rsrc/lin_scripts/set_sofplus_sof.sh rsrc/lin_scripts/set_vanilla_sof.sh
+          zip release_windows.zip bin/sof_buddy.dll cptosof rsrc/win_scripts/patch_sof_binary.ps1 rsrc/win_scripts/set_sofplus_and_buddy_sof.cmd rsrc/win_scripts/set_sofplus_sof.cmd rsrc/win_scripts/set_vanilla_sof.cmd
+          zip release_linux_wine.zip bin/sof_buddy.dll cptosof rsrc/lin_scripts/patch_sof_binary.sh rsrc/lin_scripts/set_sofplus_and_buddy_sof.sh rsrc/lin_scripts/set_sofplus_sof.sh rsrc/lin_scripts/set_vanilla_sof.sh
         # The working-directory is not strictly necessary here as it's the default, but it's good for clarity.
         working-directory: ${{ github.workspace }}
 
@@ -73,14 +80,21 @@ jobs:
           name: release-linux-artifact
           path: linux_release
 
+      - name: Read Version
+        id: version
+        run: |
+          VERSION=$(cat VERSION | tr -d '\r\n')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current SoF Buddy version: $VERSION"
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.run_number }}
-          release_name: Release ${{ github.run_number }}
+          tag_name: v${{ steps.version.outputs.version }}-build${{ github.run_number }}
+          release_name: Release v${{ steps.version.outputs.version }} (Build ${{ github.run_number }})
           draft: false
           prerelease: false
 

@@ -16,7 +16,6 @@
 
 #include "sof_compat.h"
 #include "features.h"
-#include "util.h"
 
 // =============================================================================
 // GLOBAL VARIABLES
@@ -25,7 +24,7 @@
 // Font scaling variables
 extern float fontScale;
 extern float consoleSize;
-extern bool fontBeingRendered;
+extern bool consoleBeingRendered;
 extern bool isFontInner;
 extern bool isConsoleBg;
 extern bool isDrawingScoreboard;
@@ -108,6 +107,12 @@ extern realFontEnum_t realFont;
 // Font sizes for each realFontEnum_t, index by enum value
 extern const int realFontSizes[4];
 
+// Font caller context enum for R_DrawFont callers (defined in text.cpp)
+enum class FontCaller;
+
+// Getter for current font caller context (for inner glVertex calls)
+FontCaller getCurrentFontCaller();
+
 // =============================================================================
 // FUNCTION DECLARATIONS
 // =============================================================================
@@ -121,6 +126,12 @@ void hkSCR_ExecuteLayoutString(char * text);
 void hkSCR_DrawPlayerInfo(void);
 void fontscale_change(cvar_t * cvar);
 void consolesize_change(cvar_t * cvar);
+
+// Low-level font vertex hooks (used by ref.dll detours)
+void __stdcall my_glVertex2f_DrawFont_1(float x, float y);
+void __stdcall my_glVertex2f_DrawFont_2(float x, float y);
+void __stdcall my_glVertex2f_DrawFont_3(float x, float y);
+void __stdcall my_glVertex2f_DrawFont_4(float x, float y);
 
 // Additional font scaling variables
 extern float draw_con_frac;
@@ -148,6 +159,9 @@ extern void (__thiscall *ocInventory2_And_cGunAmmo2_Draw)(void * self);
 extern void (__thiscall *ocHealthArmor2_Draw)(void * self);
 extern void (__thiscall *ocDMRanking_Draw)(void * self);
 extern void (__thiscall *ocCtfFlag_Draw)(void * self);
+
+// OpenGL original vertex function (resolved at runtime in hooks.cpp)
+extern void(__stdcall * orig_glVertex2f)(float one, float two);
 
 // HUD scaling functions
 void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int pal, char * name);

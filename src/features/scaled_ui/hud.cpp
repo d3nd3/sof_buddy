@@ -1,10 +1,36 @@
 /*
 	Scaled UI - HUD Scaling Functions
 	
-	This file contains all HUD scaling functionality including:
-	- HUD element scaling (health, armor, ammo, etc.)
-	- Interface element positioning
-	- HUD rendering hooks
+	Contains:
+        hkDraw_PicOptions
+            - can position AND scale using parameter to the fn.
+            - dmRanking sprites / special "interface" font scaled
+
+        hkDraw_CroppedPicOptions
+            - identifies textures from a hud type
+            - sets enum from .m32 pathname
+            - stores width/height
+            - the glVertex specific hook applies the scaling deeper
+
+        hkR_DrawFont
+            - realigns/positions HUD text for scaling.
+            - eg. dmRanking Names, position
+            - ammunition , name of weapon
+
+        hkcInventory2_And_cGunAmmo2_Draw
+            - identification of the ammo and gun ui's (2 corners)
+
+        hkcHealthArmor2_Draw
+            - identification of the health and armour bar
+
+        hkcDMRanking_Draw
+            - identification of the dmRanking sprites
+
+        hkcCtfFlag_Draw
+            - identification of the ctf flag being carried sprite
+
+        hkSCR_ExecuteLayoutString
+            - identification of the scoreboard
 */
 
 #include "feature_config.h"
@@ -13,14 +39,11 @@
 
 #include "sof_compat.h"
 #include "features.h"
-#include "util.h"
-#include "shared_hook_manager.h"
-#include "feature_macro.h"
 #include "scaled_ui.h"
 
-#include "DetourXS/detourxs.h"
 #include <math.h>
 #include <stdint.h>
+#include <string.h>
 
 // HUD scaling function implementations
 
@@ -204,163 +227,8 @@ void hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, 
     hudCroppedEnum = OTHER_UNKNOWN;
 }
 
-/*
-    This function is called internally by:
-    - SCR_DrawPlayerInfo() - teamicons
-    - cScope::Draw()
-    - cCountdown::Draw()
-    - cDMRanking::Draw()
-    - cInventory2::Draw()
-    - cInfoTicker::Draw()
-    - cMissionStatus::Draw()
-    - SCR_DrawPause()
-    - rect_c::DrawTextItem()
-    - loadbox_c::Draw()
-    - various other menu items
-*/
-void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor) {
-    // static bool wasHudDmRanking = false;
-    realFont = getRealFontEnum((char*)(* (int * )(font + 4)));
-    
-    if (hudDmRanking) {
-        static bool scorePhase = true;
-
-        int fontWidth = 12;
-        int offsetEdge = 40;
-
-        //Text is only drawn in:
-        //Spec Chase Mode
-        //Spec OFF 
-        float x_scale = static_cast<float>(current_vid_w) / 640.0f;
-
-        if (hudDmRanking_wasImage) {
-            if ( * (int * ) 0x201E7E94 == 7) { //PM_SPECTATOR PM_SPECTATOR_FREEZE
-                //PLAYER NAME IN SPEC CHASE MODE.
-
-                // There is an eye and a LOGO above us, if in TEAM DM
-                // x = current_vid_w - 32*hudScale - offsetEdge*x_scale;
-                //Preserve their centering of text calculation.(Don't want to bother with colorCodes).
-                // screenX += 56 * x_scale;
-                //40 is a magic number here.
-                //It uses 40 as scaling border, and the remaining is 17px.
 
 
-                //SoF Formula:40 * vid_width/640 - 16
-                //we do + 16 - 16 , to get the center! cancels out to + 0
-                int half_text_len = screenX - (current_vid_w - (offsetEdge * x_scale));
-                // PrintOut(PRINT_LOG,"Center offset is %i\n",center_offset);
-                // screenX -= -16 + 32*hudScale - center_offset*(hudScale-1);
-                // screenX = current_vid_w - 40 * x_scale - 16 
-                //x = width - scaled_border - scaledHud/2(to get center) + half_text_len
-                screenX = current_vid_w - offsetEdge * x_scale - 16 * hudScale + half_text_len*hudScale;
-                // y = 20*y_scale + 32*hudScale + 6*y_scale;
-                screenY = 20 * screen_y_scale + 64 * hudScale + 6 * screen_y_scale;
-            } else {
-                // TEAM DM PLAYING - 1 Logo above.
-                //Specifically for Team Deathmatch where a logo is shown above score.
-                screenX = current_vid_w - 16 * hudScale - offsetEdge * x_scale - hudScale*fontWidth * strlen(text) / 2;
-                screenY = screenY + (hudScale - 1) * (32 + 3);
-
-                if ( scorePhase) {
-                    scorePhase = false;
-                } else 
-                {
-                    screenY = screenY + (hudScale - 1) * (realFontSizes[realFont] + 3);
-                    scorePhase = true;
-                }
-            }
-
-        } else {
-            //PLAYING IN NON-TEAM DM, so NO LOGO
-            if ( scorePhase) {
-                scorePhase = false;
-            } else 
-            {
-                screenY = screenY + (hudScale - 1) * (realFontSizes[realFont] + 3);
-                scorePhase = true;
-            }
-            screenX = current_vid_w - offsetEdge * x_scale - 16 * hudScale - hudScale*fontWidth * strlen(text) / 2;
-        }
-        /*
-            Score -> 0
-            Ranking -> 1/1
-        */
-        // PrintOut(PRINT_LOG,"%s : %s : %i\n",text,realFont,someFlag);
-        // __asm__("int $3");
-
-        // wasHudDmRanking = true;
-    }
-    else if (hudInventoryAndAmmo) {
-        //repositions/centers text in item and ammo HUD
-        if ( hudInventory_wasItem ) {
-            // The error here is a typo: 'test[0]' and 'test[1]' are used instead of 'text[0]' and 'text[1]'.
-            // It should be 'text[0]' and 'text[1]' in the condition.
-            if (text && ( (text[0] >= '0' && text[0] <= '8') || (text[0] =='9' && text[1] != 'm') ) ) {
-                float set_x,set_y;
-                enumCroppedDrawMode before = hudCroppedEnum;
-                hudCroppedEnum = ITEM_INVEN_BOTTOM;
-                //bottom-right
-                drawCroppedPicVertex(false,false,set_x,set_y);
-                hudCroppedEnum = before;
-
-                screenX = set_x + -52.0f * hudScale;
-                screenY = set_y + -29.0f * hudScale;
-            } else {
-                float set_x,set_y;
-                enumCroppedDrawMode before = hudCroppedEnum;
-                hudCroppedEnum = ITEM_INVEN_SWITCH;
-                set_x = screenX;
-                set_y = screenY;
-                //top-right
-                drawCroppedPicVertex(true,false,set_x,set_y);
-                hudCroppedEnum = before;
-
-                screenX = set_x + -111.0f * hudScale;
-                screenY = set_y;
-            }
-            
-            
-        } else {
-            if (text && ( (text[0] >= '0' && text[0] <= '8') || (text[0] =='9' && text[1] != 'M') ) ) {
-                float set_x,set_y;
-                enumCroppedDrawMode before = hudCroppedEnum;
-                hudCroppedEnum = GUN_AMMO_BOTTOM;
-
-                //bottom-right
-                drawCroppedPicVertex(false,false,set_x,set_y);
-                hudCroppedEnum = before;
-
-                screenX = set_x + -97.0f * hudScale;
-                screenY = set_y + -29.0f * hudScale;
-                
-            }
-            else {
-                //animation from screenY 433->406->433
-                float set_x,set_y;
-                enumCroppedDrawMode before = hudCroppedEnum;
-                hudCroppedEnum = GUN_AMMO_SWITCH;
-                // orig_Com_Printf("screenX: %i ... screenY: %i\n",screenX,screenY);
-                set_x = screenX;
-                set_y = screenY;
-                //top-right
-                drawCroppedPicVertex(true,false,set_x,set_y);
-                hudCroppedEnum = before;
-
-                screenX = set_x + -79.0f * hudScale;
-                screenY = set_y;
-            }
-        }
-        /*
-            if ( !strcmp(text,"18")) {
-                __asm__("int $3");
-            }
-        */
-            // PrintOut(PRINT_LOG,"Inventory UI Font: %s\n",text);
-    }
-    oR_DrawFont(screenX, screenY, text, colorPalette, font, rememberLastColor);
-
-    characterIndex = 0;
-}
 
 /*
     item and ammo HUD interface drawing functions

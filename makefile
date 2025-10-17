@@ -8,6 +8,13 @@ BDIR = bin
 IDIR = hdr
 FEATURES_TXT = features/FEATURES.txt
 FEATURE_CONFIG_H = hdr/feature_config.h
+VERSION_FILE = VERSION
+VERSION_H = hdr/version.h
+
+# Host toolchain for native utilities (not cross-compiled)
+HOSTCC = g++
+HOSTINC = -Isrc
+HOSTCFLAGS = -std=c++17 -O2
 
 # Compiler settings
 CC = i686-w64-mingw32-g++-posix
@@ -25,6 +32,11 @@ else
     TARGET_SUFFIX = 
 endif
 
+# Optional UI_MENU feature toggle (enable with: make UI_MENU=1 ...)
+ifeq ($(UI_MENU),1)
+    CFLAGS += -DUI_MENU
+endif
+
 # Output
 OUT = $(BDIR)/sof_buddy.dll
 DEF_FILE = rsrc/sof_buddy.def
@@ -32,12 +44,12 @@ DEF_FILE = rsrc/sof_buddy.def
 # Linker flags
 LFLAGS = -static -pthread -shared -static-libgcc -static-libstdc++ -Wl,--enable-stdcall-fixup
 
-# Find all source files
-SOURCES = $(shell find $(SDIR) -name "*.cpp" | head -50)
+# Find all source files (no artificial limit)
+SOURCES = $(shell find $(SDIR) -name "*.cpp")
 OBJECTS = $(SOURCES:$(SDIR)/%.cpp=$(ODIR)/%.o)
 
 # Default target
-all: $(FEATURE_CONFIG_H) $(OUT)
+all: $(FEATURE_CONFIG_H) $(VERSION_H) $(OUT)
 
 # Generate feature configuration header from FEATURES.txt
 $(FEATURE_CONFIG_H): $(FEATURES_TXT)
@@ -81,6 +93,22 @@ $(FEATURE_CONFIG_H): $(FEATURES_TXT)
 	@echo '*/' >> $@
 	@echo "Generated feature configuration with $$(grep -c '^#define' $@) features"
 
+# Generate version header from VERSION file
+$(VERSION_H): $(VERSION_FILE)
+	@echo "Generating version header from $(VERSION_FILE)..."
+	@echo "Current version: $$(cat $(VERSION_FILE) | tr -d '\r\n')"
+	@echo '#pragma once' > $@
+	@echo '' >> $@
+	@echo '/*' >> $@
+	@echo '    SoF Buddy Version Information' >> $@
+	@echo '    ' >> $@
+	@echo '    Auto-generated from $(VERSION_FILE)' >> $@
+	@echo '    Increment version using: ./increment_version.sh' >> $@
+	@echo '*/' >> $@
+	@echo '' >> $@
+	@echo '#define SOFBUDDY_VERSION "'$$(cat $(VERSION_FILE) | tr -d '\r\n')'"' >> $@
+	@echo "Generated version header with version: $$(cat $(VERSION_FILE) | tr -d '\r\n')"
+
 # Convenience target to print active features without building
 features:
 	@echo "Active features:"
@@ -92,8 +120,8 @@ $(OUT): $(FEATURE_CONFIG_H) $(OBJECTS)
 	@mkdir -p $(BDIR)
 	$(CC) $(LFLAGS) $(DEF_FILE) $(OBJECTS) -o $(OUT) $(LIBS)
 
-# Object file rules - all depend on feature config
-$(ODIR)/%.o: $(SDIR)/%.cpp $(FEATURE_CONFIG_H)
+# Object file rules - all depend on feature config and version header
+$(ODIR)/%.o: $(SDIR)/%.cpp $(FEATURE_CONFIG_H) $(VERSION_H)
 	@mkdir -p $(dir $@)
 	$(CC) -c $(INC) -o $@ $< $(CFLAGS)
 
@@ -105,7 +133,7 @@ release:
 
 # Clean
 clean:
-	rm -rf $(ODIR) $(OUT) $(FEATURE_CONFIG_H)
+	rm -rf $(ODIR) $(OUT) $(FEATURE_CONFIG_H) $(VERSION_H)
 
 # Show configuration
 config:
@@ -117,3 +145,17 @@ config:
 	@echo "Target: $(OUT)"
 
 .PHONY: all debug release clean config features
+
+# ------------------------------
+# Tools (host-native utilities)
+# ------------------------------
+
+.PHONY: tools funcmap-gen
+
+tools: funcmap-gen
+
+# Build the PE function map generator (native host tool)
+funcmap-gen: tools/pe_funcmap_gen
+
+tools/pe_funcmap_gen: tools/pe_funcmap_gen.cpp src/pe_utils.cpp src/pe_utils.h
+	$(HOSTCC) $(HOSTCFLAGS) $(HOSTINC) -o $@ tools/pe_funcmap_gen.cpp src/pe_utils.cpp

@@ -7,6 +7,9 @@
 #include <windows.h>
 
 #include "simple_hook_init.h"
+#include "callsite_classifier.h"
+#include "parent_recorder.h"
+#include "version.h"
 
 // Ensure C linkage for the function we're calling
 extern "C" {
@@ -158,6 +161,11 @@ qboolean hkCbuf_AddLateCommands(void)
     
     PrintOut(PRINT_LOG, "Registered sofbuddy_list_features command\n");
     
+    // Register SoF Buddy version cvar
+    PrintOut(PRINT_LOG, "Registering _sofbuddy_version cvar...\n");
+    orig_Cvar_Get("_sofbuddy_version", SOFBUDDY_VERSION, CVAR_ARCHIVE | CVAR_NOSET, NULL);
+    PrintOut(PRINT_LOG, "Registered _sofbuddy_version cvar with value: %s\n", SOFBUDDY_VERSION);
+    
     // Note: If command already exists or conflicts with a cvar, 
     // Cmd_AddCommand will print an error message to the console
     
@@ -184,6 +192,12 @@ void lifecycle_EarlyStartup(void)
     
     // Dispatch to all features registered for early startup
     DISPATCH_SHARED_HOOK(EarlyStartup, Post);
+
+    // Initialize caller classification maps (prefer sof_buddy/funcmaps, legacy fallback is internal)
+    CallsiteClassifier::initialize("sof_buddy/funcmaps");
+
+    // Initialize ParentRecorder output directory (sof_buddy/func_parents)
+    ParentRecorder::Instance().initialize("sof_buddy/func_parents");
 
     #ifdef NOP_SOFPLUS_INIT_FUNCTION
     extern void* o_sofplus;

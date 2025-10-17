@@ -41,7 +41,18 @@
 
 ### 2. Prepare Your Game Folder
 - **Recommended:** Delete your `User/config.cfg` for optimal defaults.
-- Place `sof_buddy.dll` and the 4 provided scripts in your SoF root folder.
+- Extract the release `.zip` directly into your SoF root (where `SoF.exe` lives). It contains:
+  - `sof_buddy.dll` (goes in the SoF root)
+  - `cptosof` (helper installer script)
+  - `sof_buddy/` folder (created under the SoF root)
+    - `sof_buddy/funcmaps/`
+    - `sof_buddy/func_parents/`
+  - Windows/Linux helper scripts in `rsrc/*_scripts/`
+- If you prefer manual install:
+  - Copy `bin/sof_buddy.dll` to your SoF root.
+  - Create `sof_buddy/funcmaps` and `sof_buddy/func_parents` under your SoF root.
+  - Optionally copy JSON maps from the release into `sof_buddy/funcmaps/`.
+- Tip: You can also run `cptosof` with `SOFDIR=/path/to/SoF` to install the files for you.
 - Use the included patchers to toggle between `native_wsock`, `sofplus_wsock`, and `sof_buddy_wsock`.
 - `sof_buddy` will auto-load `spcl.dll` if present, so it works _with_ SoF Plus.
 

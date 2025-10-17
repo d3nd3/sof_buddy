@@ -757,42 +757,7 @@ Somehow <center> tag is not performing under scale.
 Seems it applies 5px for a space? (Confirmed.)
 We remove the space from this calculation to improve centering.
 */
-int hkR_Strlen(char * str, char * fontStd)
-{
-    // INSERT_YOUR_CODE
-    int space_count = 0;
-    for (char *p = str; *p != '\0'; ++p) {
-        if (*p == ' ') {
-            space_count++;
-        }
-    }
-    
-    
-    #if 0
-    if ( !strcmp(str,"EXIT GAME") ) {
-        extern realFontEnum_t getRealFontEnum(const char* realFont);
-        extern const int realFontSizes[4];
-        extern float hudScale;
-        realFontEnum_t fontType = getRealFontEnum((char*)(* (int * )(fontStd + 4)));
-        char * teststr = "EXIT GAME";
-        extern int (__cdecl *oR_Strlen)(char*, char*);
-        int len = oR_Strlen(teststr, fontStd) * hudScale;
-        orig_Com_Printf("Len = %i %i %i %i\n",len , space_count, fontType, realFontSizes[fontType]);
-        return len;
-    }
-    #endif
-
-    extern int (__cdecl *oR_Strlen)(char*, char*);
-    return screen_y_scale * ( oR_Strlen(str, fontStd) - 5 * space_count);
-}
-
-int hkR_StrHeight(char * fontStd)
-{
-    // return orig_R_StrHeight(fontStd);
-    extern int (__cdecl *oR_StrHeight)(char*);
-    return screen_y_scale * oR_StrHeight(fontStd);
-    // return test2->value;
-}
+// Text measurement hooks moved to text.cpp
 
 /*
 [frame] is often ""

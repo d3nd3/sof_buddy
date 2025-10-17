@@ -14,6 +14,9 @@ hdr/detours_prebuild.h
 rsrc/detours_prebuild.md
 rsrc/detours_prebuild.txt
 
+# Generated version header
+hdr/version.h
+
 # SDK submodules (these are tracked by git)
 # SDK/
 # SDK/*/

@@ -1,2 +1,6 @@
 #!/bin/bash
 cp "bin/sof_buddy.dll" "${SOFDIR}"
+mkdir -p "${SOFDIR}/sof_buddy/funcmaps"
+cp rsrc/funcmaps/*.json "${SOFDIR}/sof_buddy/funcmaps/" 2>/dev/null || true
+mkdir -p "${SOFDIR}/sof_buddy/func_parents"
+cp rsrc/func_parents/*.json "${SOFDIR}/sof_buddy/func_parents/" 2>/dev/null || true
