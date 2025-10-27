@@ -43,18 +43,15 @@
 - **Recommended:** Delete your `User/config.cfg` for optimal defaults.
 - Extract the release `.zip` directly into your SoF root (where `SoF.exe` lives). It contains:
   - `sof_buddy.dll` (goes in the SoF root)
-  - `cptosof` (helper installer script)
   - `sof_buddy/` folder (created under the SoF root)
-    - `sof_buddy/funcmaps/`
-    - `sof_buddy/func_parents/`
-  - Windows/Linux helper scripts in `rsrc/*_scripts/`
-- If you prefer manual install:
-  - Copy `bin/sof_buddy.dll` to your SoF root.
-  - Create `sof_buddy/funcmaps` and `sof_buddy/func_parents` under your SoF root.
-  - Optionally copy JSON maps from the release into `sof_buddy/funcmaps/`.
-- Tip: You can also run `cptosof` with `SOFDIR=/path/to/SoF` to install the files for you.
-- Use the included patchers to toggle between `native_wsock`, `sofplus_wsock`, and `sof_buddy_wsock`.
-- `sof_buddy` will auto-load `spcl.dll` if present, so it works _with_ SoF Plus.
+    - `sof_buddy/funcmaps/` (contains JSON function maps)
+    - Windows: `sof_buddy/enable_*.cmd` scripts and `sof_buddy/patch_sof_binary.ps1`
+    - Linux/Wine: `sof_buddy/enable_*.sh` scripts and `sof_buddy/patch_sof_binary.sh`
+- Use the helper scripts to patch SoF.exe to load different DLLs:
+  - **`enable_sofplus_and_buddy.cmd`** → Loads `sof_buddy.dll` (recommended: SoF Buddy + optional SoF Plus)
+  - **`enable_sofplus.cmd`** → Loads `spcl.dll` (SoF Plus only, disables SoF Buddy)
+  - **`enable_vanilla.cmd`** → Loads `WSOCK32.dll` (vanilla SoF, no mods)
+- SoF Buddy auto-loads `spcl.dll` if present, so it works _with_ SoF Plus.
 
 </details>
 
@@ -64,15 +61,20 @@
 <details>
 <summary><b>Click to expand</b></summary>
 
-### Activate SoF Buddy
-- Run: `set_sofplus_and_buddy_sof.cmd` (works with or without SoF Plus)
-- [View script contents](https://github.com/d3nd3/sof_buddy/blob/master/set_sofplus_and_buddy_sof.cmd)
+### Enable SoF Buddy (Recommended)
+- **Windows:** Run `sof_buddy/enable_sofplus_and_buddy.cmd`
+- **Linux/Wine:** Run `sof_buddy/enable_sofplus_and_buddy.sh`
+- This enables SoF Buddy and optionally loads SoF Plus (if `spcl.dll` is present)
 
-### Restore SoF Plus Only
-- Run: `set_sofplus_sof.cmd`
+### Enable SoF Plus Only
+- **Windows:** Run `sof_buddy/enable_sofplus.cmd`
+- **Linux/Wine:** Run `sof_buddy/enable_sofplus.sh`
+- This disables SoF Buddy and uses only SoF Plus
 
-### Disable All Mods (Vanilla)
-- Run: `set_vanilla_sof.cmd`
+### Restore Vanilla SoF
+- **Windows:** Run `sof_buddy/enable_vanilla.cmd`
+- **Linux/Wine:** Run `sof_buddy/enable_vanilla.sh`
+- This removes all mods and restores the original game
 
 </details>
 

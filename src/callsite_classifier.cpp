@@ -1,3 +1,17 @@
+/**
+ * CallsiteClassifier converts return addresses into function start addresses.
+ * 
+ * Funcmaps (JSON files in rsrc/funcmaps/) contain function start RVAs for SoF modules.
+ * When a hook needs to identify its caller's function, it can:
+ *   1. Capture the return address (RVA within the calling module)
+ *   2. Look it up in the funcmap to find the containing function's start RVA
+ *   3. Optionally match against function names or RVAs for conditional behavior
+ * 
+ * This enables features to adapt based on which function calls them, enabling
+ * context-aware hooking (e.g., scaling UI elements differently for menus vs HUD).
+ * Required at runtime.
+ */
+
 #include "callsite_classifier.h"
 #include <string.h>
 #include <vector>

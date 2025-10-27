@@ -44,8 +44,16 @@ jobs:
 
       - name: Prepare Release
         run: |
-          zip release_windows.zip bin/sof_buddy.dll cptosof rsrc/win_scripts/patch_sof_binary.ps1 rsrc/win_scripts/set_sofplus_and_buddy_sof.cmd rsrc/win_scripts/set_sofplus_sof.cmd rsrc/win_scripts/set_vanilla_sof.cmd
-          zip release_linux_wine.zip bin/sof_buddy.dll cptosof rsrc/lin_scripts/patch_sof_binary.sh rsrc/lin_scripts/set_sofplus_and_buddy_sof.sh rsrc/lin_scripts/set_sofplus_sof.sh rsrc/lin_scripts/set_vanilla_sof.sh
+          mkdir -p sof_buddy/funcmaps
+          cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
+          cp rsrc/win_scripts/enable_*.cmd sof_buddy/
+          cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
+          zip release_windows.zip bin/sof_buddy.dll sof_buddy/
+          
+          rm -rf sof_buddy/funcmaps sof_buddy/*.cmd sof_buddy/*.ps1 sof_buddy/*.sh
+          cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
+          cp rsrc/lin_scripts/enable_*.sh sof_buddy/
+          zip release_linux_wine.zip bin/sof_buddy.dll sof_buddy/
         # The working-directory is not strictly necessary here as it's the default, but it's good for clarity.
         working-directory: ${{ github.workspace }}
 

@@ -196,8 +196,10 @@ void lifecycle_EarlyStartup(void)
     // Initialize caller classification maps (prefer sof_buddy/funcmaps, legacy fallback is internal)
     CallsiteClassifier::initialize("sof_buddy/funcmaps");
 
-    // Initialize ParentRecorder output directory (sof_buddy/func_parents)
+    #ifndef NDEBUG
+    // Initialize ParentRecorder output directory (sof_buddy/func_parents) - debug builds only
     ParentRecorder::Instance().initialize("sof_buddy/func_parents");
+    #endif
 
     #ifdef NOP_SOFPLUS_INIT_FUNCTION
     extern void* o_sofplus;

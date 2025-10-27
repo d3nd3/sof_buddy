@@ -1,3 +1,11 @@
+/*
+ * ParentRecorder tracks and records which functions (parents) call which
+ * hooked functions (children), storing this information in JSON files.
+ * For each child function, it records all unique parent call sites along
+ * with the module they belong to (SoF.exe, ref_gl.dll, player.dll, gamex86.dll)
+ * and their relative virtual addresses (RVAs). The recorder writes this data
+ * to disk for analysis and debugging purposes.
+ */
 #include "parent_recorder.h"
 #include <stdio.h>
 #include <sys/stat.h>
