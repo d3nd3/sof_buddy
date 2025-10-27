@@ -18,6 +18,11 @@ void SharedHookManager::RegisterCallback(const std::string& hook_name, const std
              phase == SharedHookPhase::Pre ? "Pre" : "Post");
 }
 
+/*
+ * This function is responsible for dispatching shared hooks. It takes a hook name and a phase (pre or post) as input.
+ * It iterates through all registered callbacks for the given hook name and executes the ones that are enabled and match the specified phase.
+ * If a callback throws an exception, it catches it and prints an error message.
+ */
 void SharedHookManager::DispatchHook(const std::string& hook_name, SharedHookPhase phase) {
     auto it = hook_callbacks.find(hook_name);
     if (it == hook_callbacks.end()) {

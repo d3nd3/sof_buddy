@@ -16,6 +16,7 @@
 - 🖥️ **HUD Scaling** — Scale the HUD independently from the font for perfect UI balance.
 - 🎯 **Restored `cl_maxfps` in Singleplayer** — Enjoy smooth, uncapped framerates without legacy workarounds.
 - ⚡ **Stable Framerate & CPU Saver** — Uses `QueryPerformanceCounter` for precise timing and energy savings. New cvar: `_sofbuddy_sleep`.
+- 🖱️ **Raw Mouse Input** — Direct hardware input bypassing Windows acceleration. All original sensitivity cvars still work!
 - 🏷️ **Widescreen Teamicons GlitchFix** — Team icons are always correctly positioned, even in widescreen.
 - 🖼️ **HD Texture Support** — Native support for high-res `.m32` textures. [Learn more](https://www.sof1.org/viewtopic.php?p=45667)
 - 🌙 **Lighting Blend Mode Adjustment** — Experience WhiteMagicRaven's lighting tweaks (optional).
@@ -90,6 +91,7 @@
   wine SoF.exe +set console 1 +set cddir CDDIR #%command%
   ```
 - **Proton Note:** Proton ≤ 4.11-13 recommended. Otherwise, adjust sound frequency each startup.
+- **Raw Mouse Input (`_sofbuddy_rawmouse`):** For true raw mouse input (bypassing system acceleration), you need **Proton ≥ 9.0** or **GloriousEggroll's custom Proton builds**. Standard Wine/wine-staging may still apply system mouse acceleration.
 - **Optimal FPS Tweaks:** Add to `base/autoexec.cfg`:
   ```
   cl_quads 0
@@ -125,6 +127,7 @@
 | `_sofbuddy_whiteraven_lighting` | 0 | Enable WhiteMagicRaven lighting (1 = on) |
 | `_sofbuddy_lightblend_dst` | GL_SRC_COLOR | Lightmap blend func (see OpenGL docs) |
 | `_sofbuddy_lightblend_src` | GL_ZERO | Lightmap blend func (see OpenGL docs) |
+| `_sofbuddy_rawmouse` | 1 | Enable raw mouse input (1 = on, bypasses Windows acceleration) |
 
 - See [OpenGL glBlendFunc docs](https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glBlendFunc.xhtml) for blend values.
 - If `_sofbuddy_whiteraven_lighting` is enabled, it overrides blend cvars.

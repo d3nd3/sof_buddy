@@ -15,6 +15,7 @@
 #include "shared_hook_manager.h"
 #include "util.h"
 #include "sof_buddy.h"
+#include "DetourXS/detourxs.h"
 
 // Forward declarations
 static void cl_maxfps_EarlyStartup(void);
@@ -26,8 +27,6 @@ REGISTER_SHARED_HOOK_CALLBACK(EarlyStartup, cl_maxfps_singleplayer, cl_maxfps_Ea
 // Hook CinematicFreeze in game.dll - automatically applied when game.dll loads
 REGISTER_HOOK(CinematicFreeze, 0x50075190, void, __cdecl, bool bEnable);
 
-// Hook sp_Sys_Mil in sofplus.dll - automatically applied when sofplus loads
-REGISTER_HOOK(sp_Sys_Mil, 0xFA60, int, __cdecl);
 
 // sp_Sys_Mil hook variables (kept for compatibility)
 static int (*sp_Sys_Mil)(void) = NULL;
@@ -45,7 +44,8 @@ int hksp_Sys_Mil(void)
 		*(int*)((char*)o_sofplus + 0x331BC) = 0x00;
 	}
 
-	return osp_Sys_Mil();
+    if (orig_sp_Sys_Mil) return orig_sp_Sys_Mil();
+    return 0;
 }
 
 /*
@@ -63,6 +63,17 @@ static void cl_maxfps_EarlyStartup(void)
 	
     // sp_Sys_Mil hook is now automatically registered via REGISTER_HOOK macro
     PrintOut(PRINT_LOG, "cl_maxfps_singleplayer: sp_Sys_Mil hook registered automatically\n");
+    // Install detour for sp_Sys_Mil at o_sofplus + 0xFA60 (per README)
+    if (o_sofplus && orig_sp_Sys_Mil == NULL) {
+        void* target = (void*)((char*)o_sofplus + 0xFA60);
+        void* tramp = DetourCreate(target, (LPVOID)hksp_Sys_Mil, DETOUR_TYPE_JMP, DETOUR_LEN_AUTO);
+        if (tramp) {
+            orig_sp_Sys_Mil = (int(*)(void))tramp;
+            PrintOut(PRINT_LOG, "cl_maxfps_singleplayer: Direct detour applied: sp_Sys_Mil -> %p\n", tramp);
+        } else {
+            PrintOut(PRINT_BAD, "cl_maxfps_singleplayer: Failed to detour sp_Sys_Mil at %p\n", target);
+        }
+    }
     
     PrintOut(PRINT_LOG, "cl_maxfps_singleplayer: Early patches applied\n");
 }

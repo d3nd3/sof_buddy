@@ -68,6 +68,16 @@ void HookManager::ApplyModuleHooks(HookModule target_module, const char* module_
     }
     
     PrintOut(PRINT_LOG, "Applying %zu %s hooks...\n", total_count, module_name);
+
+    // If this is the system-module pass, print the list of system hooks we're about to apply
+    if (target_module == HookModule::Unknown) {
+        PrintOut(PRINT_LOG, "System-module hooks to apply:\n");
+        for (const auto& hook : hooks) {
+            if (hook.module == HookModule::Unknown) {
+                PrintOut(PRINT_LOG, " - %s at %p\n", hook.name ? hook.name : "unnamed", hook.address);
+            }
+        }
+    }
     
     for (const auto& hook : hooks) {
         if (hook.module != target_module) {
@@ -80,6 +90,14 @@ void HookManager::ApplyModuleHooks(HookModule target_module, const char* module_
         }
         
         size_t effective_len = hook.detour_len == 0 ? DETOUR_LEN_AUTO : hook.detour_len;
+        
+        // Check if the address is readable before attempting to hook
+        if (IsBadReadPtr(hook.address, 1)) {
+            PrintOut(PRINT_BAD, "Cannot apply %s hook: %s at 0x%p (memory not accessible)\n", 
+                     module_name, hook.name ? hook.name : "unnamed", hook.address);
+            continue;
+        }
+        
         void* trampoline = DetourCreate(hook.address, hook.detour_func, DETOUR_TYPE_JMP, effective_len);
         
         if (trampoline) {
@@ -109,14 +127,19 @@ void HookManager::RemoveModuleHooks(HookModule target_module, const char* module
         if (applied_hooks.count(hook.address)) {
             void* trampoline = applied_hooks[hook.address];
             if (trampoline) {
-                DetourRemove(&trampoline);
+                // Check if the original address is still accessible
+                // This prevents crashes when a DLL has been unloaded
+                if (!IsBadReadPtr(hook.address, 1)) {
+                    DetourRemove(&trampoline);
+                } else {
+                    PrintOut(PRINT_LOG, "Skipping removal of %s hook at 0x%p (memory no longer accessible)\n", 
+                             hook.name ? hook.name : "unnamed", hook.address);
+                }
                 if (hook.original_storage) {
                     *hook.original_storage = nullptr;
                 }
                 applied_hooks.erase(hook.address);
                 removed_count++;
-                PrintOut(PRINT_LOG, "Removed %s hook: %s at 0x%p\n", module_name,
-                         hook.name ? hook.name : "unnamed", hook.address);
             }
         }
     }
@@ -136,11 +159,19 @@ void HookManager::ApplyRefHooks() {
 }
 
 void HookManager::ApplyGameHooks() {
+    // Remove then apply on reload to handle game.dll being reloaded
+    RemoveModuleHooks(HookModule::GameDll, "game.dll");
     ApplyModuleHooks(HookModule::GameDll, "game.dll");
 }
 
 void HookManager::ApplyPlayerHooks() {
+    // Remove then apply on reload to handle player.dll being reloaded
+    RemoveModuleHooks(HookModule::PlayerDll, "player.dll");
     ApplyModuleHooks(HookModule::PlayerDll, "player.dll");
+}
+
+void HookManager::ApplySystemHooks() {
+    ApplyModuleHooks(HookModule::Unknown, "system DLL");
 }
 
 void HookManager::RemoveExeHooks() {
@@ -159,14 +190,6 @@ void HookManager::RemovePlayerHooks() {
     RemoveModuleHooks(HookModule::PlayerDll, "player.dll");
 }
 
-void HookManager::ApplyAllHooks() {
-    PrintOut(PRINT_LOG, "Applying ALL hooks (legacy mode)...\n");
-    ApplyExeHooks();
-    ApplyRefHooks();
-    ApplyGameHooks();
-    ApplyPlayerHooks();
-}
-
 size_t HookManager::GetHookCount(HookModule module) const {
     size_t count = 0;
     for (const auto& hook : hooks) {
@@ -175,6 +198,21 @@ size_t HookManager::GetHookCount(HookModule module) const {
         }
     }
     return count;
+}
+
+void HookManager::DumpRegisteredHooks() const {
+    PrintOut(PRINT_LOG, "Registered hooks (%zu):\n", hooks.size());
+    for (const auto &h : hooks) {
+        const char* module_name = "Unknown";
+        switch (h.module) {
+            case HookModule::SofExe: module_name = "SoF.exe"; break;
+            case HookModule::RefDll: module_name = "ref.dll"; break;
+            case HookModule::GameDll: module_name = "game.dll"; break;
+            case HookModule::PlayerDll: module_name = "player.dll"; break;
+            default: break;
+        }
+        PrintOut(PRINT_LOG, " - %s at %p (%s)\n", h.name ? h.name : "unnamed", h.address, module_name);
+    }
 }
 
 void HookManager::RemoveAllHooks() {

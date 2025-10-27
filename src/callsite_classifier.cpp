@@ -238,7 +238,7 @@ bool CallsiteClassifier::classify(void *returnAddress, CallerInfo &out) {
     GetModuleFileNameA(mod, modPath, MAX_PATH);
     const char *leaf = PathFindFileNameA(modPath);
     if (!leaf || !*leaf) leaf = modPath;
-    PrintOut(PRINT_LOG, "CallsiteClassifier: classify module=%d file=%s rva=0x%08X base=0x%p ra=0x%p\n", (int)out.module, leaf, (unsigned)rva, (void*)base, returnAddress);
+    // PrintOut(PRINT_LOG, "CallsiteClassifier: classify module=%d file=%s rva=0x%08X base=0x%p ra=0x%p\n", (int)out.module, leaf, (unsigned)rva, (void*)base, returnAddress);
 	// Lazy-load this module's map if needed
 	ensureLoadedFor(out.module, nullptr);
 

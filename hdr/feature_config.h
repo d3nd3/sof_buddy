@@ -21,6 +21,7 @@
 #define FEATURE_NEW_SYSTEM_BUG 1  // enabled
 #define FEATURE_CONSOLE_PROTECTION 1  // enabled
 #define FEATURE_CL_MAXFPS_SINGLEPLAYER 1  // enabled
+#define FEATURE_RAW_MOUSE 1  // enabled
 
 /*
     Usage in feature files:

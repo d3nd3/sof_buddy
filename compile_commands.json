@@ -95,6 +95,16 @@
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/texture_mapping_min_mag/hooks.cpp"
     },
     {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/features/raw_mouse/cvars.o src/features/raw_mouse/cvars.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -O0 -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/raw_mouse/cvars.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/features/raw_mouse/hooks.o src/features/raw_mouse/hooks.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -O0 -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/raw_mouse/hooks.cpp"
+    },
+    {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/features/scaled_ui/menu.o src/features/scaled_ui/menu.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -O0 -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui/menu.cpp"

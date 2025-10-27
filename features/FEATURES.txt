@@ -22,3 +22,6 @@ teamicons_offset
 new_system_bug
 console_protection
 cl_maxfps_singleplayer
+
+# Input Features
+raw_mouse

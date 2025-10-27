@@ -11,11 +11,6 @@
 #include "parent_recorder.h"
 #include "version.h"
 
-// Ensure C linkage for the function we're calling
-extern "C" {
-    void InitializeAllHooks(void);
-}
-
 // Original function pointers for non-lifecycle hooks
 cvar_t *(*orig_Cvar_Get)(const char * name, const char * value, int flags, cvarcommand_t command) = reinterpret_cast<cvar_t*(*)(const char*,const char*,int,cvarcommand_t)>(0x20021AE0);
 cvar_t *(*orig_Cvar_Set2) (char *var_name, char *value, qboolean force) = reinterpret_cast<cvar_t*(*)(char*,char*,qboolean)>(0x20021D70);
@@ -172,6 +167,7 @@ qboolean hkCbuf_AddLateCommands(void)
     // Dispatch to all features registered for post-cvar initialization
     // Each feature will register its own CVars via PostCvarInit callbacks
     DISPATCH_SHARED_HOOK(PostCvarInit, Post);
+
     
     PrintOut(PRINT_LOG, "=== Post-CVar Init Phase Complete ===\n");
 
@@ -183,6 +179,9 @@ qboolean hkCbuf_AddLateCommands(void)
 void lifecycle_EarlyStartup(void)
 {
     PrintOut(PRINT_LOG, "=== Lifecycle: Early Startup Phase ===\n");
+    
+    // Initialize system DLL hooks
+    InitializeSystemHooks();
     
     // Initialize hooks targeting SoF.exe (0x200xxxxx addresses) only
     InitializeExeHooks();

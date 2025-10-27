@@ -28,14 +28,12 @@ public:
     // detour_len: 0 means auto-length (DETOUR_LEN_AUTO)
     void AddHook(void* address, void* detour_func, void** original_storage, const char* name = nullptr, size_t detour_len = 0);
     
-    // Apply all registered hooks (legacy - use module-specific versions)
-    void ApplyAllHooks();
-    
     // Apply hooks for specific modules
     void ApplyExeHooks();     // Apply hooks targeting sof.exe (0x200xxxxx)
     void ApplyRefHooks();     // Apply hooks targeting ref.dll (0x5xxxxxxx, ref module)
     void ApplyGameHooks();    // Apply hooks targeting game.dll (0x5xxxxxxx, game module)
     void ApplyPlayerHooks();  // Apply hooks targeting player.dll (0x5xxxxxxx, player module)
+    void ApplySystemHooks();  // Apply hooks targeting system DLLs (user32.dll, etc.)
     
     // Remove all hooks
     void RemoveAllHooks();
@@ -48,6 +46,8 @@ public:
     // Get count of registered hooks
     size_t GetHookCount() const { return hooks.size(); }
     size_t GetHookCount(HookModule module) const;
+    // Dump registered hooks for debugging (prints name, address, and module)
+    void DumpRegisteredHooks() const;
 
 private:
     HookManager() = default;

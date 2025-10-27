@@ -1,4 +1,59 @@
-// Module-specific hook initialization for the new macro-based system
+/*
+ * Module-Specific Hook Initialization
+ * =====================================
+ * 
+ * This file provides centralized initialization functions for applying hooks to specific
+ * SoF modules (SoF.exe, ref.dll, game.dll, player.dll) and system DLLs (user32.dll, etc.).
+ * 
+ * PURPOSE:
+ * --------
+ * These functions wrap HookManager::ApplyXHooks() methods and are called at specific 
+ * lifecycle phases to ensure hooks are applied in the correct order and at the right time.
+ * 
+ * COMPARISON WITH HookManager::ApplyAllHooks():
+ * ---------------------------------------------
+ * 
+ * HookManager::ApplyAllHooks() is a LEGACY function that:
+ * - Applies ALL registered hooks at once
+ * - Doesn't distinguish between modules
+ * - Used only for backward compatibility
+ * - Less controlled timing and ordering
+ * 
+ * The module-specific initialization pattern (this file):
+ * - Applies hooks for ONE specific module type per call
+ * - Called at appropriate lifecycle phases
+ * - Provides better separation and timing control
+ * - Allows modules to be hooked/unhooked independently
+ * - Enables per-module debugging and logging
+ * 
+ * USAGE PATTERN:
+ * -------------
+ * InitializeExeHooks()    - Called during EarlyStartup phase
+ *                           (hooks SoF.exe functions at 0x200xxxxx)
+ * 
+ * InitializeSystemHooks() - Called during EarlyStartup phase
+ *                           (hooks system DLLs like user32.dll, kernel32.dll, etc.)
+ *                 
+ * 
+ * InitializeRefHooks()    - Called when ref.dll loads
+ *                           (hooks ref.dll functions at 0x5xxxxxxx)
+ * 
+ * InitializeGameHooks()   - Called when game.dll loads
+ *                           (hooks game.dll functions at 0x5xxxxxxx)
+ * 
+ * InitializePlayerHooks() - Called when player.dll loads
+ *                           (hooks player.dll functions at 0x5xxxxxxx)
+ * 
+ * Each function:
+ * 1. Logs the module being initialized
+ * 2. Gets the hook count for that specific module type
+ * 3. Applies only hooks registered for that module
+ * 4. Provides module-specific success/failure logging
+ * 
+ * This provides granular control over when and how hooks are applied, compared to
+ * the "apply everything at once" approach of HookManager::ApplyAllHooks().
+ */
+
 #include "hook_manager.h"
 #include "util.h"
 
@@ -54,16 +109,18 @@ extern "C" void InitializePlayerHooks() {
     PrintOut(PRINT_LOG, "=== player.dll hook initialization complete ===\n");
 }
 
-// Legacy function - initializes ALL hooks (use module-specific versions instead)
-extern "C" void InitializeAllHooks() {
-    PrintOut(PRINT_LOG, "=== Initializing ALL hooks (legacy mode) ===\n");
+// Initialize hooks targeting system DLLs (user32.dll, kernel32.dll, etc.)
+// Called during PostCvarInit lifecycle phase (after CVars are initialized)
+// Must NOT be called during EarlyStartup as it causes crashes during DLL init
+extern "C" void InitializeSystemHooks() {
+    PrintOut(PRINT_LOG, "=== Initializing system DLL hooks ===\n");
     
     HookManager& manager = HookManager::Instance();
-    PrintOut(PRINT_LOG, "Found %zu total registered hooks\n", manager.GetHookCount());
+    PrintOut(PRINT_LOG, "Found %zu system DLL hooks to apply\n", manager.GetHookCount(HookModule::Unknown));
     
-    manager.ApplyAllHooks();
+    manager.ApplySystemHooks();
     
-    PrintOut(PRINT_LOG, "=== All hooks initialization complete ===\n");
+    PrintOut(PRINT_LOG, "=== system DLL hook initialization complete ===\n");
 }
 
 // This function should be called during shutdown to clean up all hooks

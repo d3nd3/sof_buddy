@@ -68,12 +68,12 @@ void* hkSys_GetGameApi(void *imports)
 	void *ret = oSys_GetGameApi(imports);
 	
 	if (ret) {
-		PrintOut(PRINT_LOG, "game.dll loaded successfully\n");
+		PrintOut(PRINT_LOG, "game.dll loaded successfully (API returned: %p)\n", ret);
 		
 		// Initialize hooks targeting game.dll functions first
 		InitializeGameHooks();
 		
-		// Then dispatch to all features that need to respond to game.dll loading
+		// Dispatch the GameDllLoaded 'event' to all features
 		DISPATCH_SHARED_HOOK(GameDllLoaded, Post);
 		
 		PrintOut(PRINT_LOG, "=== game.dll Loading Complete ===\n");
