@@ -51,6 +51,7 @@ jobs:
           zip release_windows.zip bin/sof_buddy.dll sof_buddy/
           
           rm -rf sof_buddy/funcmaps sof_buddy/*.cmd sof_buddy/*.ps1 sof_buddy/*.sh
+          mkdir -p sof_buddy/funcmaps
           cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
           cp rsrc/lin_scripts/enable_*.sh sof_buddy/
           zip release_linux_wine.zip bin/sof_buddy.dll sof_buddy/
