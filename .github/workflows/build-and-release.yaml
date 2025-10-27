@@ -48,13 +48,16 @@ jobs:
           cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
-          zip release_windows.zip bin/sof_buddy.dll sof_buddy/
+          cp bin/sof_buddy.dll sof_buddy.dll
+          zip release_windows.zip sof_buddy.dll sof_buddy/
           
-          rm -rf sof_buddy/funcmaps sof_buddy/*.cmd sof_buddy/*.ps1 sof_buddy/*.sh
-          mkdir -p sof_buddy/funcmaps
+          find sof_buddy -name "*.cmd" -delete
+          find sof_buddy -name "*.ps1" -delete
+          find sof_buddy -name "*.json" -delete
           cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
           cp rsrc/lin_scripts/enable_*.sh sof_buddy/
-          zip release_linux_wine.zip bin/sof_buddy.dll sof_buddy/
+          cp rsrc/lin_scripts/patch_sof_binary.sh sof_buddy/
+          zip release_linux_wine.zip sof_buddy.dll sof_buddy/
         # The working-directory is not strictly necessary here as it's the default, but it's good for clarity.
         working-directory: ${{ github.workspace }}
 
@@ -77,6 +80,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Download Windows Release Artifact
         uses: actions/download-artifact@v4
         with:
