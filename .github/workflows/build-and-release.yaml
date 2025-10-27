@@ -49,15 +49,12 @@ jobs:
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
           cp bin/sof_buddy.dll sof_buddy.dll
-          zip release_windows.zip sof_buddy.dll sof_buddy/
+          zip -r release_windows.zip sof_buddy.dll sof_buddy/
           
-          find sof_buddy -name "*.cmd" -delete
-          find sof_buddy -name "*.ps1" -delete
-          find sof_buddy -name "*.json" -delete
-          cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
+          rm -f sof_buddy/*.cmd sof_buddy/*.ps1
           cp rsrc/lin_scripts/enable_*.sh sof_buddy/
           cp rsrc/lin_scripts/patch_sof_binary.sh sof_buddy/
-          zip release_linux_wine.zip sof_buddy.dll sof_buddy/
+          zip -r release_linux_wine.zip sof_buddy.dll sof_buddy/
         # The working-directory is not strictly necessary here as it's the default, but it's good for clarity.
         working-directory: ${{ github.workspace }}
 
