@@ -5,6 +5,8 @@
  * with the module they belong to (SoF.exe, ref_gl.dll, player.dll, gamex86.dll)
  * and their relative virtual addresses (RVAs). The recorder writes this data
  * to disk for analysis and debugging purposes.
+ * We should only use this feature in debug mode, and the files should not be provided
+ * with the release zip.
  */
 #include "parent_recorder.h"
 #include <stdio.h>
