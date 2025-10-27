@@ -16,6 +16,11 @@
     For various things like:
       -console background and ctf ui flag carried.
       -Draw_PicCenter vs Draw_PicTiled modes.
+
+    ==.m32 files==
+    DrawPic and GL_FindImage which is called before Draw_Pic,
+    work together to get the width height of the image, and
+    it gets centered based on its size and position.
 */
 
 #include "feature_config.h"
@@ -112,6 +117,7 @@ void( * orig_SCR_DirtyRect)(int x1, int y1, int x2, int y2) = (void(*)(int,int,i
 // glVertex2f is handled specially since its address is resolved at runtime
 void(__stdcall * orig_glVertex2f)(float one, float two) = NULL;
 void(__stdcall * orig_glVertex2i)(int x, int y) = NULL;
+void(__stdcall * orig_glDisable)(int cap) = NULL;
 
 // Interface Draw Functions
 void(__thiscall * orig_cScope_Draw)(void * self);
@@ -187,10 +193,10 @@ REGISTER_HOOK_LEN(R_DrawFont, 0x300045B0, 6, void, __cdecl, int screenX, int scr
 
 #ifdef UI_MENU
 // Menu scaling hooks (experimental feature)
-REGISTER_HOOK(M_PushMenu, 0x200C7630, void, __cdecl, const char* name, const char* frame, bool force);
-REGISTER_HOOK_LEN(R_Strlen, 0x300042F0, 7, int, __cdecl, char * str, char * fontStd);
-REGISTER_HOOK_LEN(R_StrHeight, 0x300044C0, 7, int, __cdecl, char * fontStd);
-REGISTER_HOOK_LEN(stm_c_ParseStm, 0x200E7E70, 5, char*, __thiscall, void *self_stm_c, void * toke_c);
+// REGISTER_HOOK(M_PushMenu, 0x200C7630, void, __cdecl, const char* name, const char* frame, bool force);
+// REGISTER_HOOK_LEN(R_Strlen, 0x300042F0, 7, int, __cdecl, char * str, char * fontStd);
+// REGISTER_HOOK_LEN(R_StrHeight, 0x300044C0, 7, int, __cdecl, char * fontStd);
+// REGISTER_HOOK_LEN(stm_c_ParseStm, 0x200E7E70, 5, char*, __thiscall, void *self_stm_c, void * toke_c);
 #endif
 
 // =============================================================================
@@ -747,6 +753,9 @@ static void scaledUI_EarlyStartup(void)
     WriteByte((void*)0x2002104B, 0x90);
     WriteByte((void*)0x2002104C, 0x90);
     WriteByte((void*)0x2002104D, 0x90);
+
+
+
     
 #ifdef UI_MENU
     // Menu scaling memory patches
@@ -773,6 +782,9 @@ static void scaledUI_RefDllLoaded(void)
     // Get OpenGL vertex function pointers from ref.dll
     void* glVertex2f = (void*)*(int*)0x300A4670;
     orig_glVertex2i = (void(__stdcall*)(int,int))*(int*)0x300A46D0;
+    orig_glDisable = (void(__stdcall*)(int))*(int*)0x300A44EC;
+
+    
     
     /*
         Catch all hook for scaling : 

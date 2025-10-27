@@ -162,6 +162,8 @@ extern void (__thiscall *ocCtfFlag_Draw)(void * self);
 
 // OpenGL original vertex function (resolved at runtime in hooks.cpp)
 extern void(__stdcall * orig_glVertex2f)(float one, float two);
+extern void(__stdcall * orig_glVertex2i)(int x, int y);
+extern void(__stdcall * orig_glDisable)(int cap);
 
 // HUD scaling functions
 void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int pal, char * name);

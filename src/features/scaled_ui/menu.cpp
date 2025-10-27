@@ -6,6 +6,29 @@
 	- Menu text scaling
 	- Menu rendering hooks
 	- Menu parsing and layout modifications
+
+    Active Hooks:
+        my_rect_c_Parse
+        my_Draw_GetPicSize
+
+        M_PushMenu
+        my_R_Strlen
+        my_R_StrHeight
+        my_stm_c_ParseStm
+        Draw_Pic (Shared)
+        GL_FindImage (Shared)
+
+    How does menu sizing work?
+        By default the menus seem to go full width, but stretch too far down.
+
+        It seems he reduced the width of all menus.
+        So that the vertical scaling would fit the screen.
+
+        It uses mostly, 0 for height, which means auto stretch.
+
+        
+
+
 */
 
 #include "feature_config.h"
@@ -69,6 +92,7 @@ void my_Draw_GetPicSize(int *w, int *h, char *pic)
             while (*end && *end != '/') ++end;
             size_t len = end - thirdEntry;
             if ((len == 5 && strncmp(thirdEntry, "icons", 5) == 0) || ( len == 9 && strncmp(thirdEntry, "teamicons", 9) == 0) ) {
+                // Do not scale pics/menus/icons or teamicons
                 extern void (*orig_Draw_GetPicSize)(int*, int*, char*);
                 orig_Draw_GetPicSize (w, h, pic);
                 return;
@@ -83,7 +107,8 @@ void my_Draw_GetPicSize(int *w, int *h, char *pic)
                 *h = *h * screen_y_scale;
                 return;
             } else if (len == 4 && strncmp(thirdEntry, "misc", 4) == 0) {
-                // Check if the last 4 characters of the path are "vend"
+                // vbar_c::vbar_c
+                // Do not scale the vbar
                 size_t picLen = strlen(pic);
                 if (picLen >= 4 && strncmp(pic + picLen - 4, "vend", 4) == 0) {
                     extern void (*orig_Draw_GetPicSize)(int*, int*, char*);

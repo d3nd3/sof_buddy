@@ -3,6 +3,7 @@
 // Main executable functions and core game engine
 
 #include "feature_macro.h"
+#include "feature_config.h"
 #include "shared_hook_manager.h"
 // #include "../hdr/util.h"
 
@@ -69,7 +70,9 @@ int* viddef_width = (int*)0x2040365C;
 int* viddef_height = (int*)0x20403660;
 
 // External reference to screen_y_scale from scaled_ui feature
+#if FEATURE_UI_SCALING
 extern float screen_y_scale;
+#endif
 // Dispatcher for VID_CheckChanges (SoF.exe)
 // Allows multiple features to react before/after video/renderer changes
 REGISTER_HOOK_VOID(VID_CheckChanges, 0x200670C0, void, __cdecl) {
@@ -83,7 +86,9 @@ REGISTER_HOOK_VOID(VID_CheckChanges, 0x200670C0, void, __cdecl) {
 	current_vid_h = *viddef_height;
 	
 	// Update screen_y_scale for scaled_ui feature
+#if FEATURE_UI_SCALING
 	screen_y_scale = (float)current_vid_h / 480.0f;
+#endif
 
     // Post-change callbacks (e.g., cache new resolution, update overlays)
     DISPATCH_SHARED_HOOK(VID_CheckChanges, Post);

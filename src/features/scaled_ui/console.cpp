@@ -16,6 +16,8 @@
 #include <math.h>
 #include <stdint.h>
 
+#define GL_BLEND 0x0BE2
+
 /*
     _sofbuddy_console_size
     _sofbuddy_font_scale
@@ -65,7 +67,8 @@ void hkCon_DrawNotify(void) {
 	*viddef_width = 1 / fontScale * current_vid_w;
 	
 	consoleBeingRendered = true;
-	
+	//fixes the inconsistent alpha blending
+	orig_glDisable(GL_BLEND);
 	oCon_DrawNotify();
 	
 	consoleBeingRendered = false;

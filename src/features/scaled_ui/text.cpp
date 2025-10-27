@@ -62,7 +62,13 @@ static FontCaller getFontCallerFromRva(uint32_t fnStartRva) {
 		case 0x000de430: return FontCaller::ServerboxDraw;
 		case 0x000ea8a0: return FontCaller::TipRender;
 		case 0x00002a40: return FontCaller::DrawLine; // ref_gl.dll
-		default: return FontCaller::Unknown;
+		default: 
+#ifdef NDEBUG
+			PrintOut(PRINT_BAD, "getFontCallerFromRva: unrecognized RVA offset 0x%08X\n", fnStartRva);
+			return FontCaller::Unknown;
+#else
+			return FontCaller::Unknown;
+#endif
 	}
 }
 

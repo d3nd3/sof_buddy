@@ -21,4 +21,4 @@ teamicons_offset
 # Bug fixes
 new_system_bug
 console_protection
-cl_maxfps_singleplayer  
+cl_maxfps_singleplayer
