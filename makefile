@@ -8,6 +8,7 @@ BDIR = bin
 IDIR = hdr
 FEATURES_TXT = features/FEATURES.txt
 FEATURE_CONFIG_H = hdr/feature_config.h
+FEATURE_LIST_H = hdr/feature_list.inc
 VERSION_FILE = VERSION
 VERSION_H = hdr/version.h
 
@@ -49,7 +50,7 @@ SOURCES = $(shell find $(SDIR) -name "*.cpp")
 OBJECTS = $(SOURCES:$(SDIR)/%.cpp=$(ODIR)/%.o)
 
 # Default target
-all: $(FEATURE_CONFIG_H) $(VERSION_H) $(OUT)
+all: $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(VERSION_H) $(OUT)
 
 # Generate feature configuration header from FEATURES.txt
 $(FEATURE_CONFIG_H): $(FEATURES_TXT)
@@ -93,6 +94,28 @@ $(FEATURE_CONFIG_H): $(FEATURES_TXT)
 	@echo '*/' >> $@
 	@echo "Generated feature configuration with $$(grep -c '^#define' $@) features"
 
+# Generate feature list helper from FEATURES.txt
+$(FEATURE_LIST_H): $(FEATURES_TXT)
+	@echo "Generating feature list helper from $(FEATURES_TXT)..."
+	@echo '/*' > $@
+	@echo '    Auto-generated feature list helper' >> $@
+	@echo '    Used by simple_init.cpp to display all features' >> $@
+	@echo '    DO NOT EDIT - Generated from $(FEATURES_TXT)' >> $@
+	@echo '*/' >> $@
+	@echo '' >> $@
+	@echo '#define FEATURE_LIST(macro)' >> $@
+	@grep -v '^#' $(FEATURES_TXT) | grep -v '^$$' | while read line; do \
+		if echo "$$line" | grep -q '^//'; then \
+			feature=$$(echo "$$line" | sed 's|^//[[:space:]]*||'); \
+			macro=$$(echo "$$feature" | tr '[:lower:]' '[:upper:]' | tr '-' '_'); \
+			echo "macro(FEATURE_$$macro, \"$$feature\", \"$$feature\")" >> $@; \
+		else \
+			feature=$$line; \
+			macro=$$(echo "$$feature" | tr '[:lower:]' '[:upper:]' | tr '-' '_'); \
+			echo "macro(FEATURE_$$macro, \"$$feature\", \"$$feature\")" >> $@; \
+		fi; \
+	done
+
 # Generate version header from VERSION file
 $(VERSION_H): $(VERSION_FILE)
 	@echo "Generating version header from $(VERSION_FILE)..."
@@ -116,12 +139,12 @@ features:
 	@echo "Active feature count: $$(awk '{ line=$$0; sub(/\r$$/,"",line); gsub(/^[ \t]+|[ \t]+$$/,"",line); if(line=="") next; if(substr(line,1,1)=="#") next; if(substr(line,1,2)=="//") next; print line }' $(FEATURES_TXT) | wc -l)"
 
 # Build target
-$(OUT): $(FEATURE_CONFIG_H) $(OBJECTS)
+$(OUT): $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(OBJECTS)
 	@mkdir -p $(BDIR)
 	$(CC) $(LFLAGS) $(DEF_FILE) $(OBJECTS) -o $(OUT) $(LIBS)
 
-# Object file rules - all depend on feature config and version header
-$(ODIR)/%.o: $(SDIR)/%.cpp $(FEATURE_CONFIG_H) $(VERSION_H)
+# Object file rules - all depend on feature config, feature list, and version header
+$(ODIR)/%.o: $(SDIR)/%.cpp $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(VERSION_H)
 	@mkdir -p $(dir $@)
 	$(CC) -c $(INC) -o $@ $< $(CFLAGS)
 
@@ -133,7 +156,7 @@ release:
 
 # Clean
 clean:
-	rm -rf $(ODIR) $(OUT) $(FEATURE_CONFIG_H) $(VERSION_H)
+	rm -rf $(ODIR) $(OUT) $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(VERSION_H)
 
 # Show configuration
 config:

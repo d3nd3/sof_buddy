@@ -255,9 +255,9 @@ void mutateWidthTokeC_resize(void * toke_c) {
     }
     #endif
     
-    // Free the old string data
     if (*start_ptr != NULL) {
-        static void (*Z_Free)(void *pvAddress) = (void(*)(void*))0x200F9D32;
+        static void (*Z_Free)(void *pvAddress);
+        if (!Z_Free) Z_Free = (void(*)(void*))rvaToAbsExe((void*)0x000F9D32);
         Z_Free(*start_ptr);
     }
     
@@ -392,9 +392,9 @@ void mutateWidthTokeC_width_height(void * toke_c, char * match) {
     new_string_data[out_len] = 0x00;
     
     
-    // Free the old string data
     if (*start_ptr != NULL) {
-        static void (*Z_Free)(void *pvAddress) = (void(*)(void*))0x200F9D32;
+        static void (*Z_Free)(void *pvAddress);
+        if (!Z_Free) Z_Free = (void(*)(void*))rvaToAbsExe((void*)0x000F9D32);
         Z_Free(*start_ptr);
     }
     
@@ -511,7 +511,7 @@ void mutateBlankTokeC_width_height(void * toke_c) {
 
     // Free the old string data
     if (*start_ptr != NULL) {
-        static void (*Z_Free)(void *pvAddress) = (void (*)(void *))0x200F9D32;
+        static void (*Z_Free)(void *pvAddress) = (void (*)(void *))rvaToAbsExe((void*)0x000F9D32);
         Z_Free(*start_ptr);
     }
 
@@ -538,7 +538,7 @@ void __thiscall my_master_Draw(void * self)
     
     // orig_Com_Printf("vtable : %08X\n",vtable);
     #if 0
-    if ( vtable != (void*)0x20112A40 ) {
+    if ( vtable != (void*)rvaToAbsExe((void*)0x00112A40) ) {
         //text_c vtable
     } 
     #endif
@@ -754,7 +754,7 @@ They are also rects, and so it creates another rect for these ones.
 
 char * __thiscall my_rect_c_Parse(void* toke_c, int idx)
 {
-    static char * (__thiscall *orig_call)(void* toke_c, int idx) = (char*(__thiscall*)(void*, int))0x200EB440;
+    static char * (__thiscall *orig_call)(void* toke_c, int idx) = (char*(__thiscall*)(void*, int))rvaToAbsExe((void*)0x000EB440);
     
     
     mutateWidthTokeC_width_height(toke_c, (char*)"width ");

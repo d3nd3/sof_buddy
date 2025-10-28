@@ -19,10 +19,10 @@ static qboolean hkVID_LoadRefresh(char *name);
 static void* hkSys_GetGameApi(void *imports);
 
 // Hook VID_LoadRefresh to detect when ref.dll is loaded
-REGISTER_HOOK(VID_LoadRefresh, 0x20066E10, qboolean, __cdecl, char *name);
+REGISTER_HOOK(VID_LoadRefresh, (void*)0x00066E10, SofExe, qboolean, __cdecl, char *name);
 
 // Hook Sys_GetGameApi to detect when game.dll is loaded  
-REGISTER_HOOK(Sys_GetGameApi, 0x20065F20, void*, __cdecl, void *imports);
+REGISTER_HOOK(Sys_GetGameApi, (void*)0x00065F20, SofExe, void*, __cdecl, void *imports);
 
 /*
 	VID_LoadRefresh Hook - Called when ref.dll is loaded

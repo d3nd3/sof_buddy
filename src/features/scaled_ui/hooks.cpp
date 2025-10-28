@@ -1,3 +1,4 @@
+#include <stdint.h>
 /*
 	Scaled UI - Hook Registrations and Lifecycle Management
 	
@@ -88,7 +89,7 @@ int DrawPicPivotCenterY = 0;
 
 // Font specific variables
 float draw_con_frac = 1.0;
-int* cls_state = (int*)0x201C1F00;
+int* cls_state;
 
 // HUD enums
 enumCroppedDrawMode hudCroppedEnum = OTHER_UNKNOWN;
@@ -109,10 +110,9 @@ const int realFontSizes[4] = {
 // Font scaling function pointers
 void( * orig_Draw_Char)(int, int, int, int) = NULL;
 void( * orig_Draw_String)(int a, int b, int c, int d) = NULL;
-void( * orig_Con_Initialize)(void) = (void(*)())0x20020720;
-// Legacy function pointers (keeping for compatibility)
-void( * orig_SRC_AddDirtyPoint)(int x, int y) = (void(*)(int,int))0x200140B0;
-void( * orig_SCR_DirtyRect)(int x1, int y1, int x2, int y2) = (void(*)(int,int,int,int))0x20014190;
+void( * orig_Con_Initialize)(void) = NULL;
+void( * orig_SRC_AddDirtyPoint)(int x, int y) = NULL;
+void( * orig_SCR_DirtyRect)(int x1, int y1, int x2, int y2) = NULL;
 
 // glVertex2f is handled specially since its address is resolved at runtime
 void(__stdcall * orig_glVertex2f)(float one, float two) = NULL;
@@ -141,11 +141,11 @@ void (__thiscall *orig_slider_c_Draw)(void * self);
 void (__thiscall *orig_loadbox_c_Draw)(void * self);
 void (__thiscall *orig_vbar_c_Draw)(void * self);
 void (__thiscall *orig_master_Draw)(void * rect_c_self);
-void (__thiscall *orig_frame_c_Constructor)(void* self, void * menu_c, char * width, char * height, void * frame_name) = (void(__thiscall*)(void*, void*, char*, char*, void*))0x200C60A0;
+void (__thiscall *orig_frame_c_Constructor)(void* self, void * menu_c, char * width, char * height, void * frame_name) = NULL;
 void (__thiscall *orig_stm_c_ParseBlank)(void *self_stm_c, void * toke_c);
-int (__thiscall *orig_toke_c_GetNTokens)(void * toke_c, int quantity) = (int(__thiscall*)(void*, int))0x200EAFE0;
-char * (__thiscall *orig_toke_c_Token)(void * toke_c, int idx) = (char*(__thiscall*)(void*, int))0x200EB440;
-void * (__cdecl *orig_new_std_string)(int length) = (void*(__cdecl*)(int))0x200FA352;
+int (__thiscall *orig_toke_c_GetNTokens)(void * toke_c, int quantity) = NULL;
+char * (__thiscall *orig_toke_c_Token)(void * toke_c, int idx) = NULL;
+void * (__cdecl *orig_new_std_string)(int length) = NULL;
 void (*orig_DrawGetPicSize)(void * stm_c, int *, int *, char * stdPicName);
 void (*orig_Draw_GetPicSize)(int *w, int *h, char *pic) = NULL;
 #endif
@@ -168,27 +168,24 @@ REGISTER_SHARED_HOOK_CALLBACK(RefDllLoaded, scaled_ui, scaledUI_RefDllLoaded, 60
 // HOOK REGISTRATIONS
 // =============================================================================
 
-// Font scaling hooks
-REGISTER_HOOK_VOID(Con_DrawNotify, 0x20020D70, void, __cdecl);
-REGISTER_HOOK(Con_DrawConsole, 0x20020F90, void, __cdecl, float frac);
-REGISTER_HOOK_VOID(SCR_DrawPlayerInfo, 0x20015B10, void, __cdecl);
-REGISTER_HOOK_VOID(Con_CheckResize, 0x20020880, void, __cdecl);
-REGISTER_HOOK_VOID(Con_Init, 0x200208E0, void, __cdecl);
-REGISTER_HOOK(SCR_ExecuteLayoutString, 0x20014510, void, __cdecl, char* text);
+REGISTER_HOOK_VOID(Con_DrawNotify, (void*)0x00020D70, SofExe, void, __cdecl);
+REGISTER_HOOK(Con_DrawConsole, (void*)0x00020F90, SofExe, void, __cdecl, float frac);
+REGISTER_HOOK_VOID(SCR_DrawPlayerInfo, (void*)0x00015B10, SofExe, void, __cdecl);
+REGISTER_HOOK_VOID(Con_CheckResize, (void*)0x00020880, SofExe, void, __cdecl);
+REGISTER_HOOK_VOID(Con_Init, (void*)0x000208E0, SofExe, void, __cdecl);
+REGISTER_HOOK(SCR_ExecuteLayoutString, (void*)0x00014510, SofExe, void, __cdecl, char* text);
 
-// HUD scaling hooks
-REGISTER_HOOK(cInventory2_And_cGunAmmo2_Draw, 0x20008430, void, __thiscall, void* self);
-REGISTER_HOOK(cHealthArmor2_Draw, 0x20008C60, void, __thiscall, void* self);
-REGISTER_HOOK(cDMRanking_Draw, 0x20007B30, void, __thiscall, void* self);
-REGISTER_HOOK(cCtfFlag_Draw, 0x20006920, void, __thiscall, void* self);
+REGISTER_HOOK(cInventory2_And_cGunAmmo2_Draw, (void*)0x00008430, SofExe, void, __thiscall, void* self);
+REGISTER_HOOK(cHealthArmor2_Draw, (void*)0x00008C60, SofExe, void, __thiscall, void* self);
+REGISTER_HOOK(cDMRanking_Draw, (void*)0x00007B30, SofExe, void, __thiscall, void* self);
+REGISTER_HOOK(cCtfFlag_Draw, (void*)0x00006920, SofExe, void, __thiscall, void* self);
 
-// Shared rendering hooks
-REGISTER_HOOK_LEN(Draw_StretchPic, 0x30001D10, 5, void, __cdecl, int x, int y, int w, int h, int palette, char * name, int flags);
-REGISTER_HOOK_LEN(Draw_Pic, 0x30001ED0, 7, void, __cdecl, int x, int y, char const * imgname, int palette);
-REGISTER_HOOK_LEN(GL_FindImage, 0x30007380, 6, void*, __cdecl, char *filename, int imagetype, char mimap, char allowPicmip);
-REGISTER_HOOK_LEN(Draw_PicOptions, 0x30002080, 6, void, __cdecl, int x, int y, float w_scale, float h_scale, int palette, char * name);
-REGISTER_HOOK_LEN(Draw_CroppedPicOptions, 0x30002240, 5, void, __cdecl, int x, int y, int c1x, int c1y, int c2x, int c2y, int palette, char * name);
-REGISTER_HOOK_LEN(R_DrawFont, 0x300045B0, 6, void, __cdecl, int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor);
+REGISTER_HOOK_LEN(Draw_StretchPic, (void*)0x00001D10, RefDll, 5, void, __cdecl, int x, int y, int w, int h, int palette, char * name, int flags);
+REGISTER_HOOK_LEN(Draw_Pic, (void*)0x00001ED0, RefDll, 7, void, __cdecl, int x, int y, char const * imgname, int palette);
+REGISTER_HOOK_LEN(GL_FindImage, (void*)0x00007380, RefDll, 6, void*, __cdecl, char *filename, int imagetype, char mimap, char allowPicmip);
+REGISTER_HOOK_LEN(Draw_PicOptions, (void*)0x00002080, RefDll, 6, void, __cdecl, int x, int y, float w_scale, float h_scale, int palette, char * name);
+REGISTER_HOOK_LEN(Draw_CroppedPicOptions, (void*)0x00002240, RefDll, 5, void, __cdecl, int x, int y, int c1x, int c1y, int c2x, int c2y, int palette, char * name);
+REGISTER_HOOK_LEN(R_DrawFont, (void*)0x000045B0, RefDll, 6, void, __cdecl, int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor);
 // REGISTER_HOOK_LEN(Draw_String_Color, 0x30001A40, 5, void, __cdecl, int x, int y, char const * text, int length, int colorPalette);
 
 #ifdef UI_MENU
@@ -737,37 +734,39 @@ static void scaledUI_EarlyStartup(void)
 {
     PrintOut(PRINT_LOG, "scaled_ui: Early startup - applying memory patches\n");
     
-    // For bottom of Con_NotifyConsole, remain real width
-    writeIntegerAt((void*)0x20020F6F, (int)&real_refdef_width);
+    cls_state = (int*)rvaToAbsExe((void*)0x001C1F00);
+    
+    orig_Con_Initialize = (void(*)())rvaToAbsExe((void*)0x00020720);
+    orig_SRC_AddDirtyPoint = (void(*)(int,int))rvaToAbsExe((void*)0x000140B0);
+    orig_SCR_DirtyRect = (void(*)(int,int,int,int))rvaToAbsExe((void*)0x00014190);
+    
+    writeIntegerAt(rvaToAbsExe((void*)0x00020F6F), (int)&real_refdef_width);
     
     // NOP SCR_AddDirtyPoint, we call it ourselves with fixed args
     // In CON_DrawConsole()
-    WriteByte((void*)0x20021039, 0x90);
-    WriteByte((void*)0x2002103A, 0x90);
-    WriteByte((void*)0x2002103B, 0x90);
-    WriteByte((void*)0x2002103C, 0x90);
-    WriteByte((void*)0x2002103D, 0x90);
+    WriteByte(rvaToAbsExe((void*)0x00021039), 0x90);
+    WriteByte(rvaToAbsExe((void*)0x0002103A), 0x90);
+    WriteByte(rvaToAbsExe((void*)0x0002103B), 0x90);
+    WriteByte(rvaToAbsExe((void*)0x0002103C), 0x90);
+    WriteByte(rvaToAbsExe((void*)0x0002103D), 0x90);
+
     // In CON_DrawConsole()
-    WriteByte((void*)0x20021049, 0x90);
-    WriteByte((void*)0x2002104A, 0x90);
-    WriteByte((void*)0x2002104B, 0x90);
-    WriteByte((void*)0x2002104C, 0x90);
-    WriteByte((void*)0x2002104D, 0x90);
+    WriteByte(rvaToAbsExe((void*)0x00021049), 0x90);
+    WriteByte(rvaToAbsExe((void*)0x0002104A), 0x90);
+    WriteByte(rvaToAbsExe((void*)0x0002104B), 0x90);
+    WriteByte(rvaToAbsExe((void*)0x0002104C), 0x90);
+    WriteByte(rvaToAbsExe((void*)0x0002104D), 0x90);
 
 
 
     
 #ifdef UI_MENU
-    // Menu scaling memory patches
-    //parsing width height on menu options
     extern char * __thiscall my_rect_c_Parse(void* toke_c, int idx);
-    WriteE8Call((void*)0x200CF8BA, (void*)&my_rect_c_Parse);
+    WriteE8Call(rvaToAbsExe((void*)0x000CF8BA), (void*)&my_rect_c_Parse);
     
-    //Menu Pictures sizing override except for icons/teamicons/vend
-    //This that need to remain the same size ... for now...
     extern void my_Draw_GetPicSize(int *w, int *h, char *pic);
-    WriteE8Call((void*)0x200C8856, (void*)&my_Draw_GetPicSize);
-    WriteByte((void*)0x200C885B, 0x90);
+    WriteE8Call(rvaToAbsExe((void*)0x000C8856), (void*)&my_Draw_GetPicSize);
+    WriteByte(rvaToAbsExe((void*)0x000C885B), 0x90);
 #endif
     
     // All hooks are now automatically registered via REGISTER_HOOK macros
@@ -779,10 +778,9 @@ static void scaledUI_RefDllLoaded(void)
 {
     PrintOut(PRINT_LOG, "scaled_ui: Installing ref.dll hooks\n");
     
-    // Get OpenGL vertex function pointers from ref.dll
-    void* glVertex2f = (void*)*(int*)0x300A4670;
-    orig_glVertex2i = (void(__stdcall*)(int,int))*(int*)0x300A46D0;
-    orig_glDisable = (void(__stdcall*)(int))*(int*)0x300A44EC;
+    void* glVertex2f = (void*)*(int*)rvaToAbsRef((void*)0x000A4670);
+    orig_glVertex2i = (void(__stdcall*)(int,int))*(int*)rvaToAbsRef((void*)0x000A46D0);
+    orig_glDisable = (void(__stdcall*)(int))*(int*)rvaToAbsRef((void*)0x000A44EC);
 
     
     
@@ -807,23 +805,17 @@ static void scaledUI_RefDllLoaded(void)
     DetourRemove((void**)&orig_glVertex2f);
     orig_glVertex2f = (void(__stdcall*)(float,float))DetourCreate((void*)glVertex2f, (void*)&hkglVertex2f, DETOUR_TYPE_JMP, DETOUR_LEN_AUTO);
     
-    /*   
-        Required for HUD Vertex scaling - patch each corner of rectangle
-        This function is called internally by:
-            - cInventory2::Draw() (ammo, gun, item displays)
-            - cHealthArmour2::Draw() (HP bar, armour bar)
-    */
-    WriteE8Call((void*)0x3000239E, (void*)&my_glVertex2f_CroppedPic_1);
-    WriteByte((void*)0x300023A3, 0x90);
+    WriteE8Call(rvaToAbsRef((void*)0x0000239E), (void*)&my_glVertex2f_CroppedPic_1);
+    WriteByte(rvaToAbsRef((void*)0x000023A3), 0x90);
     
-    WriteE8Call((void*)0x300023CC, (void*)&my_glVertex2f_CroppedPic_2);
-    WriteByte((void*)0X300023D1, 0X90);
+    WriteE8Call(rvaToAbsRef((void*)0x000023CC), (void*)&my_glVertex2f_CroppedPic_2);
+    WriteByte(rvaToAbsRef((void*)0x000023D1), 0x90);
     
-    WriteE8Call((void*)0x300023F6, (void*)&my_glVertex2f_CroppedPic_3);
-    WriteByte((void*)0x300023FB, 0X90);
+    WriteE8Call(rvaToAbsRef((void*)0x000023F6), (void*)&my_glVertex2f_CroppedPic_3);
+    WriteByte(rvaToAbsRef((void*)0x000023FB), 0x90);
     
-    WriteE8Call((void*)0x3000240E, (void*)&my_glVertex2f_CroppedPic_4);
-    WriteByte((void*)0x30002413, 0X90);
+    WriteE8Call(rvaToAbsRef((void*)0x0000240E), (void*)&my_glVertex2f_CroppedPic_4);
+    WriteByte(rvaToAbsRef((void*)0x00002413), 0x90);
 
     /*
       This function is called internally by:
@@ -839,23 +831,21 @@ static void scaledUI_RefDllLoaded(void)
         - loadbox_c::Draw() (WE SCALE BELOW)
         - various other menu items (WE SCALE BELOW)
     */
-    //R_DrawFont
     #if 1
-    WriteE8Call((void*)0x30004860, (void*)&my_glVertex2f_DrawFont_1);
-    WriteByte((void*)0x30004865, 0X90);
+    WriteE8Call(rvaToAbsRef((void*)0x00004860), (void*)&my_glVertex2f_DrawFont_1);
+    WriteByte(rvaToAbsRef((void*)0x00004865), 0x90);
 
-    WriteE8Call((void*)0x30004892, (void*)&my_glVertex2f_DrawFont_2);
-    WriteByte((void*)0x30004897, 0X90);
+    WriteE8Call(rvaToAbsRef((void*)0x00004892), (void*)&my_glVertex2f_DrawFont_2);
+    WriteByte(rvaToAbsRef((void*)0x00004897), 0x90);
 
-    WriteE8Call((void*)0x300048D2, (void*)&my_glVertex2f_DrawFont_3);
-    WriteByte((void*)0x300048D7, 0X90);
+    WriteE8Call(rvaToAbsRef((void*)0x000048D2), (void*)&my_glVertex2f_DrawFont_3);
+    WriteByte(rvaToAbsRef((void*)0x000048D7), 0x90);
 
-    WriteE8Call((void*)0x30004903, (void*)&my_glVertex2f_DrawFont_4);
-    WriteByte((void*)0x30004908, 0X90);
+    WriteE8Call(rvaToAbsRef((void*)0x00004903), (void*)&my_glVertex2f_DrawFont_4);
+    WriteByte(rvaToAbsRef((void*)0x00004908), 0x90);
     #endif
 #ifdef UI_MENU
-    // Menu scaling ref.dll hooks
-    orig_Draw_GetPicSize = (void(*)(int*, int*, char*))*(int*)0x204035B4;
+    orig_Draw_GetPicSize = (void(*)(int*, int*, char*))*(int*)rvaToAbsExe((void*)0x004035B4);
 #endif
     
     PrintOut(PRINT_LOG, "scaled_ui: ref.dll hooks installed successfully\n");
@@ -864,11 +854,8 @@ static void scaledUI_RefDllLoaded(void)
 void hkCon_Init(void) {
     PrintOut(PRINT_LOG, "scaled_ui: Registering CVars\n");
     
-    // Register all font scaling CVars
     extern void create_scaled_ui_cvars(void);
     create_scaled_ui_cvars();
-
-    // Call original Con_Init (initializes console buffer, etc.)
     oCon_Init(); 
 }
 

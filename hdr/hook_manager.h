@@ -26,14 +26,14 @@ public:
     
     // Add a hook to be applied later
     // detour_len: 0 means auto-length (DETOUR_LEN_AUTO)
-    void AddHook(void* address, void* detour_func, void** original_storage, const char* name = nullptr, size_t detour_len = 0);
+    void AddHook(void* address, void* detour_func, void** original_storage, const char* name, HookModule module, size_t detour_len = 0);
     
     // Apply hooks for specific modules
-    void ApplyExeHooks();     // Apply hooks targeting sof.exe (0x200xxxxx)
-    void ApplyRefHooks();     // Apply hooks targeting ref.dll (0x5xxxxxxx, ref module)
-    void ApplyGameHooks();    // Apply hooks targeting game.dll (0x5xxxxxxx, game module)
-    void ApplyPlayerHooks();  // Apply hooks targeting player.dll (0x5xxxxxxx, player module)
-    void ApplySystemHooks();  // Apply hooks targeting system DLLs (user32.dll, etc.)
+    void ApplyExeHooks();
+    void ApplyRefHooks();
+    void ApplyGameHooks();
+    void ApplyPlayerHooks();
+    void ApplySystemHooks();
     
     // Remove all hooks
     void RemoveAllHooks();

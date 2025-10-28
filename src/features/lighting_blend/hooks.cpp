@@ -39,8 +39,8 @@
 //defaults.
 static int lightblend_src = GL_ZERO;
 static int lightblend_dst = GL_SRC_COLOR;
-static int *lightblend_target_src = (int*)0x300A4610;
-static int *lightblend_target_dst = (int*)0x300A43FC;
+static int *lightblend_target_src;
+static int *lightblend_target_dst;
 
 // Forward declarations
 static void lightblend_ApplySettings();
@@ -65,7 +65,7 @@ extern cvar_t * _sofbuddy_lightblend_dst;
 // Hook registrations placed after function declarations for visibility
 REGISTER_SHARED_HOOK_CALLBACK(PostCvarInit, lighting_blend, lightblend_PostCvarInit, 50, Post);
 REGISTER_SHARED_HOOK_CALLBACK(RefDllLoaded, lighting_blend, lightblend_RefDllLoaded, 60, Post);
-REGISTER_HOOK_VOID(R_BlendLightmaps, 0x30015440, void, __cdecl);
+REGISTER_HOOK_VOID(R_BlendLightmaps, (void*)0x00015440, RefDll, void, __cdecl);
 
 /*
 	PostCvarInit Callback
@@ -90,6 +90,9 @@ static void lightblend_PostCvarInit()
 static void lightblend_RefDllLoaded()
 {
 	PrintOut(PRINT_LOG, "lighting_blend: Initializing blend mode settings\n");
+
+	lightblend_target_src = (int*)rvaToAbsRef((void*)0x000A4610);
+	lightblend_target_dst = (int*)rvaToAbsRef((void*)0x000A43FC);
 
 	/*
 		Lighting Improrvement gl_ext_multitexture 1
@@ -122,26 +125,23 @@ static void lightblend_RefDllLoaded()
 	*/
 	
 
-	real_glBlendFunc = (void(*)(unsigned int, unsigned int))*(int*)0x300A426C;
-	//Hook glBlendFuncs
-	WriteE8Call((void*)0x3001B9A4,(void*)&glBlendFunc_R_BlendLightmaps);
-	WriteByte((void*)0x3001B9A9,0x90);
-	WriteE8Call((void*)0x3001B690,(void*)&glBlendFunc_R_BlendLightmaps);
-	WriteByte((void*)0x3001B695,0x90);
+	real_glBlendFunc = (void(*)(unsigned int, unsigned int))*(int*)rvaToAbsRef((void*)0x000A426C);
+	WriteE8Call(rvaToAbsRef((void*)0x0001B9A4), (void*)&glBlendFunc_R_BlendLightmaps);
+	WriteByte(rvaToAbsRef((void*)0x0001B9A9), 0x90);
+	WriteE8Call(rvaToAbsRef((void*)0x0001B690), (void*)&glBlendFunc_R_BlendLightmaps);
+	WriteByte(rvaToAbsRef((void*)0x0001B695), 0x90);
 
-
-	//Disable setting blend_target in R_BlendLightmaps, we do this now.
-	WriteByte((void*)0x30015584,0x90);
-	WriteByte((void*)0x30015585,0x90);
-	WriteByte((void*)0x30015586,0x90);
-	WriteByte((void*)0x30015587,0x90);
-	WriteByte((void*)0x30015588,0x90);
-	WriteByte((void*)0x30015589,0x90);
-	WriteByte((void*)0x3001558A,0x90);
-	WriteByte((void*)0x3001558B,0x90);
-	WriteByte((void*)0x3001558C,0x90);
-	WriteByte((void*)0x3001558D,0x90);
-	WriteByte((void*)0x3001558E,0x90);
+	WriteByte(rvaToAbsRef((void*)0x00015584), 0x90);
+	WriteByte(rvaToAbsRef((void*)0x00015585), 0x90);
+	WriteByte(rvaToAbsRef((void*)0x00015586), 0x90);
+	WriteByte(rvaToAbsRef((void*)0x00015587), 0x90);
+	WriteByte(rvaToAbsRef((void*)0x00015588), 0x90);
+	WriteByte(rvaToAbsRef((void*)0x00015589), 0x90);
+	WriteByte(rvaToAbsRef((void*)0x0001558A), 0x90);
+	WriteByte(rvaToAbsRef((void*)0x0001558B), 0x90);
+	WriteByte(rvaToAbsRef((void*)0x0001558C), 0x90);
+	WriteByte(rvaToAbsRef((void*)0x0001558D), 0x90);
+	WriteByte(rvaToAbsRef((void*)0x0001558E), 0x90);
 
 	PrintOut(PRINT_LOG, "lighting_blend: Applied blend modes (src=0x%X, dst=0x%X)\n", 
 	         lightblend_src, lightblend_dst);

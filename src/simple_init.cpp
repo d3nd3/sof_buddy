@@ -8,8 +8,10 @@
 
 #include "simple_hook_init.h"
 #include "callsite_classifier.h"
-#include "parent_recorder.h"
 #include "version.h"
+#ifndef NDEBUG
+#include "parent_recorder.h"
+#endif
 
 // Original function pointers for non-lifecycle hooks
 cvar_t *(*orig_Cvar_Get)(const char * name, const char * value, int flags, cvarcommand_t command) = reinterpret_cast<cvar_t*(*)(const char*,const char*,int,cvarcommand_t)>(0x20021AE0);
@@ -24,10 +26,10 @@ typedef void (*xcommand_t)(void);
 void (*orig_Cmd_AddCommand)(char *cmd_name, xcommand_t function) = reinterpret_cast<void(*)(char*,xcommand_t)>(0x20019130);
 
 // Hook FS_InitFilesystem for pre-cvar initialization phase
-REGISTER_HOOK_VOID(FS_InitFilesystem, 0x20026980, void, __cdecl);
+REGISTER_HOOK_VOID(FS_InitFilesystem, (void*)0x20026980, SofExe, void, __cdecl);
 
 // Hook Cbuf_AddLateCommands for post-cvar initialization phase  
-REGISTER_HOOK(Cbuf_AddLateCommands, 0x20018740, qboolean, __cdecl);
+REGISTER_HOOK(Cbuf_AddLateCommands, (void*)0x20018740, SofExe, qboolean, __cdecl);
 
 // Lifecycle hook implementations
 void hkFS_InitFilesystem(void) {
@@ -46,6 +48,10 @@ void hkFS_InitFilesystem(void) {
 
 
 // Feature list command implementation
+// WARNING: When adding a new feature to features/FEATURES.txt, you MUST also
+// add a corresponding entry below (between lines ~60-145). Search for similar
+// entries and add your feature with the same pattern using FEATURE_XXX macro.
+// TODO: Automate this using X-macro pattern to prevent manual sync issues.
 void Cmd_SoFBuddy_ListFeatures_f(void) {
     if (!orig_Com_Printf) return;
     
@@ -137,6 +143,13 @@ void Cmd_SoFBuddy_ListFeatures_f(void) {
     #endif
     total_features++;
     
+    #if FEATURE_RAW_MOUSE
+    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "raw_mouse\n");
+    feature_count++;
+    #else
+    orig_Com_Printf(P_RED "[OFF] " P_WHITE "raw_mouse\n");
+    #endif
+    total_features++;
     
     orig_Com_Printf("Total: " P_GREEN "%d" P_WHITE " active, " P_RED "%d" P_WHITE " disabled (%d total)\n", 
                     feature_count, total_features - feature_count, total_features);

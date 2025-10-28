@@ -60,6 +60,14 @@ void WriteE8Call(void * where,void * dest);
 void WriteE9Jmp(void * where, void * dest);
 void WriteByte(void * where, unsigned char value);
 
+void* GetModuleBase(const char* moduleName);
+void* RVAToAddress(void* rva, const char* moduleName);
+void* RVAToAddress(uintptr_t rva, const char* moduleName);
+void* rvaToAbsExe(void* rva);
+void* rvaToAbsRef(void* rva);
+void* rvaToAbsGame(void* rva);
+void* rvaToAbsSoFPlus(void* rva);
+
 cvar_t * findCvar(char * cvarname);
 void setCvarUnsignedInt(cvar_t * which,unsigned int val);
 void setCvarInt(cvar_t * which,int val);

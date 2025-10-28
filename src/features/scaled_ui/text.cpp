@@ -427,7 +427,7 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 		float x_scale = static_cast<float>(current_vid_w) / 640.0f;
 
 		if (hudDmRanking_wasImage) {
-			if ( * (int * ) 0x201E7E94 == 7) { //PM_SPECTATOR PM_SPECTATOR_FREEZE
+			if ( * (int * ) rvaToAbsExe((void*)0x001E7E94) == 7) { //PM_SPECTATOR PM_SPECTATOR_FREEZE
 				//PLAYER NAME IN SPEC CHASE MODE.
 
 				// There is an eye and a LOGO above us, if in TEAM DM

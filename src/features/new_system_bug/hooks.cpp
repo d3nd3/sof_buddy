@@ -29,15 +29,15 @@ static void new_system_bug_InitDefaults(void);
 HMODULE __stdcall new_sys_bug_LoadLibraryRef(LPCSTR lpLibFileName);
 
 // Function pointer initialization
-HMODULE (__stdcall *orig_LoadLibraryA)(LPCSTR lpLibFileName) = (HMODULE (__stdcall *)(LPCSTR))*(unsigned int*)0x20111178;
+HMODULE (__stdcall *orig_LoadLibraryA)(LPCSTR lpLibFileName) = (HMODULE (__stdcall *)(LPCSTR))*(unsigned int*)rvaToAbsExe((void*)0x00111178);
 
 REGISTER_SHARED_HOOK_CALLBACK(EarlyStartup, new_system_bug, new_system_bug_EarlyStartup, 60, Post);
 
 static void new_system_bug_EarlyStartup(void)
 {
 	PrintOut(PRINT_LOG, "New System Bug Fix: Early startup - applying defaults\n");
-	WriteE8Call((void*)0x20066E75, (void*)&new_sys_bug_LoadLibraryRef);
-	WriteByte((void*)0x20066E7A, 0x90);
+	WriteE8Call(rvaToAbsExe((void*)0x00066E75), (void*)&new_sys_bug_LoadLibraryRef);
+	WriteByte(rvaToAbsExe((void*)0x00066E7A), 0x90);
 }
 
 
@@ -78,8 +78,8 @@ HMODULE __stdcall new_sys_bug_LoadLibraryRef(LPCSTR lpLibFileName)
 		/*
 			Get the exact moment that hardware-changed new setup files are exec'ed (cpu_ vid_card different to config.cfg)
 		*/
-		WriteE8Call((void*)0x3000FA26, (void*)&new_system_bug_InitDefaults);
-		WriteByte((void*)0x3000FA2B, 0x90);	
+		WriteE8Call(rvaToAbsRef((void*)0x0000FA26), (void*)&new_system_bug_InitDefaults);
+		WriteByte(rvaToAbsRef((void*)0x0000FA2B), 0x90);	
 	}
 	
 	return ret;

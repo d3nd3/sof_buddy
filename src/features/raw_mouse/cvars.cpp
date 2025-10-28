@@ -2,7 +2,7 @@
 
 #if FEATURE_RAW_MOUSE
 
-#include "sof_buddy.h"
+#include <stdint.h>
 #include "sof_compat.h"
 #include "util.h"
 

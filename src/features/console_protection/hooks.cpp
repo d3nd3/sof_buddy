@@ -27,7 +27,7 @@ static char* hkSys_GetClipboardData(void);
 static void console_protection_EarlyStartup(void);
 
 // Original function pointer
-char *(*oSys_GetClipboardData)(void) = (char*(*)(void))0x20065E60;
+char *(*oSys_GetClipboardData)(void) = (char*(*)(void))rvaToAbsExe((void*)0x00065E60);
 
 // Using paletteRGBA_s from sof_compat.h
 
@@ -45,18 +45,18 @@ static void my_Con_Draw_Console(void)
 	int		i;
 	char	*text;
 
-	static int* edit_line = (int*)0x20367EA4;
-	static char* key_lines = (char*)0x20365EA0;
+	static int* edit_line = (int*)rvaToAbsExe((void*)0x00367EA4);
+	static char* key_lines = (char*)rvaToAbsExe((void*)0x00365EA0);
 
-	static int* key_linepos = (int*)0x20365E9C;
-	static int* cls_realtime = (int*)0x201C1F0C;
-	static int* con_linewidth = (int*)0x2024AF98;
-	static int* con_vislines = (int*)0x2024AFA0;
+	static int* key_linepos = (int*)rvaToAbsExe((void*)0x00365E9C);
+	static int* cls_realtime = (int*)rvaToAbsExe((void*)0x001C1F0C);
+	static int* con_linewidth = (int*)rvaToAbsExe((void*)0x0024AF98);
+	static int* con_vislines = (int*)rvaToAbsExe((void*)0x0024AFA0);
 
-	static int* cls_key_dest = (int*)0x201C1F04;
-	static int* cls_state = (int*)0x201C1F00;
+	static int* cls_key_dest = (int*)rvaToAbsExe((void*)0x001C1F04);
+	static int* cls_state = (int*)rvaToAbsExe((void*)0x001C1F00);
 
-	static void (*ref_draw_char) (int, int, int, void*) = (void(*)(int,int,int,void*))*(int*)0x204035C8;
+	static void (*ref_draw_char) (int, int, int, void*) = (void(*)(int,int,int,void*))*(int*)rvaToAbsExe((void*)0x004035C8);
 	
 	//key_menu
 	if (*cls_key_dest == 3)
@@ -118,10 +118,10 @@ static void my_Con_Draw_Console(void)
 char* hkSys_GetClipboardData(void)
 {
 	char *cbd;
-	static void (*Z_Free)(void *pvAddress) = (void(*)(void*))0x200F9D32;
-	static int* key_linepos = (int*)0x20365E9C;
-	static char* key_lines = (char*)0x20365EA0;
-	static int* edit_line = (int*)0x20367EA4;
+	static void (*Z_Free)(void *pvAddress) = (void(*)(void*))rvaToAbsExe((void*)0x000F9D32);
+	static int* key_linepos = (int*)rvaToAbsExe((void*)0x00165E9C);
+	static char* key_lines = (char*)rvaToAbsExe((void*)0x00165EA0);
+	static int* edit_line = (int*)rvaToAbsExe((void*)0x00167EA4);
 
 	if ( ( cbd = oSys_GetClipboardData() ) != 0 )
 	{
@@ -169,12 +169,12 @@ static void console_protection_EarlyStartup(void)
 	//=================== CONSOLE BUG FIXING =========================
 
 	//PASTING INTO CONSOLE CRASH/OVERFLOW
-	WriteE8Call((void*)0x2004BB63, (void*)&hkSys_GetClipboardData);
-	WriteE9Jmp((void*)0x2004BB6C, (void*)0x2004BBFE);
+	WriteE8Call(rvaToAbsExe((void*)0x0004BB63), (void*)&hkSys_GetClipboardData);
+	WriteE9Jmp(rvaToAbsExe((void*)0x0004BB6C), rvaToAbsExe((void*)0x0004BBFE));
 
 	//Overflow on larger resolutions
-	WriteE9Jmp((void*)0x2002111D, (void*)&my_Con_Draw_Console);
-	WriteE9Jmp((void*)0x20020C90, (void*)0x20020D6C);
+	WriteE9Jmp(rvaToAbsExe((void*)0x0002111D), (void*)&my_Con_Draw_Console);
+	WriteE9Jmp(rvaToAbsExe((void*)0x00020C90), rvaToAbsExe((void*)0x00020D6C));
 
 	PrintOut(PRINT_LOG, "Console Protection: Security patches applied successfully.\n");
 }

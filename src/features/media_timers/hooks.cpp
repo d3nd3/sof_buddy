@@ -5,14 +5,11 @@
 #include "feature_macro.h"
 #include "shared_hook_manager.h"
 #include "util.h"
-#include "sof_buddy.h"
 #include "sof_compat.h"
 
-//for _controlfp
 #include "customfloat.h"
 
-#include <iostream>
-#include <cmath>  // Include cmath for std::ceil
+#include <cmath>
 #include <cassert>
 
 
@@ -44,8 +41,7 @@ void mediaTimers_EarlyStartup(void);
 void mediaTimers_PostCvarInit(void);
 void create_mediatimers_cvars(void);
 
-// Hook Sys_Milliseconds using our new macro system
-REGISTER_HOOK_VOID(Sys_Milliseconds, 0x20055930, int, __cdecl);
+REGISTER_HOOK_VOID(Sys_Milliseconds, (void*)0x00055930, SofExe, int, __cdecl);
 
 // Register for EarlyStartup lifecycle phase
 REGISTER_SHARED_HOOK_CALLBACK(EarlyStartup, media_timers, mediaTimers_EarlyStartup, 70, Post);
@@ -55,6 +51,8 @@ REGISTER_SHARED_HOOK_CALLBACK(PostCvarInit, media_timers, mediaTimers_PostCvarIn
 
 LARGE_INTEGER base = {0};
 LARGE_INTEGER freq = {0};
+
+extern void* o_sofplus;
 
 int qpcTimeStampNano(void);
 
@@ -261,9 +259,9 @@ unsafe.
 */
 int winmain_loop(void)
 {
-	static int * const cls_state = (int*)0x201C1F00;
+	static int * const cls_state = (int*)rvaToAbsExe((void*)0x001C1F00);
 	int newtime = 0, timedelta = 0;
-	static int * const extratime = (int*)0x201E7578;
+	static int * const extratime = (int*)rvaToAbsExe((void*)0x001E7578);
 
 	bool didSleep = false;
 	bool isBeingBorrowed = false;
@@ -658,7 +656,7 @@ int hkSys_Milliseconds(void)
 	}
 
     //set curtime
-	*(int*)0x20390D38 = ret;
+	*(int*)rvaToAbsExe((void*)0x00390D38) = ret;
 
 	prev_val = ret;
 	return ret;

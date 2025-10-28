@@ -1,14 +1,12 @@
 # Module Loading Lifecycle System
 
 ## Overview
-**Core infrastructure** that provides lifecycle hooks for when DLLs are loaded/reloaded, allowing features to apply detours to module-specific memory addresses.
-
-> **Note**: This is NOT a feature - it's structural code located in `src/module_loaders.cpp` that enables the module loading system for all features.
+Handles DLL loading events and applies hooks to specific modules at the right time.
 
 ## Problem Solved
 - **DLL Reloading**: Some DLLs can be reloaded, clearing their memory
-- **Module-Specific Addresses**: Addresses starting with `0x5XXXXXXX` are in loaded DLLs
-- **Timing**: Detours to DLL functions must be applied AFTER the DLL is loaded
+- **Module-Specific Addresses**: Addresses in DLLs must be applied AFTER the DLL is loaded
+- **RVA to Absolute**: Relative addresses must be resolved to absolute when the module loads
 
 ## Module Loading Events
 
@@ -16,26 +14,68 @@
 
 | Phase | When | Purpose | Address Range |
 |-------|------|---------|---------------|
-| `RefDllLoaded` | After ref.dll loads | Apply graphics/rendering detours | `0x5XXXXXXX` (ref.dll) |
-| `GameDllLoaded` | After game.dll loads | Apply game logic detours | `0x5XXXXXXX` (game.dll) |
-| `PlayerDllLoaded` | After player.dll loads | Apply player-specific detours | `0x5XXXXXXX` (player.dll) |
+| RefDllLoaded | After ref.dll loads | Apply graphics/rendering detours | ref_gl.dll RVAs |
+| GameDllLoaded | After game.dll loads | Apply game logic detours | gamex86.dll RVAs |
+| PlayerDllLoaded | After player.dll loads | Apply player-specific detours | player.dll RVAs |
 
-### Usage Pattern
+### Hook Registration with Module Specification
+
+The hook system requires you to explicitly specify the target module when registering hooks:
 
 ```cpp
-#include "../../../hdr/shared_hook_manager.h"
+#include "feature_macro.h"
 
-// Register callback for when ref.dll is loaded
-REGISTER_SHARED_HOOK_CALLBACK(RefDllLoaded, my_feature, setup_ref_hooks, 50);
-
-static void setup_ref_hooks() {
-    // Now safe to apply detours to ref.dll functions
-    // Example: DetourCreate((void*)0x50075190, &my_function, DETOUR_TYPE_JMP, 7);
-    PrintOut(PRINT_LOG, "My Feature: Applied ref.dll detours\n");
+// For ref.dll hooks - specify RefDll module
+REGISTER_HOOK(GL_BuildPolygonFromSurface, (void*)0x00016390, RefDll, void, __cdecl, void* msurface_s)
+{
+    // Hook implementation
+    // oGL_BuildPolygonFromSurface(msurface_s);
 }
+
+// For game.dll hooks - specify GameDll module
+REGISTER_HOOK_LEN(DrawFunction, (void*)0x00012340, GameDll, 5, void, __cdecl, int x, int y);
+
+// For SoF.exe hooks - specify SofExe module
+REGISTER_HOOK_VOID(InitFunction, (void*)0x00045600, SofExe, void, __cdecl);
 ```
 
-**⚠️ Important Timing Note**: Module loading phases occur **before** the PostCvarInit phase. Any CVars created in PostCvarInit callbacks will be **NULL** when accessed from module loading callbacks. See the CVar timing section in `src/features/FEATURES.md` for solutions.
+### Module Values
+
+- `RefDll` - ref_gl.dll (ref.dll graphics renderer)
+- `GameDll` - gamex86.dll (game logic)
+- `SofExe` - SoF.exe (main executable)
+- `PlayerDll` - player.dll (player-specific logic)
+
+### RVA Address Handling
+
+Addresses < `0x10000000` are treated as Relative Virtual Addresses (RVAs). The hook system automatically:
+1. Detects RVA addresses when registering
+2. Stores them with the specified module
+3. Resolves them to absolute addresses when the module loads
+4. Applies the hook immediately
+
+**No manual address resolution needed** - just specify the RVA and module:
+
+```cpp
+// Automatically resolves 0x00016390 to absolute address when ref_gl.dll loads
+REGISTER_HOOK(MyFunction, (void*)0x00016390, RefDll, void, __cdecl, int param);
+```
+
+### Module Loading Callbacks
+
+For features that need initialization when modules load:
+
+```cpp
+#include "shared_hook_manager.h"
+
+static void my_feature_RefDllLoaded(void);
+REGISTER_SHARED_HOOK_CALLBACK(RefDllLoaded, my_feature, my_feature_RefDllLoaded, 70, Post);
+
+static void my_feature_RefDllLoaded(void)
+{
+    PrintOut(PRINT_LOG, "My Feature: ref.dll loaded, hooks applied automatically\n");
+}
+```
 
 ## Implementation Details
 
@@ -43,66 +83,40 @@ static void setup_ref_hooks() {
 
 | Function | Address | Module | Purpose |
 |----------|---------|--------|---------|
-| `VID_LoadRefresh` | `0x20066E10` | exe | Detects ref.dll loading |
-| `Sys_GetGameApi` | `0x20065F20` | exe | Detects game.dll loading |
+| VID_LoadRefresh | 0x20066E10 | SoF.exe | Detects ref.dll loading |
+| Sys_GetGameApi | 0x20065F20 | SoF.exe | Detects game.dll loading |
 
-### Execution Flow
+### Hook Application Flow
 
-#### 1. ref.dll Loading
-```
-Game calls VID_LoadRefresh() 
-  → hkVID_LoadRefresh() runs
-  → oVID_LoadRefresh() loads ref.dll
-  → DISPATCH_SHARED_HOOK(RefDllLoaded)
-  → Features apply ref.dll detours
-```
+1. **Static Initialization**: Features register hooks with `REGISTER_HOOK`, specifying module and RVA
+2. **Module Load Detection**: `VID_LoadRefresh` or `Sys_GetGameApi` detects DLL load
+3. **RVA Resolution**: Hook manager resolves RVAs to absolute addresses for the loaded module
+4. **Hook Application**: Detours are applied to the resolved absolute addresses
+5. **Callbacks Executed**: `RefDllLoaded`, `GameDllLoaded`, etc. callbacks are fired
 
-#### 2. game.dll Loading  
-```
-Game calls Sys_GetGameApi()
-  → hkSys_GetGameApi() runs  
-  → oSys_GetGameApi() loads game.dll
-  → DISPATCH_SHARED_HOOK(GameDllLoaded)
-  → Features apply game.dll detours
-```
-
-## Example: CinematicFreeze for cl_maxfps
-
-The user's example shows how `cl_maxfps_singleplayer` needs to apply a detour after game.dll loads:
+### Example: ref.dll Hook
 
 ```cpp
-// In cl_maxfps_singleplayer/hooks.cpp
-REGISTER_SHARED_HOOK_CALLBACK(GameDllLoaded, cl_maxfps_singleplayer, apply_cinematic_fix, 60);
-
-static void apply_cinematic_fix() {
-    // Now safe to detour game.dll function
-    DetourCreate((void*)0x50075190, &my_CinematicFreeze, DETOUR_TYPE_JMP, 7);
-    PrintOut(PRINT_LOG, "cl_maxfps: Applied CinematicFreeze detour\n");
+// In your feature hooks.cpp
+REGISTER_HOOK(GL_Something, (void*)0x00012345, RefDll, void, __cdecl, float x, float y)
+{
+    // Your hook implementation
+    PrintOut(PRINT_LOG, "GL_Something called\n");
+    oGL_Something(x, y);
 }
 ```
 
-## Module Address Ranges
-
-### Typical Memory Layout
-- **SoF.exe**: `0x200XXXXX` - Main executable
-- **ref.dll**: `0x5XXXXXXX` - Graphics/rendering (ref_gl.dll, ref_soft.dll)
-- **game.dll**: `0x5XXXXXXX` - Game logic (gamex86.dll)
-- **player.dll**: `0x5XXXXXXX` - Player models/animations
-
-### Why This Matters
-- DLLs can be **reloaded** (clearing their memory)
-- Detours must be applied **after** the DLL loads
-- Features targeting DLL functions need this lifecycle system
+When `ref_gl.dll` loads:
+1. Hook registered with RVA `0x00012345` and module `RefDll`
+2. System detects ref.dll loading
+3. System resolves: `0x00012345` + `base of ref_gl.dll` = absolute address
+4. Hook is applied to the absolute address
+5. Your hook now intercepts calls
 
 ## Benefits
-- **Reliable**: Detours always applied after DLL loads
-- **Organized**: Clear separation by module type
-- **Flexible**: Features can target specific modules
-- **Robust**: Handles DLL reloading scenarios
 
-## Future Extensions
-Could add support for:
-- `PlayerDllLoaded` - player model DLLs
-- `SoundDllLoaded` - audio system DLLs  
-- `NetworkDllLoaded` - networking DLLs
-- Module-specific error handling
+- **Clean API**: One line to register a hook with all necessary information
+- **Automatic Resolution**: No manual `rvaToAbsRef()` calls needed
+- **Type Safety**: Module specified explicitly prevents mismatches
+- **Timing Safety**: Hooks applied only after module is loaded
+- **No Manual Hook Manager Calls**: All handled automatically

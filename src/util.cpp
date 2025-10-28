@@ -10,9 +10,9 @@
 
 // see util.h for debugging toggles 
 
-void (*orig_Z_Free) (void * v) = (void (*)(void *))0x2001EBC0;
-char *(*orig_CopyString) (char *in) = (char *(*)(char *))0x2001EA20;
-void (*orig_Cmd_ExecuteString)(const char * string) = (void (*)(const char *))0x200194F0;
+void (*orig_Z_Free) (void * v);
+char *(*orig_CopyString) (char *in);
+void (*orig_Cmd_ExecuteString)(const char * string);
 
 FILE * go_logfile = NULL;
 
@@ -34,8 +34,8 @@ void PrintOut(int mode, const char *msg,...)
 	//printf("length = %i\n",strlen(ac_buf));
     if ( strlen(ac_buf) <= 1400)
         strcpy(ac_tmp,ac_buf);
-	else
-		return;
+    else
+        return;
 	//printf("length = %i\n",strlen(ac_tmp));
 #ifdef __TERMINALOUT__
 	switch (mode) {
@@ -100,7 +100,8 @@ void PrintOut(int mode, const char *msg,...)
 	
 #endif
 
-    if ( orig_Com_Printf != (void(*)(const char*,...))0x2001C6E0) return;
+    extern void (*orig_Com_Printf)(const char*, ...);
+    if (!orig_Com_Printf) return;
 	//in-game print
 	switch (mode) {
 		case PRINT_LOG :
@@ -189,7 +190,8 @@ Cvar Util Funcs
 cvar_t * findCvar(char * cvarname)
 {
 	cvar_t	*var;
-    cvar_t * cvar_vars = (cvar_t *)*(unsigned int*)0x2024B1D8;
+    static cvar_t * cvar_vars;
+    if (!cvar_vars) cvar_vars = (cvar_t *)*(unsigned int*)rvaToAbsExe((void*)0x0024B1D8);
 	
 	for (var=cvar_vars ; var ; var=var->next)
 		if (!strcmp (cvarname, var->name))
@@ -282,4 +284,39 @@ const char* get_nth_entry(const char* str, int n) {
         ++p;
     }
     return nullptr;
+}
+
+void* GetModuleBase(const char* moduleName) {
+#ifdef _WIN32
+    HMODULE hModule = GetModuleHandleA(moduleName);
+    return hModule ? (void*)hModule : nullptr;
+#else
+    return nullptr;
+#endif
+}
+
+void* RVAToAddress(void* rva, const char* moduleName) {
+    void* base = GetModuleBase(moduleName);
+    if (!base) return nullptr;
+    return (void*)((uintptr_t)base + (uintptr_t)rva);
+}
+
+void* RVAToAddress(uintptr_t rva, const char* moduleName) {
+    void* base = GetModuleBase(moduleName);
+    if (!base) return nullptr;
+    return (void*)((uintptr_t)base + rva);
+}
+
+void* rvaToAbsExe(void* rva) { return RVAToAddress((uintptr_t)rva, "SoF.exe"); }
+void* rvaToAbsRef(void* rva) { return RVAToAddress((uintptr_t)rva, "ref_gl.dll"); }
+void* rvaToAbsGame(void* rva) { return RVAToAddress((uintptr_t)rva, "gamex86.dll"); }
+
+void* rvaToAbsSoFPlus(void* rva) {
+#ifdef _WIN32
+    extern void* o_sofplus;
+    if (o_sofplus) return (void*)((char*)o_sofplus + (uintptr_t)rva);
+    return nullptr;
+#else
+    return nullptr;
+#endif
 }

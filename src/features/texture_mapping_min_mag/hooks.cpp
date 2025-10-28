@@ -166,21 +166,21 @@ static void setup_minmag_filters(void) {
 
 	// This overpowers sofplus _sp_cl_vid_gl_texture_mag_filter.
 	// Could later allow his cvar to be used for mag_ui, maybe.
-	orig_glTexParameterf = (glTexParameterf_t)(*(int*)0x300A457C);
+	orig_glTexParameterf = (glTexParameterf_t)(*(int*)rvaToAbsRef((void*)0x000A457C));
 
 	// Setup the glTexParameterf hooks for each individual one.
-	WriteE8Call((void*)0x30006636 ,(void*)&orig_glTexParameterf_min_mipped);
-	WriteByte((void*)0x3000663B,0x90);
-	WriteE8Call((void*)0x30006660 ,(void*)&orig_glTexParameterf_mag_mipped);
-	WriteByte((void*)0x30006665,0x90);
-	WriteE8Call((void*)0x300065DF ,(void*)&orig_glTexParameterf_min_unmipped);
-	WriteByte((void*)0x300065E4,0x90);
-	WriteE8Call((void*)0x30006609 ,(void*)&orig_glTexParameterf_mag_unmipped);
-	WriteByte((void*)0x3000660E,0x90);
-	WriteE8Call((void*)0x3000659C ,(void*)&orig_glTexParameterf_min_ui);
-	WriteByte((void*)0x300065A1,0x90);
-	WriteE8Call((void*)0x300065B1 ,(void*)&orig_glTexParameterf_mag_ui);
-	WriteByte((void*)0x300065B6,0x90);
+	WriteE8Call(rvaToAbsRef((void*)0x00006636), (void*)&orig_glTexParameterf_min_mipped);
+	WriteByte(rvaToAbsRef((void*)0x0000663B), 0x90);
+	WriteE8Call(rvaToAbsRef((void*)0x00006660), (void*)&orig_glTexParameterf_mag_mipped);
+	WriteByte(rvaToAbsRef((void*)0x00006665), 0x90);
+	WriteE8Call(rvaToAbsRef((void*)0x000065DF), (void*)&orig_glTexParameterf_min_unmipped);
+	WriteByte(rvaToAbsRef((void*)0x000065E4), 0x90);
+	WriteE8Call(rvaToAbsRef((void*)0x00006609), (void*)&orig_glTexParameterf_mag_unmipped);
+	WriteByte(rvaToAbsRef((void*)0x0000660E), 0x90);
+	WriteE8Call(rvaToAbsRef((void*)0x0000659C), (void*)&orig_glTexParameterf_min_ui);
+	WriteByte(rvaToAbsRef((void*)0x000065A1), 0x90);
+	WriteE8Call(rvaToAbsRef((void*)0x000065B1), (void*)&orig_glTexParameterf_mag_ui);
+	WriteByte(rvaToAbsRef((void*)0x000065B6), 0x90);
 
 	// Trigger re-apply of texturemode
 	if (_gl_texturemode) _gl_texturemode->modified = true;

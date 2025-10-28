@@ -35,7 +35,7 @@ static void teamicons_offset_RefDllLoaded();
 
 // Hook registrations placed after function declarations for visibility
 // Use REGISTER_HOOK_LEN with 6-byte detour length to match original implementation
-REGISTER_HOOK_LEN(drawTeamIcons, 0x30003040, 6, void, __cdecl, 
+REGISTER_HOOK_LEN(drawTeamIcons, (void*)0x00003040, RefDll, 6, void, __cdecl, 
                   float* targetPlayerOrigin, char* playerName, 
                   char* imageNameTeamIcon, int redOrBlue);
 REGISTER_SHARED_HOOK_CALLBACK(RefDllLoaded, teamicons_offset, teamicons_offset_RefDllLoaded, 70, Post);
@@ -115,14 +115,14 @@ static void teamicons_offset_RefDllLoaded() {
     PrintOut(PRINT_LOG, "TeamIcons Offset: Initializing widescreen fixes...\n");
 
     // Patch FOV multiplier references
-    writeUnsignedIntegerAt((void*)0x3000313F, (unsigned int)&fovfix_x);
-    writeUnsignedIntegerAt((void*)0x30003157, (unsigned int)&fovfix_y);
+    writeUnsignedIntegerAt(rvaToAbsRef((void*)0x0000313F), (unsigned int)&fovfix_x);
+    writeUnsignedIntegerAt(rvaToAbsRef((void*)0x00003157), (unsigned int)&fovfix_y);
 
     // Patch call to our intercept function for vertical adjustment (E8 rel32)
-    writeIntegerAt((void*)0x30003187, (int)&TeamIconInterceptFix - 0x30003187 - 4);
+    writeIntegerAt(rvaToAbsRef((void*)0x00003187), (int)&TeamIconInterceptFix - (int)rvaToAbsRef((void*)0x00003187) - 4);
 
     // Patch diagonal FOV reference used for view angle calculations (in exe)
-    writeUnsignedIntegerAt((void*)0x200157A8, (unsigned int)&teamviewFovAngle);
+    writeUnsignedIntegerAt(rvaToAbsExe((void*)0x00157A8), (unsigned int)&teamviewFovAngle);
 
     PrintOut(PRINT_LOG, "TeamIcons Offset: Widescreen fixes applied\n");
 }

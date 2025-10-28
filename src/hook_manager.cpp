@@ -15,6 +15,11 @@ HookManager& HookManager::Instance() {
 HookModule HookManager::DetermineModule(void* address) const {
     uintptr_t addr = reinterpret_cast<uintptr_t>(address);
     
+    // RVAs (< 0x10000000) will be resolved later - mark as Unknown for now
+    if (addr < 0x10000000) {
+        return HookModule::Unknown;
+    }
+    
     // SoF.exe: 0x200xxxxx range
     if (addr >= 0x20000000 && addr < 0x30000000) {
         return HookModule::SofExe;
@@ -34,17 +39,16 @@ HookModule HookManager::DetermineModule(void* address) const {
     return HookModule::Unknown;
 }
 
-void HookManager::AddHook(void* address, void* detour_func, void** original_storage, const char* name, size_t detour_len) {
-    HookModule module = DetermineModule(address);
+void HookManager::AddHook(void* address, void* detour_func, void** original_storage, const char* name, HookModule module, size_t detour_len) {
     hooks.push_back({address, detour_func, original_storage, name, module, detour_len});
     
-    const char* module_name = "Unknown";
+    const char* module_name = "";
     switch (module) {
         case HookModule::SofExe: module_name = "SoF.exe"; break;
         case HookModule::RefDll: module_name = "ref.dll"; break;
         case HookModule::GameDll: module_name = "game.dll"; break;
         case HookModule::PlayerDll: module_name = "player.dll"; break;
-        default: break;
+        case HookModule::Unknown: module_name = "Unknown"; break;
     }
     
     PrintOut(PRINT_LOG, "Registered hook: %s at 0x%p (%s)\n", 
@@ -53,21 +57,8 @@ void HookManager::AddHook(void* address, void* detour_func, void** original_stor
 
 void HookManager::ApplyModuleHooks(HookModule target_module, const char* module_name) {
     size_t applied_count = 0;
-    size_t total_count = 0;
     
-    // Count hooks for this module
-    for (const auto& hook : hooks) {
-        if (hook.module == target_module) {
-            total_count++;
-        }
-    }
-    
-    if (total_count == 0) {
-        PrintOut(PRINT_LOG, "No %s hooks to apply\n", module_name);
-        return;
-    }
-    
-    PrintOut(PRINT_LOG, "Applying %zu %s hooks...\n", total_count, module_name);
+    PrintOut(PRINT_LOG, "Applying %s hooks...\n", module_name);
 
     // If this is the system-module pass, print the list of system hooks we're about to apply
     if (target_module == HookModule::Unknown) {
@@ -79,42 +70,68 @@ void HookManager::ApplyModuleHooks(HookModule target_module, const char* module_
         }
     }
     
-    for (const auto& hook : hooks) {
+    for (auto& hook : hooks) {
         if (hook.module != target_module) {
-            continue; // Skip hooks for other modules
+            continue;
         }
         
-        if (applied_hooks.find(hook.address) != applied_hooks.end()) {
+        void* resolved_addr = hook.address;
+        
+        // If address is an RVA (< 0x10000000), resolve it for the target module
+        uintptr_t addr_val = reinterpret_cast<uintptr_t>(hook.address);
+        if (addr_val < 0x10000000) {
+            uintptr_t rva = addr_val;
+            const char* module_name_str = nullptr;
+            
+            switch (target_module) {
+                case HookModule::RefDll: module_name_str = "ref_gl.dll"; break;
+                case HookModule::GameDll: module_name_str = "gamex86.dll"; break;
+                case HookModule::SofExe: module_name_str = "SoF.exe"; break;
+                case HookModule::PlayerDll: module_name_str = "player.dll"; break;
+                default: break;
+            }
+            
+            if (module_name_str) {
+                void* base = GetModuleBase(module_name_str);
+                if (base) {
+                    resolved_addr = (void*)((uintptr_t)base + rva);
+                    hook.address = resolved_addr;
+                    PrintOut(PRINT_LOG, "Resolved RVA %p to absolute %p for %s\n", 
+                             (void*)rva, resolved_addr, hook.name ? hook.name : "unnamed");
+                } else {
+                    PrintOut(PRINT_LOG, "Skipping %s hook: %s not loaded\n", hook.name ? hook.name : "unnamed", module_name_str);
+                    continue;
+                }
+            }
+        }
+        
+        if (applied_hooks.find(resolved_addr) != applied_hooks.end()) {
             PrintOut(PRINT_LOG, "Hook already applied: %s\n", hook.name ? hook.name : "unnamed");
             continue;
         }
         
         size_t effective_len = hook.detour_len == 0 ? DETOUR_LEN_AUTO : hook.detour_len;
         
-        // Check if the address is readable before attempting to hook
-        if (IsBadReadPtr(hook.address, 1)) {
-            PrintOut(PRINT_BAD, "Cannot apply %s hook: %s at 0x%p (memory not accessible)\n", 
-                     module_name, hook.name ? hook.name : "unnamed", hook.address);
+        if (IsBadReadPtr(resolved_addr, 1)) {
+            PrintOut(PRINT_BAD, "Cannot apply %s hook at 0x%p (memory not accessible)\n", 
+                     hook.name ? hook.name : "unnamed", resolved_addr);
             continue;
         }
         
-        void* trampoline = DetourCreate(hook.address, hook.detour_func, DETOUR_TYPE_JMP, effective_len);
+        void* trampoline = DetourCreate(resolved_addr, hook.detour_func, DETOUR_TYPE_JMP, effective_len);
         
         if (trampoline) {
             if (hook.original_storage) {
                 *hook.original_storage = trampoline;
             }
-            applied_hooks[hook.address] = trampoline;
+            applied_hooks[resolved_addr] = trampoline;
             applied_count++;
-            PrintOut(PRINT_LOG, "Successfully applied %s hook: %s (0x%p -> 0x%p)\n", 
-                     module_name, hook.name ? hook.name : "unnamed", hook.address, hook.detour_func);
         } else {
-            PrintOut(PRINT_BAD, "Failed to apply %s hook: %s at 0x%p\n", 
-                     module_name, hook.name ? hook.name : "unnamed", hook.address);
+            PrintOut(PRINT_BAD, "Failed to apply %s hook at 0x%p\n", hook.name ? hook.name : "unnamed", resolved_addr);
         }
     }
     
-    PrintOut(PRINT_LOG, "Applied %zu/%zu %s hooks successfully\n", applied_count, total_count, module_name);
+    PrintOut(PRINT_LOG, "Applied %zu %s hooks successfully\n", applied_count, module_name);
 }
 
 void HookManager::RemoveModuleHooks(HookModule target_module, const char* module_name) {

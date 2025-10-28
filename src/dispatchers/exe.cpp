@@ -5,11 +5,7 @@
 #include "feature_macro.h"
 #include "feature_config.h"
 #include "shared_hook_manager.h"
-// #include "../hdr/util.h"
-
-// =============================================================================
-// MAIN GAME LOOP
-// =============================================================================
+#include "util.h"
 
 // Example: Main game loop (placeholder address)
 // REGISTER_HOOK_VOID(GameMainLoop, 0x20066412, void, __cdecl) {
@@ -61,13 +57,10 @@
 //     DISPATCH_SHARED_HOOK(PostConsoleCommand);
 // }
 
-// =============================================================================
-// VIDEO/RENDERER LIFECYCLE
-// =============================================================================
 int current_vid_w = 0;
 int current_vid_h = 0;
-int* viddef_width = (int*)0x2040365C;
-int* viddef_height = (int*)0x20403660;
+int* viddef_width;
+int* viddef_height;
 
 // External reference to screen_y_scale from scaled_ui feature
 #if FEATURE_UI_SCALING
@@ -75,13 +68,12 @@ extern float screen_y_scale;
 #endif
 // Dispatcher for VID_CheckChanges (SoF.exe)
 // Allows multiple features to react before/after video/renderer changes
-REGISTER_HOOK_VOID(VID_CheckChanges, 0x200670C0, void, __cdecl) {
-    // Pre-change callbacks (e.g., set cvar modified flags prior to R_Init)
+REGISTER_HOOK_VOID(VID_CheckChanges, (void*)0x00670C0, SofExe, void, __cdecl) {
+    if (!viddef_width) viddef_width = (int*)rvaToAbsExe((void*)0x0040365C);
+    if (!viddef_height) viddef_height = (int*)rvaToAbsExe((void*)0x00403660);
+
     DISPATCH_SHARED_HOOK(VID_CheckChanges, Pre);
-
-    // Call original VID_CheckChanges
     oVID_CheckChanges();
-
     current_vid_w = *viddef_width;
 	current_vid_h = *viddef_height;
 	
