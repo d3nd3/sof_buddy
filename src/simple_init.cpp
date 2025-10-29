@@ -171,7 +171,10 @@ qboolean hkCbuf_AddLateCommands(void)
     
     // Register SoF Buddy version cvar
     PrintOut(PRINT_LOG, "Registering _sofbuddy_version cvar...\n");
-    orig_Cvar_Get("_sofbuddy_version", SOFBUDDY_VERSION, CVAR_ARCHIVE | CVAR_NOSET, NULL);
+    cvar_t* version_cvar = orig_Cvar_Get("_sofbuddy_version", SOFBUDDY_VERSION, CVAR_ARCHIVE | CVAR_NOSET, NULL);
+    if (version_cvar) {
+        orig_Cvar_Set2("_sofbuddy_version", const_cast<char*>(SOFBUDDY_VERSION), true);
+    }
     PrintOut(PRINT_LOG, "Registered _sofbuddy_version cvar with value: %s\n", SOFBUDDY_VERSION);
     
     // Note: If command already exists or conflicts with a cvar, 

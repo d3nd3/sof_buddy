@@ -43,6 +43,10 @@ int hksp_Sys_Mil(void)
 
 /*
 	Early startup callback - Apply memory patches to exe
+
+	We nopped the jnz instruction, so the singleplayer
+	does not enter the client frame code without limits.
+	This causes
 */
 static void cl_maxfps_EarlyStartup(void)
 {
@@ -52,6 +56,7 @@ static void cl_maxfps_EarlyStartup(void)
     WriteByte(rvaToAbsExe((void*)0x0000D974), 0x90);
 
     PrintOut(PRINT_LOG, "cl_maxfps_singleplayer: sp_Sys_Mil hook registered automatically\n");
+	//ensure _sp_cl_frame_delay is set to 0
     if (o_sofplus && orig_sp_Sys_Mil == NULL) {
         void* target = rvaToAbsSoFPlus((void*)0xFA60);
         void* tramp = DetourCreate(target, (LPVOID)hksp_Sys_Mil, DETOUR_TYPE_JMP, DETOUR_LEN_AUTO);
@@ -77,16 +82,26 @@ static void cl_maxfps_EarlyStartup(void)
 */
 void hkCinematicFreeze(bool bEnable)
 {
-	bool before = *(char*)rvaToAbsGame((void*)0x0015D8D5) == 1 ? true : false;
-	
+
+	#if 0
+	char * game_cinematicfreeze = (char*)rvaToAbsGame((void*)0x0015D8D5);
+	char before = *game_cinematicfreeze;
+
 	oCinematicFreeze(bEnable);
 	
-	bool after = *(char*)rvaToAbsGame((void*)0x0015D8D5) == 1 ? true : false;
-
+	char after = *game_cinematicfreeze;
+	//Did cinematicFreeze change?
 	if (before != after) {
-		*(char*)rvaToAbsExe((void*)0x001E7F5B) = after ? 0x1 : 0x00;
+		//Ensure cl_ps_cinematicFreeze is set instantly.
+		char * cl_ps_cinematicfreeze = (char*)rvaToAbsExe((void*)0x001E7F5B);
+		*cl_ps_cinematicfreeze = after;
 		PrintOut(PRINT_LOG, "cl_maxfps_singleplayer: CinematicFreeze state synchronized: %s\n", after ? "enabled" : "disabled");
 	}
+	#else
+	oCinematicFreeze(bEnable);
+	char * cl_ps_cinematicfreeze = (char*)rvaToAbsExe((void*)0x001E7F5B);
+	*cl_ps_cinematicfreeze = bEnable;
+	#endif
 }
 
 #endif // FEATURE_CL_MAXFPS_SINGLEPLAYER
