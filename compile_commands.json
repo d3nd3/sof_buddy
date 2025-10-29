@@ -1,10 +1,5 @@
 [
     {
-        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/simple_hook_init.o src/simple_hook_init.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -O0 -DNDEBUG",
-        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
-        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/simple_hook_init.cpp"
-    },
-    {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -o obj/module_loaders.o src/module_loaders.cpp -D_WIN32_WINNT=0x0501 -std=c++17 -O0 -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/module_loaders.cpp"

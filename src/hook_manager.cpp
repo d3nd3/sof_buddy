@@ -1,3 +1,14 @@
+/*
+ * Hook Manager - Hook Registration and Application
+ * 
+ * Manages hook lifecycle: register -> apply -> remove
+ * Handles RVA resolution (< 0x10000000) to absolute addresses using DLL base
+ * Tracks applied hooks to prevent duplicate hooking
+ * 
+ * Critical: Hook addresses stored as registered, RVAs resolved fresh each time
+ * This ensures DLL reloads work (new base address, same RVA)
+ */
+
 #include <windows.h>
 #include "hook_manager.h"
 #include "DetourXS/detourxs.h"
@@ -75,12 +86,14 @@ void HookManager::ApplyModuleHooks(HookModule target_module, const char* module_
             continue;
         }
         
-        void* resolved_addr = hook.address;
+        // Start with the registered address (may be RVA or absolute)
+        void* absolute_addr = hook.address;
         
-        // If address is an RVA (< 0x10000000), resolve it for the target module
-        uintptr_t addr_val = reinterpret_cast<uintptr_t>(hook.address);
-        if (addr_val < 0x10000000) {
-            uintptr_t rva = addr_val;
+        // Check if address is an RVA (< 0x10000000) and resolve it to absolute
+        uintptr_t address_as_value = reinterpret_cast<uintptr_t>(hook.address);
+        if (address_as_value < 0x10000000) {
+            // This is an RVA, resolve it using current DLL base
+            uintptr_t rva_value = address_as_value;
             const char* module_name_str = nullptr;
             
             switch (target_module) {
@@ -92,12 +105,11 @@ void HookManager::ApplyModuleHooks(HookModule target_module, const char* module_
             }
             
             if (module_name_str) {
-                void* base = GetModuleBase(module_name_str);
-                if (base) {
-                    resolved_addr = (void*)((uintptr_t)base + rva);
-                    hook.address = resolved_addr;
+                void* dll_base = GetModuleBase(module_name_str);
+                if (dll_base) {
+                    absolute_addr = (void*)((uintptr_t)dll_base + rva_value);
                     PrintOut(PRINT_LOG, "Resolved RVA %p to absolute %p for %s\n", 
-                             (void*)rva, resolved_addr, hook.name ? hook.name : "unnamed");
+                             (void*)rva_value, absolute_addr, hook.name ? hook.name : "unnamed");
                 } else {
                     PrintOut(PRINT_LOG, "Skipping %s hook: %s not loaded\n", hook.name ? hook.name : "unnamed", module_name_str);
                     continue;
@@ -105,29 +117,30 @@ void HookManager::ApplyModuleHooks(HookModule target_module, const char* module_
             }
         }
         
-        if (applied_hooks.find(resolved_addr) != applied_hooks.end()) {
+        // Check if this absolute address is already hooked
+        if (applied_hooks.find(absolute_addr) != applied_hooks.end()) {
             PrintOut(PRINT_LOG, "Hook already applied: %s\n", hook.name ? hook.name : "unnamed");
             continue;
         }
         
         size_t effective_len = hook.detour_len == 0 ? DETOUR_LEN_AUTO : hook.detour_len;
         
-        if (IsBadReadPtr(resolved_addr, 1)) {
+        if (IsBadReadPtr(absolute_addr, 1)) {
             PrintOut(PRINT_BAD, "Cannot apply %s hook at 0x%p (memory not accessible)\n", 
-                     hook.name ? hook.name : "unnamed", resolved_addr);
+                     hook.name ? hook.name : "unnamed", absolute_addr);
             continue;
         }
         
-        void* trampoline = DetourCreate(resolved_addr, hook.detour_func, DETOUR_TYPE_JMP, effective_len);
+        void* trampoline = DetourCreate(absolute_addr, hook.detour_func, DETOUR_TYPE_JMP, effective_len);
         
         if (trampoline) {
             if (hook.original_storage) {
                 *hook.original_storage = trampoline;
             }
-            applied_hooks[resolved_addr] = trampoline;
+            applied_hooks[absolute_addr] = trampoline;
             applied_count++;
         } else {
-            PrintOut(PRINT_BAD, "Failed to apply %s hook at 0x%p\n", hook.name ? hook.name : "unnamed", resolved_addr);
+            PrintOut(PRINT_BAD, "Failed to apply %s hook at 0x%p\n", hook.name ? hook.name : "unnamed", absolute_addr);
         }
     }
     
@@ -141,16 +154,44 @@ void HookManager::RemoveModuleHooks(HookModule target_module, const char* module
         if (hook.module != target_module) {
             continue;
         }
-        if (applied_hooks.count(hook.address)) {
-            void* trampoline = applied_hooks[hook.address];
+        
+        // Start with the registered address (may be RVA or absolute)
+        void* absolute_addr = hook.address;
+        
+        // Resolve RVA if needed (same logic as ApplyModuleHooks)
+        uintptr_t address_as_value = reinterpret_cast<uintptr_t>(hook.address);
+        if (address_as_value < 0x10000000) {
+            // This is an RVA, resolve it using current DLL base
+            uintptr_t rva_value = address_as_value;
+            const char* module_name_str = nullptr;
+            
+            switch (target_module) {
+                case HookModule::RefDll: module_name_str = "ref_gl.dll"; break;
+                case HookModule::GameDll: module_name_str = "gamex86.dll"; break;
+                case HookModule::SofExe: module_name_str = "SoF.exe"; break;
+                case HookModule::PlayerDll: module_name_str = "player.dll"; break;
+                default: break;
+            }
+            
+            if (module_name_str) {
+                void* dll_base = GetModuleBase(module_name_str);
+                if (dll_base) {
+                    absolute_addr = (void*)((uintptr_t)dll_base + rva_value);
+                }
+            }
+        }
+        
+        // Check if this absolute address has an applied hook
+        if (applied_hooks.count(absolute_addr)) {
+            void* trampoline = applied_hooks[absolute_addr];
             if (trampoline && !IsBadReadPtr(trampoline, 1)) {
-                if (!IsBadReadPtr(hook.address, 1)) {
+                if (!IsBadReadPtr(absolute_addr, 1)) {
                     DetourRemove(&trampoline);
                 }
                 if (hook.original_storage && !IsBadWritePtr(hook.original_storage, sizeof(void*))) {
                     *hook.original_storage = nullptr;
                 }
-                applied_hooks.erase(hook.address);
+                applied_hooks.erase(absolute_addr);
                 removed_count++;
             }
         }
