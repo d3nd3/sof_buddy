@@ -1,18 +1,19 @@
 /*
-	Module Loading Lifecycle System
-	
-	Core infrastructure that handles DLL loading events and dispatches to features 
-	that need to apply detours to specific modules (game.dll, ref.dll, player.dll)
-	
-	This is NOT a feature - it's structural code that enables the module loading
-	lifecycle system for all features.
-*/
+ * Module Loaders - DLL Loading/Unloading Lifecycle
+ * 
+ * Detects DLL load/unload events for ref.dll, game.dll, player.dll.
+ * 
+ * Load: VID_LoadRefresh/Sys_GetGameApi trigger InitializeXHooks() and dispatch shared hooks
+ * Unload: SV_ShutdownGameProgs and VID_LoadRefresh (when ref active) remove hooks before DLL unloads
+ * 
+ * Critical: Hooks must be removed BEFORE DLLs unload to prevent accessing freed memory.
+ * RVAs resolved fresh on each load since DLLs reload at different addresses.
+ */
 
 #include "feature_macro.h"
 #include "shared_hook_manager.h"
 #include "util.h"
 #include "sof_compat.h"
-#include "simple_hook_init.h"
 #include "hook_manager.h"
 
 // Forward declarations
@@ -59,7 +60,10 @@ qboolean hkVID_LoadRefresh(char *name)
 		PrintOut(PRINT_LOG, "ref.dll loaded successfully: %s\n", name ? name : "default");
 		
 		// Initialize hooks targeting ref.dll functions first
-		InitializeRefHooks();
+		PrintOut(PRINT_LOG, "=== Initializing ref.dll hooks ===\n");
+		PrintOut(PRINT_LOG, "Found %zu ref.dll hooks to apply\n", HookManager::Instance().GetHookCount(HookModule::RefDll));
+		HookManager::Instance().ApplyRefHooks();
+		PrintOut(PRINT_LOG, "=== ref.dll hook initialization complete ===\n");
 		
 		// Then dispatch to all features that need to respond to ref.dll loading
 		DISPATCH_SHARED_HOOK(RefDllLoaded, Post);
@@ -89,7 +93,10 @@ void* hkSys_GetGameApi(void *imports)
 		PrintOut(PRINT_LOG, "game.dll loaded successfully (API returned: %p)\n", ret);
 		
 		// Initialize hooks targeting game.dll functions first
-		InitializeGameHooks();
+		PrintOut(PRINT_LOG, "=== Initializing game.dll hooks ===\n");
+		PrintOut(PRINT_LOG, "Found %zu game.dll hooks to apply\n", HookManager::Instance().GetHookCount(HookModule::GameDll));
+		HookManager::Instance().ApplyGameHooks();
+		PrintOut(PRINT_LOG, "=== game.dll hook initialization complete ===\n");
 		
 		// Dispatch the GameDllLoaded 'event' to all features
 		DISPATCH_SHARED_HOOK(GameDllLoaded, Post);
