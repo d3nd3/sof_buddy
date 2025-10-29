@@ -143,16 +143,11 @@ void HookManager::RemoveModuleHooks(HookModule target_module, const char* module
         }
         if (applied_hooks.count(hook.address)) {
             void* trampoline = applied_hooks[hook.address];
-            if (trampoline) {
-                // Check if the original address is still accessible
-                // This prevents crashes when a DLL has been unloaded
+            if (trampoline && !IsBadReadPtr(trampoline, 1)) {
                 if (!IsBadReadPtr(hook.address, 1)) {
                     DetourRemove(&trampoline);
-                } else {
-                    PrintOut(PRINT_LOG, "Skipping removal of %s hook at 0x%p (memory no longer accessible)\n", 
-                             hook.name ? hook.name : "unnamed", hook.address);
                 }
-                if (hook.original_storage) {
+                if (hook.original_storage && !IsBadWritePtr(hook.original_storage, sizeof(void*))) {
                     *hook.original_storage = nullptr;
                 }
                 applied_hooks.erase(hook.address);
@@ -170,14 +165,10 @@ void HookManager::ApplyExeHooks() {
 }
 
 void HookManager::ApplyRefHooks() {
-    // Remove then apply on reload to handle ref.dll being reloaded
-    RemoveModuleHooks(HookModule::RefDll, "ref.dll");
     ApplyModuleHooks(HookModule::RefDll, "ref.dll");
 }
 
 void HookManager::ApplyGameHooks() {
-    // Remove then apply on reload to handle game.dll being reloaded
-    RemoveModuleHooks(HookModule::GameDll, "game.dll");
     ApplyModuleHooks(HookModule::GameDll, "game.dll");
 }
 

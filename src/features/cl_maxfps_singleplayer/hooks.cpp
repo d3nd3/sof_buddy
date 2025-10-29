@@ -20,7 +20,7 @@
 static void cl_maxfps_EarlyStartup(void);
 
 REGISTER_SHARED_HOOK_CALLBACK(EarlyStartup, cl_maxfps_singleplayer, cl_maxfps_EarlyStartup, 70, Post);
-REGISTER_HOOK(CinematicFreeze, (void*)0x00075190, GameDll, void, __cdecl, bool bEnable);
+REGISTER_HOOK(CinematicFreeze, (void*)0x75190, GameDll, void, __cdecl, bool bEnable);
 
 
 // sp_Sys_Mil hook variables (kept for compatibility)

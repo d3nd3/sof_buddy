@@ -119,9 +119,9 @@ char* hkSys_GetClipboardData(void)
 {
 	char *cbd;
 	static void (*Z_Free)(void *pvAddress) = (void(*)(void*))rvaToAbsExe((void*)0x000F9D32);
-	static int* key_linepos = (int*)rvaToAbsExe((void*)0x00165E9C);
-	static char* key_lines = (char*)rvaToAbsExe((void*)0x00165EA0);
-	static int* edit_line = (int*)rvaToAbsExe((void*)0x00167EA4);
+	static int* key_linepos = (int*)rvaToAbsExe((void*)0x365E9C);
+	static char* key_lines = (char*)rvaToAbsExe((void*)0x365EA0);
+	static int* edit_line = (int*)rvaToAbsExe((void*)0x00367EA4);
 
 	if ( ( cbd = oSys_GetClipboardData() ) != 0 )
 	{
