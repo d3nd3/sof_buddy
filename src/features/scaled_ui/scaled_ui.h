@@ -11,28 +11,24 @@
 #define SCALED_UI_H
 
 #include "feature_config.h"
+#include "features.h"
+#include "callsite_classifier.h"
+#include "caller_from.h"
 
 #if FEATURE_UI_SCALING
-
-#include "sof_compat.h"
-#include "features.h"
 
 // =============================================================================
 // GLOBAL VARIABLES
 // =============================================================================
 
-// Font scaling variables
+
 extern float fontScale;
 extern float consoleSize;
-extern bool consoleBeingRendered;
 extern bool isFontInner;
-extern bool isConsoleBg;
-extern bool isDrawingScoreboard;
 extern bool isDrawingTeamicons;
 
-// HUD scaling variables
 extern float hudScale;
-extern bool hudStretchPic;
+extern float crosshairScale;
 extern bool hudStretchPicCenter;
 extern bool hudDmRanking;
 extern bool hudDmRanking_wasImage;
@@ -40,17 +36,10 @@ extern bool hudInventoryAndAmmo;
 extern bool hudInventory_wasItem;
 extern bool hudHealthArmor;
 
-// Menu scaling variables (always defined, but only used when UI_MENU is enabled)
-extern bool isDrawPicTiled;
-extern bool isDrawPicCenter;
 extern int DrawPicWidth;
 extern int DrawPicHeight;
 extern bool isMenuSpmSettings;
 
-// Menu scaling variables (always defined, but only used when UI_MENU is enabled)
-extern bool menuSliderDraw;
-extern bool menuLoadboxDraw;
-extern bool menuVerticalScrollDraw;
 extern int menuLoadboxFirstItemX;
 extern int menuLoadboxFirstItemY;
 
@@ -67,12 +56,39 @@ extern int croppedHeight;
 extern int DrawPicPivotCenterX;
 extern int DrawPicPivotCenterY;
 
+// Track active Draw_PicOptions caller (shared)
+extern PicOptionsCaller g_currentPicOptionsCaller;
+
 // Font specific variables
 extern int characterIndex;
 
 // =============================================================================
 // ENUMS AND CONSTANTS
 // =============================================================================
+
+// Unified active caller type for context propagation
+enum class DrawRoutineType {
+    None = 0,
+    StretchPic,
+    Pic,
+    PicOptions,
+    CroppedPic,
+    Font
+};
+
+extern DrawRoutineType g_activeDrawCall;
+
+enum class uiRenderType {
+    None = 0,
+    Console,
+    HudCtfFlag,
+    HudDmRanking,
+    HudInventory,
+    HudHealthArmor,
+    Scoreboard
+};
+
+extern uiRenderType g_activeRenderType;
 
 enum enumCroppedDrawMode {
     HEALTH_FRAME,
@@ -110,9 +126,6 @@ extern const int realFontSizes[4];
 // Font caller context enum for R_DrawFont callers (defined in text.cpp)
 enum class FontCaller;
 
-// Getter for current font caller context (for inner glVertex calls)
-FontCaller getCurrentFontCaller();
-
 // =============================================================================
 // FUNCTION DECLARATIONS
 // =============================================================================
@@ -136,6 +149,12 @@ void __stdcall my_glVertex2f_DrawFont_4(float x, float y);
 // Additional font scaling variables
 extern float draw_con_frac;
 extern int* cls_state;
+
+// CVars
+extern cvar_t * _sofbuddy_font_scale;
+extern cvar_t * _sofbuddy_console_size;
+extern cvar_t * _sofbuddy_hud_scale;
+extern cvar_t * _sofbuddy_crossh_scale;
 
 // Function pointer declarations for original functions
 extern void (*oCon_DrawConsole)(float frac);
@@ -174,6 +193,7 @@ void __thiscall hkcHealthArmor2_Draw(void * self);
 void __thiscall hkcDMRanking_Draw(void * self);
 void __thiscall hkcCtfFlag_Draw(void * self);
 void hudscale_change(cvar_t * cvar);
+void crosshairscale_change(cvar_t * cvar);
 realFontEnum_t getRealFontEnum(const char* realFont);
 void drawCroppedPicVertex(bool top, bool left, float & x, float & y);
 

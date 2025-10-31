@@ -21,6 +21,7 @@ public:
 
     // Record a parent for the given child hook label when functionStartRva is known (non-zero)
     void record(const char *childName, const CallerInfo &info);
+    void flushAll();
 
 private:
     ParentRecorder();
@@ -43,8 +44,10 @@ private:
     std::string _parentsDir; // absolute on disk
 
     void ensureParentsDir();
+    void loadExistingData();
     void flushChildToDisk(const std::string &childName, const ChildSet &set);
     static const char *moduleToLeaf(Module m);
+    static Module moduleFromString(const char *str);
 };
 
 

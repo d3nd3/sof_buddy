@@ -42,6 +42,8 @@ extern void scaledFont_cvars_init(void);
 extern void my_Con_CheckResize(void);
 extern cvar_t * _sofbuddy_font_scale;
 extern cvar_t * _sofbuddy_console_size;
+extern cvar_t * _sofbuddy_hud_scale;
+extern cvar_t * _sofbuddy_crossh_scale;
 extern cvar_t * con_maxlines;
 extern cvar_t * con_buffersize;
 extern cvar_t * test;
@@ -53,6 +55,7 @@ extern bool menuLoadboxDraw;
 extern bool menuVerticalScrollDraw;
 extern bool isDrawPicTiled;
 extern bool isDrawPicCenter;
+extern bool mainMenuBgTiled;
 extern int DrawPicWidth;
 extern int DrawPicHeight;
 

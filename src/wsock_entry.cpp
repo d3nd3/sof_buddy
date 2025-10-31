@@ -34,6 +34,7 @@
 
 #include "util.h"
 #include "crc32.h"
+#include "parent_recorder.h"
 
 // Vectored exception handler pointer
 static PVOID g_vectored_handler = NULL;
@@ -1184,6 +1185,9 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 		}//doonce //init
 
 	} else if ( dwReason == DLL_PROCESS_DETACH ) { 
+		#ifndef NDEBUG
+		ParentRecorder::Instance().flushAll();
+		#endif
 		//FreeLibrary(o_sofplus);
 		// Remove vectored exception handler if we registered one
 		if (g_vectored_handler != NULL) {

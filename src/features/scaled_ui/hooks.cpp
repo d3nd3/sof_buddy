@@ -19,9 +19,9 @@
       -Draw_PicCenter vs Draw_PicTiled modes.
 
     ==.m32 files==
-    DrawPic and GL_FindImage which is called before Draw_Pic,
-    work together to get the width height of the image, and
-    it gets centered based on its size and position.
+        -DrawPic hook 
+        -GL_FindImage hook - called before Draw_Pic, work together to get the width height of 
+        the image, and it gets centered based on its size and position.
 */
 
 #include "feature_config.h"
@@ -34,27 +34,35 @@
 #include "shared_hook_manager.h"
 #include "feature_macro.h"
 #include "scaled_ui.h"
+// Unified active caller state impl
+DrawRoutineType g_activeDrawCall = DrawRoutineType::None;
+uiRenderType g_activeRenderType = uiRenderType::None;
+
+
+#include "hook_callsite.h"
 
 #include "DetourXS/detourxs.h"
 #include <math.h>
 #include <stdint.h>
+#include <string.h>
 
 // =============================================================================
 // GLOBAL VARIABLE DEFINITIONS
 // =============================================================================
 
-// Font scaling variables
+static StretchPicCaller g_currentStretchPicCaller = StretchPicCaller::Unknown;
+static PicCaller g_currentPicCaller = PicCaller::Unknown;
+PicOptionsCaller g_currentPicOptionsCaller = PicOptionsCaller::Unknown;
+
+// Mappers moved inline next to enums in scaled_ui.h for easy editing
+
 float fontScale = 1;
 float consoleSize = 0.5;
-bool consoleBeingRendered = false;
 bool isFontInner = false;
-bool isConsoleBg = false;
-bool isDrawingScoreboard = false;
 bool isDrawingTeamicons = false;
 
-// HUD scaling variables
 float hudScale = 1;
-bool hudStretchPic = false;
+float crosshairScale = 1.0f;
 bool hudStretchPicCenter = false;
 bool hudDmRanking = false;
 bool hudDmRanking_wasImage = false;
@@ -62,21 +70,13 @@ bool hudInventoryAndAmmo = false;
 bool hudInventory_wasItem = true;
 bool hudHealthArmor = false;
 
-// Menu scaling variables (always defined, but only used when UI_MENU is enabled)
-bool isDrawPicTiled = false;
-bool isDrawPicCenter = false;
 int DrawPicWidth = 0;
 int DrawPicHeight = 0;
 bool isMenuSpmSettings = false;
+bool mainMenuBgTiled = false;
 
-// Shared variables
 float screen_y_scale = 1.0f;
 int real_refdef_width = 0;
-
-// Menu scaling variables (always defined, but only used when UI_MENU is enabled)
-bool menuSliderDraw = false;
-bool menuLoadboxDraw = false;
-bool menuVerticalScrollDraw = false;
 
 int menuLoadboxFirstItemX;
 int menuLoadboxFirstItemY;
@@ -213,36 +213,44 @@ REGISTER_HOOK_LEN(R_DrawFont, (void*)0x000045B0, RefDll, 6, void, __cdecl, int s
     - SCR_UpdateScreen->pics/monitor/monitor
 */
 void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int flags) {
-    if (consoleBeingRendered) {
-        // Console background scaling
-        isConsoleBg = true;
+    g_activeDrawCall = DrawRoutineType::StretchPic;
+    StretchPicCaller detectedCaller = StretchPicCaller::Unknown;
+    uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("Draw_StretchPic");
+    if (fnStart) {
+        detectedCaller = getStretchPicCallerFromRva(fnStart);
+    }
+    
+    if (g_currentStretchPicCaller == StretchPicCaller::Unknown && detectedCaller != StretchPicCaller::Unknown) {
+        g_currentStretchPicCaller = detectedCaller;
+    }
+    
+    StretchPicCaller caller = g_currentStretchPicCaller;
+    
+    if (caller == StretchPicCaller::CON_DrawConsole) {
+        //Draw the console background with new height
         extern float draw_con_frac;
         int consoleHeight = draw_con_frac * current_vid_h;
         y = -1 * current_vid_h + consoleHeight;
         oDraw_StretchPic(x, y, w, h, palette, name, flags);
         orig_SRC_AddDirtyPoint(0, 0);
         orig_SRC_AddDirtyPoint(w - 1, consoleHeight - 1);
-        isConsoleBg = false;
+        g_currentStretchPicCaller = StretchPicCaller::Unknown;
+        g_activeDrawCall = DrawRoutineType::None;
+ 
         return;
     }
     
-    if (hudStretchPic) {
-        // HUD scaling (CTF flag, etc.)
+    if (g_activeRenderType == uiRenderType::HudCtfFlag) {
         w = w * hudScale;
         h = h * hudScale;
-    } else if (menuSliderDraw) {
-        // Menu slider scaling (currently disabled)
-        // Logic would go here if needed
-    } else if (menuVerticalScrollDraw) {
-        // Menu vertical scroll scaling (currently disabled)
-        // Logic would go here if needed
-    } else if (menuLoadboxDraw) {
-        // Menu loadbox scaling (currently disabled)
-        // Logic would go here if needed
     }
 
-    // Default behavior - call original function
     oDraw_StretchPic(x, y, w, h, palette, name, flags);
+    
+
+    g_currentStretchPicCaller = StretchPicCaller::Unknown;
+    g_activeDrawCall = DrawRoutineType::None;
+
 }
 
 // Shared Draw_Pic hook - used by menu scaling
@@ -254,53 +262,80 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
     - backdrop_c::Draw() (For menu crosshair)
 */
 void hkDraw_Pic(int x, int y, char const * imgname, int palette) {
-#ifdef UI_MENU
+    g_activeDrawCall = DrawRoutineType::Pic;
+    PicCaller detectedCaller = PicCaller::Unknown;
+    uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("Draw_Pic");
+    if (fnStart) {
+        detectedCaller = getPicCallerFromRva(fnStart);
+    }
+    
+    if (g_currentPicCaller == PicCaller::Unknown && detectedCaller != PicCaller::Unknown) {
+        g_currentPicCaller = detectedCaller;
+    }
+    
     if (imgname != nullptr) {
-        // Check for backdrop images that should be tiled
-        extern const char* get_nth_entry(const char* str, int n);
-        const char* thirdEntry = get_nth_entry(imgname, 2); 
-        if (thirdEntry) {
-            const char* end = thirdEntry;
-            while (*end && *end != '/') ++end;
-            size_t len = end - thirdEntry;
-            if (len == 8 && strncmp(thirdEntry, "backdrop", 8) == 0) {
-                //for hkglVertex2f and hkGL_FindImage
-                isDrawPicTiled = true;
-                oDraw_Pic(x, y, imgname, palette);
-                isDrawPicTiled = false;
-                return;
+        const char* p = imgname;
+        int slashes = 0;
+        while (*p && slashes < 2) {
+            if (*p++ == '/') slashes++;
+        }
+        if (slashes == 2 && *p) {
+            if (p[0] == 'b' && p[1] == 'a' && p[2] == 'c' && p[3] == 'k' &&
+                p[4] == 'd' && p[5] == 'o' && p[6] == 'p' && p[7] == 'e' &&
+                p[8] == '/') {
+                p += 9;
+                if (p[0] == 'w' && p[1] == 'e' && p[2] == 'b' && p[3] == '_' &&
+                    p[4] == 'b' && p[5] == 'g' && (p[6] == '.' || p[6] == '\0' || p[6] == '/')) {
+                    mainMenuBgTiled = true;
+                    oDraw_Pic(x, y, imgname, palette);
+                    mainMenuBgTiled = false;
+                    g_currentPicCaller = PicCaller::Unknown;
+                    g_activeDrawCall = DrawRoutineType::None;
+                    return;
+                }
             }
         }
     }
 
-    isDrawPicCenter = true;
     oDraw_Pic(x, y, imgname, palette);
-    isDrawPicCenter = false;
-#else
-    // Default behavior - call original function
-    oDraw_Pic(x, y, imgname, palette);
-#endif
+    g_currentPicCaller = PicCaller::Unknown;
+    g_activeDrawCall = DrawRoutineType::None;
+
 }
 
 /*
     Shared GL_FindImage hook - used by menu scaling
     Any m32 that is loaded with GL_FindImage will be scaled here.
     We should be careful this is only used for 2d sprites etc.
+    
+    Note: Filename format for crosshairs is "pics/menus/status/ch0" through "pics/menus/status/ch4"
+    (no .m32 extension in the filename parameter).
 */
 void* hkGL_FindImage(char *filename, int imagetype, char mimap, char allowPicmip) {
+
+    
+    //uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("GL_FindImage");
+    
     void * image_t = oGL_FindImage(filename, imagetype, mimap, allowPicmip);
     
-#ifdef UI_MENU
     if (image_t) {
-        if (isDrawPicCenter) {
+        #ifdef UI_MENU
+        if (g_currentPicCaller == PicCaller::Crosshair || g_currentPicCaller == PicCaller::ExecuteLayoutString ) {
             DrawPicWidth = *(short*)((char*)image_t + 0x44);
             DrawPicHeight = *(short*)((char*)image_t + 0x46);
-        } else if (isDrawPicTiled) {
-            DrawPicWidth = *(short*)((char*)image_t + 0x44) * screen_y_scale;
-            DrawPicHeight = *(short*)((char*)image_t + 0x46) * screen_y_scale;
+        } else 
+        #endif
+        if ( g_activeDrawCall == DrawRoutineType::Pic) {
+            if (mainMenuBgTiled) {
+                DrawPicWidth = *(short*)((char*)image_t + 0x44) * screen_y_scale;
+                DrawPicHeight = *(short*)((char*)image_t + 0x46) * screen_y_scale;
+            } else {
+                
+                DrawPicWidth = *(short*)((char*)image_t + 0x44);
+                DrawPicHeight = *(short*)((char*)image_t + 0x46);
+            }
         }
     }
-#endif
     
     return image_t;
 }
@@ -317,7 +352,7 @@ void* hkGL_FindImage(char *filename, int imagetype, char mimap, char allowPicmip
             - cHealthArmour2::Draw() (HP bar, armour bar)
 */
 void drawCroppedPicVertex(bool top, bool left, float & x, float & y) {
-    if (hudHealthArmor) {
+    if (g_activeRenderType == uiRenderType::HudHealthArmor) {
         float y_scale = static_cast < float > (current_vid_h) / 480.0f;
 
         int center_x = current_vid_w / 2;
@@ -415,7 +450,7 @@ void drawCroppedPicVertex(bool top, bool left, float & x, float & y) {
             // Handle unhandled enum values
             break;
         }
-    } else if (hudInventoryAndAmmo) {
+    } else if (g_activeRenderType == uiRenderType::HudInventory) {
         float x_scale = static_cast < float > (current_vid_w) / 640.0f;
         float y_scale = static_cast < float > (current_vid_h) / 480.0f;
 
@@ -560,7 +595,7 @@ void __stdcall my_glVertex2f_CroppedPic_4(float x, float y) {
 -DrawPicCenter (Draw_Pic)
     SCR_ExecuteLayoutString() (scoreboard) (X)
     SCR_Crosshair()
-    SCR_UpdateScreen->pics/console/net
+    SCR_UpdateScreen->pics/console/net (is D/C symbol)
     backdrop_c::Draw() (For menu crosshair))
 -DrawPicTiled (Draw_Pic backdrop)
 -menuLoadboxDraw
@@ -574,156 +609,126 @@ Needed by:
 ===========================================================================
     
 */
-void __stdcall hkglVertex2f(float x, float y) {
-    /*
-      This is console fonts.
-      _sofbuddy_font_scale
-    */
-    if ((consoleBeingRendered && !isConsoleBg)) {
-        
-        //Preserving the actual vertex position then letting it map naturally to pixels seems better than rounding
-        orig_glVertex2f(x * fontScale, y * fontScale);
-        return;
-    } else if (isDrawingScoreboard) {
-        //_sofbuddy_hud_scale
-        //Layout = Scoreboard
-        //This is vertices for font and images
+static inline void scaleVertexFromScreenCenter(float& x, float& y, float scale) {
+    static int vertexCounter = 1;
+    static float x_mid_offset;
+    static float y_mid_offset;
+    static float x_first_vertex;
+    static float y_first_vertex;
+    if (vertexCounter == 1) {
+        x_mid_offset = current_vid_w * 0.5f - x;
+        y_mid_offset = current_vid_h * 0.5f - y;
+        x_first_vertex = x;
+        y_first_vertex = y;
+    }
+    float final_x = x * scale - x_first_vertex * (scale - 1) - x_mid_offset * (scale - 1);
+    float final_y = y * scale - y_first_vertex * (scale - 1) - y_mid_offset * (scale - 1);
+    orig_glVertex2f(final_x, final_y);
+    vertexCounter++;
+    if (vertexCounter > 4) vertexCounter = 1;
+}
 
-        static int vertexCounter = 1;
-        static float x_mid_offset;
-        static float y_mid_offset;
+static inline void scaleVertexFromCenter(float& x, float& y, float scale) {
+    static int svfc_vertexCounter = 1;
+    static int svfc_centerX;
+    static int svfc_centerY;
 
-        static float x_first_vertex;
-        static float y_first_vertex;
+    if (svfc_vertexCounter == 1) {
+        svfc_centerX = x + DrawPicWidth * 0.5f;
+        svfc_centerY = y + DrawPicHeight * 0.5f;
 
-        if (vertexCounter == 1) {
-            x_mid_offset = current_vid_w * 0.5f - x;
-            y_mid_offset = current_vid_h * 0.5f - y;
-
-            x_first_vertex = x;
-            y_first_vertex = y;
+        if (DrawPicWidth == 0 || DrawPicHeight == 0) {
+            PrintOut(PRINT_LOG, "[DEBUG] scaleVertexFromCenter: FATAL ERROR - DrawPicWidth or DrawPicHeight is 0!\n");
+            orig_Com_Printf("FATAL ERROR: DrawPicWidth or DrawPicHeight is 0! This should not happen!\n");
+            exit(1);
         }
-        
-        /*
-            Since Center Aligned.
-              Save Position.
-            Scale.
-            Restore Position.
+    }
 
-            NewPoint = Pivot + (OldPoint - Pivot) * Scale
+    x = svfc_centerX + (x - svfc_centerX) * scale;
+    y = svfc_centerY + (y - svfc_centerY) * scale;
 
-            Px = current_vid_w * 0.5f
-            new_x = Px + (x - Px) * hudScale
-            
-            hudScale - 1 is a clean way to get the percentage of change that needs to be applied 
-            to a distance to calculate a positional correction.
+    orig_glVertex2f(x, y);
 
-            (I calculated it by image in gkeep, scale image = creates correct size, but moves a lot)
-            so you shift it back into original place (except for when its 1, no shift needed Hence hudScale-1)
-            then subtract previous mid offset N-1 times (because its alrady shifted 1 time)
-        */
-        
-        //rounding is not necessary!
-        float final_x = x * hudScale - x_first_vertex * (hudScale - 1) - x_mid_offset * (hudScale - 1);
-        float final_y = y * hudScale - y_first_vertex * (hudScale - 1) - y_mid_offset * (hudScale - 1);
-        
-        orig_glVertex2f(final_x, final_y);
+    svfc_vertexCounter++;
+    if (svfc_vertexCounter > 4) {
+        svfc_vertexCounter = 1;
+        DrawPicWidth = 0;
+        DrawPicHeight = 0;
+    }
+}
 
-        vertexCounter++;
-        if (vertexCounter > 4) vertexCounter = 1;
-        return;
-    } else if (isDrawPicCenter) 
-    {
-        /*
-            This function is called internally by:
-            - SCR_ExecuteLayoutString() (scoreboard)
-            - SCR_Crosshair()
-            - SCR_UpdateScreen->pics/console/net
-            - backdrop_c::Draw() (For menu crosshair)
-        */
-        //Default DrawPic situation. (Is not Tiled (backdrop))
+void __stdcall hkglVertex2f(float x, float y) {
+    HookCallsite::recordAndGetFnStartExternal("glVertex2f");
 
-        static int vertexCounter = 1;
-        
-        if (vertexCounter == 1) {
-            DrawPicPivotCenterX = x + DrawPicWidth * 0.5f;
-            DrawPicPivotCenterY = y + DrawPicHeight * 0.5f;
+    switch (g_activeRenderType) {
+        case uiRenderType::Console:
+            if (g_activeDrawCall != DrawRoutineType::StretchPic) {
+                orig_glVertex2f(x * fontScale, y * fontScale);
+                return;
+            }
+        break;
+        case uiRenderType::Scoreboard: {
+            scaleVertexFromScreenCenter(x, y, hudScale);
+            return;
+        }
+        default:
+            // Generic Draw calls
+            switch (g_activeDrawCall) {
+                case DrawRoutineType::PicOptions: {
+                    switch (g_currentPicOptionsCaller) {
+                        case PicOptionsCaller::SCR_DrawCrosshair: {
+                            scaleVertexFromScreenCenter(x, y, crosshairScale);
+                            return;
+                        }
+                    }
+                break;
+                }
+                case DrawRoutineType::Pic: {
+                    /*
+                        ExecuteLayoutString, (already filtered)
+                        NetworkDisconnectIcon,
+                        BackdropDraw,
+                        DrawPic
+                    */
+                    switch (g_currentPicCaller) {
+                        case PicCaller::SCR_DrawCrosshair: {
+                            scaleVertexFromScreenCenter(x, y, crosshairScale);
+                            return;
+                        }
+                        default: {
+                            if (mainMenuBgTiled) {
+                                //BackdropDraw
+                                static int vertexCounter = 1;
+                                static int startX;
+                                static int startY;
+                                if (vertexCounter == 1) { startX = x; startY = y; }
+                                if (vertexCounter > 1 && vertexCounter < 4) x = startX + DrawPicWidth;
+                                if (vertexCounter > 2) y = startY + DrawPicHeight;
+                                orig_glVertex2f(x, y);
+                                vertexCounter++;
+                                if (vertexCounter > 4) { vertexCounter = 1; DrawPicWidth = 0; DrawPicHeight = 0; }
+                                return;
+                            } else {
+                                // Scale from center of image
+                                /*
+                                    NetworkDisconnectIcon,
+                                    DrawPic (Wrapper)
+                                */
+                                if (g_currentPicCaller != PicCaller::DrawPicWrapper) {
+                                    scaleVertexFromCenter(x, y, hudScale);
+                                    return;
+                                }
+                            }
+                            break;
+                        }
+                    
+                    }
+                break;
 
-            // But such sequences, if start from pos=0, benefit from multiply co ordinates.
-
-            if ( DrawPicWidth == 0 || DrawPicHeight == 0 ) {
-                // DrawPicWidth was not set, Draw_FindImage
-                PrintOut(PRINT_LOG, "[DEBUG] hkglVertex2f: FATAL ERROR - DrawPicWidth or DrawPicHeight is 0!\n");
-                orig_Com_Printf("FATAL ERROR: DrawPicWidth or DrawPicHeight is 0! This should not happen!\n");
-                exit(1);
             }
         }
-
-        x = DrawPicPivotCenterX + (x - DrawPicPivotCenterX) * hudScale;
-        y = DrawPicPivotCenterY + (y - DrawPicPivotCenterY) * hudScale;
-
-        
-        orig_glVertex2f(x, y);
-        vertexCounter++;
-        if (vertexCounter > 4) {
-            vertexCounter = 1;
-            DrawPicWidth = 0;
-            DrawPicHeight = 0;
-        }
-        return;
- 
-    } else if ( isDrawPicTiled ) {
-        /*
-            
-            This function is called internally by:
-            - SCR_ExecuteLayoutString() (scoreboard)
-            - SCR_Crosshair()
-            - SCR_UpdateScreen->pics/console/net
-            - backdrop_c::Draw() (For menu crosshair)
-        
-            Simply Draw_Pic() with "pics/backdrop/" path
-            
-            For rare tile-based (pivot-point 0) textures.
-            (eg. backdrop main menu)
-        */
-        
-        static int vertexCounter = 1;
-        static int startX;
-        static int startY;
-        if ( vertexCounter == 1 ) {
-            startX = x;
-            startY = y;
-        }
-
-        if ( vertexCounter > 1 && vertexCounter < 4 ) {
-            x = startX + DrawPicWidth;
-        }
-
-        if ( vertexCounter > 2 ) {      
-            y = startY + DrawPicHeight;
-        }
-        orig_glVertex2f(x, y);
-
-        vertexCounter++;
-        if (vertexCounter > 4) {
-            vertexCounter = 1;
-            DrawPicWidth = 0;
-            DrawPicHeight = 0;
-        }
-        return;
-    } else if ( menuLoadboxDraw ) {
-        /*
-          Too hard to scale these. Not enough information.
-        */
-        #if 0
-        x = menuLoadboxFirstItemX + (x - menuLoadboxFirstItemX) * screen_y_scale;
-        y = menuLoadboxFirstItemY + (y - menuLoadboxFirstItemY) * screen_y_scale;
-        #endif
-        orig_glVertex2f(x, y);
     }
-    else {
-        orig_glVertex2f(x, y);
-    }
+    orig_glVertex2f(x, y);
 }
 
 // =============================================================================
@@ -857,6 +862,10 @@ void hkCon_Init(void) {
     extern void create_scaled_ui_cvars(void);
     create_scaled_ui_cvars();
     oCon_Init(); 
+}
+
+void crosshairscale_change(cvar_t * cvar) {
+    crosshairScale = roundf(cvar->value * 4.0f) / 4.0f;
 }
 
 #endif // FEATURE_UI_SCALING

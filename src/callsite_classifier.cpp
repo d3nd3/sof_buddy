@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <algorithm>
 #include <shlwapi.h>
+#include <psapi.h>
 #include "util.h"
 
 namespace {
@@ -27,26 +28,54 @@ struct Func { uint32_t rva; std::string name; };
 
 struct ModuleMap { std::vector<Func> functions; bool loaded = false; };
 
-ModuleMap g_maps[5]; // Unknown,SofExe,RefDll,PlayerDll,GameDll
+ModuleMap g_maps[6]; // Unknown,SofExe,RefDll,PlayerDll,GameDll,SpclDll
 static char g_mapsDir[512] = {0};
 
+struct ModuleRange { uintptr_t base; uintptr_t end; HMODULE h; bool valid; };
+static ModuleRange g_modRanges[6] = {0};
+
+static void cacheRangeFromHandle(Module m, HMODULE h) {
+    if (!h) return;
+    MODULEINFO mi = {0};
+    if (!GetModuleInformation(GetCurrentProcess(), h, &mi, sizeof(mi))) return;
+    ModuleRange &mr = g_modRanges[(int)m];
+    mr.base = (uintptr_t)mi.lpBaseOfDll;
+    mr.end  = mr.base + (uintptr_t)mi.SizeOfImage;
+    mr.valid = (mr.base != 0 && mr.end > mr.base);
+    mr.h = h;
+}
+
+static inline bool addrInRange(uintptr_t addr, const ModuleRange &mr) {
+    return mr.valid && addr >= mr.base && addr < mr.end;
+}
+
 Module identifyModuleFromHandle(HMODULE hmod) {
-    if (!hmod) return Module::Unknown;
+    if (!hmod) {
+        PrintOut(PRINT_LOG, "identifyModuleFromHandle: invalid hmod=0x%p\n", hmod);
+        return Module::Unknown;
+    }
 
     char fullPath[MAX_PATH] = {0};
-    GetModuleFileNameA(hmod, fullPath, MAX_PATH);
+    if (!GetModuleFileNameA(hmod, fullPath, MAX_PATH)) {
+        PrintOut(PRINT_LOG, "identifyModuleFromHandle: GetModuleFileNameA failed for hmod=0x%p error=%lu\n", hmod, GetLastError());
+        return Module::Unknown;
+    }
     const char *leaf = PathFindFileNameA(fullPath);
-    if (!leaf || !*leaf) leaf = fullPath; // fallback to full path if needed
+    if (!leaf || !*leaf) leaf = fullPath;
+    
+
     // Strict filename match, case-insensitive
     if (StrCmpIA(leaf, "SoF.exe") == 0) return Module::SofExe;
     if (StrCmpIA(leaf, "ref_gl.dll") == 0) return Module::RefDll;
     if (StrCmpIA(leaf, "player.dll") == 0) return Module::PlayerDll;
     if (StrCmpIA(leaf, "gamex86.dll") == 0) return Module::GameDll;
+    if (StrCmpIA(leaf, "spcl.dll") == 0) return Module::SpclDll;
     // Some environments may rename or change casing; keep relaxed substring checks as a fallback
     if (StrStrIA(fullPath, "SoF.exe")) return Module::SofExe;
     if (StrStrIA(fullPath, "ref_gl.dll")) return Module::RefDll;
     if (StrStrIA(fullPath, "player.dll")) return Module::PlayerDll;
     if (StrStrIA(fullPath, "gamex86.dll")) return Module::GameDll;
+    if (StrStrIA(fullPath, "spcl.dll")) return Module::SpclDll;
     return Module::Unknown;
 }
 
@@ -84,6 +113,18 @@ static const char* moduleJsonLeaf(Module m) {
         case Module::RefDll: return "ref_gl.dll.json";
         case Module::PlayerDll: return "player.dll.json";
         case Module::GameDll: return "gamex86.dll.json";
+        case Module::SpclDll: return "spcl.dll.json";
+        default: return nullptr;
+    }
+}
+
+static const char* moduleLeaf(Module m) {
+    switch (m) {
+        case Module::SofExe:   return "SoF.exe";
+        case Module::RefDll:   return "ref_gl.dll";
+        case Module::PlayerDll:return "player.dll";
+        case Module::GameDll:  return "gamex86.dll";
+        case Module::SpclDll:  return "spcl.dll";
         default: return nullptr;
     }
 }
@@ -216,42 +257,73 @@ void CallsiteClassifier::initialize(const char *mapsDirectory) {
 	ensureLoadedFor(Module::RefDll, g_mapsDir);
 	ensureLoadedFor(Module::PlayerDll, g_mapsDir);
 	ensureLoadedFor(Module::GameDll, g_mapsDir);
+	ensureLoadedFor(Module::SpclDll, g_mapsDir);
 }
 
 bool CallsiteClassifier::classify(void *returnAddress, CallerInfo &out) {
 	if (!returnAddress) return false;
 
+    if ((uintptr_t)returnAddress < 0x10000) {
+        PrintOut(PRINT_LOG, "CallsiteClassifier: skipping invalid low returnAddress=0x%p\n", returnAddress);
+        return false;
+    }
+
+	uintptr_t ra = (uintptr_t)returnAddress;
+
+	Module foundModule = Module::Unknown;
 	HMODULE mod = nullptr;
-	if (!GetModuleHandleExA(
-		GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
-		GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-		reinterpret_cast<LPCSTR>(returnAddress),
-		&mod)) {
-		return false;
+	
+	static const int moduleOrder[] = {(int)Module::RefDll, (int)Module::GameDll, (int)Module::SofExe, (int)Module::PlayerDll, (int)Module::SpclDll};
+	for (int i = 0; i < 5; ++i) {
+		int m = moduleOrder[i];
+		ModuleRange &mr = g_modRanges[m];
+		if (mr.valid && ra >= mr.base && ra < mr.end) {
+			foundModule = (Module)m;
+			mod = mr.h;
+			if (!mod) {
+				const char *leaf = moduleLeaf((Module)m);
+				if (leaf) mod = GetModuleHandleA(leaf);
+				if (mod) {
+					mr.h = mod;
+					cacheRangeFromHandle((Module)m, mod);
+				}
+			}
+			break;
+		}
 	}
 
-	uintptr_t base = reinterpret_cast<uintptr_t>(mod);
-	uintptr_t rva  = reinterpret_cast<uintptr_t>(returnAddress) - base;
+	if (foundModule == Module::Unknown) {
+		if (!GetModuleHandleExA(
+			GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+			GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+			reinterpret_cast<LPCSTR>(returnAddress),
+			&mod)) {
+			return false;
+		}
+		foundModule = identifyModuleFromHandle(mod);
+		if (foundModule != Module::Unknown) {
+			cacheRangeFromHandle(foundModule, mod);
+			g_modRanges[(int)foundModule].h = mod;
+		}
+	}
 
-    out.module = identifyModuleFromHandle(mod);
-    char modPath[MAX_PATH] = {0};
-    GetModuleFileNameA(mod, modPath, MAX_PATH);
-    const char *leaf = PathFindFileNameA(modPath);
-    if (!leaf || !*leaf) leaf = modPath;
-    // PrintOut(PRINT_LOG, "CallsiteClassifier: classify module=%d file=%s rva=0x%08X base=0x%p ra=0x%p\n", (int)out.module, leaf, (unsigned)rva, (void*)base, returnAddress);
-	// Lazy-load this module's map if needed
+	if (foundModule == Module::Unknown || !mod) return false;
+	out.module = foundModule;
+
+	uintptr_t base = g_modRanges[(int)foundModule].valid ? g_modRanges[(int)foundModule].base : (uintptr_t)mod;
+	uintptr_t rva  = ra - base;
+
 	ensureLoadedFor(out.module, nullptr);
 
 	out.rva = rva;
 	out.functionStartRva = 0;
 	out.name = nullptr;
-	// Lookup greatest function start <= (rva-1) to ensure strict containment of the return site
 	const auto &funcs = g_maps[static_cast<int>(out.module)].functions;
 	if (!funcs.empty()) {
 		int lo = 0, hi = (int)funcs.size() - 1, best = -1;
-		uint32_t key = (rva > 0) ? (uint32_t)(rva - 1) : 0; // use rva-1 for containment
+		uint32_t key = (rva > 0) ? (uint32_t)(rva - 1) : 0;
 		while (lo <= hi) {
-			int mid = (lo + hi) / 2;
+			int mid = (lo + hi) >> 1;
 			if (funcs[mid].rva <= key) { best = mid; lo = mid + 1; }
 			else { hi = mid - 1; }
 		}
@@ -263,7 +335,6 @@ bool CallsiteClassifier::classify(void *returnAddress, CallerInfo &out) {
 	else {
 		PrintOut(PRINT_LOG, "CallsiteClassifier: no functions loaded for module=%d (rva=0x%08X)\n", (int)out.module, (unsigned)rva);
 	}
-	// No fallback here: if not found, functionStartRva remains 0
 	return true;
 }
 
@@ -271,6 +342,63 @@ bool CallsiteClassifier::matchesNameOrRva(const CallerInfo &info, const char *na
 	if (name && info.name && strcmp(name, info.name) == 0) return true;
 	if (rva != 0 && info.rva == rva) return true;
 	return false;
+}
+
+
+bool CallsiteClassifier::hasFunctionStart(Module m, uint32_t fnStartRva) {
+    if (m == Module::Unknown || fnStartRva == 0) return false;
+    ensureLoadedFor(m, nullptr);
+    const auto &funcs = g_maps[static_cast<int>(m)].functions;
+    if (funcs.empty()) return false;
+    int lo = 0, hi = (int)funcs.size() - 1;
+    while (lo <= hi) {
+        int mid = (lo + hi) >> 1;
+        uint32_t v = funcs[mid].rva;
+        if (v == fnStartRva) return true;
+        if (v < fnStartRva) lo = mid + 1; else hi = mid - 1;
+    }
+    return false;
+}
+
+uintptr_t CallsiteClassifier::getModuleBase_impl(Module m) {
+    int idx = (int)m;
+    if (idx <= 0 || idx >= (int)Module::SpclDll + 1) return 0;
+    if (g_modRanges[idx].valid) return g_modRanges[idx].base;
+#if defined(_WIN32)
+    const char *leaf = moduleLeaf(m);
+    if (!leaf) return 0;
+    #ifndef NDEBUG
+    PrintOut(PRINT_LOG, "CallsiteClassifier: fallback getModuleBase for module=%d leaf=%s\n", (int)m, leaf);
+    #endif
+    if (HMODULE h = GetModuleHandleA(leaf)) {
+        cacheRangeFromHandle(m, h);
+        if (g_modRanges[idx].valid) return g_modRanges[idx].base;
+    }
+#endif
+    return 0;
+}
+
+void CallsiteClassifier::cacheModuleLoaded(Module m) {
+    if (m == Module::Unknown) return;
+    int idx = (int)m;
+    if (idx <= 0 || idx >= (int)Module::SpclDll + 1) return;
+    const char *leaf = moduleLeaf(m);
+    if (!leaf) return;
+    HMODULE h = GetModuleHandleA(leaf);
+    if (h) {
+        cacheRangeFromHandle(m, h);
+        g_modRanges[idx].h = h;
+    }
+}
+
+void CallsiteClassifier::invalidateModuleCache(Module m) {
+    if (m == Module::Unknown) return;
+    int idx = (int)m;
+    if (idx <= 0 || idx >= (int)Module::SpclDll + 1) return;
+    g_modRanges[idx].valid = false;
+    g_modRanges[idx].h = nullptr;
+    g_modRanges[idx].base = 0;
+    g_modRanges[idx].end = 0;
 }
 
 

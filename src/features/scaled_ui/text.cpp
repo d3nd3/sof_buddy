@@ -14,7 +14,6 @@
 #include "scaled_ui.h"
 #include "util.h"
 #include "hook_callsite.h"
-#include "hook_callsite.h"
 
 #include <math.h>
 #include <stdint.h>
@@ -23,120 +22,41 @@
 #include <windows.h>
 #endif
 
-// Caller context enum for R_DrawFont callers
-enum class FontCaller {
-	Unknown = 0,
-	ScopeCalcXY,           // 0x20006dc0 - cScope::CalcXY
-	DMRankingCalcXY,       // 0x20007af0 - cDMRanking::CalcXY
-	Inventory2,            // 0x20008260 - cInventory2()
-	SCRDrawPause,          // 0x20013710 - SCR_DrawPause()
-	SCRUpdateScreen,       // 0x200163c0 - ? Inside SCR_UpdateScreen()
-	RectDrawTextItem,      // 0x200cecc0 - rect_c::DrawTextItem()
-	RectDrawTextLine,      // 0x200cf0e0 - rect_c::DrawTextLine()
-	TickerDraw,            // 0x200d19f0 - ticker_c::Draw()
-	InputHandle,           // 0x200d4060 - input_c::Handle() ?
-	FileboxHandle,        // 0x200d9f80 - filebox_c::Handle()
-	LoadboxGetIndices,    // 0x200dbf10 - loadbox_c::GetIndices()
-	ServerboxDraw,        // 0x200de430 - serverbox_c::Draw()
-	TipRender,            // 0x200ea8a0 - tip_c::Render()
-	DrawLine              // 0x30002a40 - Draw_Line
-};
-
-// Global caller context for inner glVertex calls
-static FontCaller g_currentFontCaller = FontCaller::Unknown;
-
-// Efficient mapping from function start RVA to FontCaller enum
-static FontCaller getFontCallerFromRva(uint32_t fnStartRva) {
-	switch (fnStartRva) {
-		case 0x00006dc0: return FontCaller::ScopeCalcXY;
-		case 0x00007af0: return FontCaller::DMRankingCalcXY;
-		case 0x00008260: return FontCaller::Inventory2;
-		case 0x00013710: return FontCaller::SCRDrawPause;
-		case 0x000163c0: return FontCaller::SCRUpdateScreen;
-		case 0x000cecc0: return FontCaller::RectDrawTextItem;
-		case 0x000cf0e0: return FontCaller::RectDrawTextLine;
-		case 0x000d19f0: return FontCaller::TickerDraw;
-		case 0x000d4060: return FontCaller::InputHandle;
-		case 0x000d9f80: return FontCaller::FileboxHandle;
-		case 0x000dbf10: return FontCaller::LoadboxGetIndices;
-		case 0x000de430: return FontCaller::ServerboxDraw;
-		case 0x000ea8a0: return FontCaller::TipRender;
-		case 0x00002a40: return FontCaller::DrawLine; // ref_gl.dll
-		default: 
-			return FontCaller::Unknown; // Unrecognized RVA, ignore it.
-	}
-}
-
-// Getter for current font caller context (for inner glVertex calls)
-FontCaller getCurrentFontCaller() {
-	return g_currentFontCaller;
-}
-
-// Pivot for character quad when scaling font glyphs
 static float pivotx;
 static float pivoty;
-
-// Font specific state
 int characterIndex = 0;
 
-/*
-===========================================================================
-HUD FONT + MENU FONT
+// FontCaller enum provided by caller_from.h
 
-This function is called internally by:
-- SCR_DrawPlayerInfo() - teamicons (WE DONT SCALE)
-- cScope::Draw() (WE SCALE BELOW)
-- cCountdown::Draw() (WE SCALE BELOW)
-- cDMRanking::Draw() (WE SCALE in R_DrawFont AND BELOW)
-- cInventory2::Draw() (WE SCALE in R_DrawFont AND BELOW)
-- cInfoTicker::Draw() (WE SCALE BELOW)
-- cMissionStatus::Draw() (WE SCALE BELOW)
-- SCR_DrawPause() (WE SCALE BELOW)
-- rect_c::DrawTextItem() (WE SCALE BELOW)
-- loadbox_c::Draw() (WE SCALE BELOW)
-- various other menu items (WE SCALE BELOW)
+static FontCaller g_currentFontCaller = FontCaller::Unknown;
 
-Note these are not handling realignment.
-If data is happy to extend left for larger text and remain stationary, no need to realign.
-===========================================================================
-*/
-// Font Draw vertex hooks moved to text.cpp
-
-void __stdcall my_glVertex2f_DrawFont_1(float x, float y) {
-	//top-left
-	//Anchor-point fixed top-left
-	//When we resize images, we use center as anchor-point, might be an issue.
-	pivotx = x;
-	pivoty = y;
-
-	// Skip scaling for team icons
+inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool incrementChar) {
 	if (isDrawingTeamicons) {
 		orig_glVertex2f(x, y);
 		return;
 	}
 
-	// Handle different caller contexts
-	FontCaller caller = getCurrentFontCaller();
+	FontCaller caller = g_currentFontCaller;
 	switch (caller) {
 		case FontCaller::DMRankingCalcXY:
 		case FontCaller::Inventory2:
-			// HUD elements - scale by hudScale
+			if (scaleX) x = pivotx + (x - pivotx) * hudScale;
+			if (scaleY) y = pivoty + (y - pivoty) * hudScale;
 			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(hudScale-1), y);
 			break;
 			
 		case FontCaller::ScopeCalcXY:
-			// Scope text - no scaling
 			orig_glVertex2f(x, y);
 			break;
 			
 		case FontCaller::SCRDrawPause:
 		case FontCaller::SCRUpdateScreen:
-			// Screen overlays - scale by screen_y_scale
+			if (scaleX) x = pivotx + (x - pivotx) * screen_y_scale;
+			if (scaleY) y = pivoty + (y - pivoty) * screen_y_scale;
 			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
 			break;
 			
 		case FontCaller::DrawLine:
-			// Draw_Line from ref_gl.dll - no scaling
 			orig_glVertex2f(x, y);
 			break;
 			
@@ -149,192 +69,36 @@ void __stdcall my_glVertex2f_DrawFont_1(float x, float y) {
 		case FontCaller::LoadboxGetIndices:
 		case FontCaller::ServerboxDraw:
 		case FontCaller::TipRender:
-			// Menu elements - scale by screen_y_scale
+			if (scaleX) x = pivotx + (x - pivotx) * screen_y_scale;
+			if (scaleY) y = pivoty + (y - pivoty) * screen_y_scale;
 			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
 			break;
 #endif
 			
 		default:
-			// Unknown caller - no scaling
 			orig_glVertex2f(x, y);
 			break;
 	}
+	
+	if (incrementChar) characterIndex++;
+}
+
+void __stdcall my_glVertex2f_DrawFont_1(float x, float y) {
+	pivotx = x;
+	pivoty = y;
+	handleFontVertex(x, y, false, false, false);
 }
 
 void __stdcall my_glVertex2f_DrawFont_2(float x, float y) {
-	//top-right
-	// Skip scaling for team icons
-	if (isDrawingTeamicons) {
-		orig_glVertex2f(x, y);
-		return;
-	}
-
-	// Handle different caller contexts
-	FontCaller caller = getCurrentFontCaller();
-	switch (caller) {
-		case FontCaller::DMRankingCalcXY:
-		case FontCaller::Inventory2:
-			// HUD elements - scale by hudScale
-			x = pivotx + (x - pivotx) * hudScale;
-			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(hudScale-1), y);
-			break;
-			
-		case FontCaller::ScopeCalcXY:
-			// Scope text - no scaling
-			orig_glVertex2f(x, y);
-			break;
-			
-		case FontCaller::SCRDrawPause:
-		case FontCaller::SCRUpdateScreen:
-			// Screen overlays - scale by screen_y_scale
-			x = pivotx + (x - pivotx) * screen_y_scale;
-			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
-			break;
-			
-		case FontCaller::DrawLine:
-			// Draw_Line from ref_gl.dll - no scaling
-			orig_glVertex2f(x, y);
-			break;
-			
-#ifdef UI_MENU
-		case FontCaller::RectDrawTextItem:
-		case FontCaller::RectDrawTextLine:
-		case FontCaller::TickerDraw:
-		case FontCaller::InputHandle:
-		case FontCaller::FileboxHandle:
-		case FontCaller::LoadboxGetIndices:
-		case FontCaller::ServerboxDraw:
-		case FontCaller::TipRender:
-			// Menu elements - scale by screen_y_scale
-			x = pivotx + (x - pivotx) * screen_y_scale;
-			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
-			break;
-#endif
-			
-		default:
-			// Unknown caller - no scaling
-			orig_glVertex2f(x, y);
-			break;
-	}
+	handleFontVertex(x, y, true, false, false);
 }
 
 void __stdcall my_glVertex2f_DrawFont_3(float x, float y) {
-	//bottom-right
-	// Skip scaling for team icons
-	if (isDrawingTeamicons) {
-		orig_glVertex2f(x, y);
-		return;
-	}
-
-	// Handle different caller contexts
-	FontCaller caller = getCurrentFontCaller();
-	switch (caller) {
-		case FontCaller::DMRankingCalcXY:
-		case FontCaller::Inventory2:
-			// HUD elements - scale by hudScale
-			x = pivotx + (x - pivotx) * hudScale;
-			y = pivoty + (y - pivoty) * hudScale;
-			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(hudScale-1), y);
-			break;
-			
-		case FontCaller::ScopeCalcXY:
-			// Scope text - no scaling
-			orig_glVertex2f(x, y);
-			break;
-			
-		case FontCaller::SCRDrawPause:
-		case FontCaller::SCRUpdateScreen:
-			// Screen overlays - scale by screen_y_scale
-			x = pivotx + (x - pivotx) * screen_y_scale;
-			y = pivoty + (y - pivoty) * screen_y_scale;
-			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
-			break;
-			
-		case FontCaller::DrawLine:
-			// Draw_Line from ref_gl.dll - no scaling
-			orig_glVertex2f(x, y);
-			break;
-			
-#ifdef UI_MENU
-		case FontCaller::RectDrawTextItem:
-		case FontCaller::RectDrawTextLine:
-		case FontCaller::TickerDraw:
-		case FontCaller::InputHandle:
-		case FontCaller::FileboxHandle:
-		case FontCaller::LoadboxGetIndices:
-		case FontCaller::ServerboxDraw:
-		case FontCaller::TipRender:
-			// Menu elements - scale by screen_y_scale
-			x = pivotx + (x - pivotx) * screen_y_scale;
-			y = pivoty + (y - pivoty) * screen_y_scale;
-			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
-			break;
-#endif
-			
-		default:
-			// Unknown caller - no scaling
-			orig_glVertex2f(x, y);
-			break;
-	}
+	handleFontVertex(x, y, true, true, false);
 }
 
 void __stdcall my_glVertex2f_DrawFont_4(float x, float y) {
-	//bottom-left
-	// Skip scaling for team icons
-	if (isDrawingTeamicons) {
-		orig_glVertex2f(x, y);
-		return;
-	}
-
-	// Handle different caller contexts
-	FontCaller caller = getCurrentFontCaller();
-	switch (caller) {
-		case FontCaller::DMRankingCalcXY:
-		case FontCaller::Inventory2:
-			// HUD elements - scale by hudScale
-			y = pivoty + (y - pivoty) * hudScale;
-			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(hudScale-1), y);
-			break;
-			
-		case FontCaller::ScopeCalcXY:
-			// Scope text - no scaling
-			orig_glVertex2f(x, y);
-			break;
-			
-		case FontCaller::SCRDrawPause:
-		case FontCaller::SCRUpdateScreen:
-			// Screen overlays - scale by screen_y_scale
-			y = pivoty + (y - pivoty) * screen_y_scale;
-			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
-			break;
-			
-		case FontCaller::DrawLine:
-			// Draw_Line from ref_gl.dll - no scaling
-			orig_glVertex2f(x, y);
-			break;
-			
-#ifdef UI_MENU
-		case FontCaller::RectDrawTextItem:
-		case FontCaller::RectDrawTextLine:
-		case FontCaller::TickerDraw:
-		case FontCaller::InputHandle:
-		case FontCaller::FileboxHandle:
-		case FontCaller::LoadboxGetIndices:
-		case FontCaller::ServerboxDraw:
-		case FontCaller::TipRender:
-			// Menu elements - scale by screen_y_scale
-			y = pivoty + (y - pivoty) * screen_y_scale;
-			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
-			break;
-#endif
-			
-		default:
-			// Unknown caller - no scaling
-			orig_glVertex2f(x, y);
-			break;
-	}
-
-	characterIndex++;
+	handleFontVertex(x, y, false, true, true);
 }
 
 #ifdef UI_MENU
@@ -396,21 +160,21 @@ int hkR_StrHeight(char * fontStd)
 	0x30002a40 - Draw_Line
 */
 void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor) {
-	#if 1 // TEMP: RA logger for hkR_DrawFont
+    g_activeDrawCall = DrawRoutineType::Font;
+
+    FontCaller detectedCaller = FontCaller::Unknown;
     uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("R_DrawFont");
     if (fnStart) {
-        // Set caller context for inner glVertex calls
-        g_currentFontCaller = getFontCallerFromRva(fnStart);
-        // Example gating logic:
-        // if (fnStart == 0x000CEF00) { /* ... */ }
-    } else {
-        g_currentFontCaller = FontCaller::Unknown;
+        detectedCaller = getFontCallerFromRva(fnStart);
     }
-	#endif
-	// static bool wasHudDmRanking = false;
+    
+    if (g_currentFontCaller == FontCaller::Unknown && detectedCaller != FontCaller::Unknown) {
+        g_currentFontCaller = detectedCaller;
+    }
+	
 	realFont = getRealFontEnum((char*)(* (int * )(font + 4)));
 	
-	if (hudDmRanking) {
+	if (g_activeRenderType == uiRenderType::HudDmRanking) {
 		static bool scorePhase = true;
 
 		int fontWidth = 12;
@@ -468,7 +232,7 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 		*/
 		// wasHudDmRanking = true;
 	}
-	else if (hudInventoryAndAmmo) {
+	else if (g_activeRenderType == uiRenderType::HudInventory) {
 		//repositions/centers text in item and ammo HUD
 		if ( hudInventory_wasItem ) {
 			// The error here is a typo: 'test[0]' and 'test[1]' are used instead of 'text[0]' and 'text[1]'.
@@ -530,7 +294,12 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 	}
 	oR_DrawFont(screenX, screenY, text, colorPalette, font, rememberLastColor);
 
+	if (detectedCaller != FontCaller::Unknown) {
+		g_currentFontCaller = FontCaller::Unknown;
+	}
 	characterIndex = 0;
+	g_activeDrawCall = DrawRoutineType::None;
+
 }
 
 #endif // FEATURE_UI_SCALING

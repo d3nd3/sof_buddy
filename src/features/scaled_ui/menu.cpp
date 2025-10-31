@@ -9,14 +9,15 @@
 
     Active Hooks:
         my_rect_c_Parse
-        my_Draw_GetPicSize
+        my_Draw_GetPicSize (calls GL_FindImage under the hood)
 
         M_PushMenu
         my_R_Strlen
         my_R_StrHeight
         my_stm_c_ParseStm
-        Draw_Pic (Shared)
-        GL_FindImage (Shared)
+
+        Draw_Pic (Shared in hooks.cpp)
+        GL_FindImage (Shared in hooks.cpp)
 
     How does menu sizing work?
         By default the menus seem to go full width, but stretch too far down.
@@ -82,6 +83,9 @@ const char* get_nth_entry(const char* str, int n) {
 */
 void my_Draw_GetPicSize(int *w, int *h, char *pic)
 {
+    /*
+        We are targetting specific menu only items here for now.   
+    */
     // Split the pic string by '/' and check if the 3rd entry is "icons"
     if (pic != nullptr) {
         // 0-based: 2 is the 3rd entry
@@ -551,11 +555,8 @@ Repositions the slider with Draw_StretchPic
 We were double scaling this, because Draw_GetPicSize is being used for this. duh.
 */
 void __thiscall my_slider_c_Draw(void * self) {
-    extern bool menuSliderDraw;
-    menuSliderDraw = true;
     extern void (__thiscall *orig_slider_c_Draw)(void * self);
     orig_slider_c_Draw(self);
-    menuSliderDraw = false;
 }
 
 /*
@@ -563,23 +564,15 @@ Was going to try and scale the loadGame screenshots,
 but seems too hard atm. Disabled
 */
 void __thiscall my_loadbox_c_Draw(void * self) {
-    extern bool menuLoadboxDraw;
-    menuLoadboxDraw = true;
-    
     extern void (__thiscall *orig_loadbox_c_Draw)(void * self);
     orig_loadbox_c_Draw(self);
-    menuLoadboxDraw = false;
 }
 /*
 Disabled currently, but enables custom control of this object.
 */
 void __thiscall my_vbar_c_Draw(void * self) {
-    extern bool menuVerticalScrollDraw;
-    menuVerticalScrollDraw = true;
-   
     // extern void (__thiscall *orig_vbar_c_Draw)(void * self);
     // orig_vbar_c_Draw(self);
-    menuVerticalScrollDraw = false;
 }
 
 void __thiscall my_frame_c_Constructor(void* self, void * menu_c, char * width, char * height, void * frame_name)

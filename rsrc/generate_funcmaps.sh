@@ -7,16 +7,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-OUT_DIR_DEFAULT="$ROOT_DIR/sof_buddy/funcmaps"
+OUT_DIR_DEFAULT="$ROOT_DIR/rsrc/funcmaps"
 
 SOF_EXE_DEFAULT="$HOME/.wine/drive_c/users/dinda/Soldier of Fortune/SoF.exe"
 REF_GL_DLL_DEFAULT="$HOME/.wine/drive_c/users/dinda/Soldier of Fortune/ref_gl.dll"
 PLAYER_DLL_DEFAULT="$HOME/.wine/drive_c/users/dinda/Soldier of Fortune/Base/player.dll"
 GAMEX86_DLL_DEFAULT="$HOME/.wine/drive_c/users/dinda/Soldier of Fortune/Base/gamex86.dll"
+SPCL_DLL_DEFAULT="$HOME/.wine/drive_c/users/dinda/Soldier of Fortune/spcl.dll"
 
 usage() {
     cat <<EOF
-Usage: $(basename "$0") [out_dir] [SoF.exe] [ref_gl.dll] [player.dll] [gamex86.dll]
+Usage: $(basename "$0") [out_dir] [SoF.exe] [ref_gl.dll] [player.dll] [gamex86.dll] [spcl.dll]
 
 Defaults:
   out_dir     = $OUT_DIR_DEFAULT
@@ -24,10 +25,11 @@ Defaults:
   ref_gl.dll  = $REF_GL_DLL_DEFAULT
   player.dll  = $PLAYER_DLL_DEFAULT
   gamex86.dll = $GAMEX86_DLL_DEFAULT
+  spcl.dll    = $SPCL_DLL_DEFAULT
 
 Examples:
   $(basename "$0")
-  $(basename "$0") "$ROOT_DIR/sof_buddy/funcmaps" "$SOF_EXE_DEFAULT"
+  $(basename "$0") "$ROOT_DIR/rsrc/funcmaps" "$SOF_EXE_DEFAULT"
 EOF
 }
 
@@ -41,6 +43,7 @@ SOF_EXE="${2:-$SOF_EXE_DEFAULT}"
 REF_GL_DLL="${3:-$REF_GL_DLL_DEFAULT}"
 PLAYER_DLL="${4:-$PLAYER_DLL_DEFAULT}"
 GAMEX86_DLL="${5:-$GAMEX86_DLL_DEFAULT}"
+SPCL_DLL="${6:-$SPCL_DLL_DEFAULT}"
 
 echo "[funcmaps] Building generator..."
 make -C "$ROOT_DIR" --no-print-directory funcmap-gen
@@ -59,8 +62,9 @@ echo "  - $SOF_EXE"
 echo "  - $REF_GL_DLL"
 echo "  - $PLAYER_DLL"
 echo "  - $GAMEX86_DLL"
+echo "  - $SPCL_DLL"
 
-"$GEN_BIN" "$OUT_DIR" "$SOF_EXE" "$REF_GL_DLL" "$PLAYER_DLL" "$GAMEX86_DLL"
+"$GEN_BIN" "$OUT_DIR" "$SOF_EXE" "$REF_GL_DLL" "$PLAYER_DLL" "$GAMEX86_DLL" "$SPCL_DLL"
 
 echo "[funcmaps] Done. Generated files:"
 ls -1 "$OUT_DIR" | sed 's/^/  - /'

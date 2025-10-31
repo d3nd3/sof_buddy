@@ -1,0 +1,8 @@
+{
+  "child": "glVertex2f",
+  "parents": [
+    { "module": "ref_gl.dll", "fnStart": 6224, "fnStartHex": "0x00001850", "moduleBaseHex": "0x30000000", "absStartHex": "0x30001850" },
+    { "module": "ref_gl.dll", "fnStart": 7440, "fnStartHex": "0x00001D10", "moduleBaseHex": "0x30000000", "absStartHex": "0x30001d10" },
+    { "module": "ref_gl.dll", "fnStart": 10816, "fnStartHex": "0x00002A40", "moduleBaseHex": "0x30000000", "absStartHex": "0x30002a40" }
+  ]
+}

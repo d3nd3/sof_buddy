@@ -1,12 +1,20 @@
-// Lifecycle callback system for feature initialization
-// #include "../hdr/hook_manager.h"
+/*
+ * Lifecycle Management System
+ * 
+ * Coordinates feature initialization at specific SoF startup phases:
+ * - EarlyStartup: After DllMain, initializes exe/system hooks
+ * - PreCvarInit: After filesystem init, before CVars
+ * - PostCvarInit: After CVars ready, registers Buddy commands/CVars
+ * 
+ * Ensures proper initialization order and prevents race conditions.
+ */
+
 #include "shared_hook_manager.h"
 #include "feature_macro.h"
 #include "util.h"
 #include "sof_buddy.h"
 #include <windows.h>
 
-#include "simple_hook_init.h"
 #include "callsite_classifier.h"
 #include "version.h"
 #ifndef NDEBUG
@@ -197,10 +205,16 @@ void lifecycle_EarlyStartup(void)
     PrintOut(PRINT_LOG, "=== Lifecycle: Early Startup Phase ===\n");
     
     // Initialize system DLL hooks
-    InitializeSystemHooks();
+    PrintOut(PRINT_LOG, "=== Initializing system DLL hooks ===\n");
+    PrintOut(PRINT_LOG, "Found %zu system DLL hooks to apply\n", HookManager::Instance().GetHookCount(HookModule::Unknown));
+    HookManager::Instance().ApplySystemHooks();
+    PrintOut(PRINT_LOG, "=== system DLL hook initialization complete ===\n");
     
     // Initialize hooks targeting SoF.exe (0x200xxxxx addresses) only
-    InitializeExeHooks();
+    PrintOut(PRINT_LOG, "=== Initializing SoF.exe hooks ===\n");
+    PrintOut(PRINT_LOG, "Found %zu SoF.exe hooks to apply\n", HookManager::Instance().GetHookCount(HookModule::SofExe));
+    HookManager::Instance().ApplyExeHooks();
+    PrintOut(PRINT_LOG, "=== SoF.exe hook initialization complete ===\n");
     
     // Cmd_AddCommand is now hardcoded at 0x20019130
     PrintOut(PRINT_LOG, "Cmd_AddCommand hardcoded at 0x%p\n", orig_Cmd_AddCommand);

@@ -1,3 +1,13 @@
+/*
+ * Shared Hook Manager - Callback Coordination System
+ * 
+ * Allows multiple features to register callbacks for the same hooks.
+ * Executes callbacks in priority order with Pre/Post phase support.
+ * 
+ * Provides lifecycle hooks: EarlyStartup, PreCvarInit, PostCvarInit, RefDllLoaded, GameDllLoaded
+ * Prevents duplicate hooking and enables cooperative feature architecture.
+ */
+
 #include "shared_hook_manager.h"
 #include "util.h"
 #include <algorithm>

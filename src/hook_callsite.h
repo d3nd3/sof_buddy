@@ -50,6 +50,12 @@ inline bool classifyExternalCaller(CallerInfo &out) {
         for (int depth = 0; depth <= 8; ++depth) {
             void *ra = getReturnAddressAtDepth(depth);
             if (!ra) break;
+            if ((uintptr_t)ra < 0x10000) {
+                #if HOOKCALLSITE_DEBUG
+                PrintOut(PRINT_LOG, "HookCallsite: skipping invalid low ra-depth[%d]=0x%p\n", depth, ra);
+                #endif
+                continue;
+            }
             HMODULE h = nullptr;
             if (!GetModuleHandleExA(
                 GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
@@ -57,9 +63,10 @@ inline bool classifyExternalCaller(CallerInfo &out) {
                 reinterpret_cast<LPCSTR>(ra), &h)) {
                 continue;
             }
+            if (!h || (uintptr_t)h < 0x10000) continue;
             char modPath[MAX_PATH] = {0};
             const char *leaf = modPath;
-            if (GetModuleFileNameA(h, modPath, MAX_PATH)) {
+            if (h && GetModuleFileNameA(h, modPath, MAX_PATH)) {
                 const char *b1 = strrchr(modPath, '\\');
                 const char *b2 = strrchr(modPath, '/');
                 const char *last = (b1 && b2) ? (b1 > b2 ? b1 : b2) : (b1 ? b1 : b2);
@@ -72,7 +79,10 @@ inline bool classifyExternalCaller(CallerInfo &out) {
             #endif
             if (isSelf || isOurDllByName) continue;
             if (CallsiteClassifier::classify(ra, out) && out.module != Module::Unknown) {
-                return true;
+                // Ensure the function start exists for the resolved module; otherwise keep scanning
+                if (CallsiteClassifier::hasFunctionStart(out.module, (uint32_t)out.functionStartRva)) {
+                    return true;
+                }
             }
         }
     }
@@ -88,15 +98,23 @@ inline bool classifyExternalCaller(CallerInfo &out) {
         reinterpret_cast<LPCSTR>(&classifyExternalCaller),
         &self);
     for (USHORT i = 1; i < n; ++i) { // start at 1 to skip current frame
+        if (!frames[i]) continue;
+        if ((uintptr_t)frames[i] < 0x10000) {
+            #if HOOKCALLSITE_DEBUG
+            PrintOut(PRINT_LOG, "HookCallsite: skipping invalid low frame[%u]=0x%p\n", (unsigned)i, frames[i]);
+            #endif
+            continue;
+        }
         // Skip frames that belong to our own DLL
         HMODULE h = nullptr;
         if (GetModuleHandleExA(
             GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
             GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
             reinterpret_cast<LPCSTR>(frames[i]), &h)) {
+            if (!h || (uintptr_t)h < 0x10000) continue;
             char modPath[MAX_PATH] = {0};
             const char *leaf = modPath;
-            if (GetModuleFileNameA(h, modPath, MAX_PATH)) {
+            if (h && GetModuleFileNameA(h, modPath, MAX_PATH)) {
                 const char *b1 = strrchr(modPath, '\\');
                 const char *b2 = strrchr(modPath, '/');
                 const char *last = (b1 && b2) ? (b1 > b2 ? b1 : b2) : (b1 ? b1 : b2);
@@ -112,7 +130,9 @@ inline bool classifyExternalCaller(CallerInfo &out) {
             if (isSelf) continue;
         }
         if (CallsiteClassifier::classify(frames[i], out) && out.module != Module::Unknown) {
-            return true;
+            if (CallsiteClassifier::hasFunctionStart(out.module, (uint32_t)out.functionStartRva)) {
+                return true;
+            }
         }
     }
     // No fallback to self frames; return false if no external frame found
@@ -160,12 +180,14 @@ inline uint32_t recordAndGetFnStart(const char *childName) {
 
 // External caller version that also records
 inline uint32_t recordAndGetFnStartExternal(const char *childName) {
+    
     CallerInfo info{};
     if (!classifyExternalCaller(info)) return 0;
     #ifndef NDEBUG
     ParentRecorder::Instance().record(childName, info);
     #endif
     return info.functionStartRva;
+
 }
 
 }

@@ -14,6 +14,7 @@
 
 - 🔠 **Font Scaling** — Crisp, readable fonts at any resolution: `1x`, `2x`, `3x`, `4x`, etc.
 - 🖥️ **HUD Scaling** — Scale the HUD independently from the font for perfect UI balance.
+- 🎯 **Crosshair Scaling** — Scale crosshair textures independently for improved visibility.
 - 🎯 **Restored `cl_maxfps` in Singleplayer** — Enjoy smooth, uncapped framerates without legacy workarounds.
 - ⚡ **Stable Framerate & CPU Saver** — Uses `QueryPerformanceCounter` for precise timing and energy savings. New cvar: `_sofbuddy_sleep`.
 - 🖱️ **Raw Mouse Input** — Direct hardware input bypassing Windows acceleration. All original sensitivity cvars still work!
@@ -114,6 +115,7 @@
 | `_sofbuddy_high_priority` | 1 | Set process priority to HIGH (set to 0 for NORMAL) |
 | `_sofbuddy_font_scale` | 1 | Font scaling multiplier (1x, 2x, 3x, ...) |
 | `_sofbuddy_hud_scale` | 1 | HUD scaling multiplier |
+| `_sofbuddy_crossh_scale` | 1 | Crosshair scaling multiplier |
 | `_sofbuddy_console_size` | 0.35 | Console height as % of screen (0-1, 1=fullscreen) |
 | `_sofbuddy_sleep` | 1 | Enable CPU-saving sleep |
 | `_sofbuddy_sleep_jitter` | 0 | Frame squashing for missed frames (desperate use only) |

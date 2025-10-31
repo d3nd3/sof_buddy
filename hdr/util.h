@@ -2,6 +2,7 @@
 #define SOF_BUDDY_UTIL_H
 #include "sof_compat.h"
 #include <stddef.h>
+#include <stdint.h>
 
 #define PRINT_GOOD 1
 #define PRINT_BAD 2

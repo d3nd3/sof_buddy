@@ -1,0 +1,9 @@
+{
+  "child": "Draw_PicOptions",
+  "parents": [
+    { "module": "SoF.exe", "fnStart": 26080, "fnStartHex": "0x000065E0", "moduleBaseHex": "0x20000000", "absStartHex": "0x200065e0" },
+    { "module": "SoF.exe", "fnStart": 31472, "fnStartHex": "0x00007AF0", "moduleBaseHex": "0x20000000", "absStartHex": "0x20007af0" },
+    { "module": "SoF.exe", "fnStart": 89504, "fnStartHex": "0x00015DA0", "moduleBaseHex": "0x20000000", "absStartHex": "0x20015da0" },
+    { "module": "spcl.dll", "fnStart": 13344, "fnStartHex": "0x00003420", "moduleBaseHex": "0x06dc0000", "absStartHex": "0x06dc3420" }
+  ]
+}

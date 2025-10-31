@@ -26,37 +26,19 @@
 void hkCon_DrawConsole(float frac) {
 	extern float draw_con_frac;
 	extern int* cls_state;
-	
-	consoleBeingRendered = true;
 
-	//!( *cls_state != 1 && *cls_state != 8
+	g_activeRenderType = uiRenderType::Console;
+
 	if (frac == 0.5 && *cls_state == 8) {
-		//Console is half height thus we are connected to a server.
-
-		//Smaller frac means fewer lines (pixel-space); larger fontScale reduces visible lines
 		frac = consoleSize / fontScale;
-
-		//adjust consoleHeight for backgroundPic
 		draw_con_frac = consoleSize;
-
 	} else {
-		//While not in-game...
-		//adjust rows
-		//Essentially is frac = 1/fontScale, becasue fullscreen whilst disconnected.
-		
-		//frac is 0.5 here, when 'connecting' to server.
-
-		//Do not adjust the console size when not in-game.
 		draw_con_frac = frac;
-
-		//frac is 0.5 or 1.0 here.
 		frac = frac / fontScale;
 	}
 
-	//pass the modified frac to the original function
 	oCon_DrawConsole(frac);
-
-	consoleBeingRendered = false;
+	g_activeRenderType = uiRenderType::None;
 }
 /*
     _sofbuddy_font_scale
@@ -66,13 +48,12 @@ void hkCon_DrawNotify(void) {
 	real_refdef_width = current_vid_w;
 	*viddef_width = 1 / fontScale * current_vid_w;
 	
-	consoleBeingRendered = true;
-	//fixes the inconsistent alpha blending
+	g_activeRenderType = uiRenderType::Console;
 	orig_glDisable(GL_BLEND);
 	oCon_DrawNotify();
 	
-	consoleBeingRendered = false;
 	*viddef_width = real_refdef_width;
+	g_activeRenderType = uiRenderType::None;
 }
 /*
     _sofbuddy_font_scale

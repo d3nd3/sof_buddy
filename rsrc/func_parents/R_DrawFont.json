@@ -1,0 +1,18 @@
+{
+  "child": "R_DrawFont",
+  "parents": [
+    { "module": "SoF.exe", "fnStart": 28096, "fnStartHex": "0x00006DC0", "moduleBaseHex": "0x20000000", "absStartHex": "0x20006dc0" },
+    { "module": "SoF.exe", "fnStart": 31472, "fnStartHex": "0x00007AF0", "moduleBaseHex": "0x20000000", "absStartHex": "0x20007af0" },
+    { "module": "SoF.exe", "fnStart": 33376, "fnStartHex": "0x00008260", "moduleBaseHex": "0x20000000", "absStartHex": "0x20008260" },
+    { "module": "SoF.exe", "fnStart": 79632, "fnStartHex": "0x00013710", "moduleBaseHex": "0x20000000", "absStartHex": "0x20013710" },
+    { "module": "SoF.exe", "fnStart": 91072, "fnStartHex": "0x000163C0", "moduleBaseHex": "0x20000000", "absStartHex": "0x200163c0" },
+    { "module": "SoF.exe", "fnStart": 847040, "fnStartHex": "0x000CECC0", "moduleBaseHex": "0x20000000", "absStartHex": "0x200cecc0" },
+    { "module": "SoF.exe", "fnStart": 848096, "fnStartHex": "0x000CF0E0", "moduleBaseHex": "0x20000000", "absStartHex": "0x200cf0e0" },
+    { "module": "SoF.exe", "fnStart": 858608, "fnStartHex": "0x000D19F0", "moduleBaseHex": "0x20000000", "absStartHex": "0x200d19f0" },
+    { "module": "SoF.exe", "fnStart": 868448, "fnStartHex": "0x000D4060", "moduleBaseHex": "0x20000000", "absStartHex": "0x200d4060" },
+    { "module": "SoF.exe", "fnStart": 892800, "fnStartHex": "0x000D9F80", "moduleBaseHex": "0x20000000", "absStartHex": "0x200d9f80" },
+    { "module": "SoF.exe", "fnStart": 910384, "fnStartHex": "0x000DE430", "moduleBaseHex": "0x20000000", "absStartHex": "0x200de430" },
+    { "module": "SoF.exe", "fnStart": 960672, "fnStartHex": "0x000EA8A0", "moduleBaseHex": "0x20000000", "absStartHex": "0x200ea8a0" },
+    { "module": "ref_gl.dll", "fnStart": 10816, "fnStartHex": "0x00002A40", "moduleBaseHex": "0x30000000", "absStartHex": "0x30002a40" }
+  ]
+}

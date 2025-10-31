@@ -37,12 +37,17 @@
 
 #if FEATURE_UI_SCALING
 
+#include <stdint.h>
 #include "sof_compat.h"
 #include "features.h"
+#include "util.h"
+#include "shared_hook_manager.h"
+#include "feature_macro.h"
 #include "scaled_ui.h"
 
+#include "hook_callsite.h"
+
 #include <math.h>
-#include <stdint.h>
 #include <string.h>
 
 // HUD scaling function implementations
@@ -64,7 +69,21 @@ realFontEnum_t getRealFontEnum(const char* realFont) {
     - SCR_Crosshair()
 */
 void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int pal, char * name) {
-    if (hudDmRanking) {
+    
+    HookCallsite::recordAndGetFnStartExternal("Draw_PicOptions");
+    g_activeDrawCall = DrawRoutineType::PicOptions;
+    
+    {
+        uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("Draw_PicOptions");
+        if (fnStart) {
+            PicOptionsCaller detected = getPicOptionsCallerFromRva(fnStart);
+            if (g_currentPicOptionsCaller == PicOptionsCaller::Unknown && detected != PicOptionsCaller::Unknown) {
+                g_currentPicOptionsCaller = detected;
+            }
+        }
+    }
+
+    if (g_activeRenderType == uiRenderType::HudDmRanking) {
         float x_scale = static_cast<float>(current_vid_w) / 640.0f;
         int offsetEdge = 40; //36??
         if (hudDmRanking_wasImage) {
@@ -102,7 +121,7 @@ void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int pal, char
         // To help R_DrawFont know if teamIcon image was drawn.
         hudDmRanking_wasImage = true;
 
-    } else if (hudInventoryAndAmmo) {
+    } else if (g_activeRenderType == uiRenderType::HudInventory) {
         static bool secondDigit = false;
 
         // //Special Interface Font Wooo (also used in SoFPlus cl_showfps 2)
@@ -125,6 +144,9 @@ void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int pal, char
 
     extern void (*oDraw_PicOptions)(int, int, float, float, int, char*);
     oDraw_PicOptions(x, y, w_scale, h_scale, pal, name);
+
+    g_currentPicOptionsCaller = PicOptionsCaller::Unknown;
+    g_activeDrawCall = DrawRoutineType::None;
 }
 
 /*
@@ -133,7 +155,10 @@ void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int pal, char
     - cHealthArmour2::Draw() (HP bar, armour bar)
 */
 void hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, int palette, char * name) {
-    if (hudInventoryAndAmmo) {
+    
+    HookCallsite::recordAndGetFnStartExternal("Draw_CroppedPicOptions");
+    
+    if (g_activeRenderType == uiRenderType::HudInventory) {
         if (!strncmp(name, "pics/interface2/", 16)) {
 
             //starts with frame_
@@ -199,7 +224,7 @@ void hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, 
             //It doesnt' target +moveup, this is confusion in IDA, it is just negative offset from it.
             //Really pointing to the no_0 no_1 no_2 no_3 no_4 no_5 etc m32 files in pics/interface2/
         } //pics/interface2
-    } else if (hudHealthArmor) {
+    } else if (g_activeRenderType == uiRenderType::HudHealthArmor) {
         //@ 2560x1440 - TopLeft Corner is position Of image.
         //Cropped: X:1200 Y:1398 C1X:3 C1Y:2 C2X:158 C2Y:28 NAME:pics/interface2/frame_health
 
@@ -242,10 +267,10 @@ void __thiscall hkcInventory2_And_cGunAmmo2_Draw(void * self) {
     //This is the ammo (bottom right) and inventory (bottom left)
     // So positioned from left and bottom edge and right and bottom edge
 
-    hudInventoryAndAmmo = true;
+    g_activeRenderType = uiRenderType::HudInventory;
     extern void (__thiscall *ocInventory2_And_cGunAmmo2_Draw)(void * self);
     ocInventory2_And_cGunAmmo2_Draw(self);
-    hudInventoryAndAmmo = false;
+    g_activeRenderType = uiRenderType::None;
 
     if (hudInventory_wasItem) {
         hudInventory_wasItem = false;
@@ -264,10 +289,10 @@ void __thiscall hkcInventory2_And_cGunAmmo2_Draw(void * self) {
 void __thiscall hkcHealthArmor2_Draw(void * self) {
 
 
-    hudHealthArmor = true;
+    g_activeRenderType = uiRenderType::HudHealthArmor;
     extern void (__thiscall *ocHealthArmor2_Draw)(void * self);
     ocHealthArmor2_Draw(self);
-    hudHealthArmor = false;
+    g_activeRenderType = uiRenderType::None;
 }
 
 /*
@@ -281,10 +306,10 @@ void __thiscall hkcDMRanking_Draw(void * self) {
     // Top right of screen, your score and rank
     // So relative to top and right edge
 
-    hudDmRanking = true;
+    g_activeRenderType = uiRenderType::HudDmRanking;
     extern void (__thiscall *ocDMRanking_Draw)(void * self);
     ocDMRanking_Draw(self);
-    hudDmRanking = false;
+    g_activeRenderType = uiRenderType::None;
     hudDmRanking_wasImage = false;
 }
 
@@ -294,12 +319,10 @@ void __thiscall hkcDMRanking_Draw(void * self) {
         hkDraw_StretchPic()
 */
 void __thiscall hkcCtfFlag_Draw(void * self) {
-    hudStretchPic = true;
-    //Whether you are carrying the flag or the flag is missing.
-    //Top left of screen, so relative to top and left edge.
+    g_activeRenderType = uiRenderType::HudCtfFlag;
     extern void (__thiscall *ocCtfFlag_Draw)(void * self);
     ocCtfFlag_Draw(self);
-    hudStretchPic = false;
+    g_activeRenderType = uiRenderType::None;
 }
 
 /*
@@ -308,9 +331,9 @@ void __thiscall hkcCtfFlag_Draw(void * self) {
         hkglVertex2f() to scale+center the scoreboard
 */
 void hkSCR_ExecuteLayoutString(char * text) {
-    isDrawingScoreboard = true;
+    g_activeRenderType = uiRenderType::Scoreboard;
     oSCR_ExecuteLayoutString(text);
-    isDrawingScoreboard = false;
+    g_activeRenderType = uiRenderType::None;
 }
 
 void hudscale_change(cvar_t * cvar) {
