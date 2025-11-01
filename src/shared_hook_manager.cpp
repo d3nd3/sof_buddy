@@ -4,6 +4,14 @@
  * Allows multiple features to register callbacks for the same hooks.
  * Executes callbacks in priority order with Pre/Post phase support.
  * 
+ * We put all the initial hooks for shared hook into the dispatcher folder.
+ * Usage Flow:
+ * 1. Initial hook: Use REGISTER_HOOK/REGISTER_HOOK_VOID/REGISTER_HOOK_LEN/REGISTER_MODULE_HOOK
+ *    to install the detour on the target function.
+ * 2. Dispatch: Inside the hook function, call DISPATCH_SHARED_HOOK(hook_name, phase) to dispatch
+ *    to all registered callbacks.
+ * 3. Registration: Features use REGISTER_SHARED_HOOK_CALLBACK to register callbacks for the hook.
+ * 
  * Provides lifecycle hooks: EarlyStartup, PreCvarInit, PostCvarInit, RefDllLoaded, GameDllLoaded
  * Prevents duplicate hooking and enables cooperative feature architecture.
  */
@@ -51,6 +59,8 @@ void SharedHookManager::DispatchHook(const std::string& hook_name, SharedHookPha
     }
 }
 
+// Optional feature: Temporarily disable/enable specific feature callbacks at runtime.
+// Not currently used in the project, but available for debugging or dynamic hook management.
 void SharedHookManager::EnableCallback(const std::string& hook_name, const std::string& feature_name, bool enabled) {
     auto it = hook_callbacks.find(hook_name);
     if (it == hook_callbacks.end()) {

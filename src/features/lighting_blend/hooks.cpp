@@ -4,6 +4,8 @@
 	This feature allows customization of OpenGL blend modes used for lighting
 	in the ref.dll renderer. It patches memory locations in ref.dll that store
 	the source and destination blend factors for glBlendFunc().
+
+	*IMPORTANT* REQUIRES: gl_ext_multitexture 0
 */
 
 #include "feature_config.h"
@@ -49,18 +51,18 @@ static void lightblend_RefDllLoaded();
 void create_lightingblend_cvars(void);
 
 // Function pointer declarations
-static void (*orig_R_BlendLightmaps)(void) = nullptr;
 static void (__stdcall *real_glBlendFunc)(unsigned int, unsigned int) = nullptr;
 
 // Function declarations
-void my_R_BlendLightmaps(void);
 void __stdcall glBlendFunc_R_BlendLightmaps(unsigned int sfactor, unsigned int dfactor);
 void lightblend_change(cvar_t * cvar);
+void whiteraven_lighting_change(cvar_t * cvar);
 
 // CVar extern declarations
 extern cvar_t * _sofbuddy_whiteraven_lighting;
 extern cvar_t * _sofbuddy_lightblend_src;
 extern cvar_t * _sofbuddy_lightblend_dst;
+extern cvar_t * gl_ext_multitexture;
 
 // Hook registrations placed after function declarations for visibility
 REGISTER_SHARED_HOOK_CALLBACK(PostCvarInit, lighting_blend, lightblend_PostCvarInit, 50, Post);
@@ -151,12 +153,50 @@ static void lightblend_RefDllLoaded()
 
 
 /*
+	CVar change callback for _sofbuddy_whiteraven_lighting
+	
+	Called when _sofbuddy_whiteraven_lighting is changed.
+	This function is externally referenced in cvars.cpp.
+*/
+void whiteraven_lighting_change(cvar_t * cvar) {
+	static bool resetting = false;
+	if (resetting) return;
+	
+	if (gl_ext_multitexture && gl_ext_multitexture->value != 0.0f) {
+		PrintOut(PRINT_BAD, "lighting_blend: gl_ext_multitexture must be set to 0 before changing _sofbuddy_whiteraven_lighting.\n");
+		PrintOut(PRINT_BAD, "Please set gl_ext_multitexture to 0 first. And apply vid_restart\n");
+		resetting = true;
+		orig_Cvar_Set2(const_cast<char*>("_sofbuddy_whiteraven_lighting"), const_cast<char*>("0"), true);
+		resetting = false;
+		return;
+	}
+	
+	PrintOut(PRINT_LOG, "lighting_blend: CVar changed: %s\n", cvar->name);
+}
+
+/*
 	CVar change callback for lightblend cvars
 	
 	Called when _sofbuddy_lightblend_src or _sofbuddy_lightblend_dst cvars are changed.
 	This function is externally referenced in cvars.cpp.
 */
 void lightblend_change(cvar_t * cvar) {
+	static bool resetting = false;
+	if (resetting) return;
+	
+	if (gl_ext_multitexture && gl_ext_multitexture->value != 0.0f) {
+		PrintOut(PRINT_BAD, "lighting_blend: gl_ext_multitexture must be set to 0 before changing blend cvars.\n");
+		PrintOut(PRINT_BAD, "Please set gl_ext_multitexture to 0 first. And apply vid_restart\n");
+		resetting = true;
+		if (!strcmp(cvar->name, "_sofbuddy_lightblend_src")) {
+			orig_Cvar_Set2(const_cast<char*>("_sofbuddy_lightblend_src"), const_cast<char*>("GL_ZERO"), true);
+		} else if (!strcmp(cvar->name, "_sofbuddy_lightblend_dst")) {
+			orig_Cvar_Set2(const_cast<char*>("_sofbuddy_lightblend_dst"), const_cast<char*>("GL_SRC_COLOR"), true);
+		}
+		resetting = false;
+		return;
+	}
+	
 	PrintOut(PRINT_LOG, "lighting_blend: CVar changed: %s\n", cvar->name);
 	int value = cvar->value;
 	bool is_src = !strcmp(cvar->name, "_sofbuddy_lightblend_src");
@@ -198,7 +238,14 @@ void lightblend_change(cvar_t * cvar) {
 		                     "GL_ONE_MINUS_DST_ALPHA, GL_CONSTANT_COLOR, GL_ONE_MINUS_CONSTANT_COLOR, "
 		                     "GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA, GL_SRC_ALPHA_SATURATE\n",
 		                     cvar->string);
-		return;
+		
+		if (is_src) {
+			PrintOut(PRINT_GOOD, "Defaulting to src:GL_ZERO\n");
+			value = GL_ZERO;
+		} else {
+			PrintOut(PRINT_GOOD, "Defaulting to dst:GL_SRC_COLOR\n");
+			value = GL_SRC_COLOR;
+		}
 	}
 	
 	// Update the appropriate blend mode
@@ -209,16 +256,21 @@ void lightblend_change(cvar_t * cvar) {
 	}
 }
 
-volatile bool is_blending = false;
+bool is_blending = false;
+/*
+  This gets called when gl_ext_multitexture is 0.
+*/
 //Maybe blend is already active before calling R_BlendLightmaps (Nope, it is not.)
 void hkR_BlendLightmaps(void) {
 	// orig_Com_Printf("ComplexState is %i\n",((*(int*)0x300A46E0) & 0x01));
 
 	//required to trigger change mb?
 	if ( _sofbuddy_whiteraven_lighting->value == 1.0f ) {
+		PrintOut(PRINT_LOG, "Using WhiteMagicRaven lighting\n");
 		*lightblend_target_src = GL_DST_COLOR;
 		*lightblend_target_dst = GL_SRC_COLOR;
 	} else {
+		PrintOut(PRINT_LOG, "Using custom lighting\n");
 		*lightblend_target_src = lightblend_src;
 		*lightblend_target_dst = lightblend_dst;	
 	}
@@ -231,7 +283,9 @@ void hkR_BlendLightmaps(void) {
 }
 
 
-
+/*
+  This only gets called when gl_ext_multitexture is 0.
+*/
 // src = Incoming pixel Data (Light Data)
 // dest = Pixel Data in color Buffer (Texture Data)
 void __stdcall glBlendFunc_R_BlendLightmaps(unsigned int sfactor,unsigned int dfactor)
