@@ -9,19 +9,19 @@ ROOT = Path(__file__).resolve().parents[1]
 PARENTS_DIR = ROOT / 'rsrc' / 'func_parents'
 SCALED_UI_H = ROOT / 'src' / 'features' / 'scaled_ui' / 'scaled_ui.h'
 TEXT_CPP = ROOT / 'src' / 'features' / 'scaled_ui' / 'text.cpp'
-CALLER_FROM_H = ROOT / 'src' / 'features' / 'scaled_ui' / 'caller_from.h'
+CALLER_FROM_CPP = ROOT / 'src' / 'features' / 'scaled_ui' / 'caller_from.cpp'
 
 # Map child name -> (file, function name, keyed by module?)
 TARGETS = {
     # These are now module-aware; addresses live under Module::SofExe
-    'Draw_StretchPic': (CALLER_FROM_H, 'getStretchPicCallerFrom', True),
-    'Draw_Pic': (CALLER_FROM_H, 'getPicCallerFrom', True),
-    'Draw_PicOptions': (CALLER_FROM_H, 'getPicOptionsCallerFrom', True),
-    'Draw_CroppedPicOptions': (CALLER_FROM_H, 'getCroppedPicCallerFrom', True),
+    'Draw_StretchPic': (CALLER_FROM_CPP, 'getStretchPicCallerFrom', True),
+    'Draw_Pic': (CALLER_FROM_CPP, 'getPicCallerFrom', True),
+    'Draw_PicOptions': (CALLER_FROM_CPP, 'getPicOptionsCallerFrom', True),
+    'Draw_CroppedPicOptions': (CALLER_FROM_CPP, 'getCroppedPicCallerFrom', True),
     # Already module-aware
-    'GL_FindImage': (CALLER_FROM_H, 'getFindImageCallerFrom', True),
-    'glVertex2f': (CALLER_FROM_H, 'getVertexCallerFromRva', True),
-    'R_DrawFont': (CALLER_FROM_H, 'getFontCallerFrom', True),
+    'GL_FindImage': (CALLER_FROM_CPP, 'getFindImageCallerFrom', True),
+    'glVertex2f': (CALLER_FROM_CPP, 'getVertexCallerFromRva', True),
+    'R_DrawFont': (CALLER_FROM_CPP, 'getFontCallerFrom', True),
 }
 
 MODULE_ORDER = ['SoF.exe', 'ref_gl.dll', 'player.dll', 'gamex86.dll', 'spcl.dll']
@@ -244,7 +244,7 @@ def main(write: bool):
         child_to_rvas[child] = rvas
 
     # Validate
-    src = CALLER_FROM_H.read_text(encoding='utf-8')
+    src = CALLER_FROM_CPP.read_text(encoding='utf-8')
     problems = []
     for child, (file, func, module_aware) in TARGETS.items():
         rvas = child_to_rvas.get(child)
@@ -259,12 +259,14 @@ def main(write: bool):
             return 0
         print("Differences detected (by addresses only):")
         for item in problems:
-            child, scope, missing, extra = item
-            def fmt(lst):
-                return ", ".join(hex(r) for r in missing) if lst else "<none>"
-            miss_s = ", ".join(hex(r) for r in missing) if missing else "<none>"
-            extra_s = ", ".join(hex(r) for r in extra) if extra else "<none>"
-            print(f"  {child} [{scope}] missing: {miss_s} extra: {extra_s}")
+            if len(item) == 2:
+                child, scope = item
+                print(f"  {child} [{scope}]")
+            else:
+                child, scope, missing, extra = item
+                miss_s = ", ".join(hex(r) for r in missing) if missing else "<none>"
+                extra_s = ", ".join(hex(r) for r in extra) if extra else "<none>"
+                print(f"  {child} [{scope}] missing: {miss_s} extra: {extra_s}")
         return 0
 
     # If write, insert only missing addresses
@@ -362,7 +364,7 @@ def main(write: bool):
             updates.append(f"inserted {func} module cases (existing preserved)")
 
     if updates:
-        CALLER_FROM_H.write_text(su_src, encoding='utf-8')
+        CALLER_FROM_CPP.write_text(su_src, encoding='utf-8')
         print("Applied updates:\n" + "\n".join(updates))
     else:
         print("No changes needed after reconciliation")

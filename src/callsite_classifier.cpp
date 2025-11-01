@@ -34,7 +34,7 @@ static char g_mapsDir[512] = {0};
 struct ModuleRange { uintptr_t base; uintptr_t end; HMODULE h; bool valid; };
 static ModuleRange g_modRanges[6] = {0};
 
-static void cacheRangeFromHandle(Module m, HMODULE h) {
+static inline void cacheRangeFromHandle(Module m, HMODULE h) {
     if (!h) return;
     MODULEINFO mi = {0};
     if (!GetModuleInformation(GetCurrentProcess(), h, &mi, sizeof(mi))) return;
@@ -49,7 +49,7 @@ static inline bool addrInRange(uintptr_t addr, const ModuleRange &mr) {
     return mr.valid && addr >= mr.base && addr < mr.end;
 }
 
-Module identifyModuleFromHandle(HMODULE hmod) {
+inline Module identifyModuleFromHandle(HMODULE hmod) {
     if (!hmod) {
         PrintOut(PRINT_LOG, "identifyModuleFromHandle: invalid hmod=0x%p\n", hmod);
         return Module::Unknown;
@@ -79,7 +79,7 @@ Module identifyModuleFromHandle(HMODULE hmod) {
     return Module::Unknown;
 }
 
-static bool parseUintAfterKey(const char *line, const char *key, uint32_t &out) {
+static inline bool parseUintAfterKey(const char *line, const char *key, uint32_t &out) {
     const char *p = strstr(line, key);
     if (!p) return false;
     p += strlen(key);
@@ -93,7 +93,7 @@ static bool parseUintAfterKey(const char *line, const char *key, uint32_t &out) 
     return false;
 }
 
-static bool parseStringAfterKey(const char *line, const char *key, std::string &out) {
+static inline bool parseStringAfterKey(const char *line, const char *key, std::string &out) {
     const char *p = strstr(line, key);
     if (!p) return false;
     p += strlen(key);
@@ -107,7 +107,7 @@ static bool parseStringAfterKey(const char *line, const char *key, std::string &
     return true;
 }
 
-static const char* moduleJsonLeaf(Module m) {
+static inline const char* moduleJsonLeaf(Module m) {
     switch (m) {
         case Module::SofExe: return "SoF.exe.json";
         case Module::RefDll: return "ref_gl.dll.json";
@@ -118,7 +118,7 @@ static const char* moduleJsonLeaf(Module m) {
     }
 }
 
-static const char* moduleLeaf(Module m) {
+static inline const char* moduleLeaf(Module m) {
     switch (m) {
         case Module::SofExe:   return "SoF.exe";
         case Module::RefDll:   return "ref_gl.dll";
@@ -129,8 +129,13 @@ static const char* moduleLeaf(Module m) {
     }
 }
 
-static void ensureLoadedFor(Module m, const char *dir) {
-    ModuleMap &mm = g_maps[static_cast<int>(m)];
+static inline void ensureLoadedFor(Module m, const char *dir) {
+    int idx = static_cast<int>(m);
+    if (idx < 0 || idx >= 6) {
+        PrintOut(PRINT_BAD, "CallsiteClassifier: ERROR - Invalid module index %d\n", idx);
+        ExitProcess(1);
+    }
+    ModuleMap &mm = g_maps[idx];
     if (mm.loaded) return;
     const char *leaf = moduleJsonLeaf(m);
     if (!leaf) return;
@@ -159,11 +164,9 @@ static void ensureLoadedFor(Module m, const char *dir) {
         }
         if (!baseDir) baseDir = "sof_buddy/funcmaps"; // last resort
     }
-    PrintOut(PRINT_LOG, "CallsiteClassifier: ensureLoadedFor m=%d baseDir=%s leaf=%s\n", (int)m, baseDir, leaf);
     snprintf(path, sizeof(path), "%s/%s", baseDir, leaf);
     FILE *f = fopen(path, "rb");
     if (!f) {
-        // Try legacy fallback in place: switch baseDir to rsrc/funcmaps next to DLL
         char legacyDir[512] = {0};
         if (g_mapsDir[0] == '\0') {
             HMODULE self = nullptr;
@@ -183,11 +186,7 @@ static void ensureLoadedFor(Module m, const char *dir) {
         const char *fallbackDir = legacyDir[0] ? legacyDir : "rsrc/funcmaps";
         snprintf(path, sizeof(path), "%s/%s", fallbackDir, leaf);
         f = fopen(path, "rb");
-        if (!f) {
-            PrintOut(PRINT_LOG, "CallsiteClassifier: could not open map %s\n", path);
-            return;
-        }
-        PrintOut(PRINT_LOG, "CallsiteClassifier: loaded from legacy path %s\n", path);
+        if (!f) return;
     }
     char line[2048];
     uint32_t pendingRva = 0; bool haveRva = false; std::string pendingName;
@@ -206,8 +205,7 @@ static void ensureLoadedFor(Module m, const char *dir) {
     }
     fclose(f);
     std::sort(mm.functions.begin(), mm.functions.end(), [](const Func&a, const Func&b){ return a.rva < b.rva; });
-    PrintOut(PRINT_LOG, "CallsiteClassifier: loaded %u functions from %s\n", (unsigned)mm.functions.size(), path);
-    mm.loaded = true; // mark only after successful load
+    mm.loaded = true;
 }
 
 }
@@ -251,8 +249,6 @@ void CallsiteClassifier::initialize(const char *mapsDirectory) {
             }
         }
     }
-	PrintOut(PRINT_LOG, "CallsiteClassifier: mapsDir=%s\n", g_mapsDir[0] ? g_mapsDir : "<none>");
-	// Preload all known modules
 	ensureLoadedFor(Module::SofExe, g_mapsDir);
 	ensureLoadedFor(Module::RefDll, g_mapsDir);
 	ensureLoadedFor(Module::PlayerDll, g_mapsDir);
@@ -261,19 +257,12 @@ void CallsiteClassifier::initialize(const char *mapsDirectory) {
 }
 
 bool CallsiteClassifier::classify(void *returnAddress, CallerInfo &out) {
-	if (!returnAddress) return false;
-
-    if ((uintptr_t)returnAddress < 0x10000) {
-        PrintOut(PRINT_LOG, "CallsiteClassifier: skipping invalid low returnAddress=0x%p\n", returnAddress);
-        return false;
-    }
-
 	uintptr_t ra = (uintptr_t)returnAddress;
 
 	Module foundModule = Module::Unknown;
 	HMODULE mod = nullptr;
 	
-	static const int moduleOrder[] = {(int)Module::RefDll, (int)Module::GameDll, (int)Module::SofExe, (int)Module::PlayerDll, (int)Module::SpclDll};
+	static const int moduleOrder[] = {(int)Module::SofExe,(int)Module::RefDll, (int)Module::SpclDll,(int)Module::GameDll, (int)Module::PlayerDll};
 	for (int i = 0; i < 5; ++i) {
 		int m = moduleOrder[i];
 		ModuleRange &mr = g_modRanges[m];
@@ -281,11 +270,12 @@ bool CallsiteClassifier::classify(void *returnAddress, CallerInfo &out) {
 			foundModule = (Module)m;
 			mod = mr.h;
 			if (!mod) {
-				const char *leaf = moduleLeaf((Module)m);
-				if (leaf) mod = GetModuleHandleA(leaf);
-				if (mod) {
+				if (GetModuleHandleExA(
+					GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+					GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+					reinterpret_cast<LPCSTR>(returnAddress),
+					&mod)) {
 					mr.h = mod;
-					cacheRangeFromHandle((Module)m, mod);
 				}
 			}
 			break;
@@ -300,45 +290,51 @@ bool CallsiteClassifier::classify(void *returnAddress, CallerInfo &out) {
 			&mod)) {
 			return false;
 		}
-		foundModule = identifyModuleFromHandle(mod);
-		if (foundModule != Module::Unknown) {
-			cacheRangeFromHandle(foundModule, mod);
-			g_modRanges[(int)foundModule].h = mod;
+		for (int i = 0; i < 5; ++i) {
+			int m = moduleOrder[i];
+			if (g_modRanges[m].h == mod) {
+				foundModule = (Module)m;
+				break;
+			}
 		}
 	}
 
-	if (foundModule == Module::Unknown || !mod) return false;
+	if (foundModule == Module::Unknown || !mod) {
+		PrintOut(PRINT_BAD, "CallsiteClassifier: ERROR - Failed to classify returnAddress=0x%p\n", returnAddress);
+		ExitProcess(1);
+	}
+	
+	int modIdx = (int)foundModule;
 	out.module = foundModule;
-
-	uintptr_t base = g_modRanges[(int)foundModule].valid ? g_modRanges[(int)foundModule].base : (uintptr_t)mod;
+	uintptr_t base = g_modRanges[modIdx].valid ? g_modRanges[modIdx].base : (uintptr_t)mod;
 	uintptr_t rva  = ra - base;
 
-	ensureLoadedFor(out.module, nullptr);
 
 	out.rva = rva;
 	out.functionStartRva = 0;
 	out.name = nullptr;
-	const auto &funcs = g_maps[static_cast<int>(out.module)].functions;
+	const auto &funcs = g_maps[modIdx].functions;
 	if (!funcs.empty()) {
 		int lo = 0, hi = (int)funcs.size() - 1, best = -1;
 		uint32_t key = (rva > 0) ? (uint32_t)(rva - 1) : 0;
 		while (lo <= hi) {
 			int mid = (lo + hi) >> 1;
-			if (funcs[mid].rva <= key) { best = mid; lo = mid + 1; }
-			else { hi = mid - 1; }
+			if (funcs[mid].rva <= key) { 
+				best = mid; 
+				lo = mid + 1; 
+			} else { 
+				hi = mid - 1; 
+			}
 		}
 		if (best >= 0) {
 			out.functionStartRva = funcs[best].rva;
 			if (!funcs[best].name.empty()) out.name = funcs[best].name.c_str();
 		}
 	}
-	else {
-		PrintOut(PRINT_LOG, "CallsiteClassifier: no functions loaded for module=%d (rva=0x%08X)\n", (int)out.module, (unsigned)rva);
-	}
 	return true;
 }
 
-bool CallsiteClassifier::matchesNameOrRva(const CallerInfo &info, const char *name, uintptr_t rva) {
+inline bool CallsiteClassifier::matchesNameOrRva(const CallerInfo &info, const char *name, uintptr_t rva) {
 	if (name && info.name && strcmp(name, info.name) == 0) return true;
 	if (rva != 0 && info.rva == rva) return true;
 	return false;
@@ -347,8 +343,8 @@ bool CallsiteClassifier::matchesNameOrRva(const CallerInfo &info, const char *na
 
 bool CallsiteClassifier::hasFunctionStart(Module m, uint32_t fnStartRva) {
     if (m == Module::Unknown || fnStartRva == 0) return false;
-    ensureLoadedFor(m, nullptr);
-    const auto &funcs = g_maps[static_cast<int>(m)].functions;
+    int idx = static_cast<int>(m);
+    const auto &funcs = g_maps[idx].functions;
     if (funcs.empty()) return false;
     int lo = 0, hi = (int)funcs.size() - 1;
     while (lo <= hi) {

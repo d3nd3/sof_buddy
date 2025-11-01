@@ -32,6 +32,7 @@ static FontCaller g_currentFontCaller = FontCaller::Unknown;
 
 inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool incrementChar) {
 	if (isDrawingTeamicons) {
+		// Don't scale these for now.
 		orig_glVertex2f(x, y);
 		return;
 	}
@@ -40,6 +41,7 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 	switch (caller) {
 		case FontCaller::DMRankingCalcXY:
 		case FontCaller::Inventory2:
+			// PrintOut(PRINT_LOG, "DMRankingCalcXY or Inventory2\n");
 			if (scaleX) x = pivotx + (x - pivotx) * hudScale;
 			if (scaleY) y = pivoty + (y - pivoty) * hudScale;
 			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(hudScale-1), y);
@@ -171,7 +173,9 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
     if (g_currentFontCaller == FontCaller::Unknown && detectedCaller != FontCaller::Unknown) {
         g_currentFontCaller = detectedCaller;
     }
-	
+	// if ( detectedCaller == FontCaller::DMRankingCalcXY ) {
+	// 	PrintOut(PRINT_LOG, "detectedCaller: %d\n", (int)detectedCaller);
+	// }
 	realFont = getRealFontEnum((char*)(* (int * )(font + 4)));
 	
 	if (g_activeRenderType == uiRenderType::HudDmRanking) {

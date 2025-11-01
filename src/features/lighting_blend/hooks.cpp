@@ -39,8 +39,8 @@
 //defaults.
 static int lightblend_src = GL_ZERO;
 static int lightblend_dst = GL_SRC_COLOR;
-static int *lightblend_target_src;
-static int *lightblend_target_dst;
+static int *lightblend_target_src = nullptr;
+static int *lightblend_target_dst = nullptr;
 
 // Forward declarations
 static void lightblend_ApplySettings();
@@ -50,7 +50,7 @@ void create_lightingblend_cvars(void);
 
 // Function pointer declarations
 static void (*orig_R_BlendLightmaps)(void) = nullptr;
-static void (*real_glBlendFunc)(unsigned int, unsigned int) = nullptr;
+static void (__stdcall *real_glBlendFunc)(unsigned int, unsigned int) = nullptr;
 
 // Function declarations
 void my_R_BlendLightmaps(void);
@@ -125,7 +125,7 @@ static void lightblend_RefDllLoaded()
 	*/
 	
 
-	real_glBlendFunc = (void(*)(unsigned int, unsigned int))*(int*)rvaToAbsRef((void*)0x000A426C);
+	real_glBlendFunc = (void(__stdcall *)(unsigned int, unsigned int))*(int*)rvaToAbsRef((void*)0x000A426C);
 	WriteE8Call(rvaToAbsRef((void*)0x0001B9A4), (void*)&glBlendFunc_R_BlendLightmaps);
 	WriteByte(rvaToAbsRef((void*)0x0001B9A9), 0x90);
 	WriteE8Call(rvaToAbsRef((void*)0x0001B690), (void*)&glBlendFunc_R_BlendLightmaps);
@@ -209,7 +209,7 @@ void lightblend_change(cvar_t * cvar) {
 	}
 }
 
-bool is_blending = false;
+volatile bool is_blending = false;
 //Maybe blend is already active before calling R_BlendLightmaps (Nope, it is not.)
 void hkR_BlendLightmaps(void) {
 	// orig_Com_Printf("ComplexState is %i\n",((*(int*)0x300A46E0) & 0x01));
@@ -243,7 +243,9 @@ void __stdcall glBlendFunc_R_BlendLightmaps(unsigned int sfactor,unsigned int df
 	// real_glBlendFunc(GL_ZERO,GL_SRC_COLOR);
 	if ( is_blending ) { 
 		if ( _sofbuddy_whiteraven_lighting->value == 1.0f ) {
+			
 			real_glBlendFunc(GL_DST_COLOR,GL_SRC_COLOR);
+			
 		} else {
 			real_glBlendFunc(lightblend_src,lightblend_dst);
 		}
