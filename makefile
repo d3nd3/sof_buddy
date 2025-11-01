@@ -28,8 +28,8 @@ ifeq ($(BUILD),debug)
     CFLAGS = $(COMMON_CFLAGS) -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__
     TARGET_SUFFIX = 
 else
-    # We don't use optimizations as it crashes the game.
-    CFLAGS = $(COMMON_CFLAGS) -O0 -DNDEBUG
+    # With -fno-omit-frame-pointer, the game will not crash when using optimization.
+    CFLAGS = $(COMMON_CFLAGS) -O3 -fno-omit-frame-pointer -DNDEBUG
     TARGET_SUFFIX = 
 endif
 

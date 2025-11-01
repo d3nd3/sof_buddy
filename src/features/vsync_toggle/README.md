@@ -1,7 +1,8 @@
 # VSync Toggle Fix
 
 ## Overview
-Ensures that the `gl_swapinterval` cvar (vsync control) is properly applied when the video renderer changes, fixing vsync settings not taking effect after renderer reinitialization.
+Ensures that the `gl_swapinterval` cvar (vsync control) is properly applied when the video renderer changes, fixing vsync settings not taking effect after renderer reinitialization.  
+This bug is only noticeable when the user changes gl_swapinterval _AND_ the change is processed by R_BeginFrame, then sometime in the future a vid_restart or gl_mode change is performed.
 
 ## Problems Solved
 

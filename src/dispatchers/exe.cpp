@@ -73,6 +73,7 @@ REGISTER_HOOK_VOID(VID_CheckChanges, (void*)0x00670C0, SofExe, void, __cdecl) {
     if (!viddef_height) viddef_height = (int*)rvaToAbsExe((void*)0x00403660);
 
     DISPATCH_SHARED_HOOK(VID_CheckChanges, Pre);
+    
     oVID_CheckChanges();
     current_vid_w = *viddef_width;
 	current_vid_h = *viddef_height;

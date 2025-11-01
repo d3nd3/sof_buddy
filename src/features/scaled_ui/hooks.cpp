@@ -24,6 +24,7 @@
         the image, and it gets centered based on its size and position.
 */
 
+
 #include "feature_config.h"
 
 #if FEATURE_UI_SCALING
@@ -212,9 +213,12 @@ REGISTER_HOOK_LEN(R_DrawFont, (void*)0x000045B0, RefDll, 6, void, __cdecl, int s
     - vbar_c::Draw()
     - SCR_UpdateScreen->pics/monitor/monitor
 */
+// #pragma GCC push_options
+// #pragma GCC optimize ("O0")
 void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int flags) {
     g_activeDrawCall = DrawRoutineType::StretchPic;
     StretchPicCaller detectedCaller = StretchPicCaller::Unknown;
+
     uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("Draw_StretchPic");
     if (fnStart) {
         detectedCaller = getStretchPicCallerFromRva(fnStart);
@@ -252,6 +256,7 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
     g_activeDrawCall = DrawRoutineType::None;
 
 }
+// #pragma GCC pop_options
 
 // Shared Draw_Pic hook - used by menu scaling
 /*
@@ -261,6 +266,7 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
     - SCR_UpdateScreen->pics/console/net
     - backdrop_c::Draw() (For menu crosshair)
 */
+
 void hkDraw_Pic(int x, int y, char const * imgname, int palette) {
     g_activeDrawCall = DrawRoutineType::Pic;
     PicCaller detectedCaller = PicCaller::Unknown;
@@ -311,6 +317,7 @@ void hkDraw_Pic(int x, int y, char const * imgname, int palette) {
     Note: Filename format for crosshairs is "pics/menus/status/ch0" through "pics/menus/status/ch4"
     (no .m32 extension in the filename parameter).
 */
+
 void* hkGL_FindImage(char *filename, int imagetype, char mimap, char allowPicmip) {
 
     
@@ -609,6 +616,7 @@ Needed by:
 ===========================================================================
     
 */
+
 static inline void scaleVertexFromScreenCenter(float& x, float& y, float scale) {
     static int vertexCounter = 1;
     static float x_mid_offset;
@@ -701,12 +709,21 @@ void __stdcall hkglVertex2f(float x, float y) {
                                 static int vertexCounter = 1;
                                 static int startX;
                                 static int startY;
-                                if (vertexCounter == 1) { startX = x; startY = y; }
-                                if (vertexCounter > 1 && vertexCounter < 4) x = startX + DrawPicWidth;
-                                if (vertexCounter > 2) y = startY + DrawPicHeight;
+                                if (vertexCounter == 1) {
+                                    startX = x;
+                                    startY = y;
+                                }
+                                if (vertexCounter > 1 && vertexCounter < 4)
+                                    x = startX + DrawPicWidth;
+                                if (vertexCounter > 2)
+                                    y = startY + DrawPicHeight;
                                 orig_glVertex2f(x, y);
                                 vertexCounter++;
-                                if (vertexCounter > 4) { vertexCounter = 1; DrawPicWidth = 0; DrawPicHeight = 0; }
+                                if (vertexCounter > 4) { 
+                                    vertexCounter = 1;
+                                    DrawPicWidth = 0;
+                                    DrawPicHeight = 0;
+                                }
                                 return;
                             } else {
                                 // Scale from center of image
@@ -715,6 +732,7 @@ void __stdcall hkglVertex2f(float x, float y) {
                                     DrawPic (Wrapper)
                                 */
                                 if (g_currentPicCaller != PicCaller::DrawPicWrapper) {
+                                    break;
                                     scaleVertexFromCenter(x, y, hudScale);
                                     return;
                                 }
@@ -778,6 +796,7 @@ static void scaledUI_EarlyStartup(void)
     PrintOut(PRINT_LOG, "scaled_ui: All hooks registered automatically\n");
     PrintOut(PRINT_LOG, "scaled_ui: Early startup complete\n");
 }
+
 
 static void scaledUI_RefDllLoaded(void)
 {
