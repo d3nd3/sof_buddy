@@ -27,7 +27,7 @@ static char* hkSys_GetClipboardData(void);
 static void console_protection_EarlyStartup(void);
 
 // Original function pointer
-char *(*oSys_GetClipboardData)(void) = (char*(*)(void))rvaToAbsExe((void*)0x00065E60);
+char *(*oSys_GetClipboardData)(void) = nullptr;
 
 // Using paletteRGBA_s from sof_compat.h
 
@@ -167,7 +167,8 @@ static void console_protection_EarlyStartup(void)
 	PrintOut(PRINT_LOG, "Console Protection: Applying security patches...\n");
 
 	//=================== CONSOLE BUG FIXING =========================
-
+	oSys_GetClipboardData = (char*(*)(void))rvaToAbsExe((void*)0x00065E60);
+	
 	//PASTING INTO CONSOLE CRASH/OVERFLOW
 	WriteE8Call(rvaToAbsExe((void*)0x0004BB63), (void*)&hkSys_GetClipboardData);
 	WriteE9Jmp(rvaToAbsExe((void*)0x0004BB6C), rvaToAbsExe((void*)0x0004BBFE));

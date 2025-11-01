@@ -29,12 +29,14 @@ static void new_system_bug_InitDefaults(void);
 HMODULE __stdcall new_sys_bug_LoadLibraryRef(LPCSTR lpLibFileName);
 
 // Function pointer initialization
-HMODULE (__stdcall *orig_LoadLibraryA)(LPCSTR lpLibFileName) = (HMODULE (__stdcall *)(LPCSTR))*(unsigned int*)rvaToAbsExe((void*)0x00111178);
+HMODULE (__stdcall *orig_LoadLibraryA)(LPCSTR lpLibFileName) = nullptr;
 
 REGISTER_SHARED_HOOK_CALLBACK(EarlyStartup, new_system_bug, new_system_bug_EarlyStartup, 60, Post);
 
 static void new_system_bug_EarlyStartup(void)
 {
+	orig_LoadLibraryA = (HMODULE (__stdcall *)(LPCSTR))*(unsigned int*)rvaToAbsExe((void*)0x00111178);
+	
 	PrintOut(PRINT_LOG, "New System Bug Fix: Early startup - applying defaults\n");
 	WriteE8Call(rvaToAbsExe((void*)0x00066E75), (void*)&new_sys_bug_LoadLibraryRef);
 	WriteByte(rvaToAbsExe((void*)0x00066E7A), 0x90);

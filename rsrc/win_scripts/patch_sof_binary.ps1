@@ -24,7 +24,7 @@ Write-Output "Linking SoF.exe to $($args[0])"
 
 # Get the script directory using a compatible method
 $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$binaryFilePath = "$scriptDirectory\SoF.exe"
+$binaryFilePath = Join-Path (Split-Path -Parent $scriptDirectory) "SoF.exe"
 
 
 # Check if the .exe file exists

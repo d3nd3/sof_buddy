@@ -181,7 +181,7 @@ qboolean hkCbuf_AddLateCommands(void)
     PrintOut(PRINT_LOG, "Registering _sofbuddy_version cvar...\n");
     cvar_t* version_cvar = orig_Cvar_Get("_sofbuddy_version", SOFBUDDY_VERSION, CVAR_ARCHIVE | CVAR_NOSET, NULL);
     if (version_cvar) {
-        orig_Cvar_Set2("_sofbuddy_version", const_cast<char*>(SOFBUDDY_VERSION), true);
+        orig_Cvar_Set2(const_cast<char*>("_sofbuddy_version"), const_cast<char*>(SOFBUDDY_VERSION), true);
     }
     PrintOut(PRINT_LOG, "Registered _sofbuddy_version cvar with value: %s\n", SOFBUDDY_VERSION);
     
@@ -224,6 +224,8 @@ void lifecycle_EarlyStartup(void)
 
     // Initialize caller classification maps (prefer sof_buddy/funcmaps, legacy fallback is internal)
     CallsiteClassifier::initialize("sof_buddy/funcmaps");
+    
+    PrintOut(PRINT_LOG, "=== Caller classification maps initialized ===\n");
 
     #ifndef NDEBUG
     // Initialize ParentRecorder output directory (sof_buddy/func_parents) - debug builds only

@@ -28,6 +28,8 @@
 #include <dbghelp.h>
 
 #include "DetourXS/detourxs.h"
+#include "callsite_classifier.h"
+#include "hook_callsite.h"
 
 #include "sof_buddy.h"
 #include "sof_compat.h"
@@ -35,6 +37,7 @@
 #include "util.h"
 #include "crc32.h"
 #include "parent_recorder.h"
+#include "callsite_classifier.h"
 
 // Vectored exception handler pointer
 static PVOID g_vectored_handler = NULL;
@@ -1177,6 +1180,16 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 				wsock_link();
 			}
 
+			// Cache modules that are already loaded at DLL startup
+			// SoF.exe is always loaded, sof_buddy.dll is us
+			CallsiteClassifier::cacheModuleLoaded(Module::SofExe);
+			HookCallsite::cacheSelfModule();
+			
+			// Cache spcl.dll if it was loaded (o_sofplus)
+			if (o_sofplus) {
+				CallsiteClassifier::cacheModuleLoaded(Module::SpclDll);
+			}
+			
 			PrintOut(PRINT_LOG,"Before lifecycle_EarlyStartup()\n");
 			lifecycle_EarlyStartup();
 			//CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)sofbuddy_thread,NULL,0,NULL);

@@ -23,6 +23,9 @@
     _sofbuddy_font_scale
     How much of the console covers the screen.
 */
+
+// #pragma GCC push_options
+// #pragma GCC optimize ("O0")
 void hkCon_DrawConsole(float frac) {
 	extern float draw_con_frac;
 	extern int* cls_state;
@@ -40,6 +43,7 @@ void hkCon_DrawConsole(float frac) {
 	oCon_DrawConsole(frac);
 	g_activeRenderType = uiRenderType::None;
 }
+// #pragma GCC pop_options
 /*
     _sofbuddy_font_scale
     The last 4 lines of console that appears at the top of the screen in-game.
@@ -98,6 +102,7 @@ void consolesize_change(cvar_t * cvar) {
 }
 
 /*
+	This is the 2d info above in-game players
     Hook for SCR_DrawPlayerInfo() to set isDrawingTeamicons flag
     This prevents font scaling for team icons
 */

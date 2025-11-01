@@ -22,12 +22,12 @@ double fovfix_y = 78.6;
 float teamviewFovAngle = 95;
 
 // Engine addresses
-static float* engine_fovY = (float*)0x3008FD00;
-static float* engine_fovX = (float*)0x3008FCFC;
-static unsigned int* realHeight = (unsigned int*)0x3008FFC8;
-static unsigned int* virtualHeight = (unsigned int*)0x3008FCF8;
-static int* icon_min_y = (int*)0x20225ED4;
-static int* icon_height = (int*)0x20225EDC;
+static float* engine_fovY = nullptr;
+static float* engine_fovX = nullptr;
+static unsigned int* realHeight = nullptr;
+static unsigned int* virtualHeight = nullptr;
+static int* icon_min_y = nullptr;
+static int* icon_height = nullptr;
 
 // Function declarations for inline assembly intercept
 extern "C" int TeamIconInterceptFix(void);
@@ -113,6 +113,13 @@ extern "C" int TeamIconInterceptFix(void)
 // Apply ref.dll-dependent memory patches when ref.dll is loaded
 static void teamicons_offset_RefDllLoaded() {
     PrintOut(PRINT_LOG, "TeamIcons Offset: Initializing widescreen fixes...\n");
+
+    engine_fovY = (float*)rvaToAbsRef((void*)0x0008FD00);
+    engine_fovX = (float*)rvaToAbsRef((void*)0x0008FCFC);
+    realHeight = (unsigned int*)rvaToAbsRef((void*)0x0008FFC8);
+    virtualHeight = (unsigned int*)rvaToAbsRef((void*)0x0008FCF8);
+    icon_min_y = (int*)rvaToAbsExe((void*)0x00225ED4);
+    icon_height = (int*)rvaToAbsExe((void*)0x00225EDC);
 
     // Patch FOV multiplier references
     writeUnsignedIntegerAt(rvaToAbsRef((void*)0x0000313F), (unsigned int)&fovfix_x);
