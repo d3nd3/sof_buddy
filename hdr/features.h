@@ -32,7 +32,8 @@ extern void refFixes_early(void);
 extern void refFixes_cvars_init(void);
 extern cvar_t * _sofbuddy_lightblend_src;
 extern cvar_t * _sofbuddy_lightblend_dst;
-extern cvar_t * _sofbuddy_whiteraven_lighting;
+extern cvar_t * _sofbuddy_lighting_overbright;
+extern cvar_t * _sofbuddy_lighting_cutoff;
 
 // Scaled Font feature
 extern void create_scaled_ui_cvars(void);

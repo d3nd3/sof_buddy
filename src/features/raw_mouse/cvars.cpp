@@ -12,7 +12,8 @@ cvar_t * in_mouse_raw = NULL;
 extern void raw_mouse_on_change(cvar_t *cvar);
 
 void create_raw_mouse_cvars(void) {
-    in_mouse_raw = orig_Cvar_Get("_sofbuddy_rawmouse", "1", CVAR_ARCHIVE, &raw_mouse_on_change);
+    //experimental - requires more testing on windows to confirm works well
+    in_mouse_raw = orig_Cvar_Get("_sofbuddy_rawmouse", "0", CVAR_ARCHIVE, &raw_mouse_on_change);
     
     PrintOut(PRINT_LOG, "raw_mouse: Registered _sofbuddy_rawmouse cvar with change callback\n");
 }

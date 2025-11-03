@@ -43,6 +43,9 @@ static int lightblend_src = GL_ZERO;
 static int lightblend_dst = GL_SRC_COLOR;
 static int *lightblend_target_src = nullptr;
 static int *lightblend_target_dst = nullptr;
+static float *lighting_cutoff_target = nullptr;
+static double *water_size_double_target = nullptr;
+static float *water_size_float_target = nullptr;
 
 // Forward declarations
 static void lightblend_ApplySettings();
@@ -56,10 +59,14 @@ static void (__stdcall *real_glBlendFunc)(unsigned int, unsigned int) = nullptr;
 // Function declarations
 void __stdcall glBlendFunc_R_BlendLightmaps(unsigned int sfactor, unsigned int dfactor);
 void lightblend_change(cvar_t * cvar);
-void whiteraven_lighting_change(cvar_t * cvar);
+void lighting_overbright_change(cvar_t * cvar);
+void lighting_cutoff_change(cvar_t * cvar);
+void water_size_change(cvar_t * cvar);
 
 // CVar extern declarations
-extern cvar_t * _sofbuddy_whiteraven_lighting;
+extern cvar_t * _sofbuddy_lighting_overbright;
+extern cvar_t * _sofbuddy_lighting_cutoff;
+extern cvar_t * _sofbuddy_water_size;
 extern cvar_t * _sofbuddy_lightblend_src;
 extern cvar_t * _sofbuddy_lightblend_dst;
 extern cvar_t * gl_ext_multitexture;
@@ -95,6 +102,18 @@ static void lightblend_RefDllLoaded()
 
 	lightblend_target_src = (int*)rvaToAbsRef((void*)0x000A4610);
 	lightblend_target_dst = (int*)rvaToAbsRef((void*)0x000A43FC);
+	lighting_cutoff_target = (float*)rvaToAbsRef((void*)0x2C368);
+	water_size_double_target = (double*)rvaToAbsRef((void*)0x2C390);
+	water_size_float_target = (float*)rvaToAbsRef((void*)0x2C398);
+	
+	if (lighting_cutoff_target && _sofbuddy_lighting_cutoff) {
+		*lighting_cutoff_target = _sofbuddy_lighting_cutoff->value;
+	}
+	
+	if (water_size_double_target && water_size_float_target && _sofbuddy_water_size) {
+		*water_size_double_target = (double)_sofbuddy_water_size->value;
+		*water_size_float_target = 1.0f / _sofbuddy_water_size->value;
+	}
 
 	/*
 		Lighting Improrvement gl_ext_multitexture 1
@@ -153,25 +172,57 @@ static void lightblend_RefDllLoaded()
 
 
 /*
-	CVar change callback for _sofbuddy_whiteraven_lighting
+	CVar change callback for _sofbuddy_lighting_overbright
 	
-	Called when _sofbuddy_whiteraven_lighting is changed.
+	Called when _sofbuddy_lighting_overbright is changed.
 	This function is externally referenced in cvars.cpp.
 */
-void whiteraven_lighting_change(cvar_t * cvar) {
-	static bool resetting = false;
-	if (resetting) return;
-	
+void lighting_overbright_change(cvar_t * cvar) {
 	if (gl_ext_multitexture && gl_ext_multitexture->value != 0.0f) {
-		PrintOut(PRINT_BAD, "lighting_blend: gl_ext_multitexture must be set to 0 before changing _sofbuddy_whiteraven_lighting.\n");
-		PrintOut(PRINT_BAD, "Please set gl_ext_multitexture to 0 first. And apply vid_restart\n");
-		resetting = true;
-		orig_Cvar_Set2(const_cast<char*>("_sofbuddy_whiteraven_lighting"), const_cast<char*>("0"), true);
-		resetting = false;
-		return;
+		orig_Cvar_Set2(const_cast<char*>("gl_ext_multitexture"), const_cast<char*>("0"), true);
+		cvar_t * vid_ref = findCvar(const_cast<char*>("vid_ref"));
+		if (vid_ref) vid_ref->modified = true;
+		PrintOut(PRINT_GOOD, "lighting_blend: Set gl_ext_multitexture to 0 and flagged vid_ref for restart.\n");
 	}
 	
 	PrintOut(PRINT_LOG, "lighting_blend: CVar changed: %s\n", cvar->name);
+}
+
+/*
+	CVar change callback for _sofbuddy_lighting_cutoff
+	
+	Called when _sofbuddy_lighting_cutoff is changed.
+	Writes to ref_gl address 0x2C368 as float*.
+	This function is externally referenced in cvars.cpp.
+*/
+void lighting_cutoff_change(cvar_t * cvar) {
+	if (lighting_cutoff_target) {
+		*lighting_cutoff_target = cvar->value;
+		PrintOut(PRINT_LOG, "lighting_blend: Set lighting cutoff to %f\n", cvar->value);
+	} else {
+		PrintOut(PRINT_BAD, "lighting_blend: lighting_cutoff_target not initialized (ref_gl not loaded)\n");
+	}
+}
+
+/*
+	CVar change callback for _sofbuddy_water_size
+	
+	Called when _sofbuddy_water_size is changed.
+	Writes double to ref_gl address 0x2C390 and float to 0x2C398.
+	This function is externally referenced in cvars.cpp.
+*/
+void water_size_change(cvar_t * cvar) {
+	if (water_size_double_target && water_size_float_target) {
+		if (cvar->value == 0.0f) {
+			PrintOut(PRINT_BAD, "lighting_blend: water_size cannot be 0 (division by zero)\n");
+			return;
+		}
+		*water_size_double_target = (double)cvar->value;
+		*water_size_float_target = 1.0f / cvar->value;
+		PrintOut(PRINT_LOG, "lighting_blend: Set water_size to %f (double=0x2C390, float=0x2C398)\n", cvar->value);
+	} else {
+		PrintOut(PRINT_BAD, "lighting_blend: water_size targets not initialized (ref_gl not loaded)\n");
+	}
 }
 
 /*
@@ -181,20 +232,11 @@ void whiteraven_lighting_change(cvar_t * cvar) {
 	This function is externally referenced in cvars.cpp.
 */
 void lightblend_change(cvar_t * cvar) {
-	static bool resetting = false;
-	if (resetting) return;
-	
 	if (gl_ext_multitexture && gl_ext_multitexture->value != 0.0f) {
-		PrintOut(PRINT_BAD, "lighting_blend: gl_ext_multitexture must be set to 0 before changing blend cvars.\n");
-		PrintOut(PRINT_BAD, "Please set gl_ext_multitexture to 0 first. And apply vid_restart\n");
-		resetting = true;
-		if (!strcmp(cvar->name, "_sofbuddy_lightblend_src")) {
-			orig_Cvar_Set2(const_cast<char*>("_sofbuddy_lightblend_src"), const_cast<char*>("GL_ZERO"), true);
-		} else if (!strcmp(cvar->name, "_sofbuddy_lightblend_dst")) {
-			orig_Cvar_Set2(const_cast<char*>("_sofbuddy_lightblend_dst"), const_cast<char*>("GL_SRC_COLOR"), true);
-		}
-		resetting = false;
-		return;
+		orig_Cvar_Set2(const_cast<char*>("gl_ext_multitexture"), const_cast<char*>("0"), true);
+		cvar_t * vid_ref = findCvar(const_cast<char*>("vid_ref"));
+		if (vid_ref) vid_ref->modified = true;
+		PrintOut(PRINT_GOOD, "lighting_blend: Set gl_ext_multitexture to 0 and flagged vid_ref for restart.\n");
 	}
 	
 	PrintOut(PRINT_LOG, "lighting_blend: CVar changed: %s\n", cvar->name);
@@ -264,9 +306,8 @@ bool is_blending = false;
 void hkR_BlendLightmaps(void) {
 	// orig_Com_Printf("ComplexState is %i\n",((*(int*)0x300A46E0) & 0x01));
 
-	//required to trigger change mb?
-	if ( _sofbuddy_whiteraven_lighting->value == 1.0f ) {
-		PrintOut(PRINT_LOG, "Using WhiteMagicRaven lighting\n");
+	if ( _sofbuddy_lighting_overbright->value == 1.0f ) {
+		PrintOut(PRINT_LOG, "Using overbright lighting\n");
 		*lightblend_target_src = GL_DST_COLOR;
 		*lightblend_target_dst = GL_SRC_COLOR;
 	} else {
@@ -296,7 +337,7 @@ void __stdcall glBlendFunc_R_BlendLightmaps(unsigned int sfactor,unsigned int df
 	// Default
 	// real_glBlendFunc(GL_ZERO,GL_SRC_COLOR);
 	if ( is_blending ) { 
-		if ( _sofbuddy_whiteraven_lighting->value == 1.0f ) {
+		if ( _sofbuddy_lighting_overbright->value == 1.0f ) {
 			
 			real_glBlendFunc(GL_DST_COLOR,GL_SRC_COLOR);
 			
