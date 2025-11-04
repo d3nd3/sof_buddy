@@ -154,6 +154,22 @@ void writeIntegerAt(void * addr, int value)
 	VirtualProtect(addr, 4, dwProt, &dwProt);
 }
 
+void writeFloatAt(void * addr, float value)
+{
+    DWORD dwProt=0;
+	VirtualProtect(addr, sizeof(float), PAGE_READWRITE, &dwProt);
+	*(float*)(addr) = value;
+	VirtualProtect(addr, sizeof(float), dwProt, &dwProt);
+}
+
+void writeDoubleAt(void * addr, double value)
+{
+    DWORD dwProt=0;
+	VirtualProtect(addr, sizeof(double), PAGE_READWRITE, &dwProt);
+	*(double*)(addr) = value;
+	VirtualProtect(addr, sizeof(double), dwProt, &dwProt);
+}
+
 void WriteE8Call(void * where,void * dest)
 {
     DWORD dwProt=0;

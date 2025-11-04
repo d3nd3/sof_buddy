@@ -36,6 +36,7 @@ REGISTER_SHARED_HOOK_CALLBACK(EarlyStartup, new_system_bug, new_system_bug_Early
 static void new_system_bug_EarlyStartup(void)
 {
 	orig_LoadLibraryA = (HMODULE (__stdcall *)(LPCSTR))*(unsigned int*)rvaToAbsExe((void*)0x00111178);
+	orig_Cmd_ExecuteString = (void(*)(const char*))rvaToAbsExe((void*)0x194F0);
 	
 	PrintOut(PRINT_LOG, "New System Bug Fix: Early startup - applying defaults\n");
 	WriteE8Call(rvaToAbsExe((void*)0x00066E75), (void*)&new_sys_bug_LoadLibraryRef);

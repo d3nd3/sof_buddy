@@ -127,11 +127,11 @@
 | `_sofbuddy_minfilter_ui` | — | Texture filtering |
 | `_sofbuddy_magfilter_ui` | — | Texture filtering |
 | `_sofbuddy_lighting_overbright` | 0 | Enable overbright lighting (1 = on) |
-| `_sofbuddy_lighting_cutoff` | 0 | Lighting cutoff value (float) |
-| `_sofbuddy_water_size` | 1 | Water warp subdivision |
+| `_sofbuddy_lighting_cutoff` | 64 | Lighting cutoff value (float) |
+| `_sofbuddy_water_size` | 64 | warp polygon size - energy swirl frequency (polygonsize smaller=faster) (minimum: 16) |
 | `_sofbuddy_lightblend_dst` | GL_SRC_COLOR | Lightmap blend func (see OpenGL docs) |
 | `_sofbuddy_lightblend_src` | GL_ZERO | Lightmap blend func (see OpenGL docs) |
-| `_sofbuddy_rawmouse` | 1 | Enable raw mouse input (1 = on, bypasses Windows acceleration) |
+| `_sofbuddy_rawmouse` | 0 | Enable raw mouse input (1 = on, bypasses Windows acceleration) |
 
 - See [OpenGL glBlendFunc docs](https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glBlendFunc.xhtml) for blend values.
 - If `_sofbuddy_lighting_overbright` is enabled, it overrides blend cvars.

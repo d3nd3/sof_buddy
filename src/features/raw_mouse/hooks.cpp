@@ -105,8 +105,8 @@ BOOL __stdcall hkSetCursorPos(int X, int Y)
     
     window_center.x = X;
     window_center.y = Y;
-    
-    return TRUE;
+    //recenter anyway, to ensure window mode stays in center helps with focus issues.
+    return oSetCursorPos(X, Y);
 }
 
 static void ProcessRawInput(LPARAM lParam)

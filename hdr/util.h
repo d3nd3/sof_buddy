@@ -57,6 +57,8 @@ void PrintOut(int mode, const char *msg, ...);
 
 void writeUnsignedIntegerAt(void * addr, unsigned int value);
 void writeIntegerAt(void * addr, int value);
+void writeFloatAt(void * addr, float value);
+void writeDoubleAt(void * addr, double value);
 void WriteE8Call(void * where,void * dest);
 void WriteE9Jmp(void * where, void * dest);
 void WriteByte(void * where, unsigned char value);

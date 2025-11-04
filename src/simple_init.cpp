@@ -219,6 +219,8 @@ void lifecycle_EarlyStartup(void)
     // Cmd_AddCommand is now hardcoded at 0x20019130
     PrintOut(PRINT_LOG, "Cmd_AddCommand hardcoded at 0x%p\n", orig_Cmd_AddCommand);
     
+    
+    
     // Dispatch to all features registered for early startup
     DISPATCH_SHARED_HOOK(EarlyStartup, Post);
 

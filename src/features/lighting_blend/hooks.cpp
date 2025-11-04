@@ -107,12 +107,12 @@ static void lightblend_RefDllLoaded()
 	water_size_float_target = (float*)rvaToAbsRef((void*)0x2C398);
 	
 	if (lighting_cutoff_target && _sofbuddy_lighting_cutoff) {
-		*lighting_cutoff_target = _sofbuddy_lighting_cutoff->value;
+		writeFloatAt(lighting_cutoff_target, _sofbuddy_lighting_cutoff->value);
 	}
 	
-	if (water_size_double_target && water_size_float_target && _sofbuddy_water_size) {
-		*water_size_double_target = (double)_sofbuddy_water_size->value;
-		*water_size_float_target = 1.0f / _sofbuddy_water_size->value;
+	if (water_size_double_target && water_size_float_target && _sofbuddy_water_size && _sofbuddy_water_size->value >= 16.0f) {
+		writeDoubleAt(water_size_double_target, (double)_sofbuddy_water_size->value);
+		writeFloatAt(water_size_float_target, 1.0f / _sofbuddy_water_size->value);
 	}
 
 	/*
@@ -197,7 +197,7 @@ void lighting_overbright_change(cvar_t * cvar) {
 */
 void lighting_cutoff_change(cvar_t * cvar) {
 	if (lighting_cutoff_target) {
-		*lighting_cutoff_target = cvar->value;
+		writeFloatAt(lighting_cutoff_target, cvar->value);
 		PrintOut(PRINT_LOG, "lighting_blend: Set lighting cutoff to %f\n", cvar->value);
 	} else {
 		PrintOut(PRINT_BAD, "lighting_blend: lighting_cutoff_target not initialized (ref_gl not loaded)\n");
@@ -215,10 +215,16 @@ void water_size_change(cvar_t * cvar) {
 	if (water_size_double_target && water_size_float_target) {
 		if (cvar->value == 0.0f) {
 			PrintOut(PRINT_BAD, "lighting_blend: water_size cannot be 0 (division by zero)\n");
+			orig_Cvar_Set2(const_cast<char*>("_sofbuddy_water_size"), const_cast<char*>("16"), true);
 			return;
 		}
-		*water_size_double_target = (double)cvar->value;
-		*water_size_float_target = 1.0f / cvar->value;
+		if (cvar->value < 16.0f) {
+			PrintOut(PRINT_BAD, "lighting_blend: water_size must be at least 16 (got %f)\n", cvar->value);
+			orig_Cvar_Set2(const_cast<char*>("_sofbuddy_water_size"), const_cast<char*>("16"), true);
+			return;
+		}
+		writeDoubleAt(water_size_double_target, (double)cvar->value);
+		writeFloatAt(water_size_float_target, 1.0f / cvar->value);
 		PrintOut(PRINT_LOG, "lighting_blend: Set water_size to %f (double=0x2C390, float=0x2C398)\n", cvar->value);
 	} else {
 		PrintOut(PRINT_BAD, "lighting_blend: water_size targets not initialized (ref_gl not loaded)\n");
