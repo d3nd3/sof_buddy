@@ -23,6 +23,10 @@ INC = -I$(IDIR) -I$(SDIR)
 COMMON_CFLAGS = -D_WIN32_WINNT=0x0501 -std=c++17
 LIBS = -lws2_32 -lwinmm -lshlwapi -lpsapi -ldbghelp
 
+# Detect number of CPU cores for parallel builds
+JOBS := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
+MAKEFLAGS += -j$(JOBS)
+
 # Build configurations
 ifeq ($(BUILD),debug)
     CFLAGS = $(COMMON_CFLAGS) -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__

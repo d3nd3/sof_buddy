@@ -131,6 +131,7 @@
 | `_sofbuddy_water_size` | 64 | warp polygon size - energy swirl frequency (polygonsize smaller=faster) (minimum: 16) |
 | `_sofbuddy_lightblend_dst` | GL_SRC_COLOR | Lightmap blend func (see OpenGL docs) |
 | `_sofbuddy_lightblend_src` | GL_ZERO | Lightmap blend func (see OpenGL docs) |
+| `_sofbuddy_shiny_spherical` | 1 | should shiny gl_detailtexturing change with viewangles? |
 | `_sofbuddy_rawmouse` | 0 | Enable raw mouse input (1 = on, bypasses Windows acceleration) |
 
 - See [OpenGL glBlendFunc docs](https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glBlendFunc.xhtml) for blend values.

@@ -20,6 +20,7 @@ cvar_t * _sofbuddy_lighting_cutoff = NULL;
 cvar_t * _sofbuddy_water_size = NULL;
 cvar_t * _sofbuddy_lightblend_src = NULL;
 cvar_t * _sofbuddy_lightblend_dst = NULL;
+cvar_t * _sofbuddy_shiny_spherical = NULL;
 cvar_t * gl_ext_multitexture = NULL;
 
 // Forward declaration of change callbacks (defined in hooks.cpp)
@@ -27,6 +28,7 @@ extern void lightblend_change(cvar_t * cvar);
 extern void lighting_overbright_change(cvar_t * cvar);
 extern void lighting_cutoff_change(cvar_t * cvar);
 extern void water_size_change(cvar_t * cvar);
+extern void shiny_spherical_change(cvar_t * cvar);
 
 /*
 	Create and register all lighting_blend cvars
@@ -38,6 +40,7 @@ void create_lightingblend_cvars(void) {
 	
 	_sofbuddy_lightblend_src = orig_Cvar_Get("_sofbuddy_lightblend_src","GL_ZERO",CVAR_ARCHIVE,&lightblend_change);
 	_sofbuddy_lightblend_dst = orig_Cvar_Get("_sofbuddy_lightblend_dst","GL_SRC_COLOR",CVAR_ARCHIVE,&lightblend_change);
+	_sofbuddy_shiny_spherical = orig_Cvar_Get("_sofbuddy_shiny_spherical","1",CVAR_ARCHIVE,&shiny_spherical_change);
 	gl_ext_multitexture = orig_Cvar_Get("gl_ext_multitexture","1",CVAR_ARCHIVE,NULL);
 }
 

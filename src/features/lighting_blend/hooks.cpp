@@ -46,6 +46,7 @@ static int *lightblend_target_dst = nullptr;
 static float *lighting_cutoff_target = nullptr;
 static double *water_size_double_target = nullptr;
 static float *water_size_float_target = nullptr;
+static unsigned char *shiny_spherical_target = nullptr;
 
 // Forward declarations
 static void lightblend_ApplySettings();
@@ -62,6 +63,7 @@ void lightblend_change(cvar_t * cvar);
 void lighting_overbright_change(cvar_t * cvar);
 void lighting_cutoff_change(cvar_t * cvar);
 void water_size_change(cvar_t * cvar);
+void shiny_spherical_change(cvar_t * cvar);
 
 // CVar extern declarations
 extern cvar_t * _sofbuddy_lighting_overbright;
@@ -69,6 +71,7 @@ extern cvar_t * _sofbuddy_lighting_cutoff;
 extern cvar_t * _sofbuddy_water_size;
 extern cvar_t * _sofbuddy_lightblend_src;
 extern cvar_t * _sofbuddy_lightblend_dst;
+extern cvar_t * _sofbuddy_shiny_spherical;
 extern cvar_t * gl_ext_multitexture;
 
 // Hook registrations placed after function declarations for visibility
@@ -105,6 +108,7 @@ static void lightblend_RefDllLoaded()
 	lighting_cutoff_target = (float*)rvaToAbsRef((void*)0x2C368);
 	water_size_double_target = (double*)rvaToAbsRef((void*)0x2C390);
 	water_size_float_target = (float*)rvaToAbsRef((void*)0x2C398);
+	shiny_spherical_target = (unsigned char*)rvaToAbsRef((void*)0x14814);
 	
 	if (lighting_cutoff_target && _sofbuddy_lighting_cutoff) {
 		writeFloatAt(lighting_cutoff_target, _sofbuddy_lighting_cutoff->value);
@@ -113,6 +117,11 @@ static void lightblend_RefDllLoaded()
 	if (water_size_double_target && water_size_float_target && _sofbuddy_water_size && _sofbuddy_water_size->value >= 16.0f) {
 		writeDoubleAt(water_size_double_target, (double)_sofbuddy_water_size->value);
 		writeFloatAt(water_size_float_target, 1.0f / _sofbuddy_water_size->value);
+	}
+	
+	if (shiny_spherical_target && _sofbuddy_shiny_spherical) {
+		unsigned char value = _sofbuddy_shiny_spherical->value == 0.0f ? 0xEB : 0x74;
+		WriteByte(shiny_spherical_target, value);
 	}
 
 	/*
@@ -228,6 +237,23 @@ void water_size_change(cvar_t * cvar) {
 		PrintOut(PRINT_LOG, "lighting_blend: Set water_size to %f (double=0x2C390, float=0x2C398)\n", cvar->value);
 	} else {
 		PrintOut(PRINT_BAD, "lighting_blend: water_size targets not initialized (ref_gl not loaded)\n");
+	}
+}
+
+/*
+	CVar change callback for _sofbuddy_shiny_spherical
+	
+	Called when _sofbuddy_shiny_spherical is changed.
+	Writes byte to ref_gl address 0x14814.
+	This function is externally referenced in cvars.cpp.
+*/
+void shiny_spherical_change(cvar_t * cvar) {
+	if (shiny_spherical_target) {
+		unsigned char value = cvar->value == 0.0f ? 0xEB : 0x74;
+		WriteByte(shiny_spherical_target, value);
+		PrintOut(PRINT_LOG, "lighting_blend: Set shiny_spherical to %d (wrote 0x%02X to 0x14814)\n", (int)cvar->value, value);
+	} else {
+		PrintOut(PRINT_BAD, "lighting_blend: shiny_spherical_target not initialized (ref_gl not loaded)\n");
 	}
 }
 
