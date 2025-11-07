@@ -3,6 +3,9 @@
 #include "sof_compat.h"
 #include <stddef.h>
 #include <stdint.h>
+#ifdef __cplusplus
+#include <utility>
+#endif
 
 #define PRINT_GOOD 1
 #define PRINT_BAD 2
@@ -53,7 +56,26 @@
 #define P_LBROWN   	"\036"
 #define P_ORANGE   	"\037"
 
+#ifdef __cplusplus
+#ifdef __LOGGING__
+inline constexpr bool enable_debug_logging = true;
+#else
+inline constexpr bool enable_debug_logging = false;
+#endif
+void PrintOutImpl(int mode, const char *msg, ...);
+template<typename... Args>
+inline void PrintOut(int mode, const char *msg, Args&&... args) {
+    if constexpr (enable_debug_logging) {
+        PrintOutImpl(mode, msg, std::forward<Args>(args)...);
+    } else {
+        if (mode == PRINT_GOOD || mode == PRINT_BAD) {
+            PrintOutImpl(mode, msg, std::forward<Args>(args)...);
+        }
+    }
+}
+#else
 void PrintOut(int mode, const char *msg, ...);
+#endif
 
 void writeUnsignedIntegerAt(void * addr, unsigned int value);
 void writeIntegerAt(void * addr, int value);

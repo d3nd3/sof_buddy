@@ -43,6 +43,24 @@
 static PVOID g_vectored_handler = NULL;
 static bool g_dbghelp_initialized = false;
 
+// Function pointers for dynamically loaded vectored exception handlers (XP SP1+)
+typedef LONG (WINAPI *PVECTORED_EXCEPTION_HANDLER_t)(PEXCEPTION_POINTERS);
+typedef PVOID (WINAPI *AddVectoredExceptionHandler_t)(ULONG, PVECTORED_EXCEPTION_HANDLER_t);
+typedef ULONG (WINAPI *RemoveVectoredExceptionHandler_t)(PVOID);
+static AddVectoredExceptionHandler_t pAddVectoredExceptionHandler = NULL;
+static RemoveVectoredExceptionHandler_t pRemoveVectoredExceptionHandler = NULL;
+static bool g_vectored_handlers_available = false;
+
+static void load_vectored_exception_handlers(void) {
+	if (g_vectored_handlers_available) return;
+	HMODULE hKernel32 = GetModuleHandleA("kernel32.dll");
+	if (hKernel32) {
+		pAddVectoredExceptionHandler = (AddVectoredExceptionHandler_t)GetProcAddress(hKernel32, "AddVectoredExceptionHandler");
+		pRemoveVectoredExceptionHandler = (RemoveVectoredExceptionHandler_t)GetProcAddress(hKernel32, "RemoveVectoredExceptionHandler");
+		g_vectored_handlers_available = (pAddVectoredExceptionHandler != NULL && pRemoveVectoredExceptionHandler != NULL);
+	}
+}
+
 // Capture and print a simple stack backtrace (addresses + resolved symbols when possible)
 static void print_stack_backtrace(PEXCEPTION_POINTERS pExceptionInfo)
 {
@@ -1082,17 +1100,18 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 	{
 		DisableThreadLibraryCalls(hInstance);
 
-		// Register vectored exception handler to catch access violations early
-
-		if (g_vectored_handler == NULL) {
-			g_vectored_handler = AddVectoredExceptionHandler(1, vectored_exception_handler);
+		load_vectored_exception_handlers();
+		if (g_vectored_handlers_available && g_vectored_handler == NULL) {
+			g_vectored_handler = pAddVectoredExceptionHandler(1, vectored_exception_handler);
 			PrintOut(PRINT_LOG, "Registered vectored exception handler: %p\n", g_vectored_handler);
+		} else if (!g_vectored_handlers_available) {
+			PrintOut(PRINT_LOG, "Vectored exception handlers not available (requires XP SP1+)\n");
 		}
 
 		// Initialize dbghelp for symbol resolution
 		if (!g_dbghelp_initialized) {
 			if (SymInitialize(GetCurrentProcess(), NULL, TRUE)) {
-				SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS);
+				SymSetOptions(SYMOPT_UNDNAME);
 				g_dbghelp_initialized = true;
 				PrintOut(PRINT_LOG, "DbgHelp initialized\n");
 			} else {
@@ -1203,9 +1222,8 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 		ParentRecorder::Instance().flushAll();
 		#endif
 		//FreeLibrary(o_sofplus);
-		// Remove vectored exception handler if we registered one
-		if (g_vectored_handler != NULL) {
-			RemoveVectoredExceptionHandler(g_vectored_handler);
+		if (g_vectored_handler != NULL && g_vectored_handlers_available && pRemoveVectoredExceptionHandler != NULL) {
+			pRemoveVectoredExceptionHandler(g_vectored_handler);
 			PrintOut(PRINT_LOG, "Removed vectored exception handler: %p\n", g_vectored_handler);
 			g_vectored_handler = NULL;
 		}

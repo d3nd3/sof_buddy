@@ -16,7 +16,7 @@ void (*orig_Cmd_ExecuteString)(const char * string);
 
 FILE * go_logfile = NULL;
 
-void PrintOut(int mode, const char *msg,...)
+void PrintOutImpl(int mode, const char *msg,...)
 {
 	char ac_buf[1464];
 	char ac_tmp[1400];
