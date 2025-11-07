@@ -3,9 +3,6 @@
 #include "sof_compat.h"
 #include <stddef.h>
 #include <stdint.h>
-#ifdef __cplusplus
-#include <utility>
-#endif
 
 #define PRINT_GOOD 1
 #define PRINT_BAD 2
@@ -57,23 +54,6 @@
 #define P_ORANGE   	"\037"
 
 void PrintOutImpl(int mode, const char *msg, ...);
-#ifdef __cplusplus
-#ifdef __LOGGING__
-template<typename... Args>
-inline void PrintOut(int mode, const char *msg, Args&&... args) {
-    PrintOutImpl(mode, msg, std::forward<Args>(args)...);
-}
-#else
-template<typename... Args>
-inline void PrintOut(int mode, const char *msg, Args&&... args) {
-    if (mode == PRINT_GOOD || mode == PRINT_BAD) {
-        PrintOutImpl(mode, msg, std::forward<Args>(args)...);
-    } else {
-        do { } while(0);
-    }
-}
-#endif
-#else
 #ifdef __LOGGING__
 #define PrintOut(mode, msg, ...) PrintOutImpl(mode, msg, ##__VA_ARGS__)
 #else
@@ -83,7 +63,6 @@ inline void PrintOut(int mode, const char *msg, Args&&... args) {
     else \
         do { } while(0); \
 } while(0)
-#endif
 #endif
 
 void writeUnsignedIntegerAt(void * addr, unsigned int value);
