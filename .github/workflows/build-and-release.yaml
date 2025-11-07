@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Install Dependencies
         run: |
+          sed -i 's|http://archive.ubuntu.com/ubuntu|http://old-releases.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+          sed -i 's|http://security.ubuntu.com/ubuntu|http://old-releases.ubuntu.com/ubuntu|g' /etc/apt/sources.list
           apt-get update
           apt-get install -y git build-essential g++-mingw-w64-i686 mingw-w64-i686-dev zip
           i686-w64-mingw32-g++-posix --version || (echo "Compiler not found" && exit 1)
