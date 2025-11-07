@@ -20,7 +20,7 @@ HOSTCFLAGS = -std=c++17 -O2
 # Compiler settings
 CC = i686-w64-mingw32-g++-posix
 INC = -I$(IDIR) -I$(SDIR)
-COMMON_CFLAGS = -D_WIN32_WINNT=0x0501 -std=c++17
+COMMON_CFLAGS = -D_WIN32_WINNT=0x0501 -std=c++14
 LIBS = -lws2_32 -lwinmm -lshlwapi -lpsapi -ldbghelp
 
 # Detect number of CPU cores for parallel builds

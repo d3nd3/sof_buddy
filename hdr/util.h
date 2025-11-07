@@ -56,25 +56,34 @@
 #define P_LBROWN   	"\036"
 #define P_ORANGE   	"\037"
 
+void PrintOutImpl(int mode, const char *msg, ...);
 #ifdef __cplusplus
 #ifdef __LOGGING__
-inline constexpr bool enable_debug_logging = true;
-#else
-inline constexpr bool enable_debug_logging = false;
-#endif
-void PrintOutImpl(int mode, const char *msg, ...);
 template<typename... Args>
 inline void PrintOut(int mode, const char *msg, Args&&... args) {
-    if constexpr (enable_debug_logging) {
-        PrintOutImpl(mode, msg, std::forward<Args>(args)...);
-    } else {
-        if (mode == PRINT_GOOD || mode == PRINT_BAD) {
-            PrintOutImpl(mode, msg, std::forward<Args>(args)...);
-        }
-    }
+    PrintOutImpl(mode, msg, std::forward<Args>(args)...);
 }
 #else
-void PrintOut(int mode, const char *msg, ...);
+template<typename... Args>
+inline void PrintOut(int mode, const char *msg, Args&&... args) {
+    if (mode == PRINT_GOOD || mode == PRINT_BAD) {
+        PrintOutImpl(mode, msg, std::forward<Args>(args)...);
+    } else {
+        do { } while(0);
+    }
+}
+#endif
+#else
+#ifdef __LOGGING__
+#define PrintOut(mode, msg, ...) PrintOutImpl(mode, msg, ##__VA_ARGS__)
+#else
+#define PrintOut(mode, msg, ...) do { \
+    if (mode == PRINT_GOOD || mode == PRINT_BAD) \
+        PrintOutImpl(mode, msg, ##__VA_ARGS__); \
+    else \
+        do { } while(0); \
+} while(0)
+#endif
 #endif
 
 void writeUnsignedIntegerAt(void * addr, unsigned int value);
