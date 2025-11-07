@@ -14,17 +14,14 @@ jobs:
 
     # Define the container to use for this job's steps
     container:
-      # Use the official Ubuntu 24.04 LTS image from Docker Hub
-      image: ubuntu:24.04
+      image: ubuntu:24.10
 
     steps:
-      # The base ubuntu:24.04 image is minimal. We need to install all
-      # necessary tools first, including git for the checkout action.
-      # The container runs as root, so 'sudo' is not needed.
       - name: Install Dependencies
         run: |
           apt-get update
-          apt-get install -y git build-essential g++-mingw-w64-i686 zip
+          apt-get install -y git build-essential g++-mingw-w64-i686 mingw-w64-i686-dev zip
+          i686-w64-mingw32-g++-posix --version || (echo "Compiler not found" && exit 1)
 
       - name: Checkout Repository
         uses: actions/checkout@v4

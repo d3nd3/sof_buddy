@@ -2,23 +2,6 @@
 #ifndef SOF_COMPAT_H
 #define SOF_COMPAT_H
 
-#ifdef _WIN32
-#include <stdint.h>
-#ifndef ULONGLONG
-typedef uint64_t ULONGLONG;
-#endif
-#ifndef WINAPI
-#define WINAPI __stdcall
-#endif
-#ifdef __cplusplus
-extern "C" {
-#endif
-ULONGLONG WINAPI GetTickCount64(void);
-#ifdef __cplusplus
-}
-#endif
-#endif
-
 typedef unsigned char 		byte;
 typedef unsigned short 		word;
 typedef int					qboolean;
