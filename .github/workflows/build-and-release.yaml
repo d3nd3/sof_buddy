@@ -59,6 +59,14 @@ jobs:
           cp rsrc/lin_scripts/enable_*.sh sof_buddy/
           cp rsrc/lin_scripts/patch_sof_binary.sh sof_buddy/
           zip -r release_linux_wine.zip sof_buddy.dll sof_buddy/
+          
+          make clean
+          make BUILD=xp
+          rm -f sof_buddy/*.sh
+          cp rsrc/win_scripts/enable_*.cmd sof_buddy/
+          cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
+          cp bin/sof_buddy.dll sof_buddy.dll
+          zip -r release_windows_xp.zip sof_buddy.dll sof_buddy/
         # The working-directory is not strictly necessary here as it's the default, but it's good for clarity.
         working-directory: ${{ github.workspace }}
 
@@ -73,6 +81,12 @@ jobs:
         with:
           name: release-linux-artifact
           path: release_linux_wine.zip
+
+      - name: Upload Windows XP Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows-xp-artifact
+          path: release_windows_xp.zip
 
   # The 'release' job does not need to run in the container.
   # It only handles artifacts, so using ubuntu-latest is fine and efficient.
@@ -95,6 +109,12 @@ jobs:
         with:
           name: release-linux-artifact
           path: linux_release
+
+      - name: Download Windows XP Release Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-windows-xp-artifact
+          path: windows_xp_release
 
       - name: Read Version
         id: version
@@ -132,4 +152,14 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: linux_release/release_linux_wine.zip
           asset_name: release_linux_wine.zip
+          asset_content_type: application/zip
+
+      - name: Upload Windows XP Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: windows_xp_release/release_windows_xp.zip
+          asset_name: release_windows_xp.zip
           asset_content_type: application/zip

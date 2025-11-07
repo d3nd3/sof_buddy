@@ -31,6 +31,9 @@ MAKEFLAGS += -j$(JOBS)
 ifeq ($(BUILD),debug)
     CFLAGS = $(COMMON_CFLAGS) -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__
     TARGET_SUFFIX = 
+else ifeq ($(BUILD),xp)
+    CFLAGS = $(COMMON_CFLAGS) -O0 -fno-omit-frame-pointer -DNDEBUG
+    TARGET_SUFFIX = 
 else
     # With -fno-omit-frame-pointer, the game will not crash when using optimization.
     CFLAGS = $(COMMON_CFLAGS) -O3 -fno-omit-frame-pointer -DNDEBUG
@@ -157,6 +160,8 @@ debug:
 	$(MAKE) BUILD=debug all
 release: 
 	$(MAKE) BUILD=release all
+xp:
+	$(MAKE) BUILD=xp all
 
 # Clean
 clean:
@@ -171,7 +176,7 @@ config:
 	@echo "Sources found: $(words $(SOURCES))"
 	@echo "Target: $(OUT)"
 
-.PHONY: all debug release clean config features
+.PHONY: all debug release xp clean config features
 
 # ------------------------------
 # Tools (host-native utilities)

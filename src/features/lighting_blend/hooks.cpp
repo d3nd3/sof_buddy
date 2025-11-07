@@ -29,9 +29,9 @@ typedef enum {
 	it_pic,
 	it_sky,
 	it_detail,
+	it_temp,
 	it_font,
-	it_detail2,
-	it_detail3
+	it_shiny
 } imagetype_t;
 
 static const char* imagetype_to_string(imagetype_t type) {
@@ -42,9 +42,9 @@ static const char* imagetype_to_string(imagetype_t type) {
 		case it_pic: return "it_pic";
 		case it_sky: return "it_sky";
 		case it_detail: return "it_detail";
+		case it_temp: return "it_temp";
 		case it_font: return "it_font";
-		case it_detail2: return "it_detail2";
-		case it_detail3: return "it_detail3";
+		case it_shiny: return "it_shiny";
 		default: return "unknown";
 	}
 }
