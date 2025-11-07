@@ -67,6 +67,22 @@ jobs:
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
           cp bin/sof_buddy.dll sof_buddy.dll
           zip -r release_windows_xp.zip sof_buddy.dll sof_buddy/
+          
+          make clean
+          make BUILD=debug
+          rm -f sof_buddy/*.cmd sof_buddy/*.ps1
+          cp rsrc/win_scripts/enable_*.cmd sof_buddy/
+          cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
+          cp bin/sof_buddy.dll sof_buddy.dll
+          zip -r debug_windows.zip sof_buddy.dll sof_buddy/
+          
+          make clean
+          make BUILD=xp-debug
+          rm -f sof_buddy/*.cmd sof_buddy/*.ps1
+          cp rsrc/win_scripts/enable_*.cmd sof_buddy/
+          cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
+          cp bin/sof_buddy.dll sof_buddy.dll
+          zip -r debug_windows_xp.zip sof_buddy.dll sof_buddy/
         # The working-directory is not strictly necessary here as it's the default, but it's good for clarity.
         working-directory: ${{ github.workspace }}
 
@@ -87,6 +103,18 @@ jobs:
         with:
           name: release-windows-xp-artifact
           path: release_windows_xp.zip
+
+      - name: Upload Windows Debug Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-windows-artifact
+          path: debug_windows.zip
+
+      - name: Upload Windows XP Debug Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-windows-xp-artifact
+          path: debug_windows_xp.zip
 
   # The 'release' job does not need to run in the container.
   # It only handles artifacts, so using ubuntu-latest is fine and efficient.
@@ -115,6 +143,18 @@ jobs:
         with:
           name: release-windows-xp-artifact
           path: windows_xp_release
+
+      - name: Download Windows Debug Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: debug-windows-artifact
+          path: windows_debug
+
+      - name: Download Windows XP Debug Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: debug-windows-xp-artifact
+          path: windows_xp_debug
 
       - name: Read Version
         id: version
@@ -162,4 +202,24 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: windows_xp_release/release_windows_xp.zip
           asset_name: release_windows_xp.zip
+          asset_content_type: application/zip
+
+      - name: Upload Windows Debug Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: windows_debug/debug_windows.zip
+          asset_name: debug_windows.zip
+          asset_content_type: application/zip
+
+      - name: Upload Windows XP Debug Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: windows_xp_debug/debug_windows_xp.zip
+          asset_name: debug_windows_xp.zip
           asset_content_type: application/zip
