@@ -5,6 +5,10 @@
 #include <string.h>
 #include <stdlib.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include "sof_compat.h"
 #include "util.h"
 
@@ -336,3 +340,20 @@ void* rvaToAbsSoFPlus(void* rva) {
     return nullptr;
 #endif
 }
+
+#ifdef _WIN32
+ULONGLONG GetTickCount64Compat(void) {
+#if _WIN32_WINNT >= 0x0600
+    return GetTickCount64();
+#else
+    static DWORD s_dwLastTick = 0;
+    static ULONGLONG s_ullHighPart = 0;
+    DWORD dwCurrentTick = GetTickCount();
+    if (dwCurrentTick < s_dwLastTick) {
+        s_ullHighPart += 0x100000000ULL;
+    }
+    s_dwLastTick = dwCurrentTick;
+    return s_ullHighPart + dwCurrentTick;
+#endif
+}
+#endif

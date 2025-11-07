@@ -2,6 +2,17 @@
 #ifndef SOF_COMPAT_H
 #define SOF_COMPAT_H
 
+#ifdef _WIN32
+#if _WIN32_WINNT < 0x0600
+#include <stdint.h>
+#ifndef ULONGLONG
+typedef uint64_t ULONGLONG;
+#endif
+ULONGLONG GetTickCount64Compat(void);
+#define GetTickCount64 GetTickCount64Compat
+#endif
+#endif
+
 typedef unsigned char 		byte;
 typedef unsigned short 		word;
 typedef int					qboolean;

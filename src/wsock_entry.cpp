@@ -1083,6 +1083,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 		DisableThreadLibraryCalls(hInstance);
 
 		// Register vectored exception handler to catch access violations early
+
 		if (g_vectored_handler == NULL) {
 			g_vectored_handler = AddVectoredExceptionHandler(1, vectored_exception_handler);
 			PrintOut(PRINT_LOG, "Registered vectored exception handler: %p\n", g_vectored_handler);

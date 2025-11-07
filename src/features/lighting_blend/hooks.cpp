@@ -16,8 +16,38 @@
 #include "shared_hook_manager.h"
 #include "sof_compat.h"
 #include "util.h"
+#include "DetourXS/detourxs.h"
 #include <windows.h>
 #include <string.h>
+#include <cmath>
+#include <stdlib.h>
+
+typedef enum {
+	it_skin,
+	it_sprite,
+	it_wall,
+	it_pic,
+	it_sky,
+	it_detail,
+	it_font,
+	it_detail2,
+	it_detail3
+} imagetype_t;
+
+static const char* imagetype_to_string(imagetype_t type) {
+	switch (type) {
+		case it_skin: return "it_skin";
+		case it_sprite: return "it_sprite";
+		case it_wall: return "it_wall";
+		case it_pic: return "it_pic";
+		case it_sky: return "it_sky";
+		case it_detail: return "it_detail";
+		case it_font: return "it_font";
+		case it_detail2: return "it_detail2";
+		case it_detail3: return "it_detail3";
+		default: return "unknown";
+	}
+}
 
 // OpenGL blend function constants
 #define GL_ZERO                           0x0000
@@ -46,7 +76,48 @@ static int *lightblend_target_dst = nullptr;
 static float *lighting_cutoff_target = nullptr;
 static double *water_size_double_target = nullptr;
 static float *water_size_float_target = nullptr;
-static unsigned char *shiny_spherical_target = nullptr;
+
+
+static unsigned char *shiny_spherical_target1 = nullptr;
+static unsigned char *shiny_spherical_target3 = nullptr;
+static void *shiny_nop_site = nullptr;
+static unsigned char shiny_nop_saved[10];
+static bool shiny_nop_saved_init = false;
+static void *shiny_nop_site3 = nullptr;
+static unsigned char shiny_nop3_saved[21];
+static bool shiny_nop3_saved_init = false;
+
+static float *cam_vforward = nullptr;
+static float *cam_vup = nullptr;
+static float *cam_vright = nullptr;
+
+struct BasisVectors {
+	float normal[3];
+	float tangent[3];
+	float bitangent[3];
+};
+
+static const BasisVectors basis_orientations[] = {
+	{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+	{{1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}},
+	{{-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
+	{{-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
+	{{0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+	{{0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}},
+	{{0.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
+	{{0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
+	{{0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+	{{0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}},
+	{{0.0f, 0.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}},
+	{{0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}
+};
+
+static unsigned int last_surf_index = 0xFFFFFFFF;
+static BasisVectors selected_basis;
+
+static int random_int(int min, int max) {
+	return min + (rand() % (max - min + 1));
+}
 
 // Forward declarations
 static void lightblend_ApplySettings();
@@ -56,9 +127,19 @@ void create_lightingblend_cvars(void);
 
 // Function pointer declarations
 static void (__stdcall *real_glBlendFunc)(unsigned int, unsigned int) = nullptr;
+static void (__cdecl *oAdjustTexCoords)(float* player_pos, float* vertex, float* in_normal, float* in_tangent, float* in_bitangent, float* out_new_s_t) = nullptr;
+static void (__stdcall *glTexCoord2f)(float s, float t) = nullptr;
+static void (__stdcall *glVertex3f)(float x, float y, float z) = nullptr;
+static void (__stdcall *glBegin)(unsigned int mode) = nullptr;
+static void (__stdcall *glEnd)(void) = nullptr;
+static void (__stdcall *glColor3f)(float r, float g, float b) = nullptr;
+
+
 
 // Function declarations
 void __stdcall glBlendFunc_R_BlendLightmaps(unsigned int sfactor, unsigned int dfactor);
+
+void __cdecl hkAdjustTexCoords(float* player_pos, float* vertex, float* in_normal, float* in_tangent, float* in_bitangent, float* out_new_s_t);
 void lightblend_change(cvar_t * cvar);
 void lighting_overbright_change(cvar_t * cvar);
 void lighting_cutoff_change(cvar_t * cvar);
@@ -108,7 +189,13 @@ static void lightblend_RefDllLoaded()
 	lighting_cutoff_target = (float*)rvaToAbsRef((void*)0x2C368);
 	water_size_double_target = (double*)rvaToAbsRef((void*)0x2C390);
 	water_size_float_target = (float*)rvaToAbsRef((void*)0x2C398);
-	shiny_spherical_target = (unsigned char*)rvaToAbsRef((void*)0x14814);
+	shiny_spherical_target1 = (unsigned char*)rvaToAbsRef((void*)0x14814);
+	shiny_spherical_target3 = (unsigned char*)rvaToAbsRef((void*)0x14A66);
+	
+	cam_vforward = (float*)rvaToAbsRef((void*)0x0008FD7C);
+	cam_vup = (float*)rvaToAbsRef((void*)0x0008FD94);
+	cam_vright = (float*)rvaToAbsRef((void*)0x0008FF30);
+
 	
 	if (lighting_cutoff_target && _sofbuddy_lighting_cutoff) {
 		writeFloatAt(lighting_cutoff_target, _sofbuddy_lighting_cutoff->value);
@@ -119,10 +206,18 @@ static void lightblend_RefDllLoaded()
 		writeFloatAt(water_size_float_target, 1.0f / _sofbuddy_water_size->value);
 	}
 	
-	if (shiny_spherical_target && _sofbuddy_shiny_spherical) {
+	
+
+	if (shiny_spherical_target1 && _sofbuddy_shiny_spherical) {
 		unsigned char value = _sofbuddy_shiny_spherical->value == 0.0f ? 0xEB : 0x74;
-		WriteByte(shiny_spherical_target, value);
+		WriteByte(shiny_spherical_target1, value);
 	}
+
+    if (shiny_spherical_target3 && _sofbuddy_shiny_spherical) {
+        unsigned char value = _sofbuddy_shiny_spherical->value == 0.0f ? 0xEB : 0x74;
+        WriteByte(shiny_spherical_target3, value);
+    }
+
 
 	/*
 		Lighting Improrvement gl_ext_multitexture 1
@@ -160,6 +255,9 @@ static void lightblend_RefDllLoaded()
 	WriteByte(rvaToAbsRef((void*)0x0001B9A9), 0x90);
 	WriteE8Call(rvaToAbsRef((void*)0x0001B690), (void*)&glBlendFunc_R_BlendLightmaps);
 	WriteByte(rvaToAbsRef((void*)0x0001B695), 0x90);
+	
+	
+	
 
 	WriteByte(rvaToAbsRef((void*)0x00015584), 0x90);
 	WriteByte(rvaToAbsRef((void*)0x00015585), 0x90);
@@ -173,11 +271,32 @@ static void lightblend_RefDllLoaded()
 	WriteByte(rvaToAbsRef((void*)0x0001558D), 0x90);
 	WriteByte(rvaToAbsRef((void*)0x0001558E), 0x90);
 
+
+	oAdjustTexCoords = (void(__cdecl *)(float*, float*, float*, float*, float*, float*))rvaToAbsRef((void*)0x00014C30);
+	WriteE8Call(rvaToAbsRef((void*)0x00014995), (void*)&hkAdjustTexCoords);
+
+	glTexCoord2f = (void(__stdcall *)(float, float))*(int*)rvaToAbsRef((void*)0x000A42F4);
+	
+	// Initialize OpenGL function pointers for visualization
+	glVertex3f = (void(__stdcall *)(float, float, float))*(int*)rvaToAbsRef((void*)0x000A47C4);
+	glBegin = (void(__stdcall *)(unsigned int))*(int*)rvaToAbsRef((void*)0x000A4710);
+	glEnd = (void(__stdcall *)(void))*(int*)rvaToAbsRef((void*)0x000A45F4);
+	glColor3f = (void(__stdcall *)(float, float, float))*(int*)rvaToAbsRef((void*)0x000A4490);
+	
+	// NOP 6 bytes at 0x149AC (glTexCoord2f call location)
+	void* glTexCoord2f_call_addr = rvaToAbsRef((void*)0x000149AC);
+	PrintOut(PRINT_LOG, "lighting_blend: glTexCoord2f call address: 0x%p\n", glTexCoord2f_call_addr);
+	for (int i = 0; i < 3; i++) {
+		WriteByte((char*)glTexCoord2f_call_addr + i, 0x90);
+	}
+	//repair/balance the stack
+	WriteByte((char*)glTexCoord2f_call_addr + 3, 0x83);
+	WriteByte((char*)glTexCoord2f_call_addr + 4, 0xC4);
+	WriteByte((char*)glTexCoord2f_call_addr + 5, 0x08);
+
 	PrintOut(PRINT_LOG, "lighting_blend: Applied blend modes (src=0x%X, dst=0x%X)\n", 
 	         lightblend_src, lightblend_dst);
 }
-
-// Hook registrations moved to top of file
 
 
 /*
@@ -248,13 +367,22 @@ void water_size_change(cvar_t * cvar) {
 	This function is externally referenced in cvars.cpp.
 */
 void shiny_spherical_change(cvar_t * cvar) {
-	if (shiny_spherical_target) {
+	
+
+	if (shiny_spherical_target1) {
 		unsigned char value = cvar->value == 0.0f ? 0xEB : 0x74;
-		WriteByte(shiny_spherical_target, value);
+		WriteByte(shiny_spherical_target1, value);
 		PrintOut(PRINT_LOG, "lighting_blend: Set shiny_spherical to %d (wrote 0x%02X to 0x14814)\n", (int)cvar->value, value);
-	} else {
-		PrintOut(PRINT_BAD, "lighting_blend: shiny_spherical_target not initialized (ref_gl not loaded)\n");
 	}
+
+    if (shiny_spherical_target3) {
+        unsigned char value = cvar->value == 0.0f ? 0xEB : 0x74;
+        WriteByte(shiny_spherical_target3, value);
+        PrintOut(PRINT_LOG, "lighting_blend: Set shiny_spherical to %d (wrote 0x%02X to 0x14A66)\n", (int)cvar->value, value);
+    }
+
+
+
 }
 
 /*
@@ -343,7 +471,6 @@ void hkR_BlendLightmaps(void) {
 		*lightblend_target_src = GL_DST_COLOR;
 		*lightblend_target_dst = GL_SRC_COLOR;
 	} else {
-		PrintOut(PRINT_LOG, "Using custom lighting\n");
 		*lightblend_target_src = lightblend_src;
 		*lightblend_target_dst = lightblend_dst;	
 	}
@@ -380,6 +507,239 @@ void __stdcall glBlendFunc_R_BlendLightmaps(unsigned int sfactor,unsigned int df
 	else {
 		real_glBlendFunc(sfactor,dfactor);
 	}
+}
+
+
+static void __cdecl hkAdjustTexCoordsImpl(float* player_pos, float* vertex, float* in_normal, float* in_tangent, float* in_bitangent, float* out_new_s_t, void* caller_stack);
+
+void __cdecl hkAdjustTexCoords(float* player_pos, float* vertex, float* in_normal, float* in_tangent, float* in_bitangent, float* out_new_s_t)
+{
+    void* esp_entry = __builtin_frame_address(0);
+    hkAdjustTexCoordsImpl(player_pos, vertex, in_normal, in_tangent, in_bitangent, out_new_s_t, esp_entry);
+
+}
+
+
+static void __cdecl hkAdjustTexCoordsImpl(float* player_pos, float* vertex, float* in_normal, float* in_tangent, float* in_bitangent, float* out_new_s_t, void* caller_stack)
+{
+	unsigned int surf_index = *(unsigned int*)((char*)caller_stack + 0xD8 - 0xA4);
+	void ** surface_ptr = (void **) rvaToAbsRef((void*)0xA1728) + surf_index;
+	void* cplane_ptr = (void*)((char*)(*surface_ptr) + 4);
+	float* surface_normal = *(float**)cplane_ptr;
+	float normal_x = surface_normal[0];
+	float normal_y = surface_normal[1];
+	float normal_z = surface_normal[2];
+	
+	void ** mtexinfo_ptr = (void**)((char*)(*surface_ptr) + 0x34);
+	int flags = *(int*)((char*)(*mtexinfo_ptr) + 0x20);
+	
+	// Experiment: Randomly select orthogonal basis vectors for each new surface
+	static float override_normal[3];
+	static float override_tangent[3];
+	static float override_bitangent[3];
+	static bool basis_initialized = false;
+	
+	if (surf_index != last_surf_index || !basis_initialized) {
+		int num_orientations = sizeof(basis_orientations) / sizeof(basis_orientations[0]);
+		int selected_index = random_int(0, num_orientations - 1);
+		const BasisVectors* chosen = &basis_orientations[selected_index];
+		
+		override_normal[0] = chosen->normal[0];
+		override_normal[1] = chosen->normal[1];
+		override_normal[2] = chosen->normal[2];
+		
+		override_tangent[0] = chosen->tangent[0];
+		override_tangent[1] = chosen->tangent[1];
+		override_tangent[2] = chosen->tangent[2];
+		
+		override_bitangent[0] = chosen->bitangent[0];
+		override_bitangent[1] = chosen->bitangent[1];
+		override_bitangent[2] = chosen->bitangent[2];
+		
+		last_surf_index = surf_index;
+		basis_initialized = true;
+		
+		// PrintOut(PRINT_LOG, "DEBUG: New surface %u, selected basis orientation %d\n", surf_index, selected_index);
+		// PrintOut(PRINT_LOG, "DEBUG: override_normal = (%.6f, %.6f, %.6f)\n", override_normal[0], override_normal[1], override_normal[2]);
+		// PrintOut(PRINT_LOG, "DEBUG: override_tangent = (%.6f, %.6f, %.6f)\n", override_tangent[0], override_tangent[1], override_tangent[2]);
+		// PrintOut(PRINT_LOG, "DEBUG: override_bitangent = (%.6f, %.6f, %.6f)\n", override_bitangent[0], override_bitangent[1], override_bitangent[2]);
+	}
+	
+
+	
+	// Visualize normal direction once per surface using glVertex3f calls inside GL_TRIANGLE_FAN
+	static unsigned int last_drawn_surf_index = 0xFFFFFFFF;
+	static int vertex_count_per_surface = 0;
+	if (surf_index != last_drawn_surf_index) {
+		last_drawn_surf_index = surf_index;
+		vertex_count_per_surface = 0;
+	}
+	#if 0
+	// Draw on every 3rd vertex to ensure visibility (not just first vertex which might be culled)
+	if (vertex_count_per_surface % 3 == 0) {
+		// Validate normal vector before drawing
+		float normal_mag_sq = in_normal[0] * in_normal[0] + in_normal[1] * in_normal[1] + in_normal[2] * in_normal[2];
+		bool is_zero = (normal_mag_sq < 1.0e-10f);
+		bool has_nan = (in_normal[0] != in_normal[0] || in_normal[1] != in_normal[1] || in_normal[2] != in_normal[2]);
+		bool has_inf = (normal_mag_sq > 1.0e10f);
+		bool is_too_small = (normal_mag_sq > 0.0f && normal_mag_sq < 0.5f);
+		bool is_too_large = (normal_mag_sq > 2.0f);
+		
+		if (is_zero || has_nan || has_inf || is_too_small || is_too_large) {
+			PrintOut(PRINT_LOG, "DEBUG: Invalid normal detected for surface %u: in_normal = (%.6f, %.6f, %.6f), mag_sq = %.6f, zero=%d nan=%d inf=%d too_small=%d too_large=%d\n",
+			         surf_index, in_normal[0], in_normal[1], in_normal[2], normal_mag_sq, is_zero, has_nan, has_inf, is_too_small, is_too_large);
+		} else {
+			const float normal_scale = 100.0f;
+			float start_x = vertex[0];
+			float start_y = vertex[1];
+			float start_z = vertex[2];
+			float end_x = start_x + in_normal[0] * normal_scale;
+			float end_y = start_y + in_normal[1] * normal_scale;
+			float end_z = start_z + in_normal[2] * normal_scale;
+			
+			// Draw multiple green vertices at the start to establish the color strongly
+			glColor3f(0.0f, 1.0f, 0.0f);
+			for (int j = 0; j < 5; j++) {
+				glVertex3f(start_x, start_y, start_z);
+			}
+			
+			// Draw multiple points along the normal with color interpolation from green to red
+			const int num_points = 30;
+			for (int i = 1; i <= num_points; i++) {
+				float t = (float)i / (float)num_points;
+				float r = t;  // Red increases from 0 to 1
+				float g = 1.0f - t;  // Green decreases from 1 to 0
+				glColor3f(r, g, 0.0f);
+				glVertex3f(
+					start_x + (end_x - start_x) * t,
+					start_y + (end_y - start_y) * t,
+					start_z + (end_z - start_z) * t
+				);
+			}
+			
+			// Draw arrowhead at the end (larger and red)
+			const float arrowhead_size = 10.0f;
+			glColor3f(1.0f, 0.0f, 0.0f);
+			glVertex3f(end_x, end_y, end_z);
+			glVertex3f(end_x - in_normal[0] * arrowhead_size + in_normal[1] * arrowhead_size * 0.3f, 
+			           end_y - in_normal[1] * arrowhead_size + in_normal[2] * arrowhead_size * 0.3f, 
+			           end_z - in_normal[2] * arrowhead_size - in_normal[0] * arrowhead_size * 0.3f);
+			glVertex3f(end_x, end_y, end_z);
+			glVertex3f(end_x - in_normal[0] * arrowhead_size - in_normal[1] * arrowhead_size * 0.3f, 
+			           end_y - in_normal[1] * arrowhead_size - in_normal[2] * arrowhead_size * 0.3f, 
+			           end_z - in_normal[2] * arrowhead_size + in_normal[0] * arrowhead_size * 0.3f);
+			
+			glColor3f(1.0f, 1.0f, 1.0f);
+		}
+	}
+	#endif
+	vertex_count_per_surface++;
+	
+	
+
+	// Override input parameters with randomly selected basis
+	// in_normal[0] = override_normal[0];
+	// in_normal[1] = override_normal[1];
+	// in_normal[2] = override_normal[2];
+	
+	// in_tangent[0] = override_tangent[0];
+	// in_tangent[1] = override_tangent[1];
+	// in_tangent[2] = override_tangent[2];
+	
+	// in_bitangent[0] = override_bitangent[0];
+	// in_bitangent[1] = override_bitangent[1];
+	// in_bitangent[2] = override_bitangent[2];
+	float vertex_world[3];
+	vertex_world[0] = vertex[0];
+	vertex_world[1] = vertex[1];
+	vertex_world[2] = vertex[2];
+	if (flags & 0x00020000) {
+		// Convert vertex from eye space to world space
+		
+		if (cam_vforward && cam_vup && cam_vright) {
+			// PrintOut(PRINT_LOG, "DEBUG: cam_vforward = (%.6f, %.6f, %.6f)\n", cam_vforward[0], cam_vforward[1], cam_vforward[2]);
+			// Quake-style eye space: z is forward-negative in view matrix
+			vertex_world[0] = player_pos[0] + vertex[0] * cam_vright[0] + vertex[1] * cam_vup[0] - vertex[2] * cam_vforward[0];
+			vertex_world[1] = player_pos[1] + vertex[0] * cam_vright[1] + vertex[1] * cam_vup[1] - vertex[2] * cam_vforward[1];
+			vertex_world[2] = player_pos[2] + vertex[0] * cam_vright[2] + vertex[1] * cam_vup[2] - vertex[2] * cam_vforward[2];
+		} else {
+			vertex_world[0] = vertex[0];
+			vertex_world[1] = vertex[1];
+			vertex_world[2] = vertex[2];
+		}
+		
+		// 	PrintOut(PRINT_LOG, "DEBUG: Env texture\n");
+	// 	PrintOut(PRINT_LOG, "DEBUG: player_pos = (%.6f, %.6f, %.6f)\n", player_pos[0], player_pos[1], player_pos[2]);
+	PrintOut(PRINT_LOG, "DEBUG: vertex = (%.6f, %.6f, %.6f)\n", vertex_world[0], vertex_world[1], vertex_world[2]);
+	// PrintOut(PRINT_LOG, "DEBUG: in_normal = (%.6f, %.6f, %.6f)\n", in_normal[0], in_normal[1], in_normal[2]);
+	// PrintOut(PRINT_LOG, "DEBUG: in_tangent = (%.6f, %.6f, %.6f)\n", in_tangent[0], in_tangent[1], in_tangent[2]);
+	// PrintOut(PRINT_LOG, "DEBUG: in_bitangent = (%.6f, %.6f, %.6f)\n", in_bitangent[0], in_bitangent[1], in_bitangent[2]);
+
+		#if 0
+		// Env texture: Generate valid shiny texture coordinates
+		// Calculate view vector from vertex to player
+		float view_vec_x = player_pos[0] - vertex_world[0];
+		float view_vec_y = player_pos[1] - vertex_world[1];
+		float view_vec_z = player_pos[2] - vertex_world[2];
+		
+		// PrintOut(PRINT_LOG, "DEBUG: view_vec (before normalize) = (%.6f, %.6f, %.6f)\n", view_vec_x, view_vec_y, view_vec_z);
+		
+		// Calculate distance and normalize
+		float distance = sqrtf(view_vec_x * view_vec_x + view_vec_y * view_vec_y + view_vec_z * view_vec_z);
+		// PrintOut(PRINT_LOG, "DEBUG: distance = %.6f\n", distance);
+		
+		const float ZERO_VECTOR_EPSILON = 1.0e-10f;
+		if (distance >= ZERO_VECTOR_EPSILON) {
+			float inv_dist = 1.0f / distance;
+			view_vec_x *= inv_dist;
+			view_vec_y *= inv_dist;
+			view_vec_z *= inv_dist;
+		}
+		
+		// PrintOut(PRINT_LOG, "DEBUG: view_vec (after normalize) = (%.6f, %.6f, %.6f)\n", view_vec_x, view_vec_y, view_vec_z);
+		
+		// Project normalized view vector onto in_normal basis vector
+		float dot_s = view_vec_x * in_normal[0] + view_vec_y * in_normal[1] + view_vec_z * in_normal[2];
+		// PrintOut(PRINT_LOG, "DEBUG: dot_s = %.6f\n", dot_s);
+		
+		// Calculate rejection vector (perpendicular to in_normal)
+		float rejection_x = view_vec_x - in_normal[0] * dot_s;
+		float rejection_y = view_vec_y - in_normal[1] * dot_s;
+		float rejection_z = view_vec_z - in_normal[2] * dot_s;
+		
+		// PrintOut(PRINT_LOG, "DEBUG: rejection = (%.6f, %.6f, %.6f)\n", rejection_x, rejection_y, rejection_z);
+		
+		// Project rejection onto in_tangent basis vector
+		float dot_t = rejection_x * in_tangent[0] + rejection_y * in_tangent[1] + rejection_z * in_tangent[2];
+		// PrintOut(PRINT_LOG, "DEBUG: dot_t = %.6f\n", dot_t);
+		
+		// Project rejection onto in_bitangent basis vector
+		float dot_tex_s = rejection_x * in_bitangent[0] + rejection_y * in_bitangent[1] + rejection_z * in_bitangent[2];
+		// PrintOut(PRINT_LOG, "DEBUG: dot_tex_s = %.6f\n", dot_tex_s);
+		
+		// Remap from [-1, 1] to [0, 1]
+		const float ADD_CONSTANT = 1.0f;
+		const float SCALE_CONSTANT = 0.5f;
+
+		// PrintOut(PRINT_LOG, "before new_s_t is : %f, %f\n", out_new_s_t[0], out_new_s_t[1]);
+		// out_new_s_t[0] = 1.0f - (dot_t + ADD_CONSTANT) * SCALE_CONSTANT;
+		// out_new_s_t[1] = 1.0f - (dot_tex_s + ADD_CONSTANT) * SCALE_CONSTANT;
+		out_new_s_t[0] = (dot_t + ADD_CONSTANT) * SCALE_CONSTANT;
+		out_new_s_t[1] = (dot_tex_s + ADD_CONSTANT) * SCALE_CONSTANT;
+		// PrintOut(PRINT_LOG, "after new_s_t is : %f, %f\n", out_new_s_t[0], out_new_s_t[1]);
+		#endif
+	}
+	
+	// Call original function with (potentially corrected) texture coordinates
+	// PrintOut(PRINT_LOG, "DEBUG: before calling oAdjustTexCoords, out_new_s_t = (%.6f, %.6f)\n", out_new_s_t[0], out_new_s_t[1]);
+	oAdjustTexCoords(player_pos, vertex_world, in_normal, in_tangent, in_bitangent, out_new_s_t);
+	// PrintOut(PRINT_LOG, "DEBUG: after calling oAdjustTexCoords, out_new_s_t = (%.6f, %.6f)\n", out_new_s_t[0], out_new_s_t[1]);
+
+	
+    // Setup glTexCoord2f function pointer from dereference of 0xA42F4
+    glTexCoord2f(out_new_s_t[0], out_new_s_t[1]);
+	// glTexCoord2f(out_new_s_t[1], out_new_s_t[0] );
+
 }
 
 #endif // FEATURE_LIGHTING_BLEND
