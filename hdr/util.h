@@ -81,8 +81,4 @@ size_t strlen_custom(const char *str);
 
 const char* get_nth_entry(const char* str, int n);
 
-#ifdef _WIN32
-ULONGLONG GetTickCount64Compat(void);
-#endif
-
 #endif // SOF_BUDDY_UTIL_H

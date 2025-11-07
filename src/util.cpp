@@ -5,11 +5,12 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "sof_compat.h"
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
 
-#include "sof_compat.h"
 #include "util.h"
 
 // see util.h for debugging toggles 
@@ -342,10 +343,12 @@ void* rvaToAbsSoFPlus(void* rva) {
 }
 
 #ifdef _WIN32
-ULONGLONG GetTickCount64Compat(void) {
-#if _WIN32_WINNT >= 0x0600
-    return GetTickCount64();
-#else
+#include <winnt.h>
+
+static ULONGLONG (WINAPI *pGetTickCount64)(void) = NULL;
+static bool GetTickCount64_initialized = false;
+
+static ULONGLONG GetTickCount64Compat(void) {
     static DWORD s_dwLastTick = 0;
     static ULONGLONG s_ullHighPart = 0;
     DWORD dwCurrentTick = GetTickCount();
@@ -354,6 +357,87 @@ ULONGLONG GetTickCount64Compat(void) {
     }
     s_dwLastTick = dwCurrentTick;
     return s_ullHighPart + dwCurrentTick;
-#endif
+}
+
+static FARPROC (WINAPI *orig_GetProcAddress)(HMODULE hModule, LPCSTR lpProcName) = NULL;
+
+static FARPROC WINAPI hk_GetProcAddress(HMODULE hModule, LPCSTR lpProcName) {
+    if (lpProcName != NULL && hModule != NULL) {
+        HMODULE kernel32 = GetModuleHandleA("kernel32.dll");
+        if (hModule == kernel32 && strcmp(lpProcName, "GetTickCount64") == 0) {
+            if (pGetTickCount64 == NULL) {
+                return (FARPROC)GetTickCount64;
+            }
+        }
+    }
+    return orig_GetProcAddress(hModule, lpProcName);
+}
+
+static void PatchImportTable(void) {
+    HMODULE hModule = GetModuleHandleA("sof_buddy.dll");
+    if (!hModule) return;
+
+    ULONG_PTR base = (ULONG_PTR)hModule;
+    PIMAGE_DOS_HEADER dosHeader = (PIMAGE_DOS_HEADER)base;
+    if (dosHeader->e_magic != IMAGE_DOS_SIGNATURE) return;
+
+    PIMAGE_NT_HEADERS ntHeaders = (PIMAGE_NT_HEADERS)(base + dosHeader->e_lfanew);
+    if (ntHeaders->Signature != IMAGE_NT_SIGNATURE) return;
+
+    IMAGE_IMPORT_DESCRIPTOR* importDesc = (IMAGE_IMPORT_DESCRIPTOR*)(base + ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
+    
+    for (; importDesc->Name; importDesc++) {
+        const char* dllName = (const char*)(base + importDesc->Name);
+        if (_stricmp(dllName, "kernel32.dll") != 0) continue;
+
+        PIMAGE_THUNK_DATA thunk = (PIMAGE_THUNK_DATA)(base + importDesc->FirstThunk);
+        PIMAGE_THUNK_DATA origThunk = (PIMAGE_THUNK_DATA)(base + importDesc->OriginalFirstThunk);
+
+        for (; thunk->u1.Function && origThunk->u1.Ordinal; thunk++, origThunk++) {
+            if (IMAGE_SNAP_BY_ORDINAL(origThunk->u1.Ordinal)) continue;
+
+            PIMAGE_IMPORT_BY_NAME importByName = (PIMAGE_IMPORT_BY_NAME)(base + origThunk->u1.AddressOfData);
+            const char* funcName = (const char*)importByName->Name;
+            if (strcmp(funcName, "GetTickCount64") == 0) {
+                DWORD oldProtect;
+                if (VirtualProtect(&thunk->u1.Function, sizeof(thunk->u1.Function), PAGE_READWRITE, &oldProtect)) {
+                    thunk->u1.Function = (ULONGLONG)GetTickCount64;
+                    VirtualProtect(&thunk->u1.Function, sizeof(thunk->u1.Function), oldProtect, &oldProtect);
+                }
+            } else if (strcmp(funcName, "GetProcAddress") == 0 && orig_GetProcAddress == NULL) {
+                orig_GetProcAddress = (FARPROC (WINAPI *)(HMODULE, LPCSTR))thunk->u1.Function;
+                DWORD oldProtect;
+                if (VirtualProtect(&thunk->u1.Function, sizeof(thunk->u1.Function), PAGE_READWRITE, &oldProtect)) {
+                    thunk->u1.Function = (ULONGLONG)hk_GetProcAddress;
+                    VirtualProtect(&thunk->u1.Function, sizeof(thunk->u1.Function), oldProtect, &oldProtect);
+                }
+            }
+        }
+    }
+}
+
+static void __attribute__((constructor)) GetTickCount64_init(void) {
+    if (GetTickCount64_initialized) return;
+    
+    HMODULE module = GetModuleHandleA("kernel32.dll");
+    if (module != NULL) {
+        pGetTickCount64 = (ULONGLONG (WINAPI *)(void))GetProcAddress(module, "GetTickCount64");
+    }
+    
+    if (pGetTickCount64 == NULL) {
+        PatchImportTable();
+    }
+    
+    GetTickCount64_initialized = true;
+}
+
+extern "C" ULONGLONG WINAPI GetTickCount64(void) {
+    if (!GetTickCount64_initialized) {
+        GetTickCount64_init();
+    }
+    if (pGetTickCount64 != NULL) {
+        return pGetTickCount64();
+    }
+    return GetTickCount64Compat();
 }
 #endif

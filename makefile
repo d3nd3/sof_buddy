@@ -47,7 +47,7 @@ OUT = $(BDIR)/sof_buddy.dll
 DEF_FILE = rsrc/sof_buddy.def
 
 # Linker flags
-LFLAGS = -static -pthread -shared -static-libgcc -static-libstdc++ -Wl,--enable-stdcall-fixup
+LFLAGS = -static -pthread -shared -static-libgcc -static-libstdc++ -Wl,--enable-stdcall-fixup -Wl,--allow-multiple-definition
 
 # Find all source files (no artificial limit)
 SOURCES = $(shell find $(SDIR) -name "*.cpp")

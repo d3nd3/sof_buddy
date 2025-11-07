@@ -3,13 +3,19 @@
 #define SOF_COMPAT_H
 
 #ifdef _WIN32
-#if _WIN32_WINNT < 0x0600
 #include <stdint.h>
 #ifndef ULONGLONG
 typedef uint64_t ULONGLONG;
 #endif
-ULONGLONG GetTickCount64Compat(void);
-#define GetTickCount64 GetTickCount64Compat
+#ifndef WINAPI
+#define WINAPI __stdcall
+#endif
+#ifdef __cplusplus
+extern "C" {
+#endif
+ULONGLONG WINAPI GetTickCount64(void);
+#ifdef __cplusplus
+}
 #endif
 #endif
 
