@@ -19,14 +19,14 @@ jobs:
     steps:
       - name: Install Dependencies
         run: |
-          rm -f /etc/apt/sources.list.d/*.list
-          cat > /etc/apt/sources.list <<EOF
+          rm -rf /etc/apt/sources.list* /etc/apt/sources.list.d/* /var/lib/apt/lists/*
+          cat > /etc/apt/sources.list <<'EOF'
           deb http://old-releases.ubuntu.com/ubuntu/ oracular main restricted universe multiverse
           deb http://old-releases.ubuntu.com/ubuntu/ oracular-updates main restricted universe multiverse
           deb http://old-releases.ubuntu.com/ubuntu/ oracular-backports main restricted universe multiverse
           deb http://old-releases.ubuntu.com/ubuntu/ oracular-security main restricted universe multiverse
           EOF
-          apt-get update
+          apt-get update -o Acquire::Check-Valid-Until=false 2>&1 || true
           apt-get install -y git build-essential g++-mingw-w64-i686 mingw-w64-i686-dev zip
           i686-w64-mingw32-g++-posix --version || (echo "Compiler not found" && exit 1)
 
