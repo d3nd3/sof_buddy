@@ -1,0 +1,13 @@
+[
+  {
+    "function": "GetCursorPos",
+    "callback": "getcursorpos_override_callback",
+    "override": true
+  },
+  {
+    "function": "DispatchMessageA",
+    "callback": "dispatchmessagea_override_callback",
+    "override": true
+  }
+]
+

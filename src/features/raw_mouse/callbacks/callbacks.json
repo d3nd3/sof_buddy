@@ -1,0 +1,15 @@
+[
+  {
+    "hook": "EarlyStartup",
+    "callback": "raw_mouse_EarlyStartup",
+    "priority": 70,
+    "phase": "Post"
+  },
+  {
+    "hook": "RefDllLoaded",
+    "callback": "raw_mouse_RefDllLoaded",
+    "priority": 70,
+    "phase": "Post"
+  }
+]
+
