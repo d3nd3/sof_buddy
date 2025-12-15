@@ -1,0 +1,8 @@
+[
+  {
+    "function": "R_DrawFont",
+    "callback": "hkR_DrawFont",
+    "override": true
+  }
+]
+

@@ -4,24 +4,25 @@
 # Commented lines (with //) = disabled features
 
 # Core Features (always enabled)
-media_timers
+#media_timers
 
 # Graphics Features
-texture_mapping_min_mag
-ui_scaling
+#texture_mapping_min_mag
+scaled_con
+# scaled_hud
+# scaled_text
+# scaled_menu
+# hd_textures
+# vsync_toggle
+# lighting_blend
 
-hd_textures
-vsync_toggle
-lighting_blend
-
-
-# Game Features  
-teamicons_offset
+# Game Features
+# teamicons_offset
 
 # Bug fixes
-new_system_bug
-console_protection
-cl_maxfps_singleplayer
+# new_system_bug
+# console_protection
+# cl_maxfps_singleplayer
 
 # Input Features
-raw_mouse
+# raw_mouse

@@ -7,9 +7,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PARENTS_DIR = ROOT / 'rsrc' / 'func_parents'
-SCALED_UI_H = ROOT / 'src' / 'features' / 'scaled_ui' / 'scaled_ui.h'
-TEXT_CPP = ROOT / 'src' / 'features' / 'scaled_ui' / 'text.cpp'
-CALLER_FROM_CPP = ROOT / 'src' / 'features' / 'scaled_ui' / 'caller_from.cpp'
+SCALED_UI_H = ROOT / 'src' / 'features' / 'scaled_ui_base' / 'shared.h'
+TEXT_CPP = ROOT / 'src' / 'features' / 'scaled_text' / 'text.cpp'
+CALLER_FROM_CPP = ROOT / 'src' / 'features' / 'scaled_ui_base' / 'caller_from.cpp'
 
 # Map child name -> (file, function name, keyed by module?)
 TARGETS = {
