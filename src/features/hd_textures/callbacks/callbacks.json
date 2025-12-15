@@ -1,0 +1,9 @@
+[
+  {
+    "hook": "RefDllLoaded",
+    "callback": "hd_textures_RefDllLoaded",
+    "priority": 70,
+    "phase": "Post"
+  }
+]
+

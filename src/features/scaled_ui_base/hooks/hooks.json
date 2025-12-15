@@ -1,0 +1,30 @@
+[
+  {
+    "function": "Draw_StretchPic",
+    "callback": "hkDraw_StretchPic",
+    "override": true
+  },
+  {
+    "function": "Draw_Pic",
+    "callback": "hkDraw_Pic",
+    "override": true
+  },
+  {
+    "function": "GL_FindImage",
+    "callback": "gl_findimage_post_callback",
+    "phase": "Post",
+    "priority": 100
+  },
+  {
+    "function": "glVertex2f",
+    "callback": "hkglVertex2f",
+    "override": true
+  },
+  {
+    "function": "VID_CheckChanges",
+    "callback": "vid_checkchanges_post",
+    "phase": "Post",
+    "priority": 100
+  }
+]
+

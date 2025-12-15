@@ -1,35 +1,43 @@
 # Console Protection
 
-## What it does
-Fixes critical console security vulnerabilities that cause crashes and buffer overflows in the original game.
+## Purpose
+Fixes critical console security vulnerabilities that cause crashes and buffer overflows in the original game. Prevents crashes when using resolutions > 2048px wide and when pasting large text into console.
 
-## Features
-- **Resolution Buffer Overflow Fix**: Prevents crashes when using resolutions > 2048px wide
-- **Clipboard Paste Protection**: Prevents buffer overflow when pasting large text into console  
-- **Console Drawing Safety**: Ensures safe console rendering at any resolution
-- **Input Length Limiting**: Automatically truncates clipboard input to safe limits
+## Callbacks
+- **EarlyStartup** (Post, Priority: 80)
+  - `console_protection_EarlyStartup()` - Applies memory patches to secure console drawing and clipboard handling
+
+## Hooks
+None
+
+## OverrideHooks
+None
+
+## CustomDetours
+- **Sys_GetClipboardData** (SoF.exe, via memory patch)
+  - `hkSys_GetClipboardData()` - Truncates clipboard paste content to fit within `MAXCMDLINE` buffer (256 chars)
+  - Patched at exe address: `0x2004BB63`
+- **Con_Draw_Console** (SoF.exe, via memory patch)
+  - `my_Con_Draw_Console()` - Safe console drawing with `MAXCMDLINE` limit to prevent crashes on wide resolutions
+  - Patched at exe address: `0x2002111D`
 
 ## Technical Details
 
 ### Security Fixes
 
-#### 1. Console Drawing Buffer Overflow (my_Con_Draw_Console)
+#### 1. Console Drawing Buffer Overflow
 - **Problem**: Original `Con_DrawInput()` crashes on wide resolutions (>2048px)
 - **Solution**: Implement safe drawing with `MAXCMDLINE` (256 char) limit
-- **Addresses**: 
+- **Memory Patches**:
   - Console input drawing: `0x2002111D` → `my_Con_Draw_Console`
   - Drawing bypass: `0x20020C90` → `0x20020D6C`
 
-#### 2. Clipboard Paste Overflow (my_Sys_GetClipboardData)
+#### 2. Clipboard Paste Overflow
 - **Problem**: Pasting large clipboard content crashes the game
 - **Solution**: Truncate paste content to fit within `MAXCMDLINE` buffer
-- **Addresses**:
-  - Clipboard function: `0x2004BB63` → `my_Sys_GetClipboardData`  
+- **Memory Patches**:
+  - Clipboard function: `0x2004BB63` → `hkSys_GetClipboardData`
   - Paste bypass: `0x2004BB6C` → `0x2004BBFE`
-
-### Hooks
-- `Sys_GetClipboardData @ 0x20065E60` - Intercepts clipboard paste operations
-- Memory patches applied during `PostCvarInit` lifecycle phase
 
 ### Memory Layout
 ```cpp
@@ -46,31 +54,20 @@ cls_state:     0x201C1F00  // Client state
 // Functions
 Z_Free:        0x200F9D32  // Memory free function
 ref_draw_char: 0x204035C8  // Character drawing function
+oSys_GetClipboardData: 0x20065E60  // Original clipboard function
 ```
 
 ## Configuration
 No CVars - security features are always enabled for safety.
 
+## Benefits
+- **Prevents console crashes** on any resolution
+- **Safely handles clipboard paste** of any size
+- **Maintains all normal console functionality**
+- **Invisible to end users** - just prevents crashes
+
 ## Usage Notes
 - Automatically prevents console crashes on any resolution
 - Safely handles clipboard paste of any size
 - Maintains all normal console functionality
-- Invisible to end users - just prevents crashes
-
-## Development Notes
-- Uses lifecycle callbacks for memory patching during `PostCvarInit`
-- Implements both function hooks and direct memory patches
 - Critical safety feature - should always be enabled
-- Part of core stability improvements
-
-## Archived Notes
-/*
-			//0x48 -> 0x5C[A],0x5D[B],0x5E[G],0x5F[R]
-			// 0x0C -> 0x1C [R][G][B][A] -> [R][G][B][A]
-			// 16 + 8 = 24
-			// White font?
-			char * palette = malloc(24);
-			memset(palette, 0x00, 0x24);
-			*(unsigned int*)(palette + 16) = 0xFFFFFFFF;
-			*(unsigned int*)(palette + 20) = 0xFFFFFFFF;
-			*/

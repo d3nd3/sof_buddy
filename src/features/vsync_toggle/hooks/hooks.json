@@ -1,0 +1,9 @@
+[
+  {
+    "function": "VID_CheckChanges",
+    "callback": "vsync_pre_vid_checkchanges",
+    "phase": "Pre",
+    "priority": 50
+  }
+]
+

@@ -1,0 +1,38 @@
+[
+  {
+    "function": "Draw_PicOptions",
+    "callback": "hkDraw_PicOptions",
+    "override": true
+  },
+  {
+    "function": "Draw_CroppedPicOptions",
+    "callback": "hkDraw_CroppedPicOptions",
+    "override": true
+  },
+  {
+    "function": "cInventory2_And_cGunAmmo2_Draw",
+    "callback": "hkcInventory2_And_cGunAmmo2_Draw",
+    "override": true
+  },
+  {
+    "function": "cHealthArmor2_Draw",
+    "callback": "hkcHealthArmor2_Draw",
+    "override": true
+  },
+  {
+    "function": "cDMRanking_Draw",
+    "callback": "hkcDMRanking_Draw",
+    "override": true
+  },
+  {
+    "function": "cCtfFlag_Draw",
+    "callback": "hkcCtfFlag_Draw",
+    "override": true
+  },
+  {
+    "function": "SCR_ExecuteLayoutString",
+    "callback": "hkSCR_ExecuteLayoutString",
+    "override": true
+  }
+]
+

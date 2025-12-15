@@ -1,0 +1,9 @@
+[
+  {
+    "function": "drawTeamIcons",
+    "callback": "drawteamicons_pre_callback",
+    "phase": "Pre",
+    "priority": 100
+  }
+]
+

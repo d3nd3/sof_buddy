@@ -1,0 +1,9 @@
+[
+  {
+    "hook": "EarlyStartup",
+    "callback": "console_protection_EarlyStartup",
+    "priority": 80,
+    "phase": "Post"
+  }
+]
+
