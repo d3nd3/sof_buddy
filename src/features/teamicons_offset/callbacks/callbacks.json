@@ -1,0 +1,9 @@
+[
+  {
+    "hook": "RefDllLoaded",
+    "callback": "teamicons_offset_RefDllLoaded",
+    "priority": 70,
+    "phase": "Post"
+  }
+]
+

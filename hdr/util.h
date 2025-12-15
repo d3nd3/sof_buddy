@@ -72,6 +72,7 @@ void writeDoubleAt(void * addr, double value);
 void WriteE8Call(void * where,void * dest);
 void WriteE9Jmp(void * where, void * dest);
 void WriteByte(void * where, unsigned char value);
+void WriteNops(void * where, int count);
 
 void* GetModuleBase(const char* moduleName);
 void* RVAToAddress(void* rva, const char* moduleName);

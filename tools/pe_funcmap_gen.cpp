@@ -4,7 +4,7 @@
 #include <string>
 #include <algorithm>
 
-#include "../src/pe_utils.h"
+#include "../src/tools/pe_utils.h"
 
 static bool buildMapForImage(const std::string &path, ImageFunctionMap &out) {
 	std::vector<uint8_t> buf;

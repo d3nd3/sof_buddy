@@ -1,0 +1,23 @@
+[
+  {
+    "function": "Con_DrawConsole",
+    "callback": "hkCon_DrawConsole",
+    "override": true
+  },
+  {
+    "function": "Con_DrawNotify",
+    "callback": "hkCon_DrawNotify",
+    "override": true
+  },
+  {
+    "function": "Con_CheckResize",
+    "callback": "hkCon_CheckResize",
+    "override": true
+  },
+  {
+    "function": "SCR_DrawPlayerInfo",
+    "callback": "hkSCR_DrawPlayerInfo",
+    "override": true
+  }
+]
+
