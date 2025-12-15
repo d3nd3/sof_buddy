@@ -1,0 +1,9 @@
+[
+  {
+    "function": "CinematicFreeze",
+    "callback": "cinematicfreeze_callback",
+    "phase": "Post",
+    "priority": 100
+  }
+]
+

@@ -1,0 +1,9 @@
+[
+  {
+    "hook": "RefDllLoaded",
+    "callback": "scaledUIBase_RefDllLoaded",
+    "priority": 50,
+    "phase": "Post"
+  }
+]
+

@@ -35,22 +35,14 @@ extern cvar_t * _sofbuddy_lightblend_dst;
 extern cvar_t * _sofbuddy_lighting_overbright;
 extern cvar_t * _sofbuddy_lighting_cutoff;
 
-// Scaled Font feature
+// Scaled UI features (shared infrastructure)
 extern void create_scaled_ui_cvars(void);
-extern void scaledFont_early(void);
-extern void scaledFont_init(void);
-extern void scaledFont_cvars_init(void);
-extern void my_Con_CheckResize(void);
 extern cvar_t * _sofbuddy_font_scale;
 extern cvar_t * _sofbuddy_console_size;
 extern cvar_t * _sofbuddy_hud_scale;
 extern cvar_t * _sofbuddy_crossh_scale;
-extern cvar_t * con_maxlines;
-extern cvar_t * con_buffersize;
-extern cvar_t * test;
-extern cvar_t * test2;
 
-// Menu scaling variables (part of scaled_ui feature)
+// Menu scaling variables (part of scaled_menu feature)
 extern bool menuSliderDraw;
 extern bool menuLoadboxDraw;
 extern bool menuVerticalScrollDraw;
@@ -59,7 +51,3 @@ extern bool isDrawPicCenter;
 extern bool mainMenuBgTiled;
 extern int DrawPicWidth;
 extern int DrawPicHeight;
-
-// Scaled Menu feature
-extern void scaledMenu_early(void); 
-extern void scaledMenu_init(void);

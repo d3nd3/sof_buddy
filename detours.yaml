@@ -1,0 +1,357 @@
+functions:
+  - name: GL_BuildPolygonFromSurface
+    module: RefDll
+    identifier: "0x00016390"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: void*
+        name: msurface_s
+
+  - name: R_BlendLightmaps
+    module: RefDll
+    identifier: "0x00015440"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
+  - name: IN_MouseMove
+    module: SofExe
+    identifier: "0x0004A1F0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: void*
+        name: cmd
+
+  - name: VID_CheckChanges
+    module: SofExe
+    identifier: "0x00670C0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
+  - name: FS_InitFilesystem
+    module: SofExe
+    identifier: "0x20026980"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
+  - name: Cbuf_AddLateCommands
+    module: SofExe
+    identifier: "0x20018740"
+    return_type: qboolean
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
+  - name: SV_ShutdownGameProgs
+    module: SofExe
+    identifier: "0x005CD70"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
+  - name: Con_DrawNotify
+    module: SofExe
+    identifier: "0x00020D70"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
+  - name: Con_DrawConsole
+    module: SofExe
+    identifier: "0x00020F90"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: float
+        name: frac
+
+  - name: SCR_DrawPlayerInfo
+    module: SofExe
+    identifier: "0x00015B10"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
+  - name: Con_CheckResize
+    module: SofExe
+    identifier: "0x00020880"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
+  - name: Con_Init
+    module: SofExe
+    identifier: "0x000208E0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
+  - name: SCR_ExecuteLayoutString
+    module: SofExe
+    identifier: "0x00014510"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: char*
+        name: text
+
+  - name: cInventory2_And_cGunAmmo2_Draw
+    module: SofExe
+    identifier: "0x00008430"
+    return_type: void
+    calling_convention: __thiscall
+    detour_len: 0
+    params:
+      - type: void*
+        name: self
+
+  - name: cHealthArmor2_Draw
+    module: SofExe
+    identifier: "0x00008C60"
+    return_type: void
+    calling_convention: __thiscall
+    detour_len: 0
+    params:
+      - type: void*
+        name: self
+
+  - name: cDMRanking_Draw
+    module: SofExe
+    identifier: "0x00007B30"
+    return_type: void
+    calling_convention: __thiscall
+    detour_len: 0
+    params:
+      - type: void*
+        name: self
+
+  - name: cCtfFlag_Draw
+    module: SofExe
+    identifier: "0x00006920"
+    return_type: void
+    calling_convention: __thiscall
+    detour_len: 0
+    params:
+      - type: void*
+        name: self
+
+  - name: Draw_StretchPic
+    module: RefDll
+    identifier: "0x00001D10"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 5
+    params:
+      - type: int
+        name: x
+      - type: int
+        name: y
+      - type: int
+        name: w
+      - type: int
+        name: h
+      - type: int
+        name: palette
+      - type: char*
+        name: name
+      - type: int
+        name: flags
+
+  - name: Draw_Pic
+    module: RefDll
+    identifier: "0x00001ED0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 7
+    params:
+      - type: int
+        name: x
+      - type: int
+        name: y
+      - type: char const*
+        name: imgname
+      - type: int
+        name: palette
+
+  - name: GL_FindImage
+    module: RefDll
+    identifier: "0x00007380"
+    return_type: void*
+    calling_convention: __cdecl
+    detour_len: 6
+    params:
+      - type: char*
+        name: filename
+      - type: int
+        name: imagetype
+      - type: char
+        name: mimap
+      - type: char
+        name: allowPicmip
+
+  - name: Draw_PicOptions
+    module: RefDll
+    identifier: "0x00002080"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 6
+    params:
+      - type: int
+        name: x
+      - type: int
+        name: y
+      - type: float
+        name: w_scale
+      - type: float
+        name: h_scale
+      - type: int
+        name: palette
+      - type: char*
+        name: name
+
+  - name: Draw_CroppedPicOptions
+    module: RefDll
+    identifier: "0x00002240"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 5
+    params:
+      - type: int
+        name: x
+      - type: int
+        name: y
+      - type: int
+        name: c1x
+      - type: int
+        name: c1y
+      - type: int
+        name: c2x
+      - type: int
+        name: c2y
+      - type: int
+        name: palette
+      - type: char*
+        name: name
+
+  - name: R_DrawFont
+    module: RefDll
+    identifier: "0x000045B0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 6
+    params:
+      - type: int
+        name: screenX
+      - type: int
+        name: screenY
+      - type: char*
+        name: text
+      - type: int
+        name: colorPalette
+      - type: char*
+        name: font
+      - type: bool
+        name: rememberLastColor
+
+  - name: drawTeamIcons
+    module: RefDll
+    identifier: "0x00003040"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 6
+    params:
+      - type: float*
+        name: targetPlayerOrigin
+      - type: char*
+        name: playerName
+      - type: char*
+        name: imageNameTeamIcon
+      - type: int
+        name: redOrBlue
+
+  - name: CinematicFreeze
+    module: GameDll
+    identifier: "0x75190"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: bool
+        name: bEnable
+
+  - name: Sys_Milliseconds
+    module: SofExe
+    identifier: "0x00055930"
+    return_type: int
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
+  - name: VID_LoadRefresh
+    module: SofExe
+    identifier: "0x00066E10"
+    return_type: qboolean
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: char const*
+        name: name
+
+  - name: Sys_GetGameApi
+    module: SofExe
+    identifier: "0x00065F20"
+    return_type: void*
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: void*
+        name: imports
+
+  - name: IN_MenuMouse
+    module: SofExe
+    identifier: "0x0004A420"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: void*
+        name: cvar1
+      - type: void*
+        name: cvar2
+
+  - name: GetCursorPos
+    module: Unknown
+    identifier: "GetCursorPos"
+    return_type: BOOL
+    calling_convention: __stdcall
+    detour_len: 0
+    params:
+      - type: LPPOINT
+        name: lpPoint
+
+  - name: DispatchMessageA
+    module: Unknown
+    identifier: "DispatchMessageA"
+    return_type: LRESULT
+    calling_convention: __stdcall
+    detour_len: 0
+    params:
+      - type: const MSG*
+        name: msg
+
