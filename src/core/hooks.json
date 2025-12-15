@@ -1,0 +1,29 @@
+[
+  {
+    "function": "FS_InitFilesystem",
+    "callback": "fs_initfilesystem_override_callback",
+    "override": true
+  },
+  {
+    "function": "Cbuf_AddLateCommands",
+    "callback": "cbuf_addlatecommands_override_callback",
+    "override": true
+  },
+  {
+    "function": "VID_LoadRefresh",
+    "callback": "vid_loadrefresh_override_callback",
+    "override": true
+  },
+  {
+    "function": "Sys_GetGameApi",
+    "callback": "sys_getgameapi_override_callback",
+    "override": true
+  },
+  {
+    "function": "SV_ShutdownGameProgs",
+    "callback": "sv_shutdowngameprogs_callback",
+    "phase": "Post",
+    "priority": 100
+  }
+]
+

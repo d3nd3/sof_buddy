@@ -1,18 +1,41 @@
 # Lighting Blend Mode
 
-## Overview
-Allows customization of OpenGL blend modes used for lighting in the ref.dll renderer. This feature patches memory locations that control the source and destination blend factors for `glBlendFunc()`.
+## Purpose
+Allows customization of OpenGL blend modes used for lighting in the ref.dll renderer. This feature patches memory locations that control the source and destination blend factors for `glBlendFunc()`, enabling different lighting effects.
 
-## What It Does
-- Modifies OpenGL blend function parameters used in the lighting pass
-- Provides CVars to change blend modes at runtime
-- Applies changes directly to ref.dll memory after it loads
+## Callbacks
+- **PostCvarInit** (Post, Priority: 50)
+  - `lightblend_PostCvarInit()` - Registers lighting blend CVars
+- **RefDllLoaded** (Post, Priority: 60)
+  - `lightblend_RefDllLoaded()` - Applies blend mode patches to ref.dll memory and initializes settings
+
+## Hooks
+- **R_BlendLightmaps** (Pre, Priority: 100)
+  - `r_blendlightmaps_pre_callback()` - Sets blend mode targets before lightmap blending
+- **R_BlendLightmaps** (Post, Priority: 100)
+  - `r_blendlightmaps_post_callback()` - Resets blending state after lightmap blending
+
+## OverrideHooks
+None
+
+## CustomDetours
+- **glBlendFunc** (ref.dll, via memory patch)
+  - `glBlendFunc_R_BlendLightmaps()` - Intercepts glBlendFunc calls during lightmap blending to apply custom blend modes
+  - Patched at ref.dll addresses: `0x3001B9A4`, `0x3001B690`
+- **AdjustTexCoords** (ref.dll, via memory patch)
+  - `hkAdjustTexCoords()` - Custom texture coordinate adjustment for environment mapping
+  - Patched at ref.dll address: `0x30014995`
 
 ## Technical Details
 
 ### Memory Addresses (ref.dll)
 - **Source blend factor**: `0x300A4610` - Default: `GL_ZERO`
 - **Destination blend factor**: `0x300A43FC` - Default: `GL_SRC_COLOR`
+- **Lighting cutoff**: `0x3002C368` - Float value for lighting cutoff
+- **Water size (double)**: `0x3002C390` - Double value for water size
+- **Water size (float)**: `0x3002C398` - Float value for water size (1.0 / water_size)
+- **Shiny spherical target1**: `0x30014814` - Byte value for shiny spherical rendering
+- **Shiny spherical target3**: `0x30014A66` - Byte value for shiny spherical rendering
 
 ### Default Behavior
 The SoF engine uses:
@@ -22,78 +45,7 @@ glBlendFunc(GL_ZERO, GL_SRC_COLOR);
 
 This is equivalent to: `Result = DST * SRC_COLOR + SRC * 0`
 
-### Architecture
-- Uses `RefDllLoaded` lifecycle callback to patch memory after ref.dll loads
-- Registers with priority 60 (normal feature initialization)
-- Applies settings both on startup and when CVars change
-
-## Console Commands
-
-### CVars
-- `_sofbuddy_lightblend_src` - Source blend factor (default: `"GL_ZERO"`)
-- `_sofbuddy_lightblend_dst` - Destination blend factor (default: `"GL_SRC_COLOR"`)
-
-Both CVars are `CVAR_ARCHIVE` (saved to config.cfg).
-
-### Valid Values
-- `GL_ZERO`
-- `GL_ONE`
-- `GL_SRC_COLOR`
-- `GL_ONE_MINUS_SRC_COLOR`
-- `GL_DST_COLOR`
-- `GL_ONE_MINUS_DST_COLOR`
-- `GL_SRC_ALPHA`
-- `GL_ONE_MINUS_SRC_ALPHA`
-- `GL_DST_ALPHA`
-- `GL_ONE_MINUS_DST_ALPHA`
-- `GL_CONSTANT_COLOR`
-- `GL_ONE_MINUS_CONSTANT_COLOR`
-- `GL_CONSTANT_ALPHA`
-- `GL_ONE_MINUS_CONSTANT_ALPHA`
-- `GL_SRC_ALPHA_SATURATE`
-
-### Example Usage
-```
-// Default (vanilla SoF lighting)
-_sofbuddy_lightblend_src "GL_ZERO"
-_sofbuddy_lightblend_dst "GL_SRC_COLOR"
-
-// Additive lighting (brighter)
-_sofbuddy_lightblend_src "GL_ONE"
-_sofbuddy_lightblend_dst "GL_ONE"
-
-// Alpha blending
-_sofbuddy_lightblend_src "GL_SRC_ALPHA"
-_sofbuddy_lightblend_dst "GL_ONE_MINUS_SRC_ALPHA"
-```
-
-## Implementation Flow
-
-### 1. Startup (Module Loading)
-```
-SoF loads ref.dll
-  → module_loaders.cpp detects ref.dll loading
-  → InitializeRefHooks() is called
-  → DISPATCH_SHARED_HOOK(RefDllLoaded) fires
-  → lightblend_RefDllLoaded() callback runs
-  → lightblend_ApplySettings() patches memory
-  → Blend modes are active
-```
-
-### 2. Runtime (CVar Changes)
-```
-User types: _sofbuddy_lightblend_src "GL_ONE"
-  → Engine calls lightblend_change() (registered in cvars.cpp)
-  → Function parses string to GL constant
-  → Updates lightblend_src variable
-  → Calls lightblend_ApplySettings()
-  → Patches ref.dll memory at 0x300A4610
-  → New blend mode takes effect immediately
-```
-
-## OpenGL Reference
-
-### Blend Function Equation
+### OpenGL Blend Function Equation
 ```
 Final_Color = (Src * SrcFactor) + (Dst * DstFactor)
 ```
@@ -104,8 +56,25 @@ Where:
 - **SrcFactor** = `_sofbuddy_lightblend_src`
 - **DstFactor** = `_sofbuddy_lightblend_dst`
 
-### Common Blend Modes
+## Configuration
 
+### CVars
+- `_sofbuddy_lightblend_src` - Source blend factor (default: `"GL_ZERO"`)
+- `_sofbuddy_lightblend_dst` - Destination blend factor (default: `"GL_SRC_COLOR"`)
+- `_sofbuddy_lighting_overbright` - Enable overbright lighting (default: 0)
+- `_sofbuddy_lighting_cutoff` - Lighting cutoff value (default: varies)
+- `_sofbuddy_water_size` - Water size parameter (default: 16.0, minimum: 16.0)
+- `_sofbuddy_shiny_spherical` - Enable shiny spherical rendering (default: 0)
+
+All CVars are `CVAR_ARCHIVE` (saved to config.cfg).
+
+### Valid Blend Mode Values
+- `GL_ZERO`, `GL_ONE`, `GL_SRC_COLOR`, `GL_ONE_MINUS_SRC_COLOR`
+- `GL_DST_COLOR`, `GL_ONE_MINUS_DST_COLOR`, `GL_SRC_ALPHA`, `GL_ONE_MINUS_SRC_ALPHA`
+- `GL_DST_ALPHA`, `GL_ONE_MINUS_DST_ALPHA`, `GL_CONSTANT_COLOR`, `GL_ONE_MINUS_CONSTANT_COLOR`
+- `GL_CONSTANT_ALPHA`, `GL_ONE_MINUS_CONSTANT_ALPHA`, `GL_SRC_ALPHA_SATURATE`
+
+### Common Blend Modes
 | Mode | Source | Dest | Effect |
 |------|--------|------|--------|
 | Default (SoF) | `GL_ZERO` | `GL_SRC_COLOR` | Modulate texture by light |
@@ -113,58 +82,26 @@ Where:
 | Alpha Blend | `GL_SRC_ALPHA` | `GL_ONE_MINUS_SRC_ALPHA` | Transparency-based |
 | Multiply | `GL_DST_COLOR` | `GL_ZERO` | Darker lighting |
 
-## Files
+## Implementation Flow
 
-### Feature Implementation
-- `hooks.cpp` - Main implementation, RefDllLoaded callback, lightblend_change()
-
-### Integration Points
-- `src/cvars.cpp` - CVar registration and callback binding
-- `hdr/features.h` - External declaration of lightblend_change()
-- `features/FEATURES.txt` - Feature enablement (line 14)
-
-## Build System
-
-### Compilation Guard
-```cpp
-#include "../../../hdr/feature_config.h"
-#if FEATURE_LIGHTING_BLEND
-// ... feature code
-#endif
+### 1. Startup (Module Loading)
+```
+SoF loads ref.dll
+  → lightblend_RefDllLoaded() callback runs
+  → Patches memory addresses in ref.dll
+  → Applies initial blend mode settings
+  → Blend modes are active
 ```
 
-### Enable/Disable
-Edit `features/FEATURES.txt`:
+### 2. Runtime (CVar Changes)
 ```
-lighting_blend      # Enabled
-// lighting_blend   # Disabled
+User changes CVar
+  → CVar change callback runs
+  → Updates blend mode variables
+  → Patches ref.dll memory
+  → New blend mode takes effect immediately
 ```
 
-## Troubleshooting
-
-### Blend modes not applying
-- Check that ref.dll is loaded (only works in-game, not in menus)
-- Verify CVar values with `cvarlist _sofbuddy_lightblend*`
-- Check logs for "lighting_blend: Applied blend modes" message
-
-### Invalid blend mode error
-```
-Bad lightblend value: GL_INVALID. Valid values:
-GL_ZERO, GL_ONE, GL_SRC_COLOR, ...
-```
-Solution: Use one of the valid GL constants listed above (case-sensitive).
-
-### Memory patches not working
-- Addresses are specific to ref.dll version
-- May need reverse engineering if using modified renderer
-
-## Future Improvements
-- Auto-detect ref.dll base address for portability
-- Preset blend modes (e.g., "bright", "dark", "normal")
-- Per-surface blend mode customization
-- Integration with lighting quality settings
-
-## See Also
-- OpenGL `glBlendFunc()` documentation
-- Quake 2 renderer source code (`SDK/Quake-2/ref_gl/gl_rsurf.c`)
-- Feature documentation: `src/features/FEATURES.md`
+## Requirements
+- **IMPORTANT**: Requires `gl_ext_multitexture 0` for proper operation
+- Feature automatically sets `gl_ext_multitexture` to 0 if enabled

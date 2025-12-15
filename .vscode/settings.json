@@ -1,7 +1,12 @@
 {
+    "C_Cpp.intelliSenseEngine": "disabled",
     "C_Cpp.default.compilerPath": "/usr/bin/i686-w64-mingw32-g++-posix",
+    "C_Cpp.default.compileCommands": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/compile_commands.json",
     "makefile.compileCommandsPath": "compile_commands.json",
     "cmake.ignoreCMakeListsMissing": true,
     "C_Cpp.dimInactiveRegions": false,
-    "C_Cpp.enhancedColorization": "enabled"
+    "C_Cpp.enhancedColorization": "enabled",
+    "clangd.arguments": [
+  "--compile-commands-dir=/home/dinda/git-projects/d3nd3/public/sof/sof_buddy"
+]
  }
