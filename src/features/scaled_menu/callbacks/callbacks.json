@@ -1,0 +1,9 @@
+[
+  {
+    "hook": "EarlyStartup",
+    "callback": "scaledMenu_EarlyStartup",
+    "priority": 70,
+    "phase": "Post"
+  }
+]
+

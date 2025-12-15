@@ -1,46 +1,43 @@
 # New System Detection Bug Fix
 
-## Overview
-Fixes a bug on Proton where new hardware detection causes the game to load extremely poor performance settings.
+## Purpose
+Fixes a bug on Proton where new hardware detection causes the game to load extremely poor performance settings. Ensures optimal performance settings are applied when hardware detection differs from saved configuration.
 
-## Problem Solved
+## Callbacks
+- **EarlyStartup** (Post, Priority: 60)
+  - `new_system_bug_EarlyStartup()` - Patches LoadLibraryA to intercept ref.dll loading and apply optimal settings
 
-### Hardware Detection Performance Bug
-- **Problem**: On Proton (3.7.8, GloriousEggProton), when hardware values differ from saved config
-- **Trigger**: CVars `vid_card` or `cpu_memory_using` become 'modified'
-- **Result**: Game automatically loads low-performance configuration files:
+## Hooks
+None
+
+## OverrideHooks
+None
+
+## CustomDetours
+- **LoadLibraryA** (SoF.exe, via memory patch)
+  - `new_sys_bug_LoadLibraryRef()` - Intercepts ref.dll loading to apply optimal settings
+  - Patched at exe address: `0x20066E75`
+- **InitDefaults** (ref.dll, via memory patch)
+  - `new_system_bug_InitDefaults()` - Overrides default settings initialization
+  - Patched at ref.dll address: `0x3000FA26`
+
+## Technical Details
+
+### Problem
+On Proton (3.7.8, GloriousEggProton), when hardware values differ from saved config:
+- CVars `vid_card` or `cpu_memory_using` become 'modified'
+- Game automatically loads low-performance configuration files:
   - `drivers/alldefs.cfg`
   - `geforce.cfg`
   - `cpu4.cfg`
   - `memory1.cfg`
-- **Impact**: These files contain extremely poor performance values (low quality, low FPS settings)
+- These files contain extremely poor performance values (low quality, low FPS settings)
 
 ### When This Occurs
 This happens when:
 1. First run on a new system
 2. Hardware changes detected (different CPU/GPU from saved config)
 3. Running on Proton/Wine where hardware detection differs from native Windows
-
-## Technical Details
-
-### Implementation
-Uses the module loading lifecycle system to apply optimal settings after ref.dll loads:
-
-```cpp
-// Register for RefDllLoaded lifecycle
-REGISTER_SHARED_HOOK_CALLBACK(RefDllLoaded, new_system_bug, new_system_bug_RefDllLoaded, 60);
-
-// Apply optimal defaults when ref.dll loads
-static void new_system_bug_RefDllLoaded(void) {
-    // Override with highest quality settings
-    orig_Cmd_ExecuteString("exec drivers/highest.cfg\n");
-    
-    // Fix specific problematic defaults
-    orig_Cmd_ExecuteString("set fx_maxdebrisonscreen 128\n");
-    orig_Cmd_ExecuteString("set r_isf GL_SOLID_FORMAT\n");
-    orig_Cmd_ExecuteString("set r_iaf GL_ALPHA_FORMAT\n");
-}
-```
 
 ### Settings Applied
 
@@ -51,13 +48,12 @@ static void new_system_bug_RefDllLoaded(void) {
 | `r_isf` | Varies | `GL_SOLID_FORMAT` | Fix texture compression |
 | `r_iaf` | Varies | `GL_ALPHA_FORMAT` | Fix alpha channel compression |
 
-### Execution Flow
-
+### Implementation Flow
 ```
 Game starts
   → Detects "new" hardware (differs from config.cfg)
   → Loads ref.dll
-  → new_system_bug_RefDllLoaded() triggers
+  → new_sys_bug_LoadLibraryRef() intercepts
   → Executes drivers/highest.cfg
   → Applies performance fixes
   → Game runs with optimal settings
@@ -65,27 +61,6 @@ Game starts
 
 ## Configuration
 No CVars - fix is automatically applied when enabled.
-
-## Enable/Disable
-
-### Enable This Feature
-Edit `features/FEATURES.txt`:
-```bash
-# Debug/Development Features
-new_system_bug  # enabled
-```
-
-### Disable This Feature (Default)
-Edit `features/FEATURES.txt`:
-```bash
-# Debug/Development Features
-// new_system_bug  # disabled
-```
-
-Then rebuild:
-```bash
-make clean && make debug
-```
 
 ## Benefits
 - **Optimal Performance**: Game always uses highest quality settings
@@ -106,10 +81,3 @@ Enable this feature if:
 - Experiencing low quality graphics after fresh install
 - Testing compatibility on Linux/Proton
 - Debugging hardware detection issues
-
-## Development Notes
-- Uses `RefDllLoaded` lifecycle callback (priority 60)
-- Leverages `orig_Cmd_ExecuteString()` to execute console commands
-- Overrides cascade of low-performance configs
-- Safe to enable/disable via compile-time configuration
-- Part of Proton compatibility improvements
