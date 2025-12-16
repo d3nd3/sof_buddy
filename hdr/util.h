@@ -19,6 +19,7 @@
                 "Condition: %s\n\n" \
                 "This indicates a bug in sof_buddy. Please report this error.", \
                 __FILE__, __LINE__, #condition); \
+            PrintOut(PRINT_BAD, "ASSERTION FAILED: %s:%d - Condition: %s\n", __FILE__, __LINE__, #condition); \
             MessageBoxA(NULL, msg, "sof_buddy Assertion Failed", MB_ICONERROR | MB_OK); \
             assert(condition); \
         } \

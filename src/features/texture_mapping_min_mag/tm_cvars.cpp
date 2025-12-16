@@ -10,6 +10,7 @@
 
 #include "sof_buddy.h"
 #include "sof_compat.h"
+#include "util.h"
 #include "shared.h"
 
 // CVar declarations

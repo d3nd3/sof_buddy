@@ -22,7 +22,12 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
         g_currentFontCaller = detectedCaller;
     }
 	
-	realFont = getRealFontEnum((char*)(* (int * )(font + 4)));
+	SOFBUDDY_ASSERT(font != nullptr);
+	if (font) {
+		realFont = getRealFontEnum((char*)(* (int * )(font + 4)));
+	} else {
+		realFont = REALFONT_UNKNOWN;
+	}
 	
 	if (g_activeRenderType == uiRenderType::HudDmRanking) {
 		static bool scorePhase = true;

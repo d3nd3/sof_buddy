@@ -5,6 +5,14 @@
 #include "generated_registrations.h"
 #include "util.h"
 
+namespace detour_GL_BuildPolygonFromSurface {
+    tGL_BuildPolygonFromSurface oGL_BuildPolygonFromSurface = nullptr;
+}
+
+namespace detour_R_BlendLightmaps {
+    tR_BlendLightmaps oR_BlendLightmaps = nullptr;
+}
+
 namespace detour_VID_CheckChanges {
     tVID_CheckChanges oVID_CheckChanges = nullptr;
 }
@@ -41,6 +49,26 @@ namespace detour_Con_Init {
     tCon_Init oCon_Init = nullptr;
 }
 
+namespace detour_SCR_ExecuteLayoutString {
+    tSCR_ExecuteLayoutString oSCR_ExecuteLayoutString = nullptr;
+}
+
+namespace detour_cInventory2_And_cGunAmmo2_Draw {
+    tcInventory2_And_cGunAmmo2_Draw ocInventory2_And_cGunAmmo2_Draw = nullptr;
+}
+
+namespace detour_cHealthArmor2_Draw {
+    tcHealthArmor2_Draw ocHealthArmor2_Draw = nullptr;
+}
+
+namespace detour_cDMRanking_Draw {
+    tcDMRanking_Draw ocDMRanking_Draw = nullptr;
+}
+
+namespace detour_cCtfFlag_Draw {
+    tcCtfFlag_Draw ocCtfFlag_Draw = nullptr;
+}
+
 namespace detour_Draw_StretchPic {
     tDraw_StretchPic oDraw_StretchPic = nullptr;
 }
@@ -53,12 +81,66 @@ namespace detour_GL_FindImage {
     tGL_FindImage oGL_FindImage = nullptr;
 }
 
+namespace detour_Draw_PicOptions {
+    tDraw_PicOptions oDraw_PicOptions = nullptr;
+}
+
+namespace detour_Draw_CroppedPicOptions {
+    tDraw_CroppedPicOptions oDraw_CroppedPicOptions = nullptr;
+}
+
+namespace detour_R_DrawFont {
+    tR_DrawFont oR_DrawFont = nullptr;
+}
+
+namespace detour_drawTeamIcons {
+    tdrawTeamIcons odrawTeamIcons = nullptr;
+}
+
+namespace detour_CinematicFreeze {
+    tCinematicFreeze oCinematicFreeze = nullptr;
+}
+
+namespace detour_Sys_Milliseconds {
+    tSys_Milliseconds oSys_Milliseconds = nullptr;
+}
+
 namespace detour_VID_LoadRefresh {
     tVID_LoadRefresh oVID_LoadRefresh = nullptr;
 }
 
 namespace detour_Sys_GetGameApi {
     tSys_GetGameApi oSys_GetGameApi = nullptr;
+}
+
+namespace detour_GetCursorPos {
+    tGetCursorPos oGetCursorPos = nullptr;
+}
+
+namespace detour_DispatchMessageA {
+    tDispatchMessageA oDispatchMessageA = nullptr;
+}
+
+namespace detour_GL_BuildPolygonFromSurface {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_R_BlendLightmaps {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
 }
 
 namespace detour_VID_CheckChanges {
@@ -160,6 +242,61 @@ namespace detour_Con_Init {
     }
 }
 
+namespace detour_SCR_ExecuteLayoutString {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_cInventory2_And_cGunAmmo2_Draw {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_cHealthArmor2_Draw {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_cDMRanking_Draw {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_cCtfFlag_Draw {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
 namespace detour_Draw_StretchPic {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
@@ -193,6 +330,72 @@ namespace detour_GL_FindImage {
     }
 }
 
+namespace detour_Draw_PicOptions {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_Draw_CroppedPicOptions {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_R_DrawFont {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_drawTeamIcons {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_CinematicFreeze {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_Sys_Milliseconds {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
 namespace detour_VID_LoadRefresh {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
@@ -212,6 +415,50 @@ namespace detour_Sys_GetGameApi {
             instance = new(storage) ManagerType();
         }
         return *instance;
+    }
+}
+
+namespace detour_GetCursorPos {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_DispatchMessageA {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_GL_BuildPolygonFromSurface {
+    void __cdecl hkGL_BuildPolygonFromSurface(void* msurface_s) {
+        ManagerType& mgr = GetManager();
+        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre(msurface_s);
+        if (oGL_BuildPolygonFromSurface) {
+            oGL_BuildPolygonFromSurface(msurface_s);
+        }
+        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost(msurface_s);
+    }
+}
+
+namespace detour_R_BlendLightmaps {
+    void __cdecl hkR_BlendLightmaps() {
+        ManagerType& mgr = GetManager();
+        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre();
+        if (oR_BlendLightmaps) {
+            oR_BlendLightmaps();
+        }
+        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost();
     }
 }
 
@@ -250,7 +497,30 @@ namespace detour_GL_FindImage {
     }
 }
 
+namespace detour_drawTeamIcons {
+    void __cdecl hkdrawTeamIcons(float* targetPlayerOrigin, char* playerName, char* imageNameTeamIcon, int redOrBlue) {
+        ManagerType& mgr = GetManager();
+        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre(targetPlayerOrigin, playerName, imageNameTeamIcon, redOrBlue);
+        if (odrawTeamIcons) {
+            odrawTeamIcons(targetPlayerOrigin, playerName, imageNameTeamIcon, redOrBlue);
+        }
+        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost(targetPlayerOrigin, playerName, imageNameTeamIcon, redOrBlue);
+    }
+}
+
+namespace detour_CinematicFreeze {
+    void __cdecl hkCinematicFreeze(bool bEnable) {
+        ManagerType& mgr = GetManager();
+        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre(bEnable);
+        if (oCinematicFreeze) {
+            oCinematicFreeze(bEnable);
+        }
+        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost(bEnable);
+    }
+}
+
 // Override hooks (hooks.json override: true)
+// Note: Override hooks with custom_detour: true are manually installed at runtime and not generated here
 namespace detour_Cbuf_AddLateCommands {
     qboolean __cdecl hkCbuf_AddLateCommands() {
         return ::cbuf_addlatecommands_override_callback(oCbuf_AddLateCommands);
@@ -281,9 +551,27 @@ namespace detour_Con_Init {
     }
 }
 
+namespace detour_DispatchMessageA {
+    LRESULT __stdcall hkDispatchMessageA(const MSG* msg) {
+        return ::dispatchmessagea_override_callback(msg, oDispatchMessageA);
+    }
+}
+
+namespace detour_Draw_CroppedPicOptions {
+    void __cdecl hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, int palette, char* name) {
+        ::hkDraw_CroppedPicOptions(x, y, c1x, c1y, c2x, c2y, palette, name, oDraw_CroppedPicOptions);
+    }
+}
+
 namespace detour_Draw_Pic {
     void __cdecl hkDraw_Pic(int x, int y, char const* imgname, int palette) {
         ::hkDraw_Pic(x, y, imgname, palette, oDraw_Pic);
+    }
+}
+
+namespace detour_Draw_PicOptions {
+    void __cdecl hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int palette, char* name) {
+        ::hkDraw_PicOptions(x, y, w_scale, h_scale, palette, name, oDraw_PicOptions);
     }
 }
 
@@ -299,9 +587,27 @@ namespace detour_FS_InitFilesystem {
     }
 }
 
+namespace detour_GetCursorPos {
+    BOOL __stdcall hkGetCursorPos(LPPOINT lpPoint) {
+        return ::getcursorpos_override_callback(lpPoint, oGetCursorPos);
+    }
+}
+
+namespace detour_R_DrawFont {
+    void __cdecl hkR_DrawFont(int screenX, int screenY, char* text, int colorPalette, char* font, bool rememberLastColor) {
+        ::hkR_DrawFont(screenX, screenY, text, colorPalette, font, rememberLastColor, oR_DrawFont);
+    }
+}
+
 namespace detour_SCR_DrawPlayerInfo {
     void __cdecl hkSCR_DrawPlayerInfo() {
         ::hkSCR_DrawPlayerInfo(oSCR_DrawPlayerInfo);
+    }
+}
+
+namespace detour_SCR_ExecuteLayoutString {
+    void __cdecl hkSCR_ExecuteLayoutString(char* text) {
+        ::hkSCR_ExecuteLayoutString(text, oSCR_ExecuteLayoutString);
     }
 }
 
@@ -311,9 +617,39 @@ namespace detour_Sys_GetGameApi {
     }
 }
 
+namespace detour_Sys_Milliseconds {
+    int __cdecl hkSys_Milliseconds() {
+        return ::sys_milliseconds_override_callback(oSys_Milliseconds);
+    }
+}
+
 namespace detour_VID_LoadRefresh {
     qboolean __cdecl hkVID_LoadRefresh(char const* name) {
         return ::vid_loadrefresh_override_callback(name, oVID_LoadRefresh);
+    }
+}
+
+namespace detour_cCtfFlag_Draw {
+    void __thiscall hkcCtfFlag_Draw(void* self) {
+        ::hkcCtfFlag_Draw(self, ocCtfFlag_Draw);
+    }
+}
+
+namespace detour_cDMRanking_Draw {
+    void __thiscall hkcDMRanking_Draw(void* self) {
+        ::hkcDMRanking_Draw(self, ocDMRanking_Draw);
+    }
+}
+
+namespace detour_cHealthArmor2_Draw {
+    void __thiscall hkcHealthArmor2_Draw(void* self) {
+        ::hkcHealthArmor2_Draw(self, ocHealthArmor2_Draw);
+    }
+}
+
+namespace detour_cInventory2_And_cGunAmmo2_Draw {
+    void __thiscall hkcInventory2_And_cGunAmmo2_Draw(void* self) {
+        ::hkcInventory2_And_cGunAmmo2_Draw(self, ocInventory2_And_cGunAmmo2_Draw);
     }
 }
 
