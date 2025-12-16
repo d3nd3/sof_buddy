@@ -19,7 +19,9 @@ void cl_maxfps_EarlyStartup(void)
     PrintOut(PRINT_LOG, "cl_maxfps_singleplayer: sp_Sys_Mil hook registered automatically\n");
     if (o_sofplus && orig_sp_Sys_Mil == NULL) {
         void* spcl_Sys_Mil = rvaToAbsSoFPlus((void*)0xFA60);
+        SOFBUDDY_ASSERT(spcl_Sys_Mil != nullptr);
         if (DetourSystem::Instance().ApplyDetourAtAddress(spcl_Sys_Mil, (void*)hksp_Sys_Mil, (void**)&orig_sp_Sys_Mil, "sp_Sys_Mil", 0)) {
+            SOFBUDDY_ASSERT(orig_sp_Sys_Mil != nullptr);
             PrintOut(PRINT_LOG, "cl_maxfps_singleplayer: Detour applied: sp_Sys_Mil -> %p\n", orig_sp_Sys_Mil);
         } else {
             PrintOut(PRINT_BAD, "cl_maxfps_singleplayer: Failed to detour sp_Sys_Mil at %p\n", spcl_Sys_Mil);

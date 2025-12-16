@@ -10,6 +10,11 @@
 extern void(__stdcall * orig_glVertex2f)(float one, float two);
 
 static inline void scaleVertexFromScreenCenter(float& x, float& y, float scale) {
+    SOFBUDDY_ASSERT(orig_glVertex2f != nullptr);
+    SOFBUDDY_ASSERT(scale > 0.0f);
+    SOFBUDDY_ASSERT(current_vid_w > 0);
+    SOFBUDDY_ASSERT(current_vid_h > 0);
+    
     static int vertexCounter = 1;
     static float x_mid_offset;
     static float y_mid_offset;
@@ -29,11 +34,17 @@ static inline void scaleVertexFromScreenCenter(float& x, float& y, float scale) 
 }
 
 static inline void scaleVertexFromCenter(float& x, float& y, float scale) {
+    SOFBUDDY_ASSERT(orig_glVertex2f != nullptr);
+    SOFBUDDY_ASSERT(scale > 0.0f);
+    
     static int svfc_vertexCounter = 1;
     static int svfc_centerX;
     static int svfc_centerY;
 
     if (svfc_vertexCounter == 1) {
+        SOFBUDDY_ASSERT(DrawPicWidth > 0);
+        SOFBUDDY_ASSERT(DrawPicHeight > 0);
+        
         svfc_centerX = x + DrawPicWidth * 0.5f;
         svfc_centerY = y + DrawPicHeight * 0.5f;
 
@@ -59,10 +70,13 @@ static inline void scaleVertexFromCenter(float& x, float& y, float scale) {
 }
 
 void __stdcall hkglVertex2f(float x, float y) {
+    SOFBUDDY_ASSERT(orig_glVertex2f != nullptr);
+    
     HookCallsite::recordAndGetFnStartExternal("glVertex2f");
 
     switch (g_activeRenderType) {
         case uiRenderType::Console:
+            SOFBUDDY_ASSERT(fontScale > 0.0f);
             if (g_activeDrawCall != DrawRoutineType::StretchPic) {
                 orig_glVertex2f(x * fontScale, y * fontScale);
                 return;

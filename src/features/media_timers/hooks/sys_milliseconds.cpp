@@ -33,6 +33,7 @@ long long qpc_timers(bool force)
 			PrintOut(PRINT_BAD, "QueryPerformanceFrequency failed\n");
 			ExitProcess(1);
 		}
+		SOFBUDDY_ASSERT(freq.QuadPart > 0);
 	}
 	//obtain a new base.
 	if (!base.QuadPart || force)
@@ -127,6 +128,7 @@ int my_Sys_Milliseconds(void)
 	if (!freq.QuadPart) {
 		return 0;
 	}
+	SOFBUDDY_ASSERT(freq.QuadPart > 0);
 	int ret = (int)((ticks_elapsed * 1000LL) / freq.QuadPart);
 
 	if ( ret < prev_val ) {

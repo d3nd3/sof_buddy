@@ -39,6 +39,8 @@ HMODULE (__stdcall *orig_LoadLibraryA)(LPCSTR lpLibFileName) = nullptr;
 */
 static void new_system_bug_InitDefaults(void)
 {
+	SOFBUDDY_ASSERT(orig_Cmd_ExecuteString != nullptr);
+	
 	PrintOut(PRINT_LOG, "New System Bug Fix: Applying optimal defaults...\n");
 	
 	// Override with highest quality settings
@@ -63,6 +65,9 @@ static void new_system_bug_InitDefaults(void)
  */
 HMODULE __stdcall new_sys_bug_LoadLibraryRef(LPCSTR lpLibFileName)
 {
+	SOFBUDDY_ASSERT(lpLibFileName != nullptr);
+	SOFBUDDY_ASSERT(orig_LoadLibraryA != nullptr);
+	
 	HMODULE ret = orig_LoadLibraryA(lpLibFileName);
 	if (ret) {
 		/*

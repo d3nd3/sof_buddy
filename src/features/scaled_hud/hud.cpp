@@ -82,12 +82,20 @@ realFontEnum_t getRealFontEnum(const char* realFont) {
 */
 
 void hudscale_change(cvar_t * cvar) {
+    SOFBUDDY_ASSERT(cvar != nullptr);
+    SOFBUDDY_ASSERT(cvar->value > 0.0f);
+    
     //round to nearest quarter
     hudScale = roundf(cvar->value * 4.0f) / 4.0f;
+    SOFBUDDY_ASSERT(hudScale > 0.0f);
 }
 
 void crosshairscale_change(cvar_t * cvar) {
+    SOFBUDDY_ASSERT(cvar != nullptr);
+    SOFBUDDY_ASSERT(cvar->value > 0.0f);
+    
     crosshairScale = roundf(cvar->value * 4.0f) / 4.0f;
+    SOFBUDDY_ASSERT(crosshairScale > 0.0f);
 }
 
 #endif // FEATURE_SCALED_HUD

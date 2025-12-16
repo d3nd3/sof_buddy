@@ -14,6 +14,7 @@ int hksp_Sys_Mil(void)
 	//we set this to 0 _before_ we call spcl_Sys_Mil()
 	if (o_sofplus) {
 		int* _sp_cl_frame_delay = (int*)rvaToAbsSoFPlus((void*)0x331BC);
+		SOFBUDDY_ASSERT(_sp_cl_frame_delay != nullptr);
 		*_sp_cl_frame_delay = 0x00;
 	}
 

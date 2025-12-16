@@ -10,6 +10,11 @@
 // #pragma GCC push_options
 // #pragma GCC optimize ("O0")
 void hkCon_DrawConsole(float frac, detour_Con_DrawConsole::tCon_DrawConsole original) {
+	SOFBUDDY_ASSERT(cls_state != nullptr);
+	SOFBUDDY_ASSERT(fontScale > 0.0f);
+	SOFBUDDY_ASSERT(frac >= 0.0f && frac <= 1.0f);
+	SOFBUDDY_ASSERT(consoleSize >= 0.0f && consoleSize <= 1.0f);
+	
 	g_activeRenderType = uiRenderType::Console;
 
 	if (frac == 0.5 && *cls_state == 8) {
@@ -20,6 +25,7 @@ void hkCon_DrawConsole(float frac, detour_Con_DrawConsole::tCon_DrawConsole orig
 		frac = frac / fontScale;
 	}
 
+	SOFBUDDY_ASSERT(frac >= 0.0f);
 	original(frac);
 	g_activeRenderType = uiRenderType::None;
 }

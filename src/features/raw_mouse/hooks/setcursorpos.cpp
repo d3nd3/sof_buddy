@@ -10,6 +10,9 @@ tSetCursorPos oSetCursorPos = nullptr;
 
 BOOL __stdcall hkSetCursorPos(int X, int Y)
 {
+    SOFBUDDY_ASSERT(in_mouse_raw != nullptr);
+    SOFBUDDY_ASSERT(oSetCursorPos != nullptr);
+    
     if (!in_mouse_raw || in_mouse_raw->value == 0) {
         return oSetCursorPos(X, Y);
     }

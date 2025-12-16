@@ -76,6 +76,8 @@ void (*spcl_FreeScript)(void) = NULL;
 
 */
 void high_priority_change(cvar_t * cvar) {
+	SOFBUDDY_ASSERT(cvar != nullptr);
+	
 	if ( cvar->value ) {
 		PrintOut(PRINT_GOOD,"cpu priority is now HIGH\n");
 		HANDLE hProcess = GetCurrentProcess();
@@ -92,6 +94,8 @@ void high_priority_change(cvar_t * cvar) {
 
 
 void sleep_change(cvar_t * cvar) {
+	SOFBUDDY_ASSERT(cvar != nullptr);
+	
 	if ( cvar->value ) {
 		sleep_mode = true;
 		extratime_resume=0;
@@ -107,6 +111,8 @@ void sleep_change(cvar_t * cvar) {
 
 void sleep_jitter_change(cvar_t *cvar)
 {
+	SOFBUDDY_ASSERT(cvar != nullptr);
+	
 	if ( cvar->value ) {
 		sleep_jitter = true;
 		PrintOut(PRINT_GOOD,"sleep_jitter is ENABLED\n");
@@ -121,6 +127,9 @@ void sleep_jitter_change(cvar_t *cvar)
 */
 void sleep_busyticks_change(cvar_t * cvar)
 {
+	SOFBUDDY_ASSERT(cvar != nullptr);
+	SOFBUDDY_ASSERT(cvar->value >= 0);
+	
 	// PrintOut(PRINT_GOOD,"sleep_exclude_change changed\n");
 	sleep_busyticks = cvar->value;
 
@@ -129,6 +138,9 @@ void sleep_busyticks_change(cvar_t * cvar)
 
 void cl_maxfps_change(cvar_t *cvar)
 {
+	SOFBUDDY_ASSERT(cvar != nullptr);
+	SOFBUDDY_ASSERT(cvar->value > 0.0f);
+	
 	// PrintOut(PRINT_GOOD,"cl_maxfps changed %f\n",cvar->value);
 
 	//update _sofbuddy_sleep_gamma
@@ -226,7 +238,11 @@ int winmain_loop(void)
 	}
 
 
+	SOFBUDDY_ASSERT(cls_state != nullptr);
+	SOFBUDDY_ASSERT(extratime != nullptr);
+	
 	int targetMsec = *cls_state == 7 ? 100 : (cl_maxfps ? std::ceil(1000/cl_maxfps->value) : 33);
+	SOFBUDDY_ASSERT(targetMsec > 0);
 
 	/*
 		. . . . . . . | draw . . . .  | draw . . .
@@ -346,6 +362,7 @@ int winmain_loop(void)
 	_controlfp( _PC_24, _MCW_PC );
 
 	if ( o_sofplus ) {
+		SOFBUDDY_ASSERT(sp_Sys_Mil != nullptr);
 		*(int*)((char*)o_sofplus + 0x331AC) = 0x00;
 		*(int*)((char*)o_sofplus + 0x331BC) = 0x00;
 		sp_Sys_Mil();
@@ -356,6 +373,8 @@ int winmain_loop(void)
 	//when frequency and msec value do not match = change speed
 	
 	//Time is applied to extratime here: 
+	SOFBUDDY_ASSERT(orig_Qcommon_Frame != nullptr);
+	SOFBUDDY_ASSERT(timedelta >= 0);
 	orig_Qcommon_Frame (timedelta);
 
 	//does not matter what we return here because we have jmp instruction immidiately after.
@@ -463,6 +482,7 @@ int qpcTimeStampNano(void)
 	if (!freq.QuadPart) {
 		return 0;
 	}
+	SOFBUDDY_ASSERT(freq.QuadPart > 0);
 	int ret = diff * 1'000'000'000 / freq.QuadPart;
 	return ret;
 }

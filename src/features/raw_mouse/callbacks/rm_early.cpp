@@ -22,7 +22,10 @@ void raw_mouse_EarlyStartup()
 
     if (!oSetCursorPos) {
         HMODULE hUser32 = GetModuleHandleA("user32.dll");
-        if (hUser32) oSetCursorPos = (tSetCursorPos)GetProcAddress(hUser32, "SetCursorPos");
+        if (hUser32) {
+            oSetCursorPos = (tSetCursorPos)GetProcAddress(hUser32, "SetCursorPos");
+            SOFBUDDY_ASSERT(oSetCursorPos != nullptr);
+        }
     }
 }
 

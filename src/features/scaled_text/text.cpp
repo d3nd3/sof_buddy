@@ -33,6 +33,8 @@ int characterIndex = 0;
 FontCaller g_currentFontCaller = FontCaller::Unknown;
 
 inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool incrementChar) {
+	SOFBUDDY_ASSERT(orig_glVertex2f != nullptr);
+	
 	if (isDrawingTeamicons) {
 		// Don't scale these for now.
 		orig_glVertex2f(x, y);
@@ -44,6 +46,8 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 		case FontCaller::DMRankingCalcXY:
 		case FontCaller::Inventory2:
 			// PrintOut(PRINT_LOG, "DMRankingCalcXY or Inventory2\n");
+			SOFBUDDY_ASSERT(hudScale > 0.0f);
+			SOFBUDDY_ASSERT(realFont >= 0 && realFont < 4);
 			if (scaleX) x = pivotx + (x - pivotx) * hudScale;
 			if (scaleY) y = pivoty + (y - pivoty) * hudScale;
 			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(hudScale-1), y);
@@ -55,6 +59,8 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 			
 		case FontCaller::SCRDrawPause:
 		case FontCaller::SCRUpdateScreen:
+			SOFBUDDY_ASSERT(screen_y_scale > 0.0f);
+			SOFBUDDY_ASSERT(realFont >= 0 && realFont < 4);
 			if (scaleX) x = pivotx + (x - pivotx) * screen_y_scale;
 			if (scaleY) y = pivoty + (y - pivoty) * screen_y_scale;
 			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
@@ -73,6 +79,8 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 		case FontCaller::LoadboxGetIndices:
 		case FontCaller::ServerboxDraw:
 		case FontCaller::TipRender:
+			SOFBUDDY_ASSERT(screen_y_scale > 0.0f);
+			SOFBUDDY_ASSERT(realFont >= 0 && realFont < 4);
 			if (scaleX) x = pivotx + (x - pivotx) * screen_y_scale;
 			if (scaleY) y = pivoty + (y - pivoty) * screen_y_scale;
 			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
@@ -109,6 +117,10 @@ void __stdcall my_glVertex2f_DrawFont_4(float x, float y) {
 
 int hkR_Strlen(char * str, char * fontStd)
 {
+	SOFBUDDY_ASSERT(str != nullptr);
+	SOFBUDDY_ASSERT(fontStd != nullptr);
+	SOFBUDDY_ASSERT(screen_y_scale > 0.0f);
+	
 	int space_count = 0;
 	for (char *p = str; *p != '\0'; ++p) {
 		if (*p == ' ') {
@@ -117,12 +129,17 @@ int hkR_Strlen(char * str, char * fontStd)
 	}
 
 	extern int (__cdecl *oR_Strlen)(char*, char*);
+	SOFBUDDY_ASSERT(oR_Strlen != nullptr);
 	return screen_y_scale * ( oR_Strlen(str, fontStd) - 5 * space_count);
 }
 
 int hkR_StrHeight(char * fontStd)
 {
+	SOFBUDDY_ASSERT(fontStd != nullptr);
+	SOFBUDDY_ASSERT(screen_y_scale > 0.0f);
+	
 	extern int (__cdecl *oR_StrHeight)(char*);
+	SOFBUDDY_ASSERT(oR_StrHeight != nullptr);
 	return screen_y_scale * oR_StrHeight(fontStd);
 }
 

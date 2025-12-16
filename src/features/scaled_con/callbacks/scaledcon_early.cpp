@@ -17,9 +17,10 @@ void scaledCon_EarlyStartup(void)
     PrintOut(PRINT_LOG, "scaled_con: Early startup - applying memory patches\n");
     
     cls_state = (int*)rvaToAbsExe((void*)0x001C1F00);
-    
+    SOFBUDDY_ASSERT(cls_state != nullptr);
 
     orig_SRC_AddDirtyPoint = (void(*)(int,int))rvaToAbsExe((void*)0x000140B0);
+    SOFBUDDY_ASSERT(orig_SRC_AddDirtyPoint != nullptr);
 
     //ensure the dirty point in con_drawnotify uses the actual width still
     writeIntegerAt(rvaToAbsExe((void*)0x00020F6F), (int)&real_refdef_width);

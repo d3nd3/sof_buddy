@@ -21,8 +21,12 @@ cvar_t *gl_swapinterval = NULL;
 	Called after ref.dll is loaded to ensure engine CVars are available
 */
 void create_vsync_cvars(void) {
+	SOFBUDDY_ASSERT(orig_Cvar_Get != nullptr);
+	
 	gl_swapinterval = orig_Cvar_Get("gl_swapinterval", "0", 0, NULL);
 	vid_ref = orig_Cvar_Get("vid_ref", "gl", 0, NULL);
+	SOFBUDDY_ASSERT(gl_swapinterval != nullptr);
+	SOFBUDDY_ASSERT(vid_ref != nullptr);
 }
 
 #endif // FEATURE_VSYNC_TOGGLE

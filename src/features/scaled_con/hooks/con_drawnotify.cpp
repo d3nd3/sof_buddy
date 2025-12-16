@@ -10,11 +10,17 @@
 #define GL_BLEND 0x0BE2
 
 void hkCon_DrawNotify(detour_Con_DrawNotify::tCon_DrawNotify original) {
+	SOFBUDDY_ASSERT(viddef_width != nullptr);
+	SOFBUDDY_ASSERT(fontScale > 0.0f);
+	SOFBUDDY_ASSERT(current_vid_w > 0);
+	SOFBUDDY_ASSERT(orig_glDisable != nullptr);
+	
 	real_refdef_width = current_vid_w;
 
 	//fake the width
 	*viddef_width = 1 / fontScale * current_vid_w;
 	
+	SOFBUDDY_ASSERT(*viddef_width > 0);
 	g_activeRenderType = uiRenderType::Console;
 	orig_glDisable(GL_BLEND);
 	original();

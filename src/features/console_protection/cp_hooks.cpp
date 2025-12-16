@@ -49,6 +49,20 @@ void my_Con_Draw_Console(void)
 
 	static void (*ref_draw_char) (int, int, int, void*) = (void(*)(int,int,int,void*))*(int*)rvaToAbsExe((void*)0x004035C8);
 	
+	SOFBUDDY_ASSERT(edit_line != nullptr);
+	SOFBUDDY_ASSERT(key_lines != nullptr);
+	SOFBUDDY_ASSERT(key_linepos != nullptr);
+	SOFBUDDY_ASSERT(cls_realtime != nullptr);
+	SOFBUDDY_ASSERT(con_linewidth != nullptr);
+	SOFBUDDY_ASSERT(con_vislines != nullptr);
+	SOFBUDDY_ASSERT(cls_key_dest != nullptr);
+	SOFBUDDY_ASSERT(cls_state != nullptr);
+	SOFBUDDY_ASSERT(ref_draw_char != nullptr);
+	SOFBUDDY_ASSERT(*edit_line >= 0);
+	SOFBUDDY_ASSERT(*key_linepos >= 0 && *key_linepos < MAXCMDLINE);
+	SOFBUDDY_ASSERT(*con_linewidth > 0);
+	SOFBUDDY_ASSERT(*con_vislines > 0);
+	
 	//key_menu
 	if (*cls_key_dest == 3)
 		return;
@@ -113,6 +127,14 @@ char* hkSys_GetClipboardData(void)
 	static int* key_linepos = (int*)rvaToAbsExe((void*)0x365E9C);
 	static char* key_lines = (char*)rvaToAbsExe((void*)0x365EA0);
 	static int* edit_line = (int*)rvaToAbsExe((void*)0x00367EA4);
+
+	SOFBUDDY_ASSERT(Z_Free != nullptr);
+	SOFBUDDY_ASSERT(key_linepos != nullptr);
+	SOFBUDDY_ASSERT(key_lines != nullptr);
+	SOFBUDDY_ASSERT(edit_line != nullptr);
+	SOFBUDDY_ASSERT(oSys_GetClipboardData != nullptr);
+	SOFBUDDY_ASSERT(*edit_line >= 0);
+	SOFBUDDY_ASSERT(*key_linepos >= 0 && *key_linepos < MAXCMDLINE);
 
 	if ( ( cbd = oSys_GetClipboardData() ) != 0 )
 	{

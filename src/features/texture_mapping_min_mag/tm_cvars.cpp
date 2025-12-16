@@ -27,6 +27,8 @@ cvar_t * _gl_texturemode = NULL;
 	Create and register all texture_mapping_min_mag cvars
 */
 void create_texturemapping_cvars(void) {
+	SOFBUDDY_ASSERT(orig_Cvar_Get != nullptr);
+	
 	// Sky detailtextures (unmipped)
 	_sofbuddy_minfilter_unmipped = orig_Cvar_Get("_sofbuddy_minfilter_unmipped","GL_LINEAR",CVAR_ARCHIVE,minfilter_change);
 	_sofbuddy_magfilter_unmipped = orig_Cvar_Get("_sofbuddy_magfilter_unmipped","GL_LINEAR",CVAR_ARCHIVE,magfilter_change);
@@ -39,6 +41,13 @@ void create_texturemapping_cvars(void) {
 	// UI - left magfilter_ui at GL_NEAREST for now because fonts look really bad with LINEAR, even tho others might be better at 4k
 	_sofbuddy_minfilter_ui = orig_Cvar_Get("_sofbuddy_minfilter_ui","GL_NEAREST",CVAR_ARCHIVE,minfilter_change);
 	_sofbuddy_magfilter_ui = orig_Cvar_Get("_sofbuddy_magfilter_ui","GL_NEAREST",CVAR_ARCHIVE,magfilter_change);
+	
+	SOFBUDDY_ASSERT(_sofbuddy_minfilter_unmipped != nullptr);
+	SOFBUDDY_ASSERT(_sofbuddy_magfilter_unmipped != nullptr);
+	SOFBUDDY_ASSERT(_sofbuddy_minfilter_mipped != nullptr);
+	SOFBUDDY_ASSERT(_sofbuddy_magfilter_mipped != nullptr);
+	SOFBUDDY_ASSERT(_sofbuddy_minfilter_ui != nullptr);
+	SOFBUDDY_ASSERT(_sofbuddy_magfilter_ui != nullptr);
 }
 
 #endif // FEATURE_TEXTURE_MAPPING_MIN_MAG

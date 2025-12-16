@@ -10,8 +10,11 @@
 using detour_GetCursorPos::tGetCursorPos;
 
 BOOL getcursorpos_override_callback(LPPOINT lpPoint, detour_GetCursorPos::tGetCursorPos original) {
+    SOFBUDDY_ASSERT(in_mouse_raw != nullptr);
+    
     if (!in_mouse_raw || in_mouse_raw->value == 0) {
         // Raw mouse disabled - call original
+        SOFBUDDY_ASSERT(original != nullptr);
         return original ? original(lpPoint) : FALSE;
     }
     

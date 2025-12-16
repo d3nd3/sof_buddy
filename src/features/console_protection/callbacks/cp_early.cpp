@@ -13,6 +13,7 @@ void console_protection_EarlyStartup(void)
 	PrintOut(PRINT_LOG, "Console Protection: Applying security patches...\n");
 
 	oSys_GetClipboardData = (char*(*)(void))rvaToAbsExe((void*)0x00065E60);
+	SOFBUDDY_ASSERT(oSys_GetClipboardData != nullptr);
 	
 	WriteE8Call(rvaToAbsExe((void*)0x0004BB63), (void*)&hkSys_GetClipboardData);
 	WriteE9Jmp(rvaToAbsExe((void*)0x0004BB6C), rvaToAbsExe((void*)0x0004BBFE));

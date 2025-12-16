@@ -14,11 +14,17 @@ extern void __stdcall hkglVertex2f(float x, float y);
 
 void scaledUIBase_RefDllLoaded(char const* name)
 {
+    SOFBUDDY_ASSERT(name != nullptr);
+    
     PrintOut(PRINT_LOG, "scaled_ui_base: Installing ref.dll hooks\n");
     
     void* glVertex2f = (void*)*(int*)rvaToAbsRef((void*)0x000A4670);
+    SOFBUDDY_ASSERT(glVertex2f != nullptr);
+    
     orig_glVertex2i = (void(__stdcall*)(int,int))*(int*)rvaToAbsRef((void*)0x000A46D0);
     orig_glDisable = (void(__stdcall*)(int))*(int*)rvaToAbsRef((void*)0x000A44EC);
+    SOFBUDDY_ASSERT(orig_glVertex2i != nullptr);
+    SOFBUDDY_ASSERT(orig_glDisable != nullptr);
     
     if (orig_glVertex2f) {
         DetourSystem::Instance().RemoveDetourAtAddress((void*)glVertex2f);
@@ -27,6 +33,7 @@ void scaledUIBase_RefDllLoaded(char const* name)
     void* trampoline = nullptr;
     if (DetourSystem::Instance().ApplyDetourAtAddress((void*)glVertex2f, (void*)&hkglVertex2f, &trampoline, "glVertex2f", 0)) {
         orig_glVertex2f = (void(__stdcall*)(float,float))trampoline;
+        SOFBUDDY_ASSERT(orig_glVertex2f != nullptr);
     }
     
     PrintOut(PRINT_LOG, "scaled_ui_base: ref.dll hooks installed successfully\n");

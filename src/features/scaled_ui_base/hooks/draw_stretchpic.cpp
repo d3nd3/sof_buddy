@@ -11,6 +11,11 @@
 // #pragma GCC push_options
 // #pragma GCC optimize ("O0")
 void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int flags, detour_Draw_StretchPic::tDraw_StretchPic original) {
+    SOFBUDDY_ASSERT(original != nullptr);
+    SOFBUDDY_ASSERT(w > 0);
+    SOFBUDDY_ASSERT(h > 0);
+    SOFBUDDY_ASSERT(current_vid_h > 0);
+    
     g_activeDrawCall = DrawRoutineType::StretchPic;
     StretchPicCaller detectedCaller = StretchPicCaller::Unknown;
 
@@ -28,10 +33,12 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
     if (caller == StretchPicCaller::CON_DrawConsole) {
         //Draw the console background with new height
         extern float draw_con_frac;
+        SOFBUDDY_ASSERT(draw_con_frac >= 0.0f && draw_con_frac <= 1.0f);
         int consoleHeight = draw_con_frac * current_vid_h;
         y = -1 * current_vid_h + consoleHeight;
         original(x, y, w, h, palette, name, flags);
         extern void( * orig_SRC_AddDirtyPoint)(int x, int y);
+        SOFBUDDY_ASSERT(orig_SRC_AddDirtyPoint != nullptr);
         orig_SRC_AddDirtyPoint(0, 0);
         orig_SRC_AddDirtyPoint(w - 1, consoleHeight - 1);
         g_currentStretchPicCaller = StretchPicCaller::Unknown;
@@ -40,6 +47,7 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
     }
     
     if (g_activeRenderType == uiRenderType::HudCtfFlag) {
+        SOFBUDDY_ASSERT(hudScale > 0.0f);
         w = w * hudScale;
         h = h * hudScale;
     }

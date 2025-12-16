@@ -53,6 +53,8 @@ int real_refdef_width = 0;
 
 // Font scaling CVar change callbacks
 void fontscale_change(cvar_t * cvar) {
+	SOFBUDDY_ASSERT(cvar != nullptr);
+	
 	static bool first_run = true;
 	//round to nearest quarter
 	fontScale = roundf(cvar->value * 4.0f) / 4.0f;
@@ -63,12 +65,16 @@ void fontscale_change(cvar_t * cvar) {
 		fontScale = 1;
 	}
 
+	SOFBUDDY_ASSERT(fontScale > 0.0f);
 	first_run = false;
 }
 
 void consolesize_change(cvar_t * cvar) {
+	SOFBUDDY_ASSERT(cvar != nullptr);
+	
 	// Save raw console size from cvar; apply fontScale at runtime in my_Con_DrawConsole
 	consoleSize = cvar->value;
+	SOFBUDDY_ASSERT(consoleSize >= 0.0f && consoleSize <= 1.0f);
 }
 
 /*

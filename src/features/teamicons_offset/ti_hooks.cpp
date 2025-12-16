@@ -42,6 +42,11 @@ int* icon_height = nullptr;
 */
 extern "C" int TeamIconInterceptFix(void)
 {
+	SOFBUDDY_ASSERT(realHeight != nullptr);
+	SOFBUDDY_ASSERT(virtualHeight != nullptr);
+	SOFBUDDY_ASSERT(icon_min_y != nullptr);
+	SOFBUDDY_ASSERT(icon_height != nullptr);
+	
 	// Extract the FPU stack value (ST0) containing preliminary Y position
 	float thedata;
 	/* Use the single-precision FPU store mnemonic to avoid an
@@ -53,6 +58,8 @@ extern "C" int TeamIconInterceptFix(void)
 	// Get current screen dimensions
 	unsigned int rHeight = *realHeight;
 	unsigned int vHeight = *virtualHeight;
+	SOFBUDDY_ASSERT(rHeight > 0);
+	SOFBUDDY_ASSERT(vHeight > 0);
 
 	// Adjust for letterboxing (when real height != virtual height)
 	// This happens with widescreen aspect ratios
@@ -61,6 +68,7 @@ extern "C" int TeamIconInterceptFix(void)
 	// Bounds checking - hide icon if outside visible area
 	int minY = *icon_min_y;
 	int maxY = minY + *icon_height;
+	SOFBUDDY_ASSERT(*icon_height >= 0);
 	
 	if (HalfHeight < minY) return -20;  // Above screen
 	if (HalfHeight > maxY) return -20;  // Below screen

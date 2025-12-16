@@ -4,6 +4,29 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifndef NDEBUG
+#include <windows.h>
+#include <cassert>
+#include <cstdio>
+#define SOFBUDDY_ASSERT(condition) \
+    do { \
+        if (!(condition)) { \
+            char msg[512]; \
+            sprintf(msg, \
+                "Assertion failed!\n\n" \
+                "File: %s\n" \
+                "Line: %d\n" \
+                "Condition: %s\n\n" \
+                "This indicates a bug in sof_buddy. Please report this error.", \
+                __FILE__, __LINE__, #condition); \
+            MessageBoxA(NULL, msg, "sof_buddy Assertion Failed", MB_ICONERROR | MB_OK); \
+            assert(condition); \
+        } \
+    } while(0)
+#else
+#define SOFBUDDY_ASSERT(condition) ((void)0)
+#endif
+
 #define PRINT_GOOD 1
 #define PRINT_BAD 2
 #define PRINT_LOG 3
