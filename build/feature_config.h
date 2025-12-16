@@ -11,20 +11,20 @@
     - // feature_name  (disabled)
 */
 
-#define FEATURE_MEDIA_TIMERS 0  // disabled
-#define FEATURE_TEXTURE_MAPPING_MIN_MAG 0  // disabled
+#define FEATURE_MEDIA_TIMERS 1  // enabled
+#define FEATURE_TEXTURE_MAPPING_MIN_MAG 1  // enabled
 #define FEATURE_SCALED_CON 1  // enabled
-#define FEATURE_SCALED_HUD 0  // disabled
-#define FEATURE_SCALED_TEXT 0  // disabled
+#define FEATURE_SCALED_HUD 1  // enabled
+#define FEATURE_SCALED_TEXT 1  // enabled
 #define FEATURE_SCALED_MENU 0  // disabled
-#define FEATURE_HD_TEXTURES 0  // disabled
-#define FEATURE_VSYNC_TOGGLE 0  // disabled
-#define FEATURE_LIGHTING_BLEND 0  // disabled
-#define FEATURE_TEAMICONS_OFFSET 0  // disabled
-#define FEATURE_NEW_SYSTEM_BUG 0  // disabled
-#define FEATURE_CONSOLE_PROTECTION 0  // disabled
-#define FEATURE_CL_MAXFPS_SINGLEPLAYER 0  // disabled
-#define FEATURE_RAW_MOUSE 0  // disabled
+#define FEATURE_HD_TEXTURES 1  // enabled
+#define FEATURE_VSYNC_TOGGLE 1  // enabled
+#define FEATURE_LIGHTING_BLEND 1  // enabled
+#define FEATURE_TEAMICONS_OFFSET 1  // enabled
+#define FEATURE_NEW_SYSTEM_BUG 1  // enabled
+#define FEATURE_CONSOLE_PROTECTION 1  // enabled
+#define FEATURE_CL_MAXFPS_SINGLEPLAYER 1  // enabled
+#define FEATURE_RAW_MOUSE 1  // enabled
 
 /*
     Usage in feature files:
