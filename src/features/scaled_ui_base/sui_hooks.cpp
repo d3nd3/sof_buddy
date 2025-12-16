@@ -89,11 +89,12 @@ bool mainMenuBgTiled = false;
 realFontEnum_t realFont = REALFONT_UNKNOWN;
 
 // Font sizes for each realFontEnum_t, index by enum value
-const int realFontSizes[4] = {
+const int realFontSizes[5] = {
     12, // REALFONT_TITLE
     6,  // REALFONT_SMALL
     8,  // REALFONT_MEDIUM
-    18  // REALFONT_INTERFACE
+    18, // REALFONT_INTERFACE
+    12  // REALFONT_UNKNOWN (default to TITLE size)
 };
 
 // =============================================================================

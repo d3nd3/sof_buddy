@@ -130,7 +130,7 @@ enum realFontEnum_t {
 extern realFontEnum_t realFont;
 
 // Font sizes for each realFontEnum_t, index by enum value
-extern const int realFontSizes[4];
+extern const int realFontSizes[5];
 
 // Font caller context enum for R_DrawFont callers (defined in text.cpp)
 enum class FontCaller;

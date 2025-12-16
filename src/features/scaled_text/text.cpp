@@ -47,7 +47,6 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 		case FontCaller::Inventory2:
 			// PrintOut(PRINT_LOG, "DMRankingCalcXY or Inventory2\n");
 			SOFBUDDY_ASSERT(hudScale > 0.0f);
-			SOFBUDDY_ASSERT(realFont >= 0 && realFont < 4);
 			if (scaleX) x = pivotx + (x - pivotx) * hudScale;
 			if (scaleY) y = pivoty + (y - pivoty) * hudScale;
 			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(hudScale-1), y);
@@ -60,7 +59,6 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 		case FontCaller::SCRDrawPause:
 		case FontCaller::SCRUpdateScreen:
 			SOFBUDDY_ASSERT(screen_y_scale > 0.0f);
-			SOFBUDDY_ASSERT(realFont >= 0 && realFont < 4);
 			if (scaleX) x = pivotx + (x - pivotx) * screen_y_scale;
 			if (scaleY) y = pivoty + (y - pivoty) * screen_y_scale;
 			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
@@ -80,7 +78,6 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 		case FontCaller::ServerboxDraw:
 		case FontCaller::TipRender:
 			SOFBUDDY_ASSERT(screen_y_scale > 0.0f);
-			SOFBUDDY_ASSERT(realFont >= 0 && realFont < 4);
 			if (scaleX) x = pivotx + (x - pivotx) * screen_y_scale;
 			if (scaleY) y = pivoty + (y - pivoty) * screen_y_scale;
 			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
