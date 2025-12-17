@@ -18,6 +18,7 @@
 #include <string>
 #include <stdio.h>
 #include <algorithm>
+#include <unordered_map>
 #include <shlwapi.h>
 #include <psapi.h>
 #include "util.h"
@@ -33,6 +34,7 @@ static char g_mapsDir[512] = {0};
 
 struct ModuleRange { uintptr_t base; uintptr_t end; HMODULE h; bool valid; };
 static ModuleRange g_modRanges[6] = {0};
+static std::unordered_map<uintptr_t, CallerInfo> g_cache;
 
 static inline void cacheRangeFromHandle(Module m, HMODULE h) {
     if (!h) return;
@@ -259,6 +261,9 @@ void CallsiteClassifier::initialize(const char *mapsDirectory) {
 bool CallsiteClassifier::classify(void *returnAddress, CallerInfo &out) {
 	uintptr_t ra = (uintptr_t)returnAddress;
 
+	auto it = g_cache.find(ra);
+	if (it != g_cache.end()) { out = it->second; return true; }
+
 	Module foundModule = Module::Unknown;
 	HMODULE mod = nullptr;
 	
@@ -333,6 +338,7 @@ bool CallsiteClassifier::classify(void *returnAddress, CallerInfo &out) {
 			if (!funcs[best].name.empty()) out.name = funcs[best].name.c_str();
 		}
 	}
+	g_cache[ra] = out;
 	return true;
 }
 
@@ -390,10 +396,21 @@ void CallsiteClassifier::invalidateModuleCache(Module m) {
     if (m == Module::Unknown) return;
     int idx = (int)m;
     if (idx <= 0 || idx >= (int)Module::SpclDll + 1) return;
+    uintptr_t oldBase = g_modRanges[idx].base;
+    uintptr_t oldEnd = g_modRanges[idx].end;
     g_modRanges[idx].valid = false;
     g_modRanges[idx].h = nullptr;
     g_modRanges[idx].base = 0;
     g_modRanges[idx].end = 0;
+    if (oldBase != 0 && oldEnd > oldBase) {
+        for (auto it = g_cache.begin(); it != g_cache.end();) {
+            if (it->first >= oldBase && it->first < oldEnd) {
+                it = g_cache.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
 }
 
 

@@ -140,21 +140,6 @@
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/media_timers/hooks/sys_milliseconds.cpp"
     },
     {
-        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/features/scaled_text/callbacks/scaledtext_refdll.o src/features/scaled_text/callbacks/scaledtext_refdll.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
-        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
-        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_text/callbacks/scaledtext_refdll.cpp"
-    },
-    {
-        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/features/scaled_text/text.o src/features/scaled_text/text.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
-        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
-        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_text/text.cpp"
-    },
-    {
-        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/features/scaled_text/hooks/r_drawfont.o src/features/scaled_text/hooks/r_drawfont.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
-        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
-        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_text/hooks/r_drawfont.cpp"
-    },
-    {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/features/new_system_bug/callbacks/ns_early.o src/features/new_system_bug/callbacks/ns_early.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/new_system_bug/callbacks/ns_early.cpp"
@@ -275,9 +260,19 @@
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui_base/hooks/con_init.cpp"
     },
     {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/features/scaled_ui_base/hooks/r_drawfont.o src/features/scaled_ui_base/hooks/r_drawfont.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui_base/hooks/r_drawfont.cpp"
+    },
+    {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/features/scaled_ui_base/caller_from.o src/features/scaled_ui_base/caller_from.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui_base/caller_from.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/features/scaled_ui_base/text_scaling.o src/features/scaled_ui_base/text_scaling.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui_base/text_scaling.cpp"
     },
     {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/features/lighting_blend/lb_hooks.o src/features/lighting_blend/lb_hooks.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
@@ -318,16 +313,6 @@
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/features/scaled_con/hooks/scr_drawplayerinfo.o src/features/scaled_con/hooks/scr_drawplayerinfo.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_con/hooks/scr_drawplayerinfo.cpp"
-    },
-    {
-        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/features/scaled_ui_base/hooks/r_drawfont.o src/features/scaled_ui_base/hooks/r_drawfont.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
-        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
-        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui_base/hooks/r_drawfont.cpp"
-    },
-    {
-        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/features/scaled_ui_base/text_scaling.o src/features/scaled_ui_base/text_scaling.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
-        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
-        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui_base/text_scaling.cpp"
     },
     {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/features/scaled_con/hooks/con_checkresize.o src/features/scaled_con/hooks/con_checkresize.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
@@ -418,5 +403,10 @@
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/DetourXS/detourxs.o src/DetourXS/detourxs.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/DetourXS/detourxs.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/generated_detours.o build/generated_detours.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/build/generated_detours.cpp"
     }
 ]
