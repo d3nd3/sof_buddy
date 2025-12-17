@@ -18,6 +18,7 @@
 #include <string>
 #include <stdio.h>
 #include <algorithm>
+#include <unordered_map>
 #include <shlwapi.h>
 #include <psapi.h>
 #include "util.h"
@@ -33,6 +34,7 @@ static char g_mapsDir[512] = {0};
 
 struct ModuleRange { uintptr_t base; uintptr_t end; HMODULE h; bool valid; };
 static ModuleRange g_modRanges[6] = {0};
+static std::unordered_map<uintptr_t, CallerInfo> g_cache;
 
 static inline void cacheRangeFromHandle(Module m, HMODULE h) {
     if (!h) return;
@@ -259,6 +261,9 @@ void CallsiteClassifier::initialize(const char *mapsDirectory) {
 bool CallsiteClassifier::classify(void *returnAddress, CallerInfo &out) {
 	uintptr_t ra = (uintptr_t)returnAddress;
 
+	auto it = g_cache.find(ra);
+	if (it != g_cache.end()) { out = it->second; return true; }
+
 	Module foundModule = Module::Unknown;
 	HMODULE mod = nullptr;
 	
@@ -333,6 +338,7 @@ bool CallsiteClassifier::classify(void *returnAddress, CallerInfo &out) {
 			if (!funcs[best].name.empty()) out.name = funcs[best].name.c_str();
 		}
 	}
+	g_cache[ra] = out;
 	return true;
 }
 
