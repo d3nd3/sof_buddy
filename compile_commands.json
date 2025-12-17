@@ -318,5 +318,105 @@
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/features/scaled_con/hooks/scr_drawplayerinfo.o src/features/scaled_con/hooks/scr_drawplayerinfo.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_con/hooks/scr_drawplayerinfo.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/features/scaled_ui_base/hooks/r_drawfont.o src/features/scaled_ui_base/hooks/r_drawfont.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui_base/hooks/r_drawfont.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/features/scaled_ui_base/text_scaling.o src/features/scaled_ui_base/text_scaling.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui_base/text_scaling.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/features/scaled_con/hooks/con_checkresize.o src/features/scaled_con/hooks/con_checkresize.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_con/hooks/con_checkresize.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/features/scaled_con/hooks/con_drawconsole.o src/features/scaled_con/hooks/con_drawconsole.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_con/hooks/con_drawconsole.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/features/scaled_con/hooks/con_drawnotify.o src/features/scaled_con/hooks/con_drawnotify.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_con/hooks/con_drawnotify.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/features/scaled_con/console.o src/features/scaled_con/console.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_con/console.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/tools/pe_utils.o src/tools/pe_utils.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/tools/pe_utils.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/core/module_loaders.o src/core/module_loaders.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/core/module_loaders.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/core/wsock_entry.o src/core/wsock_entry.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/core/wsock_entry.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/core/shared_hook_manager.o src/core/shared_hook_manager.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/core/shared_hook_manager.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/core/simple_init.o src/core/simple_init.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/core/simple_init.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/core/detours.o src/core/detours.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/core/detours.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/debug/hook_callsite.o src/debug/hook_callsite.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/debug/hook_callsite.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/debug/callsite_classifier.o src/debug/callsite_classifier.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/debug/callsite_classifier.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/debug/parent_recorder.o src/debug/parent_recorder.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/debug/parent_recorder.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/utils/util.o src/utils/util.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/utils/util.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/utils/cvars.o src/utils/cvars.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/utils/cvars.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/utils/crc32.o src/utils/crc32.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/utils/crc32.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/DetourXS/ADE32.o src/DetourXS/ADE32.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/DetourXS/ADE32.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild -o obj/DetourXS/detourxs.o src/DetourXS/detourxs.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/DetourXS/detourxs.cpp"
     }
 ]

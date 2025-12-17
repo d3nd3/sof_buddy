@@ -27,6 +27,8 @@ qboolean vid_loadrefresh_override_callback(char const* name, detour_VID_LoadRefr
         DetourSystem::Instance().RemoveRefDetours();
         CallsiteClassifier::invalidateModuleCache(Module::RefDll);
         PrintOut(PRINT_LOG, "=== ref.dll Cleanup Complete ===\n");
+        PrintOut(PRINT_LOG, "\n");
+        PrintOut(PRINT_LOG, "\n");
     }
     
     PrintOut(PRINT_LOG, "=== Module Loading: ref.dll ===\n");
@@ -49,6 +51,8 @@ qboolean vid_loadrefresh_override_callback(char const* name, detour_VID_LoadRefr
         DISPATCH_SHARED_HOOK_ARGS(RefDllLoaded, Post, name);
         
         PrintOut(PRINT_LOG, "=== ref.dll Loading Complete ===\n");
+        PrintOut(PRINT_LOG, "\n");
+        PrintOut(PRINT_LOG, "\n");
     } else {
         PrintOut(PRINT_BAD, "Failed to load ref.dll: %s\n", name ? name : "default");
     }
@@ -78,6 +82,8 @@ void* sys_getgameapi_override_callback(void* imports, detour_Sys_GetGameApi::tSy
         DISPATCH_SHARED_HOOK_ARGS(GameDllLoaded, Post, imports);
         
         PrintOut(PRINT_LOG, "=== game.dll Loading Complete ===\n");
+        PrintOut(PRINT_LOG, "\n");
+        PrintOut(PRINT_LOG, "\n");
     } else {
         PrintOut(PRINT_BAD, "Failed to load game.dll\n");
     }
@@ -92,6 +98,8 @@ void sv_shutdowngameprogs_callback(void) {
     CallsiteClassifier::invalidateModuleCache(Module::GameDll);
     
     PrintOut(PRINT_LOG, "=== gamex86.dll Cleanup Complete ===\n");
+    PrintOut(PRINT_LOG, "\n");
+    PrintOut(PRINT_LOG, "\n");
 }
 
 // Core hooks are now registered via hooks.json and generated code

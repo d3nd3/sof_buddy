@@ -31,6 +31,11 @@
     "callback": "vid_checkchanges_post",
     "phase": "Post",
     "priority": 100
+  },
+  {
+    "function": "R_DrawFont",
+    "callback": "hkR_DrawFont",
+    "override": true
   }
 ]
 

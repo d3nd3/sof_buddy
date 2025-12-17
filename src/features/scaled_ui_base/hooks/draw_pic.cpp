@@ -1,6 +1,6 @@
 #include "feature_config.h"
 
-#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_TEXT || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
+#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
 
 #include "sof_compat.h"
 #include "util.h"
@@ -51,5 +51,5 @@ void hkDraw_Pic(int x, int y, char const * imgname, int palette, detour_Draw_Pic
     g_activeDrawCall = DrawRoutineType::None;
 }
 
-#endif // FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_TEXT || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
+#endif // FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
 

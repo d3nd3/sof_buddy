@@ -13,13 +13,12 @@
 
 #define FEATURE_MEDIA_TIMERS 1  // enabled
 #define FEATURE_TEXTURE_MAPPING_MIN_MAG 1  // enabled
-#define FEATURE_SCALED_CON 1  // enabled
-#define FEATURE_SCALED_HUD 1  // enabled
-#define FEATURE_SCALED_TEXT 1  // enabled
-#define FEATURE_SCALED_MENU 0  // disabled
 #define FEATURE_HD_TEXTURES 1  // enabled
 #define FEATURE_VSYNC_TOGGLE 1  // enabled
 #define FEATURE_LIGHTING_BLEND 1  // enabled
+#define FEATURE_SCALED_CON 1  // enabled
+#define FEATURE_SCALED_HUD 1  // enabled
+#define FEATURE_//SCALED_MENU 1  // enabled
 #define FEATURE_TEAMICONS_OFFSET 1  // enabled
 #define FEATURE_NEW_SYSTEM_BUG 1  // enabled
 #define FEATURE_CONSOLE_PROTECTION 1  // enabled

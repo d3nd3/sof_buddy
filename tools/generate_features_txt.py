@@ -18,7 +18,6 @@ CATEGORIES = {
         "texture_mapping_min_mag",
         "scaled_con",
         "scaled_hud",
-        "scaled_text",
         "scaled_menu",  # Will be commented by default
         "hd_textures",
         "vsync_toggle",

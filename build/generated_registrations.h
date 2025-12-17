@@ -44,7 +44,6 @@ extern void raw_mouse_EarlyStartup();
 extern void raw_mouse_RefDllLoaded(char const* name);
 extern void scaledCon_EarlyStartup();
 extern void scaledHud_RefDllLoaded(char const* name);
-extern void scaledText_RefDllLoaded(char const* name);
 extern void scaledUIBase_RefDllLoaded(char const* name);
 extern void setup_minmag_filters(char const* name);
 extern void sv_shutdowngameprogs_callback();
@@ -82,9 +81,6 @@ inline void RegisterAllFeatureHooks() {
     SharedHookManager::Instance().RegisterCallback(
         "PostCvarInit", "media_timers", "mediaTimers_PostCvarInit",
         []() { mediaTimers_PostCvarInit(); }, 70, SharedHookPhase::Post);
-    SharedHookManager::Instance().RegisterCallback<char const*>(
-        "RefDllLoaded", "scaled_text", "scaledText_RefDllLoaded",
-        std::function<void(char const*)>([](char const* name) { scaledText_RefDllLoaded(name); }), 60, SharedHookPhase::Post);
     SharedHookManager::Instance().RegisterCallback(
         "EarlyStartup", "new_system_bug", "new_system_bug_EarlyStartup",
         []() { new_system_bug_EarlyStartup(); }, 60, SharedHookPhase::Post);

@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PARENTS_DIR = ROOT / 'rsrc' / 'func_parents'
 SCALED_UI_H = ROOT / 'src' / 'features' / 'scaled_ui_base' / 'shared.h'
-TEXT_CPP = ROOT / 'src' / 'features' / 'scaled_text' / 'text.cpp'
+TEXT_CPP = ROOT / 'src' / 'features' / 'scaled_ui_base' / 'text_scaling.cpp'
 CALLER_FROM_CPP = ROOT / 'src' / 'features' / 'scaled_ui_base' / 'caller_from.cpp'
 
 # Map child name -> (file, function name, keyed by module?)

@@ -12,7 +12,6 @@
 #include <shlwapi.h>
 
 #include <io.h>
-// #include <unistd.h>
 
 #include <stdio.h>
 #include <stdint.h>
@@ -42,6 +41,16 @@
 static PVOID g_vectored_handler = NULL;
 static bool g_dbghelp_initialized = false;
 
+#ifndef NDEBUG
+// Signal handler for SIGUSR1 (used under Wine/Proton)
+typedef void (*sighandler_t)(int);
+#define SIG_DFL ((sighandler_t)0)
+#define SIG_ERR ((sighandler_t)-1)
+static sighandler_t (*p_signal)(int, sighandler_t) = NULL;
+static void (*p_raise)(int) = NULL;
+static bool g_signal_handlers_available = false;
+#endif
+
 // Function pointers for dynamically loaded vectored exception handlers (XP SP1+)
 typedef LONG (WINAPI *PVECTORED_EXCEPTION_HANDLER_t)(PEXCEPTION_POINTERS);
 typedef PVOID (WINAPI *AddVectoredExceptionHandler_t)(ULONG, PVECTORED_EXCEPTION_HANDLER_t);
@@ -49,6 +58,77 @@ typedef ULONG (WINAPI *RemoveVectoredExceptionHandler_t)(PVOID);
 static AddVectoredExceptionHandler_t pAddVectoredExceptionHandler = NULL;
 static RemoveVectoredExceptionHandler_t pRemoveVectoredExceptionHandler = NULL;
 static bool g_vectored_handlers_available = false;
+
+#ifndef NDEBUG
+static void sigusr1_handler(int sig) {
+	PrintOut(PRINT_BAD, "=== SIGUSR1 RECEIVED ===\n");
+	PrintOut(PRINT_BAD, "Signal: %d (SIGUSR1 - User defined signal 1)\n", sig);
+	PrintOut(PRINT_BAD, "This signal is typically sent by:\n");
+	PrintOut(PRINT_BAD, "  1. GDB/debugger (breakpoint, pause, or step command)\n");
+	PrintOut(PRINT_BAD, "  2. Wine/Proton during DLL loading or initialization\n");
+	PrintOut(PRINT_BAD, "  3. Assertion failure that triggers debugger\n");
+	PrintOut(PRINT_BAD, "  4. External tool or process\n");
+	
+	if (g_dbghelp_initialized) {
+		PrintOut(PRINT_BAD, "Attempting stack backtrace...\n");
+		void* backtrace[32];
+		USHORT frames = CaptureStackBackTrace(0, 32, backtrace, NULL);
+		PrintOut(PRINT_BAD, "Stack backtrace (%u frames):\n", frames);
+		for (USHORT i = 0; i < frames && i < 32; i++) {
+			PrintOut(PRINT_BAD, "  #%02u: 0x%p\n", i, backtrace[i]);
+		}
+	}
+	
+	PrintOut(PRINT_BAD, "=== End SIGUSR1 diagnostic ===\n");
+	PrintOut(PRINT_BAD, "If this is unexpected, check:\n");
+	PrintOut(PRINT_BAD, "  - GDB breakpoints or 'signal SIGUSR1' commands\n");
+	PrintOut(PRINT_BAD, "  - Assertion failures in debug builds (check log above)\n");
+	PrintOut(PRINT_BAD, "  - Wine/Proton debug output\n");
+	
+	// Re-raise the signal so debugger can still catch it
+	if (p_signal && p_raise) {
+		p_signal(10, SIG_DFL);
+		p_raise(10);
+	}
+}
+
+static void load_signal_handlers(void) {
+	if (g_signal_handlers_available) return;
+	
+	HMODULE hMsvcrt = GetModuleHandleA("msvcrt.dll");
+	if (!hMsvcrt) {
+		hMsvcrt = LoadLibraryA("msvcrt.dll");
+	}
+	
+	if (hMsvcrt) {
+		p_signal = (sighandler_t(*)(int, sighandler_t))GetProcAddress(hMsvcrt, "signal");
+		p_raise = (void(*)(int))GetProcAddress(hMsvcrt, "raise");
+		
+		if (p_signal && p_raise) {
+			// SIGUSR1 is signal 10 under Wine
+			// Register handler for signal 10 (SIGUSR1)
+			sighandler_t old_handler = p_signal(10, sigusr1_handler);
+			if (old_handler != SIG_ERR) {
+				PrintOut(PRINT_LOG, "Registered SIGUSR1 (signal 10) handler for diagnostic logging\n");
+				g_signal_handlers_available = true;
+			} else {
+				PrintOut(PRINT_LOG, "Failed to register SIGUSR1 handler (signal() returned SIG_ERR)\n");
+				// Try alternative: maybe signal 10 isn't valid, try signal() with different approach
+				// Under Wine, msvcrt.dll's signal() might not work, but we can still try
+				g_signal_handlers_available = false;
+			}
+		} else {
+			PrintOut(PRINT_LOG, "Failed to get signal/raise functions from msvcrt.dll\n");
+		}
+	} else {
+		PrintOut(PRINT_LOG, "Failed to load msvcrt.dll\n");
+	}
+}
+#else
+static void load_signal_handlers(void) {
+	// Signal handlers only active in debug builds
+}
+#endif
 
 static void load_vectored_exception_handlers(void) {
 	if (g_vectored_handlers_available) return;
@@ -58,6 +138,8 @@ static void load_vectored_exception_handlers(void) {
 		pRemoveVectoredExceptionHandler = (RemoveVectoredExceptionHandler_t)GetProcAddress(hKernel32, "RemoveVectoredExceptionHandler");
 		g_vectored_handlers_available = (pAddVectoredExceptionHandler != NULL && pRemoveVectoredExceptionHandler != NULL);
 	}
+	
+	load_signal_handlers();
 }
 
 // Capture and print a simple stack backtrace (addresses + resolved symbols when possible)
@@ -1248,7 +1330,6 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 
 bool SoFplusLoadFn(HMODULE sofplus, void **out_fn, const char *func)
 {
-	PrintOut(PRINT_LOG,"SoFplusLoadFn()\n");
 	*out_fn = (void*)GetProcAddress(sofplus,func);
 	if (*out_fn == NULL) return false;
 

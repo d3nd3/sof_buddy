@@ -484,6 +484,87 @@ When `RefDllLoaded` is dispatched:
     - `SofExe` → main executable (GetModuleHandleA(NULL))
     - `Unknown` → `user32.dll` (default for Windows API)
 
+### System DLL Hooks
+
+System DLL hooks intercept functions from Windows system DLLs (e.g., `user32.dll`, `kernel32.dll`) rather than game modules. They are used to hook Windows API functions that the game calls.
+
+#### Key Differences from Regular Hooks
+
+1. **Module Type**: Marked with `module: Unknown` in `detours.yaml` (vs `SofExe`, `RefDll`, `GameDll`, etc.)
+2. **Address Resolution**: Resolved at runtime via `GetProcAddress()` instead of using RVA offsets
+3. **Timing**: Applied early in `lifecycle_EarlyStartup()` before game modules load
+4. **Purpose**: Hook Windows API functions that the game uses
+
+#### Defining System DLL Hooks in `detours.yaml`
+
+```yaml
+functions:
+  - name: GetCursorPos
+    module: Unknown
+    identifier: "GetCursorPos"
+    return_type: BOOL
+    calling_convention: __stdcall
+    detour_len: 0
+    params:
+      - type: LPPOINT
+        name: lpPoint
+
+  - name: DispatchMessageA
+    module: Unknown
+    identifier: "DispatchMessageA"
+    return_type: LRESULT
+    calling_convention: __stdcall
+    detour_len: 0
+    params:
+      - type: const MSG*
+        name: msg
+```
+
+**Important Points:**
+- `module: Unknown` marks it as a system DLL hook
+- `identifier` must be the exact export name (case-sensitive)
+- The generated code uses `GetModuleHandleA("user32.dll")` and `GetProcAddress()` to resolve the address at runtime
+- Addresses are resolved during static initialization (before `main()`)
+
+#### How System DLL Hooks Work
+
+1. **Registration Phase** (static initialization):
+   - Generated `AutoDetour_*` structs call `GetModuleHandleA("user32.dll")` and `GetProcAddress()`
+   - Resolved address is registered with `DetourSystem::RegisterDetour()` with `DetourModule::Unknown`
+   - Detour is stored but **not yet applied**
+
+2. **Application Phase** (`lifecycle_EarlyStartup()`):
+   - `DetourSystem::ApplySystemDetours()` is called
+   - For each registered system DLL detour:
+     - Address was already resolved during registration (no RVA conversion needed)
+     - Calls `DetourCreate()` to patch the target function with a JMP instruction
+     - Creates a trampoline containing original bytes + JMP back
+     - Stores trampoline in `applied_detours` map and `o*` function pointer
+
+3. **Runtime Execution**:
+   - When the game calls the Windows API function, the hook intercepts it
+   - Hook function dispatches Pre/Post callbacks (if registered)
+   - Original function is called via trampoline (or override callback has full control)
+
+#### Example: Raw Mouse Feature
+
+The `raw_mouse` feature uses system DLL hooks to intercept Windows mouse input:
+
+- **`GetCursorPos`** (user32.dll) - Returns fake cursor position based on raw mouse deltas
+- **`DispatchMessageA`** (user32.dll) - Intercepts `WM_INPUT` messages to extract raw mouse hardware deltas
+
+These hooks are applied early in `lifecycle_EarlyStartup()` so they're active before the game starts processing mouse input.
+
+#### When to Use System DLL Hooks
+
+Use system DLL hooks when you need to:
+- Intercept Windows API calls the game makes
+- Modify or replace Windows API behavior
+- Capture Windows messages (e.g., `WM_INPUT` for raw input)
+- Monitor system-level operations
+
+**Note**: System DLL hooks are always applied in `lifecycle_EarlyStartup()`, regardless of when their target modules load, because Windows system DLLs are always loaded.
+
 ### Original Function Pointer Access
 
 - **Original function pointers follow the pattern `o{FunctionName}`** (e.g., `oDraw_Pic`, `oR_DrawFont`)

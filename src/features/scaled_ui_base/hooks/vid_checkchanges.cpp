@@ -1,6 +1,6 @@
 #include "feature_config.h"
 
-#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_TEXT || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
+#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
 
 #include "sof_compat.h"
 #include "util.h"
@@ -17,5 +17,5 @@ void vid_checkchanges_post(void) {
     screen_y_scale = (float)current_vid_h / 480.0f;
 }
 
-#endif // FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_TEXT || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
+#endif // FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
 

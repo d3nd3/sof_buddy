@@ -60,14 +60,8 @@ using detour_SCR_ExecuteLayoutString::oSCR_ExecuteLayoutString;
 
 // HUD scaling function implementations
 
-realFontEnum_t getRealFontEnum(const char* realFont) {
-    if (!realFont) return REALFONT_UNKNOWN;
-    if (!strcmp(realFont, "title")) return REALFONT_TITLE;
-    if (!strcmp(realFont, "small")) return REALFONT_SMALL;
-    if (!strcmp(realFont, "medium")) return REALFONT_MEDIUM;
-    if (!strcmp(realFont, "interface")) return REALFONT_INTERFACE;
-    return REALFONT_UNKNOWN;
-}
+// getRealFontEnum is now defined in scaled_ui_base/sui_hooks.cpp for shared use
+// This function is kept here for backward compatibility but should use the shared version
 
 // HUD-specific global variables
 // Note: Variables used by base hooks (hudScale, crosshairScale, croppedWidth, etc.) are defined in scaled_ui_base/sui_hooks.cpp

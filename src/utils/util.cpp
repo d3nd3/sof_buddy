@@ -16,6 +16,94 @@ void (*orig_Cmd_ExecuteString)(const char * string);
 
 FILE * go_logfile = NULL;
 
+#ifndef NDEBUG
+// Global variables to store assert information for GDB inspection
+// Use static storage to avoid corruption
+static char g_assert_file_storage[512] = {0};
+static char g_assert_condition_storage[256] = {0};
+static char g_assert_function_storage[256] = {0};
+static int g_assert_line_storage = 0;
+static volatile bool g_assert_fired = false;
+
+// Function that GDB can break on when DLL loads (only in debug-gdb builds)
+// GDB can set a breakpoint on this function: "break sofbuddy_debug_breakpoint"
+#ifdef GDB
+extern "C" void sofbuddy_debug_breakpoint(void)
+{
+    // This function exists so GDB can set a breakpoint on it for symbol loading.
+    // Build with: make debug-gdb
+}
+#endif
+
+// Public pointers for GDB inspection
+const char* g_assert_file = g_assert_file_storage;
+int g_assert_line = 0;
+const char* g_assert_condition = g_assert_condition_storage;
+const char* g_assert_function = g_assert_function_storage;
+
+// Function that GDB can break on - set breakpoint: "break sofbuddy_assert_failed"
+// This function is designed to be catchable even without symbols loaded
+extern "C" void sofbuddy_assert_failed(const char* file, int line, const char* condition, const char* function)
+{
+    // Mark that assert fired (atomic operation)
+    g_assert_fired = true;
+    
+    // Store assert info in static storage (safer than pointers)
+    if (file) {
+        strncpy(g_assert_file_storage, file, sizeof(g_assert_file_storage) - 1);
+        g_assert_file_storage[sizeof(g_assert_file_storage) - 1] = '\0';
+    } else {
+        g_assert_file_storage[0] = '\0';
+    }
+    
+    if (condition) {
+        strncpy(g_assert_condition_storage, condition, sizeof(g_assert_condition_storage) - 1);
+        g_assert_condition_storage[sizeof(g_assert_condition_storage) - 1] = '\0';
+    } else {
+        g_assert_condition_storage[0] = '\0';
+    }
+    
+    if (function) {
+        strncpy(g_assert_function_storage, function, sizeof(g_assert_function_storage) - 1);
+        g_assert_function_storage[sizeof(g_assert_function_storage) - 1] = '\0';
+    } else {
+        g_assert_function_storage[0] = '\0';
+    }
+    
+    g_assert_line_storage = line;
+    g_assert_line = line;
+    
+    // Update public pointers
+    g_assert_file = g_assert_file_storage;
+    g_assert_condition = g_assert_condition_storage;
+    g_assert_function = g_assert_function_storage;
+    
+    // Print detailed info
+    PrintOut(PRINT_BAD, "=== ASSERT FAILED - GDB BREAKPOINT HERE ===\n");
+    PrintOut(PRINT_BAD, "File: %s\n", file ? file : "<unknown>");
+    PrintOut(PRINT_BAD, "Line: %d\n", line);
+    PrintOut(PRINT_BAD, "Function: %s\n", function ? function : "<unknown>");
+    PrintOut(PRINT_BAD, "Condition: %s\n", condition ? condition : "<unknown>");
+    PrintOut(PRINT_BAD, "=== In GDB, inspect: g_assert_file, g_assert_line, g_assert_condition, g_assert_function ===\n");
+    
+    // Insert a breakpoint instruction that GDB can catch even without symbols
+    // This is a well-known pattern: INT3 (0xCC) on x86
+    // GDB can catch this via "catch signal SIGTRAP" or by setting a breakpoint on the function address
+    #ifdef _WIN32
+        // Use DebugBreak() which generates INT3
+        DebugBreak();
+    #else
+        // On Linux/Wine, use inline assembly to insert INT3 directly
+        // This ensures GDB can catch it even without symbols
+        asm volatile("int $3" : : : "memory");
+    #endif
+    
+    // Fallback: also use __builtin_trap() in case INT3 doesn't work
+    // This creates an illegal instruction that GDB can catch
+    __builtin_trap();
+}
+#endif
+
 void PrintOutImpl(int mode, const char *msg,...)
 {
 	char ac_buf[1464];

@@ -1,6 +1,6 @@
 #include "feature_config.h"
 
-#if FEATURE_SCALED_TEXT
+#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
 
 #include "sof_compat.h"
 #include "util.h"
@@ -38,7 +38,7 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 		float x_scale = static_cast<float>(current_vid_w) / 640.0f;
 
 		if (hudDmRanking_wasImage) {
-			if ( * (int * ) rvaToAbsExe((void*)0x001E7E94) == 7) { //PM_SPECTATOR PM_SPECTATOR_FREEZE
+			if ( * (int * ) rvaToAbsExe((void*)0x001E7E94) == 7) {
 				int half_text_len = screenX - (current_vid_w - (offsetEdge * x_scale));
 				screenX = current_vid_w - offsetEdge * x_scale - 16 * hudScale + half_text_len*hudScale;
 				screenY = 20 * screen_y_scale + 64 * hudScale + 6 * screen_y_scale;
@@ -124,5 +124,5 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 	g_activeDrawCall = DrawRoutineType::None;
 }
 
-#endif // FEATURE_SCALED_TEXT
+#endif // FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
 

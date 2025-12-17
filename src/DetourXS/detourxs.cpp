@@ -60,12 +60,6 @@ LPVOID DetourCreate(LPVOID lpFuncOrig, LPVOID lpFuncDetour, int patchType, int d
 		detLen = GetDetourLenAuto(pbFuncOrig, minDetLen);
 		if(detLen < minDetLen)
 			return NULL;
-		// Debug: log computed auto detour length
-		{
-			char dbg[256];
-			sprintf(dbg, "DetourCreate: AUTO detour length computed = %d (min=%d) for orig=0x%08X\n", detLen, minDetLen, (unsigned int)(uintptr_t)pbFuncOrig);
-			PrintOut(PRINT_LOG, "%s", dbg);
-		}
 	}
 
     // Alloc executable memory for the trampoline (must be executable for

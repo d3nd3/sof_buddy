@@ -300,8 +300,10 @@ bool CallsiteClassifier::classify(void *returnAddress, CallerInfo &out) {
 	}
 
 	if (foundModule == Module::Unknown || !mod) {
-		PrintOut(PRINT_BAD, "CallsiteClassifier: ERROR - Failed to classify returnAddress=0x%p\n", returnAddress);
-		ExitProcess(1);
+		#ifndef NDEBUG
+		PrintOut(PRINT_LOG, "CallsiteClassifier: Warning - Unable to classify returnAddress=0x%p (not in tracked modules)\n", returnAddress);
+		#endif
+		return false;
 	}
 	
 	int modIdx = (int)foundModule;

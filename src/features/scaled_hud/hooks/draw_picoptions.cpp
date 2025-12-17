@@ -2,13 +2,14 @@
 
 #if FEATURE_SCALED_HUD
 
-#include "sof_compat.h"
 #include "util.h"
 #include "generated_detours.h"
 #include "../../scaled_ui_base/shared.h"
 #include "debug/hook_callsite.h"
 
 void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int pal, char * name, detour_Draw_PicOptions::tDraw_PicOptions original) {
+    SOFBUDDY_ASSERT(original != nullptr);
+    
     g_activeDrawCall = DrawRoutineType::PicOptions;
     
     PicOptionsCaller detected = PicOptionsCaller::Unknown;
