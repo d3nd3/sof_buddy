@@ -55,7 +55,6 @@ void* DetourSystem::ResolveAddress(void* address, DetourModule module, bool supp
         void* dll_base = GetModuleBase(module_name_str);
         if (dll_base) {
             void* resolved = (void*)((uintptr_t)dll_base + rva_value);
-            PrintOut(PRINT_LOG, "ResolveAddress: RVA 0x%p + base 0x%p = 0x%p for %s\n", address, dll_base, resolved, module_name_str);
             return resolved;
         } else {
             if (!suppress_errors) {
@@ -102,7 +101,6 @@ void DetourSystem::RegisterDetourInternal(void* address, void* detour_func, void
     
     std::string detour_name(name);
     if (registered_detour_names.find(detour_name) != registered_detour_names.end()) {
-        PrintOut(PRINT_LOG, "Detour '%s' already registered, skipping duplicate registration (use REGISTER_CALLBACK instead)\n", name);
         return;
     }
     
@@ -118,9 +116,8 @@ void DetourSystem::RegisterDetourInternal(void* address, void* detour_func, void
         case DetourModule::Unknown: module_name = "Unknown"; break;
     }
     
-    void* resolved_addr = ResolveAddress(address, module);
+    void* resolved_addr = ResolveAddress(address, module, true);
     if (!resolved_addr) {
-        PrintOut(PRINT_BAD, "WARNING: Failed to resolve address for %s (raw: 0x%p, %s) - using raw address\n", name, address, module_name);
         resolved_addr = address;
     }
     PrintOut(PRINT_LOG, "Registered detour: %s at 0x%p (raw: 0x%p, %s)\n", name, resolved_addr, address, module_name);
@@ -264,9 +261,6 @@ void DetourSystem::ApplyModuleDetours(DetourModule target_module, const char* mo
             continue;
         }
         
-        PrintOut(PRINT_LOG, "Attempting to apply detour: %s at 0x%p -> hook function 0x%p\n", 
-                 detour.name ? detour.name : "unnamed", absolute_addr, detour.detour_func);
-        
         if (IsBadReadPtr(detour.detour_func, 1)) {
             PrintOut(PRINT_BAD, "Cannot apply %s detour: hook function at 0x%p is not accessible\n", 
                      detour.name ? detour.name : "unnamed", detour.detour_func);
@@ -278,15 +272,11 @@ void DetourSystem::ApplyModuleDetours(DetourModule target_module, const char* mo
         if (trampoline) {
             if (detour.original_storage) {
                 *detour.original_storage = trampoline;
-                PrintOut(PRINT_LOG, "Set original_storage for %s: 0x%p -> 0x%p\n", 
-                         detour.name ? detour.name : "unnamed", detour.original_storage, trampoline);
             } else {
                 PrintOut(PRINT_BAD, "WARNING: No original_storage provided for %s! Original function pointer will not be set!\n", 
                          detour.name ? detour.name : "unnamed");
             }
             applied_detours[absolute_addr] = trampoline;
-            PrintOut(PRINT_LOG, "Successfully applied detour: %s at 0x%p -> 0x%p (trampoline: 0x%p)\n", 
-                     detour.name ? detour.name : "unnamed", absolute_addr, detour.detour_func, trampoline);
             applied_count++;
         } else {
             PrintOut(PRINT_BAD, "Failed to apply %s detour at 0x%p -> 0x%p (DetourCreate returned NULL)\n", 

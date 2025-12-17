@@ -1,6 +1,6 @@
 #include "feature_config.h"
 
-#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_TEXT || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
+#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
 
 #include "sof_compat.h"
 #include "util.h"
@@ -75,6 +75,7 @@ void __stdcall hkglVertex2f(float x, float y) {
     HookCallsite::recordAndGetFnStartExternal("glVertex2f");
 
     switch (g_activeRenderType) {
+#if FEATURE_SCALED_CON
         case uiRenderType::Console:
             SOFBUDDY_ASSERT(fontScale > 0.0f);
             if (g_activeDrawCall != DrawRoutineType::StretchPic) {
@@ -82,6 +83,7 @@ void __stdcall hkglVertex2f(float x, float y) {
                 return;
             }
         break;
+#endif
         case uiRenderType::Scoreboard: {
             scaleVertexFromScreenCenter(x, y, hudScale);
             return;
@@ -146,5 +148,5 @@ void __stdcall hkglVertex2f(float x, float y) {
     orig_glVertex2f(x, y);
 }
 
-#endif // FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_TEXT || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
+#endif // FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
 

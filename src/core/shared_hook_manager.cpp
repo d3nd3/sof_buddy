@@ -46,33 +46,28 @@ void SharedHookManager::DispatchHook(const std::string& hook_name, SharedHookPha
     if (it == hook_callbacks.end()) {
         PrintOut(PRINT_LOG, "[DispatchHook] No callbacks registered for hook '%s' (phase %s)\n", 
                  hook_name.c_str(), phase == SharedHookPhase::Pre ? "Pre" : "Post");
-        return; // No callbacks registered
+        return;
     }
     
-    PrintOut(PRINT_LOG, "[DispatchHook] Dispatching hook '%s' (phase %s): %zu callbacks registered\n", 
-             hook_name.c_str(), phase == SharedHookPhase::Pre ? "Pre" : "Post", it->second.size());
+    PrintOut(PRINT_LOG, "\n[DispatchHook] === Dispatching hook '%s' (phase %s) ===\n", 
+             hook_name.c_str(), phase == SharedHookPhase::Pre ? "Pre" : "Post");
+    PrintOut(PRINT_LOG, "[DispatchHook] Registered callbacks: %zu\n", it->second.size());
     
     size_t dispatched = 0;
     for (auto& callback : it->second) {
-        PrintOut(PRINT_LOG, "[DispatchHook] Checking callback %s::%s (enabled=%d, phase=%s)\n",
-                 callback.feature_name.c_str(), callback.callback_name.c_str(), 
-                 callback.enabled, callback.phase == SharedHookPhase::Pre ? "Pre" : "Post");
         if (callback.enabled && callback.phase == phase) {
             try {
-                PrintOut(PRINT_LOG, "[DispatchHook] Calling callback %s::%s\n",
-                         callback.feature_name.c_str(), callback.callback_name.c_str());
+                PrintOut(PRINT_LOG, "\n[DispatchHook] >>> %s <<<\n", callback.feature_name.c_str());
                 callback.callback();
-                PrintOut(PRINT_LOG, "[DispatchHook] Successfully called callback %s::%s\n",
-                         callback.feature_name.c_str(), callback.callback_name.c_str());
                 dispatched++;
             } catch (...) {
-                PrintOut(PRINT_BAD, "Exception in shared hook callback: %s::%s\n", 
-                         callback.feature_name.c_str(), callback.callback_name.c_str());
+                PrintOut(PRINT_BAD, "\n[DispatchHook] !!! EXCEPTION in %s !!!\n", 
+                         callback.feature_name.c_str());
             }
         }
     }
-    PrintOut(PRINT_LOG, "[DispatchHook] Dispatched %zu callbacks for hook '%s' (phase %s)\n",
-             dispatched, hook_name.c_str(), phase == SharedHookPhase::Pre ? "Pre" : "Post");
+    PrintOut(PRINT_LOG, "\n[DispatchHook] === Completed: %zu/%zu callbacks dispatched ===\n\n",
+             dispatched, it->second.size());
 }
 
 // Optional feature: Temporarily disable/enable specific feature callbacks at runtime.

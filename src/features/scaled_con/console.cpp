@@ -43,10 +43,9 @@ void hkDraw_String_Color(int x, int y, char const * text, int length, int colorP
 
 
 // Console-specific global variables
-float fontScale = 1;
+// Note: fontScale and isDrawingTeamicons are now defined in scaled_ui_base/sui_hooks.cpp for shared use
 float consoleSize = 0.5;
 bool isFontInner = false;
-bool isDrawingTeamicons = false;
 float draw_con_frac = 1.0;
 int* cls_state = NULL;
 int real_refdef_width = 0;

@@ -273,15 +273,16 @@ Both function hooks and lifecycle hooks use priorities:
 `scaled_ui_base` provides common infrastructure for all scaled UI features:
 - `scaled_con` (console scaling)
 - `scaled_hud` (HUD scaling)
-- `scaled_text` (text scaling)
 - `scaled_menu` (menu scaling)
+
+Text scaling functionality is now part of `scaled_ui_base` and is automatically enabled when `scaled_hud` or `scaled_menu` are enabled.
 
 ### Automatic Compilation
 
 The base feature automatically compiles when **any** of its sub-features are enabled:
 
 ```cpp
-#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_TEXT || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
+#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
 // Base infrastructure code
 #endif
 ```
@@ -391,7 +392,7 @@ if (CallsiteClassifier::classify(returnAddress, info)) {
 **Workflow:**
 
 1. **Generate JSON files:**
-   - Build with `SOFBUDDY_ENABLE_CALLSITE_LOGGER` defined
+   - Build with `make debug-collect` (automatically defines `SOFBUDDY_ENABLE_CALLSITE_LOGGER`)
    - Run the game and exercise all code paths that call the hooked functions
    - JSON files are generated in `sof_buddy/func_parents/` directory on shutdown
 
@@ -408,7 +409,7 @@ if (CallsiteClassifier::classify(returnAddress, info)) {
 **Example:**
 ```bash
 # Build with logger enabled
-make BUILD=debug  # (with SOFBUDDY_ENABLE_CALLSITE_LOGGER defined)
+make debug-collect  # Automatically defines SOFBUDDY_ENABLE_CALLSITE_LOGGER
 
 # After running game, copy files to repo (optional)
 cp ~/Soldier\ of\ Fortune/sof_buddy/func_parents/glVertex2f.json rsrc/func_parents/

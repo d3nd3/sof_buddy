@@ -8,13 +8,14 @@ media_timers
 
 # Graphics Features
 texture_mapping_min_mag
-scaled_con
-scaled_hud
-scaled_text
-# scaled_menu
 hd_textures
 vsync_toggle
 lighting_blend
+
+# Screen Scaling
+scaled_con
+scaled_hud
+//scaled_menu
 
 # Game Features
 teamicons_offset

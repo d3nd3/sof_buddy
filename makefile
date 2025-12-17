@@ -38,6 +38,12 @@ MAKEFLAGS += -j$(JOBS)
 ifeq ($(BUILD),debug)
     CFLAGS = $(COMMON_CFLAGS) -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__
     TARGET_SUFFIX = 
+else ifeq ($(BUILD),debug-gdb)
+    CFLAGS = $(COMMON_CFLAGS) -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__ -DGDB
+    TARGET_SUFFIX = 
+else ifeq ($(BUILD),debug-collect)
+    CFLAGS = $(COMMON_CFLAGS) -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__ -DSOFBUDDY_ENABLE_CALLSITE_LOGGER
+    TARGET_SUFFIX = 
 else ifeq ($(BUILD),xp-debug)
     CFLAGS = $(COMMON_CFLAGS) -O0 -g -fno-omit-frame-pointer -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__
     TARGET_SUFFIX = 
@@ -61,6 +67,15 @@ DEF_FILE = rsrc/sof_buddy.def
 
 # Linker flags
 LFLAGS = -static -pthread -shared -static-libgcc -static-libstdc++ -Wl,--enable-stdcall-fixup
+ifeq ($(BUILD),debug)
+    LFLAGS += -Wl,--export-all-symbols -Wl,--add-stdcall-alias
+else ifeq ($(BUILD),debug-gdb)
+    LFLAGS += -Wl,--export-all-symbols -Wl,--add-stdcall-alias
+else ifeq ($(BUILD),debug-collect)
+    LFLAGS += -Wl,--export-all-symbols -Wl,--add-stdcall-alias
+else ifeq ($(BUILD),xp-debug)
+    LFLAGS += -Wl,--export-all-symbols -Wl,--add-stdcall-alias
+endif
 
 # Find all source files (no artificial limit)
 SOURCES = $(shell find $(SDIR) -name "*.cpp")
@@ -184,6 +199,10 @@ $(ODIR)/%.o: $(SDIR)/%.cpp $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(VERSION_H) $(
 # Build configurations
 debug: 
 	$(MAKE) BUILD=debug all
+debug-gdb:
+	$(MAKE) BUILD=debug-gdb all
+debug-collect:
+	$(MAKE) BUILD=debug-collect all
 release: 
 	$(MAKE) BUILD=release all
 xp:
@@ -204,7 +223,7 @@ config:
 	@echo "Sources found: $(words $(SOURCES))"
 	@echo "Target: $(OUT)"
 
-.PHONY: all debug release xp xp-debug clean config features compdb
+.PHONY: all debug debug-gdb debug-collect release xp xp-debug clean config features compdb symbols
 
 # ------------------------------
 # Tools (host-native utilities)

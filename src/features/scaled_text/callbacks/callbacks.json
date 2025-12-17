@@ -1,9 +1,0 @@
-[
-  {
-    "hook": "RefDllLoaded",
-    "callback": "scaledText_RefDllLoaded",
-    "priority": 60,
-    "phase": "Post"
-  }
-]
-

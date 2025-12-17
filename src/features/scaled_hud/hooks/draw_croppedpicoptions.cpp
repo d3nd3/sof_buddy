@@ -2,7 +2,6 @@
 
 #if FEATURE_SCALED_HUD
 
-#include "sof_compat.h"
 #include "util.h"
 #include "generated_detours.h"
 #include "../../scaled_ui_base/shared.h"
@@ -10,6 +9,7 @@
 #include <string.h>
 
 void hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, int palette, char * name, detour_Draw_CroppedPicOptions::tDraw_CroppedPicOptions original) {
+    SOFBUDDY_ASSERT(original != nullptr);
     
     HookCallsite::recordAndGetFnStartExternal("Draw_CroppedPicOptions");
     
@@ -76,10 +76,8 @@ void hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, 
     croppedWidth = c2x - c1x;
     croppedHeight = c2y - c1y;
 
-    //Lets do vertex manipulation
     original(x, y, c1x, c1y, c2x, c2y, palette, name);
 
-    //Reset it.- in case we missed one.
     hudCroppedEnum = OTHER_UNKNOWN;
 }
 

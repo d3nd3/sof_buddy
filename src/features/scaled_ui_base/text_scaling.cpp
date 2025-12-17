@@ -8,12 +8,12 @@
 
 #include "feature_config.h"
 
-#if FEATURE_SCALED_TEXT
+#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
 
 #include "features.h"
 #include "generated_detours.h"
 using detour_R_DrawFont::oR_DrawFont;
-#include "../scaled_ui_base/shared.h"
+#include "shared.h"
 #include "util.h"
 #include "debug/hook_callsite.h"
 
@@ -28,15 +28,12 @@ static float pivotx;
 static float pivoty;
 int characterIndex = 0;
 
-// FontCaller enum provided by caller_from.h
-
 FontCaller g_currentFontCaller = FontCaller::Unknown;
 
 inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool incrementChar) {
 	SOFBUDDY_ASSERT(orig_glVertex2f != nullptr);
 	
 	if (isDrawingTeamicons) {
-		// Don't scale these for now.
 		orig_glVertex2f(x, y);
 		return;
 	}
@@ -45,7 +42,6 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 	switch (caller) {
 		case FontCaller::DMRankingCalcXY:
 		case FontCaller::Inventory2:
-			// PrintOut(PRINT_LOG, "DMRankingCalcXY or Inventory2\n");
 			SOFBUDDY_ASSERT(hudScale > 0.0f);
 			if (scaleX) x = pivotx + (x - pivotx) * hudScale;
 			if (scaleY) y = pivoty + (y - pivoty) * hudScale;
@@ -142,42 +138,5 @@ int hkR_StrHeight(char * fontStd)
 
 #endif // UI_MENU
 
-#include <stddef.h>
-
-/*
-    This function is called internally by:
-    - SCR_DrawPlayerInfo() - teamicons (WE DONT SCALE)
-    - cScope::Draw() (SCALE IN glVertex2f_DrawFont_1)
-    - cCountdown::Draw() (SCALE IN glVertex2f_DrawFont_1)
-    - cDMRanking::Draw() (WE SCALE BELOW)
-    - cInventory2::Draw() (WE SCALE BELOW)
-    - cInfoTicker::Draw() (SCALE IN glVertex2f_DrawFont_1)
-    - cMissionStatus::Draw() (SCALE IN glVertex2f_DrawFont_1)
-    - SCR_DrawPause() (SCALE IN glVertex2f_DrawFont_1)
-    - rect_c::DrawTextItem() (SCALE IN glVertex2f_DrawFont_1)
-    - loadbox_c::Draw() (SCALE IN glVertex2f_DrawFont_1)
-    - various other menu items (SCALE IN glVertex2f_DrawFont_1)
-
-    Anything text/font that is scaled must be re-aligned.
-    This function is centering the dmRanking text.
-    And left aligning the item/gun ui/hud text.
-
-	0x20006dc0 - cScope::CalcXY
-	0x20007af0 - cDMRanking::CalcXY
-	0x20008260 - cInventory2()
-	0x20013710 - SCR_DrawPause()
-	0x200163c0 - ? Inside SCR_UpdateScreen()
-	0x200cecc0 - rect_c::DrawTextItem()
-	0x200cf0e0 - rect_c::DrawTextLine()
-	0x200d19f0 - ticker_c::Draw()
-	0x200d4060 - input_c::Handle() ?
-	0x200d9f80 - filebox_c::Handle()
-	0x200dbf10 - loadbox_c::GetIndices()
-	0x200de430 - serverbox_c::Draw()
-	0x200ea8a0 - tip_c::Render()
-	0x30002a40 - Draw_Line
-*/
-
-#endif // FEATURE_SCALED_TEXT
-
+#endif // FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
 

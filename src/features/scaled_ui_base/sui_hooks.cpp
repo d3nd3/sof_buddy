@@ -26,7 +26,7 @@
 
 #include "feature_config.h"
 
-#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_TEXT || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
+#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
 
 #include "sof_compat.h"
 #include "features.h"
@@ -81,9 +81,13 @@ enumCroppedDrawMode hudCroppedEnum = OTHER_UNKNOWN;
 bool mainMenuBgTiled = false;
 
 // Feature-specific variables defined in their respective feature files:
-// - Console: scaled_con/console.cpp (fontScale, consoleSize, isFontInner, isDrawingTeamicons, draw_con_frac, cls_state, real_refdef_width)
+// - Console: scaled_con/console.cpp (consoleSize, isFontInner, draw_con_frac, cls_state, real_refdef_width)
 // - Menu: scaled_menu/menu.cpp (isMenuSpmSettings, menuLoadboxFirstItemX, menuLoadboxFirstItemY)
 // They are declared as extern in shared.h for use by base hooks
+
+// Shared variables used by multiple features (moved from scaled_con for shared access)
+float fontScale = 1;
+bool isDrawingTeamicons = false;
 
 // Shared state enums
 realFontEnum_t realFont = REALFONT_UNKNOWN;
@@ -496,4 +500,22 @@ static inline void scaleVertexFromCenter(float& x, float& y, float scale) {
 
 // hkglVertex2f implementation moved to hooks/glvertex2f.cpp
 
-#endif // FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_TEXT || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
+realFontEnum_t getRealFontEnum(const char* realFont) {
+	if (!realFont) {
+		return REALFONT_UNKNOWN;
+	}
+	
+	if (strcmp(realFont, "title") == 0 || strcmp(realFont, "fonts/title") == 0) {
+		return REALFONT_TITLE;
+	} else if (strcmp(realFont, "small") == 0 || strcmp(realFont, "fonts/small") == 0) {
+		return REALFONT_SMALL;
+	} else if (strcmp(realFont, "medium") == 0 || strcmp(realFont, "fonts/medium") == 0) {
+		return REALFONT_MEDIUM;
+	} else if (strcmp(realFont, "interface") == 0 || strcmp(realFont, "fonts/interface") == 0) {
+		return REALFONT_INTERFACE;
+	}
+	
+	return REALFONT_UNKNOWN;
+}
+
+#endif // FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE

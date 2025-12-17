@@ -1,6 +1,6 @@
 #include "feature_config.h"
 
-#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_TEXT || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
+#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
 
 #include "sof_compat.h"
 #include "util.h"
@@ -11,6 +11,9 @@
 // #pragma GCC push_options
 // #pragma GCC optimize ("O0")
 void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int flags, detour_Draw_StretchPic::tDraw_StretchPic original) {
+
+    // PrintOut(PRINT_LOG, "hkDraw_StretchPic: x=%d, y=%d, w=%d, h=%d, palette=%d, name=%s, flags=%d\n", x, y, w, h, palette, name, flags);
+
     SOFBUDDY_ASSERT(original != nullptr);
     SOFBUDDY_ASSERT(w > 0);
     SOFBUDDY_ASSERT(h > 0);
@@ -31,6 +34,7 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
     StretchPicCaller caller = g_currentStretchPicCaller;
     
     if (caller == StretchPicCaller::CON_DrawConsole) {
+        #if FEATURE_SCALED_CON
         //Draw the console background with new height
         extern float draw_con_frac;
         SOFBUDDY_ASSERT(draw_con_frac >= 0.0f && draw_con_frac <= 1.0f);
@@ -44,6 +48,13 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
         g_currentStretchPicCaller = StretchPicCaller::Unknown;
         g_activeDrawCall = DrawRoutineType::None;
         return;
+        #else
+        // FEATURE_SCALED_CON not enabled, just call original
+        original(x, y, w, h, palette, name, flags);
+        g_currentStretchPicCaller = StretchPicCaller::Unknown;
+        g_activeDrawCall = DrawRoutineType::None;
+        return;
+        #endif
     }
     
     if (g_activeRenderType == uiRenderType::HudCtfFlag) {
@@ -57,8 +68,10 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
 
     g_currentStretchPicCaller = StretchPicCaller::Unknown;
     g_activeDrawCall = DrawRoutineType::None;
+
+    // PrintOut(PRINT_LOG, "hkDraw_StretchPic End: caller=%d\n", caller);
 }
 // #pragma GCC pop_options
 
-#endif // FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_TEXT || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
+#endif // FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
 

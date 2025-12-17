@@ -38,8 +38,12 @@
 - **Option A:** [Download pre-compiled release](https://github.com/d3nd3/sof_buddy/releases)
 - **Option B:** Compile from source:
   ```sh
-  make
+  make              # Release build (optimized)
+  make debug        # Debug build (with logging)
+  make debug-gdb    # Debug build with GDB breakpoint function
+  make debug-collect # Debug build with func_parents collection
   ```
+  See [docs/DEBUGGING.md](docs/DEBUGGING.md) for details on build configurations.
 
 ### 2. Prepare Your Game Folder
 - **Recommended:** Delete your `User/config.cfg` for optimal defaults.

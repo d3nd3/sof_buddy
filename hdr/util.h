@@ -8,6 +8,20 @@
 #include <windows.h>
 #include <cassert>
 #include <cstdio>
+
+// Global variables to store assert information for GDB inspection
+extern const char* g_assert_file;
+extern int g_assert_line;
+extern const char* g_assert_condition;
+extern const char* g_assert_function;
+
+// Function that GDB can break on - set breakpoint here: "break sofbuddy_assert_failed"
+extern "C" void sofbuddy_assert_failed(const char* file, int line, const char* condition, const char* function);
+
+// Function that triggers a breakpoint when DLL loads (debug builds only)
+// GDB can set breakpoint: "break sofbuddy_debug_breakpoint"
+extern "C" void sofbuddy_debug_breakpoint(void);
+
 #define SOFBUDDY_ASSERT(condition) \
     do { \
         if (!(condition)) { \
@@ -16,12 +30,20 @@
                 "Assertion failed!\n\n" \
                 "File: %s\n" \
                 "Line: %d\n" \
+                "Function: %s\n" \
                 "Condition: %s\n\n" \
-                "This indicates a bug in sof_buddy. Please report this error.", \
-                __FILE__, __LINE__, #condition); \
-            PrintOut(PRINT_BAD, "ASSERTION FAILED: %s:%d - Condition: %s\n", __FILE__, __LINE__, #condition); \
+                "This indicates a bug in sof_buddy. Please report this error.\n\n" \
+                "In GDB, inspect:\n" \
+                "  g_assert_file\n" \
+                "  g_assert_line\n" \
+                "  g_assert_condition\n" \
+                "  g_assert_function", \
+                __FILE__, __LINE__, __FUNCTION__, #condition); \
+            PrintOut(PRINT_BAD, "ASSERTION FAILED: %s:%d in %s() - Condition: %s\n", __FILE__, __LINE__, __FUNCTION__, #condition); \
+            PrintOut(PRINT_BAD, "GDB: Set breakpoint on 'sofbuddy_assert_failed' to catch asserts\n"); \
+            PrintOut(PRINT_BAD, "GDB: Inspect g_assert_file, g_assert_line, g_assert_condition, g_assert_function\n"); \
             MessageBoxA(NULL, msg, "sof_buddy Assertion Failed", MB_ICONERROR | MB_OK); \
-            assert(condition); \
+            sofbuddy_assert_failed(__FILE__, __LINE__, #condition, __FUNCTION__); \
         } \
     } while(0)
 #else

@@ -50,6 +50,8 @@ void fs_initfilesystem_override_callback(detour_FS_InitFilesystem::tFS_InitFiles
     DISPATCH_SHARED_HOOK(PreCvarInit, Post);
     
     PrintOut(PRINT_LOG, "=== Pre-CVar Init Phase Complete ===\n");
+    PrintOut(PRINT_LOG, "\n");
+    PrintOut(PRINT_LOG, "\n");
 }
 
 // Override callback for Cbuf_AddLateCommands (PostCvarInit lifecycle)
@@ -76,6 +78,8 @@ qboolean cbuf_addlatecommands_override_callback(detour_Cbuf_AddLateCommands::tCb
     DISPATCH_SHARED_HOOK(PostCvarInit, Post);
     
     PrintOut(PRINT_LOG, "=== Post-CVar Init Phase Complete ===\n");
+    PrintOut(PRINT_LOG, "\n");
+    PrintOut(PRINT_LOG, "\n");
     Cmd_SoFBuddy_ListFeatures_f();
     
     return ret;
@@ -116,11 +120,11 @@ void Cmd_SoFBuddy_ListFeatures_f(void) {
     #endif
     total_features++;
     
-    #if FEATURE_SCALED_UI_BASE || FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_TEXT || FEATURE_SCALED_MENU
-    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "scaled_ui (base/con/hud/text/menu)\n");
+    #if FEATURE_SCALED_UI_BASE || FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
+    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "scaled_ui (base/con/hud/menu)\n");
     feature_count++;
     #else
-    orig_Com_Printf(P_RED "[OFF] " P_WHITE "scaled_ui (base/con/hud/text/menu)\n");
+    orig_Com_Printf(P_RED "[OFF] " P_WHITE "scaled_ui (base/con/hud/menu)\n");
     #endif
     total_features++;
     
@@ -198,25 +202,38 @@ void Cmd_SoFBuddy_ListFeatures_f(void) {
 // Earliest initialization function called from DllMain
 void lifecycle_EarlyStartup(void)
 {
+    #ifdef GDB
+    extern void sofbuddy_debug_breakpoint(void);
+    sofbuddy_debug_breakpoint();
+    #endif
+    
     PrintOut(PRINT_LOG, "=== Lifecycle: Early Startup Phase ===\n");
     
     DetourSystem::Instance().ProcessDeferredRegistrations();
     PrintOut(PRINT_LOG, "=== Processed deferred detour registrations ===\n");
+    PrintOut(PRINT_LOG, "\n");
+    PrintOut(PRINT_LOG, "\n");
     
     RegisterAllFeatureHooks();
     PrintOut(PRINT_LOG, "=== Feature hook registrations complete ===\n");
+    PrintOut(PRINT_LOG, "\n");
+    PrintOut(PRINT_LOG, "\n");
     
     // Initialize system DLL hooks
     PrintOut(PRINT_LOG, "=== Initializing system DLL hooks ===\n");
     PrintOut(PRINT_LOG, "Found %zu system DLL detours to apply\n", DetourSystem::Instance().GetDetourCount(DetourModule::Unknown));
     DetourSystem::Instance().ApplySystemDetours();
     PrintOut(PRINT_LOG, "=== system DLL detour initialization complete ===\n");
+    PrintOut(PRINT_LOG, "\n");
+    PrintOut(PRINT_LOG, "\n");
     
     // Initialize detours targeting SoF.exe (0x200xxxxx addresses) only
     PrintOut(PRINT_LOG, "=== Initializing SoF.exe detours ===\n");
     PrintOut(PRINT_LOG, "Found %zu SoF.exe detours to apply\n", DetourSystem::Instance().GetDetourCount(DetourModule::SofExe));
     DetourSystem::Instance().ApplyExeDetours();
     PrintOut(PRINT_LOG, "=== SoF.exe detour initialization complete ===\n");
+    PrintOut(PRINT_LOG, "\n");
+    PrintOut(PRINT_LOG, "\n");
     
     // Cmd_AddCommand is now hardcoded at 0x20019130
     PrintOut(PRINT_LOG, "Cmd_AddCommand hardcoded at 0x%p\n", orig_Cmd_AddCommand);
@@ -226,6 +243,8 @@ void lifecycle_EarlyStartup(void)
 
     CallsiteClassifier::initialize("sof_buddy/funcmaps");
     PrintOut(PRINT_LOG, "=== Caller classification maps initialized ===\n");
+    PrintOut(PRINT_LOG, "\n");
+    PrintOut(PRINT_LOG, "\n");
     #if !defined(NDEBUG) && defined(SOFBUDDY_ENABLE_CALLSITE_LOGGER)
     ParentRecorder::Instance().initialize("sof_buddy/func_parents");
     #endif
