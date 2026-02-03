@@ -5,3 +5,4 @@
 .cache/
 
 .cursor/*.log
+hdr/version.h
