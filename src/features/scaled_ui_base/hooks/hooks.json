@@ -36,6 +36,11 @@
     "function": "R_DrawFont",
     "callback": "hkR_DrawFont",
     "override": true
+  },
+  {
+    "function": "SCR_CenterPrint",
+    "callback": "hkSCR_CenterPrint",
+    "override": true
   }
 ]
 

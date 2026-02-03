@@ -71,6 +71,21 @@ extern PicCaller g_currentPicCaller;
 extern int characterIndex;
 extern FontCaller g_currentFontCaller;
 
+// SCR_DrawCenterPrint state tracking
+extern float scrCenterPrint_lineStartX;
+extern float scrCenterPrint_lineY;
+extern float scrCenterPrint_charWidth;
+extern float scrCenterPrint_initialX;
+extern float scrCenterPrint_originalPivotX;
+extern float scrCenterPrint_originalPivotY;
+extern float scrCenterPrint_currentCharVertex1X;
+extern float scrCenterPrint_currentCharVertex1Y;
+extern float scrCenterPrint_currentCharPivotX;
+extern float scrCenterPrint_currentCharPivotY;
+extern float scrCenterPrint_currentCharVertex1FinalX;
+extern float scrCenterPrint_currentCharVertex1FinalY;
+extern int scrCenterPrint_currentCharIndex;
+
 // =============================================================================
 // ENUMS AND CONSTANTS
 // =============================================================================

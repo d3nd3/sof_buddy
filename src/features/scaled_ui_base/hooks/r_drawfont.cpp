@@ -8,8 +8,22 @@
 #include "../../scaled_ui_base/shared.h"
 #include "debug/hook_callsite.h"
 #include <string.h>
+#include <fstream>
+#include <sstream>
+#include <ctime>
+#include <cmath>
 
 void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor, detour_R_DrawFont::tR_DrawFont original) {
+    // #region agent log
+    {
+        std::ofstream log("/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/.cursor/debug.log", std::ios::app);
+        if (log.is_open()) {
+            std::stringstream ss;
+            ss << "{\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\",\"location\":\"r_drawfont.cpp:12\",\"message\":\"hkR_DrawFont entry\",\"data\":{\"screenX\":" << screenX << ",\"screenY\":" << screenY << ",\"text\":\"" << (text ? text : "null") << "\"},\"timestamp\":" << (long long)(time(nullptr)*1000) << "}\n";
+            log << ss.str();
+        }
+    }
+    // #endregion
     g_activeDrawCall = DrawRoutineType::Font;
 
     FontCaller detectedCaller = FontCaller::Unknown;
@@ -18,8 +32,46 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
         detectedCaller = getFontCallerFromRva(fnStart);
     }
     
+    // #region agent log
+    {
+        std::ofstream log("/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/.cursor/debug.log", std::ios::app);
+        if (log.is_open()) {
+            std::stringstream ss;
+            ss << "{\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\",\"location\":\"r_drawfont.cpp:19\",\"message\":\"Caller detection\",\"data\":{\"detectedCaller\":" << (int)detectedCaller << ",\"g_currentFontCaller\":" << (int)g_currentFontCaller << ",\"fnStart\":" << fnStart << "},\"timestamp\":" << (long long)(time(nullptr)*1000) << "}\n";
+            log << ss.str();
+        }
+    }
+    // #endregion
+    
     if (g_currentFontCaller == FontCaller::Unknown && detectedCaller != FontCaller::Unknown) {
         g_currentFontCaller = detectedCaller;
+    }
+    
+    if (detectedCaller == FontCaller::SCR_DrawCenterPrint || g_currentFontCaller == FontCaller::SCR_DrawCenterPrint) {
+        // #region agent log
+        {
+            std::ofstream log("/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/.cursor/debug.log", std::ios::app);
+            if (log.is_open()) {
+                std::stringstream ss;
+                ss << "{\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"D\",\"location\":\"r_drawfont.cpp:25\",\"message\":\"Resetting SCR_DrawCenterPrint state\",\"data\":{\"before_charWidth\":" << scrCenterPrint_charWidth << "},\"timestamp\":" << (long long)(time(nullptr)*1000) << "}\n";
+                log << ss.str();
+            }
+        }
+        // #endregion
+        scrCenterPrint_lineStartX = 0.0f;
+        scrCenterPrint_lineY = 0.0f;
+        scrCenterPrint_charWidth = 0.0f;
+        scrCenterPrint_initialX = 0.0f;
+        scrCenterPrint_originalPivotX = 0.0f;
+        scrCenterPrint_originalPivotY = 0.0f;
+        scrCenterPrint_currentCharVertex1X = 0.0f;
+        scrCenterPrint_currentCharVertex1Y = 0.0f;
+        scrCenterPrint_currentCharPivotX = 0.0f;
+        scrCenterPrint_currentCharPivotY = 0.0f;
+        scrCenterPrint_currentCharVertex1FinalX = 0.0f;
+        scrCenterPrint_currentCharVertex1FinalY = 0.0f;
+        scrCenterPrint_currentCharIndex = 0;
+        characterIndex = 0;
     }
 	
 	SOFBUDDY_ASSERT(font != nullptr);

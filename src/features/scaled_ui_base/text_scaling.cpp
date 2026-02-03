@@ -20,6 +20,9 @@ using detour_R_DrawFont::oR_DrawFont;
 #include <math.h>
 #include <stdint.h>
 #include <string.h>
+#include <fstream>
+#include <sstream>
+#include <ctime>
 #if defined(_WIN32)
 #include <windows.h>
 #endif
@@ -30,6 +33,20 @@ int characterIndex = 0;
 
 FontCaller g_currentFontCaller = FontCaller::Unknown;
 
+float scrCenterPrint_lineStartX = 0.0f;
+float scrCenterPrint_lineY = 0.0f;
+float scrCenterPrint_charWidth = 0.0f;
+float scrCenterPrint_initialX = 0.0f;
+float scrCenterPrint_originalPivotX = 0.0f;
+float scrCenterPrint_originalPivotY = 0.0f;
+float scrCenterPrint_currentCharVertex1X = 0.0f;
+float scrCenterPrint_currentCharVertex1Y = 0.0f;
+float scrCenterPrint_currentCharPivotX = 0.0f;
+float scrCenterPrint_currentCharPivotY = 0.0f;
+float scrCenterPrint_currentCharVertex1FinalX = 0.0f;
+float scrCenterPrint_currentCharVertex1FinalY = 0.0f;
+int scrCenterPrint_currentCharIndex = 0; // Store characterIndex for current character (used after wrap)
+
 inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool incrementChar) {
 	SOFBUDDY_ASSERT(orig_glVertex2f != nullptr);
 	
@@ -39,6 +56,16 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 	}
 
 	FontCaller caller = g_currentFontCaller;
+	// #region agent log
+	{
+		std::ofstream log("/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/.cursor/debug.log", std::ios::app);
+		if (log.is_open() && caller == FontCaller::SCR_DrawCenterPrint) {
+			std::stringstream ss;
+			ss << "{\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\",\"location\":\"text_scaling.cpp:46\",\"message\":\"handleFontVertex SCR_DrawCenterPrint\",\"data\":{\"caller\":" << (int)caller << ",\"x\":" << x << ",\"y\":" << y << ",\"scaleX\":" << scaleX << ",\"scaleY\":" << scaleY << ",\"incrementChar\":" << incrementChar << ",\"charWidth\":" << scrCenterPrint_charWidth << ",\"charIndex\":" << characterIndex << "},\"timestamp\":" << (long long)(time(nullptr)*1000) << "}\n";
+			log << ss.str();
+		}
+	}
+	// #endregion
 	switch (caller) {
 		case FontCaller::DMRankingCalcXY:
 		case FontCaller::Inventory2:
@@ -53,12 +80,22 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 			break;
 			
 		case FontCaller::SCRDrawPause:
-		case FontCaller::SCRUpdateScreen:
 			SOFBUDDY_ASSERT(screen_y_scale > 0.0f);
 			if (scaleX) x = pivotx + (x - pivotx) * screen_y_scale;
 			if (scaleY) y = pivoty + (y - pivoty) * screen_y_scale;
 			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
 			break;
+			
+		case FontCaller::SCR_DrawCenterPrint: {
+			float s = fontScale;
+			if (s <= 0.0f) s = 1.0f;
+			if (s != 1.0f) {
+				float cx = current_vid_w * 0.5f;
+				x = cx + (x - cx) * s;
+			}
+			orig_glVertex2f(x, y);
+			break;
+		}
 			
 		case FontCaller::DrawLine:
 			orig_glVertex2f(x, y);

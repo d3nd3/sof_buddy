@@ -27,6 +27,7 @@ extern void hkDraw_Pic(int x, int y, char const* imgname, int palette, detour_Dr
 extern void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int palette, char* name, detour_Draw_PicOptions::tDraw_PicOptions original);
 extern void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char* name, int flags, detour_Draw_StretchPic::tDraw_StretchPic original);
 extern void hkR_DrawFont(int screenX, int screenY, char* text, int colorPalette, char* font, bool rememberLastColor, detour_R_DrawFont::tR_DrawFont original);
+extern void hkSCR_CenterPrint(char* str, detour_SCR_CenterPrint::tSCR_CenterPrint original);
 extern void hkSCR_DrawPlayerInfo(detour_SCR_DrawPlayerInfo::tSCR_DrawPlayerInfo original);
 extern void hkSCR_ExecuteLayoutString(char* text, detour_SCR_ExecuteLayoutString::tSCR_ExecuteLayoutString original);
 extern void hkcCtfFlag_Draw(void* self, detour_cCtfFlag_Draw::tcCtfFlag_Draw original);

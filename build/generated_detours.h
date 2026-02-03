@@ -331,6 +331,33 @@ namespace {
     static AutoDetour_SCR_ExecuteLayoutString g_AutoDetour_SCR_ExecuteLayoutString;
 }
 
+namespace detour_SCR_CenterPrint {
+    using tSCR_CenterPrint = void(__cdecl*)(char* str);
+    extern tSCR_CenterPrint oSCR_CenterPrint;
+    using ManagerType = TypedSharedHookManager<void, char*>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkSCR_CenterPrint(char* str);
+}
+
+namespace {
+    struct AutoDetour_SCR_CenterPrint {
+        AutoDetour_SCR_CenterPrint() {
+            using namespace detour_SCR_CenterPrint;
+            if (!GetDetourSystem().IsDetourRegistered("SCR_CenterPrint")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x00012DB0),
+                    reinterpret_cast<void*>(detour_SCR_CenterPrint::hkSCR_CenterPrint),
+                    reinterpret_cast<void**>(&detour_SCR_CenterPrint::oSCR_CenterPrint),
+                    "SCR_CenterPrint",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_SCR_CenterPrint g_AutoDetour_SCR_CenterPrint;
+}
+
 namespace detour_cInventory2_And_cGunAmmo2_Draw {
     using tcInventory2_And_cGunAmmo2_Draw = void(__thiscall*)(void* self);
     extern tcInventory2_And_cGunAmmo2_Draw ocInventory2_And_cGunAmmo2_Draw;

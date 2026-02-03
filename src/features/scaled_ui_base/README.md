@@ -79,6 +79,114 @@ This ensures base code compiles when any sub-feature is enabled, and text scalin
 - Each callback has its own `.cpp` file
 - Callback declarations are in `callbacks/callbacks.json`
 
+## Collecting and Updating Caller Data
+
+The caller detection system identifies which functions call the hooked drawing functions (e.g., `Draw_Pic`, `R_DrawFont`). To discover new callers and update the mappings:
+
+### Step 1: Collect Caller Data
+
+Build with collection enabled and run the game:
+
+```bash
+make debug-collect
+```
+
+This enables `SOFBUDDY_ENABLE_CALLSITE_LOGGER` which records parent callers at runtime. Exercise all code paths that use the UI (menus, HUD, console, etc.). JSON files are generated in `sof_buddy/func_parents/` on shutdown.
+
+### Step 2: Copy JSON Files to Repository
+
+Copy generated files to the repository (optional, for reference):
+
+```bash
+cp ~/Soldier\ of\ Fortune/sof_buddy/func_parents/*.json rsrc/func_parents/
+```
+
+### Step 3: Validate Collected Data
+
+Check what's missing or extra compared to existing code:
+
+```bash
+python rsrc/update_callers_from_parents.py
+```
+
+This shows missing RVAs (in JSON but not in code) and extra RVAs (in code but not in JSON).
+
+### Step 4: Apply Updates Automatically
+
+Update `caller_from.cpp` with missing cases:
+
+```bash
+python rsrc/update_callers_from_parents.py --write
+```
+
+The script:
+- Reads JSON files from `rsrc/func_parents/`
+- Maps child hook names to functions in `caller_from.cpp`
+- Inserts missing `case` statements with `// new` comments
+- Preserves existing cases
+- Handles module-aware functions (nested switches by module)
+
+### Step 5: Manually Update Enum Names
+
+The script inserts cases with `Unknown` as a placeholder. You need to:
+
+1. **Add enum value** to `caller_from.h` if it doesn't exist:
+```cpp
+enum class FontCaller {
+    // ... existing entries ...
+    NewCallerName,  // Add this
+};
+```
+
+2. **Update the return statement** in `caller_from.cpp`:
+```cpp
+case 0x00012345: return FontCaller::NewCallerName; // new
+```
+
+### Step 6: Update Scaling Logic
+
+If the new caller needs special scaling behavior, update the appropriate files:
+- `text_scaling.cpp` - For `FontCaller` scaling
+- `hooks/draw_stretchpic.cpp` - For `StretchPicCaller` handling
+- `hooks/draw_pic.cpp` - For `PicCaller` handling
+- `hooks/draw_picoptions.cpp` - For `PicOptionsCaller` handling
+- `hooks/glvertex2f.cpp` - For vertex scaling
+
+### Complete Workflow Example
+
+```bash
+# 1. Build with collection
+make debug-collect
+
+# 2. Run game and exercise all UI paths
+# (Play game, open menus, use HUD, etc.)
+
+# 3. Copy generated files to repo
+cp ~/Soldier\ of\ Fortune/sof_buddy/func_parents/*.json rsrc/func_parents/
+
+# 4. Check what needs updating
+python rsrc/update_callers_from_parents.py
+
+# 5. Auto-insert missing cases
+python rsrc/update_callers_from_parents.py --write
+
+# 6. Manually update enum names and scaling logic
+# (Edit caller_from.h and caller_from.cpp)
+
+# 7. Test the changes
+make debug
+```
+
+**Note:** The script only adds missing cases; it never removes existing ones. New cases are marked with `// new` for easy identification.
+
+**Related Files:**
+- `rsrc/update_callers_from_parents.py` - Update script
+- `rsrc/func_parents/*.json` - Collected caller data
+- `caller_from.h` - Enum definitions
+- `caller_from.cpp` - RVA mappings
+- `docs/HARMONY.md` - Detailed caller detection system documentation
+- `UI_CALLER_RESPONSIBILITIES.md` - Complete caller-to-UI-component mapping
+
 ## Dependencies
 - All scaled UI sub-features depend on this base feature
 - Provides shared state and hooks that sub-features use
