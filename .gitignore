@@ -20,3 +20,4 @@ hdr/version.h
 # SDK submodules (these are tracked by git)
 # SDK/
 # SDK/*/
+.cursor/*.log
