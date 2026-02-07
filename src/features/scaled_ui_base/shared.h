@@ -193,6 +193,7 @@ void hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, 
 #endif
 #if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
 void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor, detour_R_DrawFont::tR_DrawFont original);
+void hkSCR_CenterPrint(char * text, detour_SCR_CenterPrint::tSCR_CenterPrint original);
 #endif
 #if FEATURE_SCALED_HUD
 void hkcInventory2_And_cGunAmmo2_Draw(void * self, detour_cInventory2_And_cGunAmmo2_Draw::tcInventory2_And_cGunAmmo2_Draw original);

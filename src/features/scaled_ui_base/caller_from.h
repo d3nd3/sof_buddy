@@ -96,7 +96,7 @@ enum class FontCaller {
 	DMRankingCalcXY,
 	Inventory2,
 	SCRDrawPause,
-	SCRUpdateScreen,
+	SCR_DrawCenterPrint,
 	RectDrawTextItem,
 	RectDrawTextLine,
 	TickerDraw,

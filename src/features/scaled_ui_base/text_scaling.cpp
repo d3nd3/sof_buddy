@@ -53,12 +53,22 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 			break;
 			
 		case FontCaller::SCRDrawPause:
-		case FontCaller::SCRUpdateScreen:
 			SOFBUDDY_ASSERT(screen_y_scale > 0.0f);
 			if (scaleX) x = pivotx + (x - pivotx) * screen_y_scale;
 			if (scaleY) y = pivoty + (y - pivoty) * screen_y_scale;
 			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
 			break;
+
+		case FontCaller::SCR_DrawCenterPrint: {
+			float s = fontScale;
+			if (s <= 0.0f) s = 1.0f;
+			if (s != 1.0f) {
+				float cx = current_vid_w * 0.5f;
+				x = cx + (x - cx) * s;
+			}
+			orig_glVertex2f(x, y);
+			break;
+		}
 			
 		case FontCaller::DrawLine:
 			orig_glVertex2f(x, y);
@@ -139,4 +149,3 @@ int hkR_StrHeight(char * fontStd)
 #endif // UI_MENU
 
 #endif // FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
-

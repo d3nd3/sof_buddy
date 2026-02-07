@@ -111,6 +111,16 @@ functions:
       - type: char*
         name: text
 
+  - name: SCR_CenterPrint
+    module: SofExe
+    identifier: "0x00012DB0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: char*
+        name: str
+
   - name: cInventory2_And_cGunAmmo2_Draw
     module: SofExe
     identifier: "0x00008430"
@@ -354,4 +364,3 @@ functions:
     params:
       - type: const MSG*
         name: msg
-
