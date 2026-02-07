@@ -13,41 +13,37 @@ cvar_t * in_mouse_raw = NULL;
 void raw_mouse_on_change(cvar_t *cvar)
 {
     if (!cvar) return;
-    
-    if (cvar->value != 0) {
+
+    raw_mouse_reset_deltas();
+    raw_mouse_center_valid = false;
+
+    if (cvar->value != 0.0f) {
+        if (!raw_mouse_api_supported()) {
+            PrintOut(PRINT_BAD, "raw_mouse: Raw Input API not available; keeping legacy cursor mode\n");
+            return;
+        }
         HWND hwnd = GetActiveWindow();
         if (!hwnd) hwnd = GetForegroundWindow();
-        
-        if (hwnd) {
-            RAWINPUTDEVICE rid;
-            rid.usUsagePage = 0x01;
-            rid.usUsage = 0x02;
-            rid.dwFlags = 0;
-            rid.hwndTarget = hwnd;
-            
-            BOOL success = RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE));
-            if (success) {
-                PrintOut(PRINT_GOOD, "raw_mouse: Successfully registered raw input device\n");
-            } else {
-                DWORD error = GetLastError();
-                PrintOut(PRINT_BAD, "raw_mouse: Failed to register raw input (error %d)\n", error);
-                PrintOut(PRINT_BAD, "raw_mouse: On X11/Wine, raw input may not be supported\n");
-            }
+        if (raw_mouse_register_input(hwnd, true)) {
+            PrintOut(PRINT_GOOD, "raw_mouse: Raw input is now ENABLED\n");
         } else {
-            PrintOut(PRINT_BAD, "raw_mouse: Could not get window handle\n");
+            PrintOut(PRINT_BAD, "raw_mouse: Raw input was requested but registration failed\n");
         }
-        
-        PrintOut(PRINT_GOOD, "raw_mouse: Raw input is now ENABLED\n");
     } else {
+        raw_mouse_unregister_input(true);
         PrintOut(PRINT_LOG, "raw_mouse: Raw input is now DISABLED (using legacy cursor mode)\n");
     }
 }
 
 void create_raw_mouse_cvars(void) {
     in_mouse_raw = orig_Cvar_Get("_sofbuddy_rawmouse", "0", CVAR_ARCHIVE, &raw_mouse_on_change);
-    
+
+    // Apply archived state immediately in case callback is not triggered on load.
+    if (in_mouse_raw && in_mouse_raw->value != 0.0f) {
+        raw_mouse_on_change(in_mouse_raw);
+    }
+
     PrintOut(PRINT_LOG, "raw_mouse: Registered _sofbuddy_rawmouse cvar with change callback\n");
 }
 
 #endif
-

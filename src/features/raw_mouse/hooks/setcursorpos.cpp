@@ -13,17 +13,20 @@ BOOL __stdcall hkSetCursorPos(int X, int Y)
     SOFBUDDY_ASSERT(in_mouse_raw != nullptr);
     SOFBUDDY_ASSERT(oSetCursorPos != nullptr);
     
-    if (!in_mouse_raw || in_mouse_raw->value == 0) {
+    if (!raw_mouse_is_enabled() || !raw_mouse_api_supported()) {
         return oSetCursorPos(X, Y);
     }
 
-    raw_mouse_delta_x = 0;
-    raw_mouse_delta_y = 0;
-    
-    window_center.x = X;
-    window_center.y = Y;
-    return oSetCursorPos(X, Y);
+    HWND hwnd = GetActiveWindow();
+    if (!hwnd) hwnd = GetForegroundWindow();
+    if (hwnd && (!raw_mouse_registered || raw_mouse_hwnd_target != hwnd)) {
+        raw_mouse_register_input(hwnd, false);
+    }
+
+    raw_mouse_update_center(X, Y);
+
+    // In raw mode, do not physically warp the OS cursor.
+    return TRUE;
 }
 
 #endif // FEATURE_RAW_MOUSE
-

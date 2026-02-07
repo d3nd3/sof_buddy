@@ -1,5 +1,17 @@
 [
   {
+    "function": "IN_MouseMove",
+    "callback": "in_mousemove_callback",
+    "phase": "Post",
+    "priority": 100
+  },
+  {
+    "function": "IN_MenuMouse",
+    "callback": "in_menumouse_callback",
+    "phase": "Post",
+    "priority": 100
+  },
+  {
     "function": "GetCursorPos",
     "callback": "getcursorpos_override_callback",
     "override": true
@@ -10,4 +22,3 @@
     "override": true
   }
 ]
-

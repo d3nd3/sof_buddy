@@ -61,6 +61,33 @@ namespace {
     static AutoDetour_R_BlendLightmaps g_AutoDetour_R_BlendLightmaps;
 }
 
+namespace detour_IN_MouseMove {
+    using tIN_MouseMove = void(__cdecl*)(void* cmd);
+    extern tIN_MouseMove oIN_MouseMove;
+    using ManagerType = TypedSharedHookManager<void, void*>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkIN_MouseMove(void* cmd);
+}
+
+namespace {
+    struct AutoDetour_IN_MouseMove {
+        AutoDetour_IN_MouseMove() {
+            using namespace detour_IN_MouseMove;
+            if (!GetDetourSystem().IsDetourRegistered("IN_MouseMove")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x0004A1F0),
+                    reinterpret_cast<void*>(detour_IN_MouseMove::hkIN_MouseMove),
+                    reinterpret_cast<void**>(&detour_IN_MouseMove::oIN_MouseMove),
+                    "IN_MouseMove",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_IN_MouseMove g_AutoDetour_IN_MouseMove;
+}
+
 namespace detour_VID_CheckChanges {
     using tVID_CheckChanges = void(__cdecl*)();
     extern tVID_CheckChanges oVID_CheckChanges;
@@ -734,6 +761,33 @@ namespace {
         }
     };
     static AutoDetour_Sys_GetGameApi g_AutoDetour_Sys_GetGameApi;
+}
+
+namespace detour_IN_MenuMouse {
+    using tIN_MenuMouse = void(__cdecl*)(void* cvar1, void* cvar2);
+    extern tIN_MenuMouse oIN_MenuMouse;
+    using ManagerType = TypedSharedHookManager<void, void*, void*>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkIN_MenuMouse(void* cvar1, void* cvar2);
+}
+
+namespace {
+    struct AutoDetour_IN_MenuMouse {
+        AutoDetour_IN_MenuMouse() {
+            using namespace detour_IN_MenuMouse;
+            if (!GetDetourSystem().IsDetourRegistered("IN_MenuMouse")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x0004A420),
+                    reinterpret_cast<void*>(detour_IN_MenuMouse::hkIN_MenuMouse),
+                    reinterpret_cast<void**>(&detour_IN_MenuMouse::oIN_MenuMouse),
+                    "IN_MenuMouse",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_IN_MenuMouse g_AutoDetour_IN_MenuMouse;
 }
 
 namespace detour_GetCursorPos {

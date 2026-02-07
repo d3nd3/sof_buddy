@@ -34,12 +34,11 @@ The implementation works by **faking cursor position changes** so the original m
 1. **Registration** (RefDllLoaded callback):
    - Registers for raw mouse input using `RegisterRawInputDevices()`
    - Sets `hwndTarget` to the active window handle
-   - Uses `RIDEV_INPUTSINK` flag to receive input even when window is unfocused
 
 2. **Message Processing** (DispatchMessageA hook):
    - Intercepts WM_INPUT messages
    - Calls `ProcessRawInput()` to extract mouse delta from RAWINPUT structure
-   - Accumulates delta in `raw_mouse_delta_x` and `raw_mouse_delta_y` variables
+   - Ignores absolute mouse packets and accumulates only relative raw deltas
 
 3. **Cursor Position Emulation** (GetCursorPos hook):
    - Returns `center_point + accumulated_deltas` to simulate cursor movement
@@ -47,11 +46,11 @@ The implementation works by **faking cursor position changes** so the original m
    - **This preserves the entire original mouse processing pipeline**
 
 4. **Cursor Warping Prevention** (SetCursorPos hook):
-   - Returns TRUE immediately without calling original function
-   - Prevents cursor from being recentered (which would interfere with delta tracking)
+   - Updates internal center tracking only
+   - Returns TRUE immediately without physically warping the OS cursor
 
 5. **Delta Consumption** (IN_MouseMove hook):
-   - Resets accumulated deltas to 0 after the game processes them
+   - Resets accumulated deltas to 0 after each `IN_MouseMove` and `IN_MenuMouse`
    - Prevents delta accumulation between frames
 
 ### Preserved CVars

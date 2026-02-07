@@ -13,6 +13,10 @@ namespace detour_R_BlendLightmaps {
     tR_BlendLightmaps oR_BlendLightmaps = nullptr;
 }
 
+namespace detour_IN_MouseMove {
+    tIN_MouseMove oIN_MouseMove = nullptr;
+}
+
 namespace detour_VID_CheckChanges {
     tVID_CheckChanges oVID_CheckChanges = nullptr;
 }
@@ -113,6 +117,10 @@ namespace detour_Sys_GetGameApi {
     tSys_GetGameApi oSys_GetGameApi = nullptr;
 }
 
+namespace detour_IN_MenuMouse {
+    tIN_MenuMouse oIN_MenuMouse = nullptr;
+}
+
 namespace detour_GetCursorPos {
     tGetCursorPos oGetCursorPos = nullptr;
 }
@@ -133,6 +141,17 @@ namespace detour_GL_BuildPolygonFromSurface {
 }
 
 namespace detour_R_BlendLightmaps {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_IN_MouseMove {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
         if (!instance) {
@@ -418,6 +437,17 @@ namespace detour_Sys_GetGameApi {
     }
 }
 
+namespace detour_IN_MenuMouse {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
 namespace detour_GetCursorPos {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
@@ -459,6 +489,17 @@ namespace detour_R_BlendLightmaps {
             oR_BlendLightmaps();
         }
         if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost();
+    }
+}
+
+namespace detour_IN_MouseMove {
+    void __cdecl hkIN_MouseMove(void* cmd) {
+        ManagerType& mgr = GetManager();
+        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre(cmd);
+        if (oIN_MouseMove) {
+            oIN_MouseMove(cmd);
+        }
+        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost(cmd);
     }
 }
 
@@ -516,6 +557,17 @@ namespace detour_CinematicFreeze {
             oCinematicFreeze(bEnable);
         }
         if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost(bEnable);
+    }
+}
+
+namespace detour_IN_MenuMouse {
+    void __cdecl hkIN_MenuMouse(void* cvar1, void* cvar2) {
+        ManagerType& mgr = GetManager();
+        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre(cvar1, cvar2);
+        if (oIN_MenuMouse) {
+            oIN_MenuMouse(cvar1, cvar2);
+        }
+        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost(cvar1, cvar2);
     }
 }
 
