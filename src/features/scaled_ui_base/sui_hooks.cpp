@@ -88,6 +88,11 @@ bool mainMenuBgTiled = false;
 // Shared variables used by multiple features (moved from scaled_con for shared access)
 float fontScale = 1;
 bool isDrawingTeamicons = false;
+char g_lastCenterPrintText[1024] = {0};
+unsigned int g_lastCenterPrintSeq = 0;
+int g_lastCenterPrintLineCount = 1;
+float g_centerPrintAnchorY = 0.0f;
+unsigned int g_centerPrintAnchorSeq = 0;
 
 // Shared state enums
 realFontEnum_t realFont = REALFONT_UNKNOWN;

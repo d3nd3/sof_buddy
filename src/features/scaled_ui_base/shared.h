@@ -70,6 +70,11 @@ extern PicCaller g_currentPicCaller;
 // Font specific variables
 extern int characterIndex;
 extern FontCaller g_currentFontCaller;
+extern char g_lastCenterPrintText[1024];
+extern unsigned int g_lastCenterPrintSeq;
+extern int g_lastCenterPrintLineCount;
+extern float g_centerPrintAnchorY;
+extern unsigned int g_centerPrintAnchorSeq;
 
 // =============================================================================
 // ENUMS AND CONSTANTS

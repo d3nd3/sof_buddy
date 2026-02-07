@@ -63,8 +63,57 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 			float s = fontScale;
 			if (s <= 0.0f) s = 1.0f;
 			if (s != 1.0f) {
-				float cx = current_vid_w * 0.5f;
-				x = cx + (x - cx) * s;
+				// Centerprint can arrive in two coordinate domains depending on caller path:
+				// - virtual 640x480 space (common in legacy UI paths)
+				// - real render resolution space
+				// Using real-res anchors for virtual-space vertices can push text off-screen.
+				const bool hi_res = (current_vid_w > 640 || current_vid_h > 480);
+				const bool looks_virtual = hi_res && x <= 700.0f && y <= 520.0f;
+
+				const float cx = looks_virtual ? 320.0f : (current_vid_w * 0.5f);
+				const float domain_h = looks_virtual ? 480.0f : (current_vid_h > 0 ? static_cast<float>(current_vid_h) : 480.0f);
+
+				// Top line anchor captured from R_DrawFont for the active centerprint payload.
+				float top = 0.0f;
+				if (g_centerPrintAnchorSeq == g_lastCenterPrintSeq && g_centerPrintAnchorY > 0.0f) {
+					top = g_centerPrintAnchorY;
+				} else {
+					// Fallback if anchor capture was unavailable.
+					top = (y < 96.0f) ? 48.0f : (looks_virtual ? 168.0f : (current_vid_h * 0.35f));
+				}
+
+				int lines = g_lastCenterPrintLineCount;
+				if (lines < 1) lines = 1;
+				float font_h = static_cast<float>(realFontSizes[realFont]);
+				if (font_h <= 0.0f) font_h = 8.0f;
+
+				const float block_h = (lines > 0) ? (font_h * lines) : font_h;
+				float s_eff = s;
+				// Guarantee vertical fit when possible.
+				if (block_h > 1.0f) {
+					const float fit_scale = (domain_h - 2.0f) / block_h;
+					if (fit_scale > 0.0f && s_eff > fit_scale) {
+						s_eff = fit_scale;
+					}
+				}
+				if (s_eff < 0.1f) s_eff = 0.1f;
+
+				const float cy = top + block_h * 0.5f;
+				const float scaled_h = block_h * s_eff;
+				float top_scaled = cy - scaled_h * 0.5f;
+				float bottom_scaled = cy + scaled_h * 0.5f;
+
+				float y_shift = 0.0f;
+				const float margin = 1.0f;
+				if (top_scaled < margin) {
+					y_shift = margin - top_scaled;
+				}
+				if (bottom_scaled + y_shift > domain_h - margin) {
+					y_shift -= (bottom_scaled + y_shift) - (domain_h - margin);
+				}
+
+				x = cx + (x - cx) * s_eff;
+				y = cy + (y - cy) * s_eff + y_shift;
 			}
 			orig_glVertex2f(x, y);
 			break;

@@ -56,6 +56,35 @@ Defined in `sui_cvars.cpp` (only compiled when scaled_con or scaled_hud are enab
 
 ## Architecture
 
+### SCR_UpdateScreen Call Stack
+
+This is a critical call stack showing how screen text rendering flows through the system:
+
+```text
+SCR_UpdateScreen
+	SCR_DrawCenterPrint
+		R_DrawFont
+			GLTexCoord2f
+			GLVertex2f
+	SCR_CheckDrawCinematicString(void)
+		SCR_DrawCinematicString(int,int,int)
+			Draw_CharExtra(float, float, float, paletteRGBA_c &, int)
+				GLTexCoord2f
+				GLVertex2f
+```
+
+**Key Points:**
+- `SCR_DrawCenterPrint` is a `FontCaller` (RVA: `0x000163C0`) that triggers screen-scale text rendering
+- It's called from `SCR_UpdateScreen` and uses `R_DrawFont` for text rendering
+- `R_DrawFont` eventually calls `GLVertex2f` which is hooked for vertex scaling
+- `SCR_CheckDrawCinematicString` provides an alternate path through `Draw_CharExtra` which also calls `GLVertex2f`
+- Both paths ultimately reach `GLVertex2f`, allowing the hook to apply appropriate scaling based on the detected caller
+
+**Related Files:**
+- `hooks/r_drawfont.cpp` - Intercepts `R_DrawFont` calls from `SCR_DrawCenterPrint`
+- `hooks/glvertex2f.cpp` - Intercepts `GLVertex2f` calls for vertex scaling
+- `text_scaling.cpp` - Applies screen scale to `FontCaller::SCR_DrawCenterPrint` (`src/features/scaled_ui_base/text_scaling.cpp:62`)
+
 ### Feature Guards
 All base implementation files use:
 ```cpp
@@ -83,4 +112,3 @@ This ensures base code compiles when any sub-feature is enabled, and text scalin
 - All scaled UI sub-features depend on this base feature
 - Provides shared state and hooks that sub-features use
 - No external dependencies beyond core SoF Buddy infrastructure
-

@@ -9,6 +9,24 @@
 #include "debug/hook_callsite.h"
 #include <string.h>
 
+static bool fallbackCenterPrintLineMatch(int screenX, const char* text)
+{
+    if (!text || !*text) {
+        return false;
+    }
+    if (!g_lastCenterPrintText[0]) {
+        return false;
+    }
+
+    // Centerprint draw calls are centered in X. This gate avoids matching
+    // left-anchored notify/console text that may contain similar wording.
+    if (screenX < 80) {
+        return false;
+    }
+
+    return strstr(g_lastCenterPrintText, text) != nullptr;
+}
+
 void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor, detour_R_DrawFont::tR_DrawFont original) {
     g_activeDrawCall = DrawRoutineType::Font;
 
@@ -16,6 +34,19 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
     uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("R_DrawFont");
     if (fnStart) {
         detectedCaller = getFontCallerFromRva(fnStart);
+    }
+    if (detectedCaller == FontCaller::Unknown && fallbackCenterPrintLineMatch(screenX, text)) {
+        detectedCaller = FontCaller::SCR_DrawCenterPrint;
+    }
+    if (detectedCaller == FontCaller::SCR_DrawCenterPrint) {
+        // Anchor Y to the top-most line of the currently active centerprint payload.
+        // This avoids off-screen drift for lower-center centerprints at high font scales.
+        if (g_centerPrintAnchorSeq != g_lastCenterPrintSeq) {
+            g_centerPrintAnchorSeq = g_lastCenterPrintSeq;
+            g_centerPrintAnchorY = static_cast<float>(screenY);
+        } else if (static_cast<float>(screenY) < g_centerPrintAnchorY) {
+            g_centerPrintAnchorY = static_cast<float>(screenY);
+        }
     }
     
     if (g_currentFontCaller == FontCaller::Unknown && detectedCaller != FontCaller::Unknown) {
@@ -125,4 +156,3 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 }
 
 #endif // FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
-
