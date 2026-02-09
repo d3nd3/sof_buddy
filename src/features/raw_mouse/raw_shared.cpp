@@ -12,7 +12,9 @@ POINT window_center = {0, 0};
 std::vector<BYTE> g_heapBuffer;
 bool raw_mouse_center_valid = false;
 bool raw_mouse_registered = false;
+bool raw_mouse_cursor_clipped = false;
 HWND raw_mouse_hwnd_target = nullptr;
+static RECT raw_mouse_clip_rect = {0, 0, 0, 0};
 
 bool raw_mouse_is_enabled()
 {
@@ -60,6 +62,100 @@ void raw_mouse_accumulate_delta(LONG dx, LONG dy)
     raw_mouse_delta_y = static_cast<int>(next_y);
 }
 
+static HWND RawMouseResolveTargetHwnd(HWND hwnd_hint)
+{
+    if (raw_mouse_hwnd_target && IsWindow(raw_mouse_hwnd_target)) {
+        return raw_mouse_hwnd_target;
+    }
+
+    if (hwnd_hint && IsWindow(hwnd_hint)) {
+        return hwnd_hint;
+    }
+
+    HWND hwnd = GetActiveWindow();
+    if (!hwnd) {
+        hwnd = GetForegroundWindow();
+    }
+    return hwnd;
+}
+
+static bool RawMouseHasForeground(HWND hwnd)
+{
+    if (!hwnd) {
+        return false;
+    }
+
+    HWND foreground = GetForegroundWindow();
+    if (!foreground) {
+        return false;
+    }
+
+#if defined(GA_ROOT)
+    HWND root_target = GetAncestor(hwnd, GA_ROOT);
+    HWND root_foreground = GetAncestor(foreground, GA_ROOT);
+    if (!root_target) root_target = hwnd;
+    if (!root_foreground) root_foreground = foreground;
+    return root_target == root_foreground;
+#else
+    return hwnd == foreground;
+#endif
+}
+
+void raw_mouse_release_cursor_clip()
+{
+    if (raw_mouse_cursor_clipped) {
+        ClipCursor(nullptr);
+    }
+
+    raw_mouse_cursor_clipped = false;
+    SetRectEmpty(&raw_mouse_clip_rect);
+}
+
+void raw_mouse_refresh_cursor_clip(HWND hwnd_hint)
+{
+    if (!raw_mouse_api_supported() || !raw_mouse_is_enabled()) {
+        raw_mouse_release_cursor_clip();
+        return;
+    }
+
+    HWND hwnd = RawMouseResolveTargetHwnd(hwnd_hint);
+    if (!hwnd || !RawMouseHasForeground(hwnd)) {
+        raw_mouse_release_cursor_clip();
+        return;
+    }
+
+    RECT client_rect;
+    if (!GetClientRect(hwnd, &client_rect)) {
+        raw_mouse_release_cursor_clip();
+        return;
+    }
+
+    POINT top_left = {client_rect.left, client_rect.top};
+    POINT bottom_right = {client_rect.right, client_rect.bottom};
+    if (!ClientToScreen(hwnd, &top_left) || !ClientToScreen(hwnd, &bottom_right)) {
+        raw_mouse_release_cursor_clip();
+        return;
+    }
+
+    RECT new_clip_rect = {top_left.x, top_left.y, bottom_right.x, bottom_right.y};
+    if (new_clip_rect.left >= new_clip_rect.right || new_clip_rect.top >= new_clip_rect.bottom) {
+        raw_mouse_release_cursor_clip();
+        return;
+    }
+
+    if (raw_mouse_cursor_clipped && EqualRect(&raw_mouse_clip_rect, &new_clip_rect)) {
+        return;
+    }
+
+    if (!ClipCursor(&new_clip_rect)) {
+        raw_mouse_release_cursor_clip();
+        return;
+    }
+
+    raw_mouse_cursor_clipped = true;
+    raw_mouse_clip_rect = new_clip_rect;
+}
+
 bool raw_mouse_register_input(HWND hwnd, bool log_result)
 {
 #if !SOFBUDDY_RAWINPUT_API_AVAILABLE
@@ -68,6 +164,7 @@ bool raw_mouse_register_input(HWND hwnd, bool log_result)
     }
     raw_mouse_registered = false;
     raw_mouse_hwnd_target = nullptr;
+    raw_mouse_release_cursor_clip();
     return false;
 #else
     if (!hwnd) {
@@ -76,6 +173,7 @@ bool raw_mouse_register_input(HWND hwnd, bool log_result)
         }
         raw_mouse_registered = false;
         raw_mouse_hwnd_target = nullptr;
+        raw_mouse_release_cursor_clip();
         return false;
     }
 
@@ -93,6 +191,7 @@ bool raw_mouse_register_input(HWND hwnd, bool log_result)
         }
         raw_mouse_registered = false;
         raw_mouse_hwnd_target = nullptr;
+        raw_mouse_release_cursor_clip();
         return false;
     }
 
@@ -102,6 +201,7 @@ bool raw_mouse_register_input(HWND hwnd, bool log_result)
 
     raw_mouse_registered = true;
     raw_mouse_hwnd_target = hwnd;
+    raw_mouse_refresh_cursor_clip(hwnd);
     return true;
 #endif
 }
@@ -112,8 +212,11 @@ void raw_mouse_unregister_input(bool log_result)
     (void)log_result;
     raw_mouse_registered = false;
     raw_mouse_hwnd_target = nullptr;
+    raw_mouse_release_cursor_clip();
     return;
 #else
+    raw_mouse_release_cursor_clip();
+
     if (!raw_mouse_registered) {
         raw_mouse_hwnd_target = nullptr;
         return;

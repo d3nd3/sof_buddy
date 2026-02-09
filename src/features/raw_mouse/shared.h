@@ -36,6 +36,7 @@ extern POINT window_center;
 extern std::vector<BYTE> g_heapBuffer;
 extern bool raw_mouse_center_valid;
 extern bool raw_mouse_registered;
+extern bool raw_mouse_cursor_clipped;
 extern HWND raw_mouse_hwnd_target;
 
 void raw_mouse_on_change(cvar_t *cvar);
@@ -46,6 +47,8 @@ void raw_mouse_reset_deltas();
 void raw_mouse_consume_deltas();
 void raw_mouse_update_center(int x, int y);
 void raw_mouse_accumulate_delta(LONG dx, LONG dy);
+void raw_mouse_refresh_cursor_clip(HWND hwnd_hint);
+void raw_mouse_release_cursor_clip();
 bool raw_mouse_register_input(HWND hwnd, bool log_result);
 void raw_mouse_unregister_input(bool log_result);
 BOOL __stdcall hkSetCursorPos(int X, int Y);

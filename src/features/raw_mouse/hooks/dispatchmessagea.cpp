@@ -68,13 +68,21 @@ static void ProcessRawInput(LPARAM lParam)
 }
 #endif
 
-static void EnsureRawMouseRegistered()
+static void EnsureRawMouseRegistered(HWND hwnd_hint)
 {
     if (!raw_mouse_is_enabled() || !raw_mouse_api_supported()) {
         return;
     }
 
-    HWND hwnd = GetActiveWindow();
+    HWND hwnd = raw_mouse_hwnd_target;
+    if (hwnd && !IsWindow(hwnd)) {
+        raw_mouse_registered = false;
+        raw_mouse_hwnd_target = nullptr;
+        hwnd = nullptr;
+    }
+
+    if (!hwnd) hwnd = hwnd_hint;
+    if (!hwnd) hwnd = GetActiveWindow();
     if (!hwnd) hwnd = GetForegroundWindow();
     if (!hwnd) {
         return;
@@ -87,12 +95,14 @@ static void EnsureRawMouseRegistered()
 
 LRESULT dispatchmessagea_override_callback(const MSG* msg, detour_DispatchMessageA::tDispatchMessageA original) {
     if (msg && raw_mouse_is_enabled() && raw_mouse_api_supported()) {
-        EnsureRawMouseRegistered();
+        EnsureRawMouseRegistered(msg->hwnd);
 
         if (msg->message == WM_INPUT) {
             ProcessRawInput(msg->lParam);
         }
     }
+
+    raw_mouse_refresh_cursor_clip(msg ? msg->hwnd : nullptr);
     
     // Call original function
     return original ? original(msg) : 0;

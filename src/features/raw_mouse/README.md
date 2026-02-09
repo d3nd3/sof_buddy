@@ -49,7 +49,12 @@ The implementation works by **faking cursor position changes** so the original m
    - Updates internal center tracking only
    - Returns TRUE immediately without physically warping the OS cursor
 
-5. **Delta Consumption** (IN_MouseMove hook):
+5. **Cursor Confinement** (ClipCursor):
+   - While raw input is enabled and the game window is foregrounded, cursor is clipped to the game client area
+   - Prevents pointer escape to screen/taskbar edges during fast movement
+   - Clip is automatically released when raw input is disabled or focus is lost
+
+6. **Delta Consumption** (IN_MouseMove hook):
    - Resets accumulated deltas to 0 after each `IN_MouseMove` and `IN_MenuMouse`
    - Prevents delta accumulation between frames
 
@@ -73,4 +78,5 @@ All original SoF mouse cvars remain functional:
 - Smoother, more direct mouse response (no Windows acceleration/smoothing)
 - Better support for high DPI mice
 - Elimination of cursor warping issues
+- Prevents accidental focus loss from cursor hitting desktop/taskbar edges
 - Preserves all original SoF mouse cvars
