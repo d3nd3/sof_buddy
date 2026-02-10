@@ -15,6 +15,7 @@ bool raw_mouse_registered = false;
 bool raw_mouse_cursor_clipped = false;
 HWND raw_mouse_hwnd_target = nullptr;
 static RECT raw_mouse_clip_rect = {0, 0, 0, 0};
+static const int RAW_MOUSE_CLIP_INSET = 4;
 
 bool raw_mouse_is_enabled()
 {
@@ -138,9 +139,22 @@ void raw_mouse_refresh_cursor_clip(HWND hwnd_hint)
     }
 
     RECT new_clip_rect = {top_left.x, top_left.y, bottom_right.x, bottom_right.y};
+    new_clip_rect.left += RAW_MOUSE_CLIP_INSET;
+    new_clip_rect.right -= RAW_MOUSE_CLIP_INSET;
     if (new_clip_rect.left >= new_clip_rect.right || new_clip_rect.top >= new_clip_rect.bottom) {
         raw_mouse_release_cursor_clip();
         return;
+    }
+
+    POINT cur;
+    if (GetCursorPos(&cur) && oSetCursorPos) {
+        int cx = cur.x, cy = cur.y;
+        if (cx < new_clip_rect.left) cx = new_clip_rect.left;
+        else if (cx >= new_clip_rect.right) cx = new_clip_rect.right - 1;
+        if (cy < new_clip_rect.top) cy = new_clip_rect.top;
+        else if (cy >= new_clip_rect.bottom) cy = new_clip_rect.bottom - 1;
+        if (cx != cur.x || cy != cur.y)
+            oSetCursorPos(cx, cy);
     }
 
     if (raw_mouse_cursor_clipped && EqualRect(&raw_mouse_clip_rect, &new_clip_rect)) {

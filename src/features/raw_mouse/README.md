@@ -13,17 +13,17 @@ Implements raw mouse input support for Soldier of Fortune using Windows Raw Inpu
 - **IN_MouseMove** (Post, Priority: 100)
   - `in_mousemove_callback()` - Resets delta accumulators after each frame
 - **IN_MenuMouse** (Post, Priority: 100)
-  - `in_menumouse_callback()` - Post-processing for menu mouse handling
+  - `in_menumouse_callback()` - Consumes accumulated deltas after menu mouse handling (same as IN_MouseMove)
 
 ## OverrideHooks
 - **GetCursorPos** (user32.dll)
-  - `getcursorpos_override_callback()` - Returns fake cursor position (center_point + raw_deltas) when raw input enabled
+  - `getcursorpos_override_callback()` - Returns virtual cursor position `(window_center + raw_mouse_delta_x/y)` when raw input enabled; never calls real GetCursorPos for look/menu
 - **DispatchMessageA** (user32.dll)
-  - `dispatchmessagea_override_callback()` - Intercepts WM_INPUT messages to extract raw mouse hardware deltas
+  - `dispatchmessagea_override_callback()` - On WM_INPUT, extracts relative raw deltas (ignores absolute) and accumulates via `raw_mouse_accumulate_delta()`
 
 ## CustomDetours
 - **SetCursorPos** (user32.dll, via GetProcAddress)
-  - `hkSetCursorPos()` - No-op when raw input enabled to prevent cursor recentering
+  - `hkSetCursorPos()` - When raw input enabled: updates internal `window_center`, refreshes cursor clip, returns TRUE without calling the real SetCursorPos (OS cursor is never warped)
   - Patched at exe addresses: `0x2004A0B2`, `0x2004A410`, `0x2004A579`
 
 ## Technical Details
@@ -40,23 +40,20 @@ The implementation works by **faking cursor position changes** so the original m
    - Calls `ProcessRawInput()` to extract mouse delta from RAWINPUT structure
    - Ignores absolute mouse packets and accumulates only relative raw deltas
 
-3. **Cursor Position Emulation** (GetCursorPos hook):
-   - Returns `center_point + accumulated_deltas` to simulate cursor movement
-   - The game calculates: `mx = cursor_pos.x - window_center_x` which yields the raw delta
-   - **This preserves the entire original mouse processing pipeline**
+3. **Virtual Cursor Position** (GetCursorPos hook):
+   - Returns `(window_center.x + raw_mouse_delta_x, window_center.y + raw_mouse_delta_y)` so the game sees movement (e.g. swipe left → negative delta_x → position left of center)
+   - Game logic unchanged: it reads “cursor” position and uses it for look/menu; we never call the real GetCursorPos for that path
 
-4. **Cursor Warping Prevention** (SetCursorPos hook):
-   - Updates internal center tracking only
-   - Returns TRUE immediately without physically warping the OS cursor
+4. **No Cursor Warping** (SetCursorPos hook):
+   - Game’s recenter calls are intercepted: we update `window_center` and refresh cursor clip only, then return TRUE without calling the real SetCursorPos, so the OS cursor is never moved by the game
 
 5. **Cursor Confinement** (ClipCursor):
-   - While raw input is enabled and the game window is foregrounded, cursor is clipped to the game client area
-   - Prevents pointer escape to screen/taskbar edges during fast movement
+   - While raw input is enabled and the game window is foregrounded, cursor is clipped to the game client area inset by 4px on left and right (smaller clip area reduces accidental escape on focus regain)
+   - On each clip refresh (e.g. after alt-tab), if the OS cursor is outside the clip rect it is warped back inside via the real SetCursorPos so the cursor is always within bounds when regaining focus
    - Clip is automatically released when raw input is disabled or focus is lost
 
-6. **Delta Consumption** (IN_MouseMove hook):
-   - Resets accumulated deltas to 0 after each `IN_MouseMove` and `IN_MenuMouse`
-   - Prevents delta accumulation between frames
+6. **Delta Consumption** (IN_MouseMove / IN_MenuMouse callbacks):
+   - After the game processes the frame, `raw_mouse_consume_deltas()` resets `raw_mouse_delta_x/y` to 0, so the virtual cursor is effectively back at window_center for the next frame
 
 ### Preserved CVars
 All original SoF mouse cvars remain functional:
