@@ -10,18 +10,11 @@
 
 void hkDraw_Pic(int x, int y, char const * imgname, int palette, detour_Draw_Pic::tDraw_Pic original) {
     SOFBUDDY_ASSERT(original != nullptr);
-    
     g_activeDrawCall = DrawRoutineType::Pic;
-    PicCaller detectedCaller = PicCaller::Unknown;
-    uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("Draw_Pic");
-    if (fnStart) {
-        detectedCaller = getPicCallerFromRva(fnStart);
+    if (g_currentPicCaller == PicCaller::Unknown) {
+        uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("Draw_Pic");
+        if (fnStart) g_currentPicCaller = getPicCallerFromRva(fnStart);
     }
-    
-    if (g_currentPicCaller == PicCaller::Unknown && detectedCaller != PicCaller::Unknown) {
-        g_currentPicCaller = detectedCaller;
-    }
-    
     if (imgname != nullptr) {
         const char* p = imgname;
         int slashes = 0;

@@ -18,22 +18,12 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
     SOFBUDDY_ASSERT(w > 0);
     SOFBUDDY_ASSERT(h > 0);
     SOFBUDDY_ASSERT(current_vid_h > 0);
-    
     g_activeDrawCall = DrawRoutineType::StretchPic;
-    StretchPicCaller detectedCaller = StretchPicCaller::Unknown;
-
-    uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("Draw_StretchPic");
-    if (fnStart) {
-        detectedCaller = getStretchPicCallerFromRva(fnStart);
+    if (g_currentStretchPicCaller == StretchPicCaller::Unknown) {
+        uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("Draw_StretchPic");
+        if (fnStart) g_currentStretchPicCaller = getStretchPicCallerFromRva(fnStart);
     }
-    
-    if (g_currentStretchPicCaller == StretchPicCaller::Unknown && detectedCaller != StretchPicCaller::Unknown) {
-        g_currentStretchPicCaller = detectedCaller;
-    }
-    
-    StretchPicCaller caller = g_currentStretchPicCaller;
-    
-    if (caller == StretchPicCaller::CON_DrawConsole) {
+    if (g_currentStretchPicCaller == StretchPicCaller::CON_DrawConsole) {
         #if FEATURE_SCALED_CON
         //Draw the console background with new height
         extern float draw_con_frac;

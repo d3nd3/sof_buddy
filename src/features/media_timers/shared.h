@@ -47,6 +47,8 @@ void sleep_change(cvar_t *cvar);
 void sleep_jitter_change(cvar_t *cvar);
 void sleep_busyticks_change(cvar_t *cvar);
 
-#endif // FEATURE_MEDIA_TIMERS
+// Sleep(1) stutter prevention: request 1ms timer period while sleep mode is enabled.
+void mediaTimers_Request1msTimerPeriod(bool enable);
 
+#endif // FEATURE_MEDIA_TIMERS
 

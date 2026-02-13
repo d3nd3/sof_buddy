@@ -9,18 +9,11 @@
 
 void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int pal, char * name, detour_Draw_PicOptions::tDraw_PicOptions original) {
     SOFBUDDY_ASSERT(original != nullptr);
-    
     g_activeDrawCall = DrawRoutineType::PicOptions;
-    
-    PicOptionsCaller detected = PicOptionsCaller::Unknown;
-    uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("Draw_PicOptions");
-    if (fnStart) {
-        detected = getPicOptionsCallerFromRva(fnStart);
-        if (g_currentPicOptionsCaller == PicOptionsCaller::Unknown && detected != PicOptionsCaller::Unknown) {
-            g_currentPicOptionsCaller = detected;
-        }
+    if (g_currentPicOptionsCaller == PicOptionsCaller::Unknown) {
+        uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("Draw_PicOptions");
+        if (fnStart) g_currentPicOptionsCaller = getPicOptionsCallerFromRva(fnStart);
     }
-
     if (g_activeRenderType == uiRenderType::HudDmRanking) {
         float x_scale = static_cast<float>(current_vid_w) / 640.0f;
         int offsetEdge = 40; //36??

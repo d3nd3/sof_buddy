@@ -19,6 +19,9 @@
 	until ProcessDeferredRegistrations() is called in lifecycle_EarlyStartup().
 */
 void mediaTimers_EarlyStartup(void) {
+	// Ensure Sleep(1) has 1ms granularity to avoid oversleep hitches.
+	mediaTimers_Request1msTimerPeriod(sleep_mode);
+
     //overwrite 'call    Sys_Milliseconds' -> 'call winmain_loop'
 	WriteE8Call(rvaToAbsExe((void*)0x00066412), (void*)&winmain_loop);
     //skip the rest of the loop, so we implement most ourself
@@ -55,4 +58,3 @@ void mediaTimers_EarlyStartup(void) {
 }
 
 #endif // FEATURE_MEDIA_TIMERS
-

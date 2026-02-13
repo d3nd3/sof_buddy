@@ -11,6 +11,7 @@
 
 #include <cmath>
 #include <cassert>
+#include <mmsystem.h>
 
 bool sleep_mode = true;
 int extratime_resume = 0;
@@ -29,6 +30,9 @@ int (*sp_Sys_Mil) (void) = NULL;
 
 LARGE_INTEGER base = {0};
 LARGE_INTEGER freq = {0};
+
+static bool g_timer_period_1ms_requested = false;
+static int g_cl_maxfps_target_msec = 33;
 
 extern void* o_sofplus;
 extern void (*orig_Qcommon_Frame) (int msec);
@@ -57,6 +61,39 @@ int *sp_current_timestamp2 = NULL;
 void (*spcl_Timers)(void) = NULL;
 void (*spcl_FreeScript)(void) = NULL;
 
+static int calc_target_msec(float maxfps)
+{
+	// Default behavior matches base game when cvar is unavailable/invalid.
+	if (!(maxfps > 0.0f)) return 33;
+	const double msec = 1000.0 / static_cast<double>(maxfps);
+	int target = static_cast<int>(std::ceil(msec));
+	if (target < 1) target = 1;
+	return target;
+}
+
+void mediaTimers_Request1msTimerPeriod(bool enable)
+{
+	if (enable) {
+		if (g_timer_period_1ms_requested) return;
+
+		const MMRESULT r = timeBeginPeriod(1);
+		if (r != TIMERR_NOERROR) {
+			PrintOut(PRINT_BAD, "Media timers: timeBeginPeriod(1) failed (%u)\n", static_cast<unsigned>(r));
+			return;
+		}
+
+		g_timer_period_1ms_requested = true;
+	} else {
+		if (!g_timer_period_1ms_requested) return;
+
+		const MMRESULT r = timeEndPeriod(1);
+		if (r != TIMERR_NOERROR) {
+			PrintOut(PRINT_BAD, "Media timers: timeEndPeriod(1) failed (%u)\n", static_cast<unsigned>(r));
+		}
+
+		g_timer_period_1ms_requested = false;
+	}
+}
 
 /*
 	--IMPORTANT--
@@ -105,6 +142,10 @@ void sleep_change(cvar_t * cvar) {
 		extratime_resume=0;
 		PrintOut(PRINT_GOOD,"cpu sleep is DISABLED\n");
 	}
+
+	// Sleep(1) accuracy is heavily impacted by the system timer period. Request 1ms while enabled
+	// to reduce oversleep spikes that can manifest as hitching/stutter.
+	mediaTimers_Request1msTimerPeriod(sleep_mode);
 	
 }
 
@@ -128,10 +169,9 @@ void sleep_jitter_change(cvar_t *cvar)
 void sleep_busyticks_change(cvar_t * cvar)
 {
 	SOFBUDDY_ASSERT(cvar != nullptr);
-	SOFBUDDY_ASSERT(cvar->value >= 0);
 	
 	// PrintOut(PRINT_GOOD,"sleep_exclude_change changed\n");
-	sleep_busyticks = cvar->value;
+	sleep_busyticks = (cvar->value < 0.0f) ? 0 : static_cast<int>(cvar->value);
 
 	PrintOut(PRINT_GOOD,"sleep_busyticks is now : %i\n",sleep_busyticks);
 }
@@ -146,6 +186,7 @@ void cl_maxfps_change(cvar_t *cvar)
 	//update _sofbuddy_sleep_gamma
 	// orig_Cvar_Set2("_sofbuddy_sleep_gamma",cvar->string,false);
 	previous_cl_maxfps = cvar->value;
+	g_cl_maxfps_target_msec = calc_target_msec(cvar->value);
 }
 
 void
@@ -241,7 +282,7 @@ int winmain_loop(void)
 	SOFBUDDY_ASSERT(cls_state != nullptr);
 	SOFBUDDY_ASSERT(extratime != nullptr);
 	
-	int targetMsec = *cls_state == 7 ? 100 : (cl_maxfps ? std::ceil(1000/cl_maxfps->value) : 33);
+	int targetMsec = *cls_state == 7 ? 100 : g_cl_maxfps_target_msec;
 	SOFBUDDY_ASSERT(targetMsec > 0);
 
 	/*

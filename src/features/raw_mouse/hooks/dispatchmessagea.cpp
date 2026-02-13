@@ -93,18 +93,39 @@ static void EnsureRawMouseRegistered(HWND hwnd_hint)
     }
 }
 
+static bool msg_affects_cursor_clip(UINT msg) {
+    switch (msg) {
+    case WM_INPUT:
+    case WM_SIZE:
+    case WM_MOVE:
+    case WM_ACTIVATE:
+#ifndef WM_ENTERSIZEMOVE
+#define WM_ENTERSIZEMOVE 0x0231
+#endif
+#ifndef WM_EXITSIZEMOVE
+#define WM_EXITSIZEMOVE  0x0232
+#endif
+    case WM_ENTERSIZEMOVE:
+    case WM_EXITSIZEMOVE:
+#ifndef WM_DISPLAYCHANGE
+#define WM_DISPLAYCHANGE 0x007E
+#endif
+    case WM_DISPLAYCHANGE:
+        return true;
+    default:
+        return false;
+    }
+}
+
 LRESULT dispatchmessagea_override_callback(const MSG* msg, detour_DispatchMessageA::tDispatchMessageA original) {
     if (msg && raw_mouse_is_enabled() && raw_mouse_api_supported()) {
-        EnsureRawMouseRegistered(msg->hwnd);
-
-        if (msg->message == WM_INPUT) {
+        if (msg_affects_cursor_clip(msg->message))
+            EnsureRawMouseRegistered(msg->hwnd);
+        if (msg->message == WM_INPUT)
             ProcessRawInput(msg->lParam);
-        }
     }
-
-    raw_mouse_refresh_cursor_clip(msg ? msg->hwnd : nullptr);
-    
-    // Call original function
+    if (msg && msg_affects_cursor_clip(msg->message))
+        raw_mouse_refresh_cursor_clip(msg->hwnd);
     return original ? original(msg) : 0;
 }
 

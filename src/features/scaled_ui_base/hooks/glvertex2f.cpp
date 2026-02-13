@@ -5,7 +5,6 @@
 #include "sof_compat.h"
 #include "util.h"
 #include "../../scaled_ui_base/shared.h"
-#include "debug/hook_callsite.h"
 
 extern void(__stdcall * orig_glVertex2f)(float one, float two);
 
@@ -71,9 +70,6 @@ static inline void scaleVertexFromCenter(float& x, float& y, float scale) {
 
 void __stdcall hkglVertex2f(float x, float y) {
     SOFBUDDY_ASSERT(orig_glVertex2f != nullptr);
-    
-    HookCallsite::recordAndGetFnStartExternal("glVertex2f");
-
     switch (g_activeRenderType) {
 #if FEATURE_SCALED_CON
         case uiRenderType::Console:

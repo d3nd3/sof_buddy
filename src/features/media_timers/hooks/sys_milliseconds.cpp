@@ -24,6 +24,7 @@ _sp_cl_cpu_cool 1 = 0.1 ms = 100 us
 long long qpc_timers(bool force)
 {
 	LARGE_INTEGER cur = {0};
+	static LONGLONG last_qpc = 0;
 
 	if (!freq.QuadPart || force)
     {
@@ -44,10 +45,24 @@ long long qpc_timers(bool force)
 			PrintOut(PRINT_BAD, "QueryPerformanceCounter failed\n");
 			ExitProcess(1);
 		}
+		last_qpc = base.QuadPart;
 	}
-	
-	QueryPerformanceCounter(&cur);
-	return (long long)(cur.QuadPart - base.QuadPart);
+
+	if (!QueryPerformanceCounter(&cur))
+	{
+		printf("QueryPerformanceCounter failed\n");
+		PrintOut(PRINT_BAD, "QueryPerformanceCounter failed\n");
+		ExitProcess(1);
+	}
+
+	// QPC can move backwards on some systems (old HW/BIOS bugs, core migration). Adjust the
+	// base so that returned elapsed ticks never go backwards (prevents hitchy timer resets).
+	if (last_qpc && cur.QuadPart < last_qpc) {
+		base.QuadPart -= (last_qpc - cur.QuadPart);
+	}
+	last_qpc = cur.QuadPart;
+
+	return static_cast<long long>(cur.QuadPart - base.QuadPart);
 }
 
 /*
@@ -108,53 +123,21 @@ int my_Sys_Milliseconds(void)
 	void *return_address = __builtin_return_address(0);
     printf("my_Sys_Milliseconds called by : %p\n", return_address);
 	#endif
+	static int last_curtime = -1;
 
-	static int prev_val = 0;
-
-    long long ticks_elapsed = qpc_timers(false);
-
-	bool wasNeg = false;
-    //Handle bug when thread switches core or bios/driver bug.
-	while ( ticks_elapsed < 0 ) {
-   		ticks_elapsed = qpc_timers(true);
-		wasNeg = true;
-	}
-
-    //100ns tick * 1,000,000 = ns->us->ms 100ms
-    // ticks_elapsed/freq = seconds. seconds * 1,000,000 = microseconds.
-	if (!freq.QuadPart) {
-		ticks_elapsed = qpc_timers(true);
-	}
+	const long long ticks_elapsed = qpc_timers(false);
 	if (!freq.QuadPart) {
 		return 0;
 	}
 	SOFBUDDY_ASSERT(freq.QuadPart > 0);
-	int ret = (int)((ticks_elapsed * 1000LL) / freq.QuadPart);
+	const int ret = static_cast<int>((ticks_elapsed * 1000LL) / freq.QuadPart);
 
-	if ( ret < prev_val ) {
-		wasNeg = true;
+	// Avoid redundant writes in spin-wait loops (same ms value can be polled many times).
+	if (ret != last_curtime) {
+		// set curtime
+		*(int*)0x20390D38 = ret;
+		last_curtime = ret;
 	}
-
-	/*
-		Not sure how often this occurs
-	*/
-	if ( wasNeg ) {
-		// Have to adjust the timers sadly.
-		// Or change the location of 'exec sofplus.cfg' slightly
-
-		//TODO:
-    	//This doesn't fix the timers, because the actual timestamp
-    	//of each timer has to be changed. Its a simple iteration.
-    	//but i won't do it unless I have to. You'd also want to update
-    	//the lastTimerTick variable inside of the spTimer() function.
-		oldtime = ret;
-		resetTimers(ret);
-	}
-
-    //set curtime
-	*(int*)0x20390D38 = ret;
-
-	prev_val = ret;
 
 	return ret;
 }
@@ -166,4 +149,3 @@ int sys_milliseconds_override_callback(detour_Sys_Milliseconds::tSys_Millisecond
 }
 
 #endif // FEATURE_MEDIA_TIMERS
-

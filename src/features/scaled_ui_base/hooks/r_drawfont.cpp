@@ -29,18 +29,13 @@ static bool fallbackCenterPrintLineMatch(int screenX, const char* text)
 
 void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor, detour_R_DrawFont::tR_DrawFont original) {
     g_activeDrawCall = DrawRoutineType::Font;
-
-    FontCaller detectedCaller = FontCaller::Unknown;
-    uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("R_DrawFont");
-    if (fnStart) {
-        detectedCaller = getFontCallerFromRva(fnStart);
+    if (g_currentFontCaller == FontCaller::Unknown) {
+        uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("R_DrawFont");
+        if (fnStart) g_currentFontCaller = getFontCallerFromRva(fnStart);
+        if (g_currentFontCaller == FontCaller::Unknown && fallbackCenterPrintLineMatch(screenX, text))
+            g_currentFontCaller = FontCaller::SCR_DrawCenterPrint;
     }
-    if (detectedCaller == FontCaller::Unknown && fallbackCenterPrintLineMatch(screenX, text)) {
-        detectedCaller = FontCaller::SCR_DrawCenterPrint;
-    }
-    if (detectedCaller == FontCaller::SCR_DrawCenterPrint) {
-        // Anchor Y to the top-most line of the currently active centerprint payload.
-        // This avoids off-screen drift for lower-center centerprints at high font scales.
+    if (g_currentFontCaller == FontCaller::SCR_DrawCenterPrint) {
         if (g_centerPrintAnchorSeq != g_lastCenterPrintSeq) {
             g_centerPrintAnchorSeq = g_lastCenterPrintSeq;
             g_centerPrintAnchorY = static_cast<float>(screenY);
@@ -48,11 +43,6 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
             g_centerPrintAnchorY = static_cast<float>(screenY);
         }
     }
-    
-    if (g_currentFontCaller == FontCaller::Unknown && detectedCaller != FontCaller::Unknown) {
-        g_currentFontCaller = detectedCaller;
-    }
-	
 	SOFBUDDY_ASSERT(font != nullptr);
 	if (font) {
 		realFont = getRealFontEnum((char*)(* (int * )(font + 4)));
@@ -148,7 +138,7 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 	}
 	original(screenX, screenY, text, colorPalette, font, rememberLastColor);
 
-	if (detectedCaller != FontCaller::Unknown) {
+	if (g_currentFontCaller != FontCaller::Unknown) {
 		g_currentFontCaller = FontCaller::Unknown;
 	}
 	characterIndex = 0;

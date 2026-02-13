@@ -5,14 +5,10 @@
 #include "util.h"
 #include "generated_detours.h"
 #include "../../scaled_ui_base/shared.h"
-#include "debug/hook_callsite.h"
 #include <string.h>
 
 void hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, int palette, char * name, detour_Draw_CroppedPicOptions::tDraw_CroppedPicOptions original) {
     SOFBUDDY_ASSERT(original != nullptr);
-    
-    HookCallsite::recordAndGetFnStartExternal("Draw_CroppedPicOptions");
-    
     if (g_activeRenderType == uiRenderType::HudInventory) {
         if (!strncmp(name, "pics/interface2/", 16)) {
 
