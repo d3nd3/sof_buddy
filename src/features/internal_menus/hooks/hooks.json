@@ -1,0 +1,4 @@
+[
+  {"function":"M_PushMenu","callback":"internal_menus_M_PushMenu_pre","phase":"Pre","priority":90},
+  {"function":"M_PushMenu","callback":"internal_menus_M_PushMenu_post","phase":"Post","priority":90}
+]

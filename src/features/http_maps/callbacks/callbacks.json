@@ -1,0 +1,8 @@
+[
+  {
+    "hook": "PostCvarInit",
+    "callback": "http_maps_PostCvarInit",
+    "priority": 60,
+    "phase": "Post"
+  }
+]

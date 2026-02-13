@@ -682,6 +682,33 @@ namespace {
     static AutoDetour_drawTeamIcons g_AutoDetour_drawTeamIcons;
 }
 
+namespace detour_M_PushMenu {
+    using tM_PushMenu = void(__cdecl*)(char const* menu_file, char const* parentFrame, bool lock_input);
+    extern tM_PushMenu oM_PushMenu;
+    using ManagerType = TypedSharedHookManager<void, char const*, char const*, bool>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkM_PushMenu(char const* menu_file, char const* parentFrame, bool lock_input);
+}
+
+namespace {
+    struct AutoDetour_M_PushMenu {
+        AutoDetour_M_PushMenu() {
+            using namespace detour_M_PushMenu;
+            if (!GetDetourSystem().IsDetourRegistered("M_PushMenu")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x200C7630),
+                    reinterpret_cast<void*>(detour_M_PushMenu::hkM_PushMenu),
+                    reinterpret_cast<void**>(&detour_M_PushMenu::oM_PushMenu),
+                    "M_PushMenu",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_M_PushMenu g_AutoDetour_M_PushMenu;
+}
+
 namespace detour_CinematicFreeze {
     using tCinematicFreeze = void(__cdecl*)(bool bEnable);
     extern tCinematicFreeze oCinematicFreeze;

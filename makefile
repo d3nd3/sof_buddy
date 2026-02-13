@@ -2,11 +2,12 @@
 # Target: 32-bit Windows DLL
 
 # Directories
+BUILD ?= release
 SDIR = src
-ODIR = obj
+ODIR = obj/$(BUILD)
 BDIR = bin
 IDIR = hdr
-BDIR_GEN = build
+BDIR_GEN = build/$(BUILD)
 FEATURES_TXT = features/FEATURES.txt
 FEATURE_CONFIG_H = $(BDIR_GEN)/feature_config.h
 FEATURE_LIST_H = $(BDIR_GEN)/feature_list.inc
@@ -18,6 +19,10 @@ GENERATED_DETOURS_CPP = $(BDIR_GEN)/generated_detours.cpp
 GENERATED_REGISTRATIONS_H = $(BDIR_GEN)/generated_registrations.h
 GENERATE_HOOKS_PY = tools/generate_hooks.py
 GENERATE_FEATURES_TXT_PY = tools/generate_features_txt.py
+GENERATE_MENU_EMBED_PY = tools/generate_menu_embed.py
+MENU_DATA_CPP = $(SDIR)/features/internal_menus/menu_data.cpp
+MENU_LIBRARY_DIR = $(SDIR)/features/internal_menus/menu_library
+MENU_LIBRARY_RMF = $(shell find $(MENU_LIBRARY_DIR) -name "*.rmf" 2>/dev/null)
 
 # Host toolchain for native utilities (not cross-compiled)
 HOSTCC = g++
@@ -28,7 +33,8 @@ HOSTCFLAGS = -std=c++17 -O2
 CC = i686-w64-mingw32-g++-posix
 INC = -I$(IDIR) -I$(SDIR) -I$(BDIR_GEN)
 COMMON_CFLAGS = -D_WIN32_WINNT=0x0501 -std=c++14
-LIBS = -lws2_32 -lwinmm -lshlwapi -lpsapi -ldbghelp
+DEPFLAGS = -MMD -MP
+LIBS = -lws2_32 -lwinmm -lshlwapi -lpsapi -ldbghelp -lwinhttp
 
 # Detect number of CPU cores for parallel builds
 JOBS := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
@@ -50,10 +56,12 @@ else ifeq ($(BUILD),xp-debug)
 else ifeq ($(BUILD),xp)
     CFLAGS = $(COMMON_CFLAGS) -O0 -fno-omit-frame-pointer -DNDEBUG
     TARGET_SUFFIX = 
-else
+else ifeq ($(BUILD),release)
     # With -fno-omit-frame-pointer, the game will not crash when using optimization.
     CFLAGS = $(COMMON_CFLAGS) -O3 -fno-omit-frame-pointer -DNDEBUG
     TARGET_SUFFIX = 
+else
+    $(error Unsupported BUILD='$(BUILD)' (use one of: release, debug, debug-gdb, debug-collect, xp, xp-debug))
 endif
 
 # Optional UI_MENU feature toggle (enable with: make UI_MENU=1 ...)
@@ -79,13 +87,20 @@ endif
 
 # Find all source files (no artificial limit)
 SOURCES = $(shell find $(SDIR) -name "*.cpp")
+SOURCES += $(MENU_DATA_CPP)
+SOURCES := $(sort $(SOURCES))
 OBJECTS = $(SOURCES:$(SDIR)/%.cpp=$(ODIR)/%.o)
+DEPS = $(OBJECTS:.o=.d) $(ODIR)/generated_detours.d
 
 # Find all hooks.json files
 HOOKS_JSON = $(shell find $(SDIR)/features $(SDIR)/core -name "hooks.json" 2>/dev/null || true)
+CALLBACKS_JSON = $(shell find $(SDIR)/features $(SDIR)/core -name "callbacks.json" 2>/dev/null || true)
 
 # Default target
-all: $(FEATURES_TXT) $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(VERSION_H) $(GENERATED_DETOURS_H) $(GENERATED_DETOURS_CPP) $(GENERATED_REGISTRATIONS_H) $(OUT)
+all: $(MENU_DATA_CPP) $(FEATURES_TXT) $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(VERSION_H) $(GENERATED_DETOURS_H) $(GENERATED_DETOURS_CPP) $(GENERATED_REGISTRATIONS_H) $(OUT)
+
+$(MENU_DATA_CPP): $(GENERATE_MENU_EMBED_PY) $(MENU_LIBRARY_RMF)
+	@python3 $(GENERATE_MENU_EMBED_PY)
 
 # Create build directory
 $(BDIR_GEN):
@@ -115,7 +130,7 @@ $(FEATURE_CONFIG_H): $(FEATURES_TXT) | $(BDIR_GEN)
 	@echo '    - // feature_name  (disabled)' >> $@
 	@echo '*/' >> $@
 	@echo '' >> $@
-	@awk '{ line=$$0; sub(/\r$$/,"",line); gsub(/^[ \t]+|[ \t]+$$/,"",line); if(line=="") next; if(substr(line,1,1)=="#") { feature=substr(line,2); gsub(/^[ \t]+/,"",feature); if(feature!="" && feature!~ /^[A-Z]/) { macro="FEATURE_" feature; gsub(/-/,"_",macro); macro=toupper(macro); print "#define " macro " 0  // disabled" } } else { macro="FEATURE_" line; gsub(/-/,"_",macro); macro=toupper(macro); print "#define " macro " 1  // enabled" } }' $(FEATURES_TXT) >> $@
+	@awk '{ line=$$0; sub(/\r$$/,"",line); gsub(/^[ \t]+|[ \t]+$$/,"",line); if(line=="") next; if(substr(line,1,2)=="//") { feature=substr(line,3); gsub(/^[ \t]+/,"",feature); if(feature!="") { macro="FEATURE_" feature; gsub(/-/,"_",macro); macro=toupper(macro); print "#define " macro " 0  // disabled" } next } if(substr(line,1,1)=="#") { feature=substr(line,2); gsub(/^[ \t]+/,"",feature); if(feature!="" && feature!~ /^[A-Z]/) { macro="FEATURE_" feature; gsub(/-/,"_",macro); macro=toupper(macro); print "#define " macro " 0  // disabled" } next } macro="FEATURE_" line; gsub(/-/,"_",macro); macro=toupper(macro); print "#define " macro " 1  // enabled" }' $(FEATURES_TXT) >> $@
 	@echo '' >> $@
 	@echo '/*' >> $@
 	@echo '    Usage in feature files:' >> $@
@@ -168,9 +183,12 @@ $(VERSION_H): $(VERSION_FILE)
 	@echo "Generated version header with version: $$(cat $(VERSION_FILE) | tr -d '\r\n')"
 
 # Generate hook headers from detours.yaml and hooks.json files
-$(GENERATED_DETOURS_H): $(DETOURS_YAML) $(GENERATE_HOOKS_PY) $(HOOKS_JSON) | $(BDIR_GEN)
+$(GENERATED_DETOURS_H): $(DETOURS_YAML) $(GENERATE_HOOKS_PY) $(HOOKS_JSON) $(CALLBACKS_JSON) | $(BDIR_GEN)
 	@echo "Generating hook headers from $(DETOURS_YAML)..."
 	@python3 $(GENERATE_HOOKS_PY)
+	@cp -f build/generated_detours.h $(GENERATED_DETOURS_H)
+	@cp -f build/generated_detours.cpp $(GENERATED_DETOURS_CPP)
+	@cp -f build/generated_registrations.h $(GENERATED_REGISTRATIONS_H)
 
 $(GENERATED_REGISTRATIONS_H): $(GENERATED_DETOURS_H)
 $(GENERATED_DETOURS_CPP): $(GENERATED_DETOURS_H)
@@ -178,7 +196,11 @@ $(GENERATED_DETOURS_CPP): $(GENERATED_DETOURS_H)
 # Compile generated_detours.cpp
 $(ODIR)/generated_detours.o: $(GENERATED_DETOURS_CPP) $(GENERATED_DETOURS_H)
 	@mkdir -p $(ODIR)
-	$(CC) -c $(INC) -o $@ $< $(CFLAGS)
+	$(CC) -c $(INC) $(DEPFLAGS) -o $@ $< $(CFLAGS)
+
+$(ODIR)/generated_detours.d: $(GENERATED_DETOURS_CPP) $(GENERATED_DETOURS_H)
+	@mkdir -p $(ODIR)
+	@$(CC) -MM $(INC) $(CFLAGS) -MP -MT $(ODIR)/generated_detours.o -MF $@ $(GENERATED_DETOURS_CPP)
 
 # Convenience target to print active features without building
 features: $(FEATURES_TXT)
@@ -194,16 +216,22 @@ $(OUT): $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(GENERATED_DETOURS_H) $(GENERATED
 # Object file rules - all depend on feature config, feature list, version header, and generated hook headers
 $(ODIR)/%.o: $(SDIR)/%.cpp $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(VERSION_H) $(GENERATED_DETOURS_H) $(GENERATED_REGISTRATIONS_H)
 	@mkdir -p $(dir $@)
-	$(CC) -c $(INC) -o $@ $< $(CFLAGS)
+	$(CC) -c $(INC) $(DEPFLAGS) -o $@ $< $(CFLAGS)
+
+$(ODIR)/%.d: $(SDIR)/%.cpp $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(VERSION_H) $(GENERATED_DETOURS_H) $(GENERATED_REGISTRATIONS_H)
+	@mkdir -p $(dir $@)
+	@$(CC) -MM $(INC) $(CFLAGS) -MP -MT $(ODIR)/$*.o -MF $@ $<
+
+-include $(DEPS)
 
 # Build configurations
-debug: 
+debug:
 	$(MAKE) BUILD=debug all
 debug-gdb:
 	$(MAKE) BUILD=debug-gdb all
 debug-collect:
 	$(MAKE) BUILD=debug-collect all
-release: 
+release:
 	$(MAKE) BUILD=release all
 xp:
 	$(MAKE) BUILD=xp all
@@ -212,7 +240,7 @@ xp-debug:
 
 # Clean
 clean:
-	rm -rf $(ODIR) $(OUT) $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(VERSION_H) $(BDIR_GEN)
+	rm -rf obj build $(OUT)
 
 # Show configuration
 config:

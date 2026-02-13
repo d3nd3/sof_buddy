@@ -105,6 +105,10 @@ namespace detour_drawTeamIcons {
     tdrawTeamIcons odrawTeamIcons = nullptr;
 }
 
+namespace detour_M_PushMenu {
+    tM_PushMenu oM_PushMenu = nullptr;
+}
+
 namespace detour_CinematicFreeze {
     tCinematicFreeze oCinematicFreeze = nullptr;
 }
@@ -408,6 +412,17 @@ namespace detour_drawTeamIcons {
     }
 }
 
+namespace detour_M_PushMenu {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
 namespace detour_CinematicFreeze {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
@@ -561,6 +576,17 @@ namespace detour_drawTeamIcons {
             odrawTeamIcons(targetPlayerOrigin, playerName, imageNameTeamIcon, redOrBlue);
         }
         if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost(targetPlayerOrigin, playerName, imageNameTeamIcon, redOrBlue);
+    }
+}
+
+namespace detour_M_PushMenu {
+    void __cdecl hkM_PushMenu(char const* menu_file, char const* parentFrame, bool lock_input) {
+        ManagerType& mgr = GetManager();
+        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre(menu_file, parentFrame, lock_input);
+        if (oM_PushMenu) {
+            oM_PushMenu(menu_file, parentFrame, lock_input);
+        }
+        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost(menu_file, parentFrame, lock_input);
     }
 }
 

@@ -31,9 +31,11 @@ void ( *orig_Com_Printf)(const char * msg, ...) = NULL;
 void (*orig_Qcommon_Frame) (int msec) = reinterpret_cast<void(*)(int)>(0x2001F720);
 void (*orig_Qcommon_Init) (int argc, char **argv) = reinterpret_cast<void(*)(int,char**)>(0x2001F390);
 
-// Command system function pointer - hardcoded address like other SoF.exe functions
 typedef void (*xcommand_t)(void);
 void (*orig_Cmd_AddCommand)(char *cmd_name, xcommand_t function) = reinterpret_cast<void(*)(char*,xcommand_t)>(0x20019130);
+// Cmd_Argc/Cmd_Argv are in the tokenizer block, not next to Cmd_AddCommand.
+int (*orig_Cmd_Argc)(void) = reinterpret_cast<int(*)(void)>(0x20018D20);
+char* (*orig_Cmd_Argv)(int i) = reinterpret_cast<char*(*)(int)>(0x20018D30);
 
 void Cmd_SoFBuddy_ListFeatures_f(void);
 
@@ -46,6 +48,7 @@ void fs_initfilesystem_override_callback(detour_FS_InitFilesystem::tFS_InitFiles
     PrintOut(PRINT_LOG, "=== Lifecycle: Pre-CVar Init Phase ===\n");
     
     orig_Com_Printf = reinterpret_cast<void(*)(const char*,...)>(0x2001C6E0);
+    if (!orig_Cmd_ExecuteString) orig_Cmd_ExecuteString = (void(*)(const char*))rvaToAbsExe((void*)0x194F0);
     
     DISPATCH_SHARED_HOOK(PreCvarInit, Post);
     
@@ -81,7 +84,7 @@ qboolean cbuf_addlatecommands_override_callback(detour_Cbuf_AddLateCommands::tCb
     PrintOut(PRINT_LOG, "\n");
     PrintOut(PRINT_LOG, "\n");
     Cmd_SoFBuddy_ListFeatures_f();
-    
+
     return ret;
 }
 
@@ -159,6 +162,22 @@ void Cmd_SoFBuddy_ListFeatures_f(void) {
     orig_Com_Printf(P_RED "[OFF] " P_WHITE "teamicons_offset\n");
     #endif
     total_features++;
+
+    #if FEATURE_HTTP_MAPS
+    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "http_maps\n");
+    feature_count++;
+    #else
+    orig_Com_Printf(P_RED "[OFF] " P_WHITE "http_maps\n");
+    #endif
+    total_features++;
+
+    #if FEATURE_INTERNAL_MENUS
+    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "internal_menus\n");
+    feature_count++;
+    #else
+    orig_Com_Printf(P_RED "[OFF] " P_WHITE "internal_menus\n");
+    #endif
+    total_features++;
     
     #if FEATURE_NEW_SYSTEM_BUG
     orig_Com_Printf(P_GREEN "[ON] " P_WHITE "new_system_bug\n");
@@ -181,6 +200,14 @@ void Cmd_SoFBuddy_ListFeatures_f(void) {
     feature_count++;
     #else
     orig_Com_Printf(P_RED "[OFF] " P_WHITE "cl_maxfps_singleplayer\n");
+    #endif
+    total_features++;
+
+    #if FEATURE_CBUF_LIMIT_INCREASE
+    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "cbuf_limit_increase\n");
+    feature_count++;
+    #else
+    orig_Com_Printf(P_RED "[OFF] " P_WHITE "cbuf_limit_increase\n");
     #endif
     total_features++;
     

@@ -51,6 +51,24 @@ functions:
     detour_len: 0
     params: []
 
+  - name: Qcommon_Frame
+    module: SofExe
+    identifier: "0x2001F720"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 10
+    params:
+      - type: int
+        name: msec
+
+  - name: CL_Precache_f
+    module: SofExe
+    identifier: "0x00112F0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 6
+    params: []
+
   - name: SV_ShutdownGameProgs
     module: SofExe
     identifier: "0x005CD70"
@@ -294,6 +312,20 @@ functions:
         name: imageNameTeamIcon
       - type: int
         name: redOrBlue
+
+  - name: M_PushMenu
+    module: SofExe
+    identifier: "0x200C7630"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: char const*
+        name: menu_file
+      - type: char const*
+        name: parentFrame
+      - type: bool
+        name: lock_input
 
   - name: CinematicFreeze
     module: GameDll

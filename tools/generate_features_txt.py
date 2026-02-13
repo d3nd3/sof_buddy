@@ -26,10 +26,17 @@ CATEGORIES = {
     "Game Features": [
         "teamicons_offset",
     ],
+    "Network Features": [
+        "http_maps",
+    ],
+    "Menu Features": [
+        "internal_menus",
+    ],
     "Bug fixes": [
         "new_system_bug",
         "console_protection",
         "cl_maxfps_singleplayer",
+        "cbuf_limit_increase",
     ],
     "Input Features": [
         "raw_mouse",
@@ -39,6 +46,7 @@ CATEGORIES = {
 # Features that should be commented out by default
 DEFAULT_DISABLED = {
     "scaled_menu": "Experimental menu scaling (requires UI_MENU)",
+    "http_maps": "Requires IDA addresses before enabling",
 }
 
 def find_feature_directories(features_dir):
@@ -211,4 +219,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-

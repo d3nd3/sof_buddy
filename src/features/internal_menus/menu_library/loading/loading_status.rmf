@@ -1,0 +1,15 @@
+<stm>
+<defaults noborder>
+<tint black 0xff000000>
+<tint gray 0xff808080>
+<tint vbargray 0xff606060>
+<backdrop bgcolor black>
+<font tint gray atint gray>
+<center>
+<vbar tint vbargray width 8 height 90>
+"Status:"<hbr>
+<ctext _sofbuddy_loading_status_1 atext "" invisible><hbr>
+<ctext _sofbuddy_loading_status_2 atext "" invisible><hbr>
+<ctext _sofbuddy_loading_status_3 atext "" invisible><hbr>
+<ctext _sofbuddy_loading_status_4 atext "" invisible><hbr>
+</stm>

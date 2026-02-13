@@ -1,0 +1,16 @@
+<stm>
+<defaults noborder>
+<tint lblue 0xffff8080>
+<tint gray 0xff808080>
+<tint black 0xff000000>
+<backdrop bgcolor black>
+<font type title tint lblue atint lblue>
+<center>
+<hbr>
+<hbr>
+<ctext _sofbuddy_loading_current atext "Map: "><hbr>
+<hbr>
+<hbar "misc/l_clip" "misc/l_bullet" cvar _sofbuddy_loading_progress invisible><hbr>
+<hbr>
+<hr width 320>
+</stm>

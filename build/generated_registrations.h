@@ -8,6 +8,7 @@
 #include "util.h"
 
 extern qboolean cbuf_addlatecommands_override_callback(detour_Cbuf_AddLateCommands::tCbuf_AddLateCommands original);
+extern void cbuf_limit_increase_EarlyStartup();
 extern void cinematicfreeze_callback(bool bEnable);
 extern void cl_maxfps_EarlyStartup();
 extern void console_protection_EarlyStartup();
@@ -36,6 +37,10 @@ extern void hkcHealthArmor2_Draw(void* self, detour_cHealthArmor2_Draw::tcHealth
 extern void hkcInventory2_And_cGunAmmo2_Draw(void* self, detour_cInventory2_And_cGunAmmo2_Draw::tcInventory2_And_cGunAmmo2_Draw original);
 extern void in_menumouse_callback(void* cvar1, void* cvar2);
 extern void in_mousemove_callback(void* cmd);
+extern void internal_menus_EarlyStartup();
+extern void internal_menus_M_PushMenu_post(char const* menu_file, char const* parentFrame, bool lock_input);
+extern void internal_menus_M_PushMenu_pre(char const*& menu_file, char const*& parentFrame, bool& lock_input);
+extern void internal_menus_PostCvarInit();
 extern void lightblend_PostCvarInit();
 extern void lightblend_RefDllLoaded(char const* name);
 extern void mediaTimers_EarlyStartup();
@@ -111,6 +116,15 @@ inline void RegisterAllFeatureHooks() {
     SharedHookManager::Instance().RegisterCallback<char const*>(
         "RefDllLoaded", "vsync_toggle", "vsync_on_postcvarinit",
         std::function<void(char const*)>([](char const* name) { vsync_on_postcvarinit(name); }), 50, SharedHookPhase::Post);
+    SharedHookManager::Instance().RegisterCallback(
+        "EarlyStartup", "internal_menus", "internal_menus_EarlyStartup",
+        []() { internal_menus_EarlyStartup(); }, 75, SharedHookPhase::Post);
+    SharedHookManager::Instance().RegisterCallback(
+        "PostCvarInit", "internal_menus", "internal_menus_PostCvarInit",
+        []() { internal_menus_PostCvarInit(); }, 70, SharedHookPhase::Post);
+    SharedHookManager::Instance().RegisterCallback(
+        "EarlyStartup", "cbuf_limit_increase", "cbuf_limit_increase_EarlyStartup",
+        []() { cbuf_limit_increase_EarlyStartup(); }, 72, SharedHookPhase::Post);
     {
         auto& mgr = detour_CinematicFreeze::GetManager();
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] CinematicFreeze manager at 0x%p\n", &mgr);
@@ -176,6 +190,19 @@ inline void RegisterAllFeatureHooks() {
         "vsync_toggle", "vsync_pre_vid_checkchanges",
         []() { vsync_pre_vid_checkchanges(); },
         50);
+    detour_M_PushMenu::GetManager().RegisterPreCallback(
+        "internal_menus", "internal_menus_M_PushMenu_pre",
+        [](char const*& menu_file, char const*& parentFrame, bool& lock_input) { internal_menus_M_PushMenu_pre(menu_file, parentFrame, lock_input); },
+        90);
+    {
+        auto& mgr = detour_M_PushMenu::GetManager();
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] M_PushMenu manager at 0x%p\n", &mgr);
+        mgr.RegisterPostCallback(
+            "internal_menus", "internal_menus_M_PushMenu_post",
+            [](char const* menu_file, char const* parentFrame, bool lock_input) { internal_menus_M_PushMenu_post(menu_file, parentFrame, lock_input); },
+            90);
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] M_PushMenu post callbacks: %zu\n", mgr.GetPostCallbackCount());
+    }
     {
         auto& mgr = detour_SV_ShutdownGameProgs::GetManager();
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] SV_ShutdownGameProgs manager at 0x%p\n", &mgr);

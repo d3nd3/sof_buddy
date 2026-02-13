@@ -8,6 +8,7 @@
 .cache/
 bin/
 obj/
+build/*/
 
 # Generated detour files
 hdr/detours_prebuild.h
