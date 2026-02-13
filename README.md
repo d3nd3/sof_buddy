@@ -25,6 +25,10 @@
 - 🔄 **VSync Reliability** — `gl_swapinterval` is applied on every `vid_restart` for hassle-free vsync.
 - 🛠️ **Sane Defaults on First Run** — Fixes bad config defaults after hardware changes.
 - 🛡️ **Console Overflow/Crash Fixes** — No more crashes from large pastes or ultra-wide resolutions.
+- 🧾 **Large `config.cfg` Exec Fix** — Avoid `Cbuf_AddText: overflow` when running `exec config.cfg` with very large configs.
+- 🧩 **Embedded Loading / Internal Menus** — Serve RMF menu assets from memory (includes loading UI) and open internal pages via `sofbuddy_menu`.
+- 🌐 **HTTP Map Download Assist (Experimental)** — Optional helper for downloading missing maps over HTTP and resuming precache (disabled by default in `features/FEATURES.txt`).
+- 📚 **Feature Docs** — See `src/features/internal_menus/README.md`, `src/features/http_maps/README.md`, and `src/features/cbuf_limit_increase/README.md`.
 
 </details>
 
@@ -82,6 +86,10 @@
 - **Linux/Wine:** Run `sof_buddy/enable_vanilla.sh`
 - This removes all mods and restores the original game
 
+### In-Game Commands
+- `sofbuddy_list_features` — Print compiled features (and whether they are on/off).
+- `sofbuddy_menu <name>` — Open an embedded internal menu page (examples: `loading`, `http_downloading`).
+
 </details>
 
 ---
@@ -137,9 +145,20 @@
 | `_sofbuddy_lightblend_src` | GL_ZERO | Lightmap blend func (see OpenGL docs) |
 | `_sofbuddy_shiny_spherical` | 1 | should shiny gl_detailtexturing change with viewangles? |
 | `_sofbuddy_rawmouse` | 0 | Enable raw mouse input (1 = on, bypasses Windows acceleration) |
+| `sofbuddy_menu_internal` | 0 | Internal menus: serve embedded RMF assets from memory (normally toggled automatically) |
+| `_sofbuddy_http_maps` | 1 | HTTP map assist: 0=off, 1=url1, 2=random url (only if `http_maps` feature is enabled) |
+| `_sofbuddy_http_maps_dl_1` | `https://raw.githubusercontent.com/plowsof/sof1maps/main` | Zip download base URL (index 1) |
+| `_sofbuddy_http_maps_dl_2` | `""` | Zip download base URL (index 2) |
+| `_sofbuddy_http_maps_dl_3` | `""` | Zip download base URL (index 3) |
+| `_sofbuddy_http_maps_crc_1` | `https://raw.githubusercontent.com/plowsof/sof1maps/main` | CRC lookup base URL (index 1, Range fetch of zip central directory) |
+| `_sofbuddy_http_maps_crc_2` | `""` | CRC lookup base URL (index 2) |
+| `_sofbuddy_http_maps_crc_3` | `""` | CRC lookup base URL (index 3) |
+| `_sofbuddy_http_download_map` | `""` | Current map being downloaded/prepared (UI helper) |
+| `_sofbuddy_http_download_progress` | 0 | HTTP download progress 0-1 (UI helper) |
 
 - See [OpenGL glBlendFunc docs](https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glBlendFunc.xhtml) for blend values.
 - If `_sofbuddy_lighting_overbright` is enabled, it overrides blend cvars.
+- `internal_menus` also maintains loading UI CVars: `_sofbuddy_loading_progress`, `_sofbuddy_loading_current`, `_sofbuddy_loading_history_1..5`, `_sofbuddy_loading_status_1..4`, `_sofbuddy_loading_file_1..8`.
 
 </details>
 
