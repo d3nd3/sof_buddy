@@ -49,7 +49,7 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 	} else {
 		realFont = REALFONT_UNKNOWN;
 	}
-	
+
 	if (g_activeRenderType == uiRenderType::HudDmRanking) {
 		static bool scorePhase = true;
 
@@ -59,7 +59,8 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 		float x_scale = static_cast<float>(current_vid_w) / 640.0f;
 
 		if (hudDmRanking_wasImage) {
-			if ( * (int * ) rvaToAbsExe((void*)0x001E7E94) == 7) {
+			static int* s_dm_ranking_state = (int*)rvaToAbsExe((void*)0x001E7E94);
+			if (s_dm_ranking_state && *s_dm_ranking_state == 7) {
 				int half_text_len = screenX - (current_vid_w - (offsetEdge * x_scale));
 				screenX = current_vid_w - offsetEdge * x_scale - 16 * hudScale + half_text_len*hudScale;
 				screenY = 20 * screen_y_scale + 64 * hudScale + 6 * screen_y_scale;
@@ -67,27 +68,25 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 				screenX = current_vid_w - 16 * hudScale - offsetEdge * x_scale - hudScale*fontWidth * strlen(text) / 2;
 				screenY = screenY + (hudScale - 1) * (32 + 3);
 
-				if ( scorePhase) {
+				if (scorePhase) {
 					scorePhase = false;
-				} else 
-				{
+				} else {
 					screenY = screenY + (hudScale - 1) * (realFontSizes[realFont] + 3);
 					scorePhase = true;
 				}
 			}
 
 		} else {
-			if ( scorePhase) {
+			if (scorePhase) {
 				scorePhase = false;
-			} else 
-			{
+			} else {
 				screenY = screenY + (hudScale - 1) * (realFontSizes[realFont] + 3);
 				scorePhase = true;
 			}
 			screenX = current_vid_w - offsetEdge * x_scale - 16 * hudScale - hudScale*fontWidth * strlen(text) / 2;
 		}
-	}
-	else if (g_activeRenderType == uiRenderType::HudInventory) {
+
+	} else if (g_activeRenderType == uiRenderType::HudInventory) {
 		if ( hudInventory_wasItem ) {
 			if (text && ( (text[0] >= '0' && text[0] <= '8') || (text[0] =='9' && text[1] != 'm') ) ) {
 				float set_x,set_y;
@@ -138,9 +137,7 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 	}
 	original(screenX, screenY, text, colorPalette, font, rememberLastColor);
 
-	if (g_currentFontCaller != FontCaller::Unknown) {
-		g_currentFontCaller = FontCaller::Unknown;
-	}
+	g_currentFontCaller = FontCaller::Unknown;
 	characterIndex = 0;
 	g_activeDrawCall = DrawRoutineType::None;
 }

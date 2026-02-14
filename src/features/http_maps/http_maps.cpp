@@ -365,6 +365,7 @@ static bool http_maps_try_get_zip_map_crc(const std::string& zip_path, const std
 	const std::string wanted = http_maps_normalize_path_for_compare(expected_map_bsp);
 	std::string wanted_without_maps;
 	if (wanted.compare(0, 5, "maps/") == 0) wanted_without_maps = wanted.substr(5);
+	PrintOut(PRINT_LOG, "http_maps: zip CRC lookup expected wanted=%s wanted_without_maps=%s\n", wanted.c_str(), wanted_without_maps.c_str());
 	bool saw_bsp = false;
 	uint32_t first_bsp_crc = 0;
 	size_t bsp_count = 0;
@@ -383,6 +384,7 @@ static bool http_maps_try_get_zip_map_crc(const std::string& zip_path, const std
 		std::string entry_name(reinterpret_cast<const char*>(&central_dir[pos + 46]), name_len);
 		std::string entry_normalized = http_maps_normalize_path_for_compare(entry_name);
 		if (!entry_normalized.empty() && entry_normalized.back() != '/' && http_maps_has_suffix_case_insensitive(entry_normalized, ".bsp")) {
+			PrintOut(PRINT_LOG, "http_maps: zip BSP entry: \"%s\"\n", entry_name.c_str());
 			if (!saw_bsp) { first_bsp_crc = entry_crc; saw_bsp = true; }
 			++bsp_count;
 			if (entry_normalized == wanted || (!wanted_without_maps.empty() && entry_normalized == wanted_without_maps)) {
@@ -407,7 +409,8 @@ static bool http_maps_validate_extracted_map_crc(const std::string& zip_path, co
 	if (!http_maps_try_get_zip_map_crc(zip_path, expected_map_bsp, expected_crc)) return false;
 	std::string extracted_map_path;
 	if (!http_maps_find_local_map_file(expected_map_bsp, extracted_map_path)) {
-		PrintOut(PRINT_BAD, "http_maps: Expected extracted map is missing: %s\n", expected_map_bsp.c_str());
+		PrintOut(PRINT_BAD, "http_maps: Expected extracted map is missing: %s (checked: %s, user/%s, and lower)\n",
+			expected_map_bsp.c_str(), expected_map_bsp.c_str(), expected_map_bsp.c_str());
 		return false;
 	}
 	uint32_t extracted_crc = 0;
@@ -813,6 +816,7 @@ static bool http_maps_extract_zip_miniz(const std::string& zip_path, const std::
 		if (!mz_zip_reader_file_stat(&za, i, &stat)) continue;
 		if (stat.m_is_directory) continue;
 		std::string out_path = dest_dir + "/" + stat.m_filename;
+		PrintOut(PRINT_LOG, "http_maps: extract zip entry \"%s\" -> %s\n", stat.m_filename, out_path.c_str());
 		http_maps_ensure_parent_dirs(out_path);
 		if (!mz_zip_reader_extract_to_file(&za, i, out_path.c_str(), 0)) {
 			PrintOut(PRINT_BAD, "http_maps: miniz extract failed: %s\n", stat.m_filename);
@@ -928,7 +932,7 @@ void create_http_maps_cvars(void)
 
 void http_maps_try_begin_precache(detour_CL_Precache_f::tCL_Precache_f original)
 {
-	if (!original) return;
+	SOFBUDDY_ASSERT(original != nullptr);
 
 	PrintOut(PRINT_LOG, "http_maps: CL_Precache_f intercepted\n");
 	if (!http_maps_is_enabled()) {

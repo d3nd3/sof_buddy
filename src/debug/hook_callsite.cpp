@@ -51,7 +51,7 @@ void cacheSelfModule() {
 
 static inline bool checkAndClassifyAddress(void *addr, CallerInfo &out) {
     uintptr_t addrVal = (uintptr_t)addr;
-    if (!addr || addrVal < 0x10000 || isInCachedSelf(addrVal)) return false;
+    if (addrVal < 0x10000 || isInCachedSelf(addrVal)) return false;
     
     if (!CallsiteClassifier::classify(addr, out)) return false;
     
@@ -143,4 +143,3 @@ uint32_t recordAndGetFnStartExternal(const char *childName) {
 }
 
 }
-

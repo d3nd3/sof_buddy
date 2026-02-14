@@ -95,7 +95,6 @@ static void EnsureRawMouseRegistered(HWND hwnd_hint)
 
 static bool msg_affects_cursor_clip(UINT msg) {
     switch (msg) {
-    case WM_INPUT:
     case WM_SIZE:
     case WM_MOVE:
     case WM_ACTIVATE:
@@ -126,7 +125,8 @@ LRESULT dispatchmessagea_override_callback(const MSG* msg, detour_DispatchMessag
     }
     if (msg && msg_affects_cursor_clip(msg->message))
         raw_mouse_refresh_cursor_clip(msg->hwnd);
-    return original ? original(msg) : 0;
+    SOFBUDDY_ASSERT(original != nullptr);
+    return original(msg);
 }
 
 #endif // FEATURE_RAW_MOUSE

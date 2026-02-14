@@ -76,34 +76,6 @@ static void *shiny_nop_site3 = nullptr;
 static unsigned char shiny_nop3_saved[21];
 static bool shiny_nop3_saved_init = false;
 
-struct BasisVectors {
-	float normal[3];
-	float tangent[3];
-	float bitangent[3];
-};
-
-static const BasisVectors basis_orientations[] = {
-	{{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-	{{1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}},
-	{{-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
-	{{-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
-	{{0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-	{{0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}},
-	{{0.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
-	{{0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
-	{{0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-	{{0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}},
-	{{0.0f, 0.0f, -1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}},
-	{{0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}
-};
-
-static unsigned int last_surf_index = 0xFFFFFFFF;
-static BasisVectors selected_basis;
-
-static int random_int(int min, int max) {
-	return min + (rand() % (max - min + 1));
-}
-
 // Forward declarations
 static void lightblend_ApplySettings();
 
@@ -366,7 +338,16 @@ void __cdecl hkAdjustTexCoords(float* player_pos, float* vertex, float* in_norma
 static void __cdecl hkAdjustTexCoordsImpl(float* player_pos, float* vertex, float* in_normal, float* in_tangent, float* in_bitangent, float* out_new_s_t, void* caller_stack)
 {
 	unsigned int surf_index = *(unsigned int*)((char*)caller_stack + 0xD8 - 0xA4);
-	void ** surface_ptr = (void **) rvaToAbsRef((void*)0xA1728) + surf_index;
+
+	// Hot path: ref_surfaces is refreshed on each ref.dll load (so it's safe across vid_restart).
+	if (!ref_surfaces) {
+		// Fail safe: behave like the original call site as best as we can.
+		oAdjustTexCoords(player_pos, vertex, in_normal, in_tangent, in_bitangent, out_new_s_t);
+		glTexCoord2f(out_new_s_t[0], out_new_s_t[1]);
+		return;
+	}
+
+	void** surface_ptr = ref_surfaces + surf_index;
 	void* cplane_ptr = (void*)((char*)(*surface_ptr) + 4);
 	float* surface_normal = *(float**)cplane_ptr;
 	float normal_x = surface_normal[0];
@@ -375,39 +356,6 @@ static void __cdecl hkAdjustTexCoordsImpl(float* player_pos, float* vertex, floa
 	
 	void ** mtexinfo_ptr = (void**)((char*)(*surface_ptr) + 0x34);
 	int flags = *(int*)((char*)(*mtexinfo_ptr) + 0x20);
-	
-	// Experiment: Randomly select orthogonal basis vectors for each new surface
-	static float override_normal[3];
-	static float override_tangent[3];
-	static float override_bitangent[3];
-	static bool basis_initialized = false;
-	
-	if (surf_index != last_surf_index || !basis_initialized) {
-		int num_orientations = sizeof(basis_orientations) / sizeof(basis_orientations[0]);
-		int selected_index = random_int(0, num_orientations - 1);
-		const BasisVectors* chosen = &basis_orientations[selected_index];
-		
-		override_normal[0] = chosen->normal[0];
-		override_normal[1] = chosen->normal[1];
-		override_normal[2] = chosen->normal[2];
-		
-		override_tangent[0] = chosen->tangent[0];
-		override_tangent[1] = chosen->tangent[1];
-		override_tangent[2] = chosen->tangent[2];
-		
-		override_bitangent[0] = chosen->bitangent[0];
-		override_bitangent[1] = chosen->bitangent[1];
-		override_bitangent[2] = chosen->bitangent[2];
-		
-		last_surf_index = surf_index;
-		basis_initialized = true;
-		
-		// PrintOut(PRINT_LOG, "DEBUG: New surface %u, selected basis orientation %d\n", surf_index, selected_index);
-		// PrintOut(PRINT_LOG, "DEBUG: override_normal = (%.6f, %.6f, %.6f)\n", override_normal[0], override_normal[1], override_normal[2]);
-		// PrintOut(PRINT_LOG, "DEBUG: override_tangent = (%.6f, %.6f, %.6f)\n", override_tangent[0], override_tangent[1], override_tangent[2]);
-		// PrintOut(PRINT_LOG, "DEBUG: override_bitangent = (%.6f, %.6f, %.6f)\n", override_bitangent[0], override_bitangent[1], override_bitangent[2]);
-	}
-	
 
 	
 	// Visualize normal direction once per surface using glVertex3f calls inside GL_TRIANGLE_FAN
@@ -417,7 +365,7 @@ static void __cdecl hkAdjustTexCoordsImpl(float* player_pos, float* vertex, floa
 		last_drawn_surf_index = surf_index;
 		vertex_count_per_surface = 0;
 	}
-	#if 0
+#if 0
 	// Draw on every 3rd vertex to ensure visibility (not just first vertex which might be culled)
 	if (vertex_count_per_surface % 3 == 0) {
 		// Validate normal vector before drawing

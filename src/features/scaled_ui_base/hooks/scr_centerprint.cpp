@@ -141,9 +141,6 @@ static void track_centerprint_text(const char* text)
 void hkSCR_CenterPrint(char * text, detour_SCR_CenterPrint::tSCR_CenterPrint original)
 {
     SOFBUDDY_ASSERT(original != nullptr);
-    if (!original) {
-        return;
-    }
 
     if (!text) {
         track_centerprint_text(nullptr);

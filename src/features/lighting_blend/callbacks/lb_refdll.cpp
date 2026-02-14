@@ -16,6 +16,7 @@ unsigned char *shiny_spherical_target3 = nullptr;
 float *cam_vforward = nullptr;
 float *cam_vup = nullptr;
 float *cam_vright = nullptr;
+void **ref_surfaces = nullptr;
 void lightblend_RefDllLoaded(char const* name)
 {
 	PrintOut(PRINT_LOG, "lighting_blend: Initializing blend mode settings\n");
@@ -31,6 +32,7 @@ void lightblend_RefDllLoaded(char const* name)
 	cam_vforward = (float*)rvaToAbsRef((void*)0x0008FD7C);
 	cam_vup = (float*)rvaToAbsRef((void*)0x0008FD94);
 	cam_vright = (float*)rvaToAbsRef((void*)0x0008FF30);
+	ref_surfaces = (void**)rvaToAbsRef((void*)0xA1728);
 
 	if (lighting_cutoff_target && _sofbuddy_lighting_cutoff) {
 		writeFloatAt(lighting_cutoff_target, _sofbuddy_lighting_cutoff->value);
@@ -93,4 +95,3 @@ void lightblend_RefDllLoaded(char const* name)
 }
 
 #endif // FEATURE_LIGHTING_BLEND
-

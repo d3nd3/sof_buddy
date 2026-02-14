@@ -23,7 +23,7 @@ Implements raw mouse input support for Soldier of Fortune using Windows Raw Inpu
 
 ## CustomDetours
 - **SetCursorPos** (user32.dll, via GetProcAddress)
-  - `hkSetCursorPos()` - When raw input enabled: updates internal `window_center`, refreshes cursor clip, returns TRUE without calling the real SetCursorPos (OS cursor is never warped)
+  - `hkSetCursorPos()` - When raw input enabled: updates internal `window_center`, returns TRUE without calling the real SetCursorPos (OS cursor is never warped). Cursor clip is refreshed by DispatchMessageA on focus/move/size events and during registration.
   - Patched at exe addresses: `0x2004A0B2`, `0x2004A410`, `0x2004A579`
 
 ## Technical Details
@@ -45,7 +45,7 @@ The implementation works by **faking cursor position changes** so the original m
    - Game logic unchanged: it reads “cursor” position and uses it for look/menu; we never call the real GetCursorPos for that path
 
 4. **No Cursor Warping** (SetCursorPos hook):
-   - Game’s recenter calls are intercepted: we update `window_center` and refresh cursor clip only, then return TRUE without calling the real SetCursorPos, so the OS cursor is never moved by the game
+   - Game’s recenter calls are intercepted: we update `window_center` and return TRUE without calling the real SetCursorPos, so the OS cursor is never moved by the game
 
 5. **Cursor Confinement** (ClipCursor):
    - While raw input is enabled and the game window is foregrounded, cursor is clipped to the game client area inset by 4px on left and right (smaller clip area reduces accidental escape on focus regain)

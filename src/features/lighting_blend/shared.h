@@ -19,6 +19,8 @@ extern unsigned char *shiny_spherical_target3;
 extern float *cam_vforward;
 extern float *cam_vup;
 extern float *cam_vright;
+// ref_gl.dll surfaces array (base pointer), refreshed on each ref.dll load
+extern void **ref_surfaces;
 
 extern void (__stdcall *real_glBlendFunc)(unsigned int, unsigned int);
 extern void (__cdecl *oAdjustTexCoords)(float*, float*, float*, float*, float*, float*);
@@ -48,4 +50,3 @@ void __stdcall glBlendFunc_R_BlendLightmaps(unsigned int sfactor, unsigned int d
 void __cdecl hkAdjustTexCoords(float* player_pos, float* vertex, float* in_normal, float* in_tangent, float* in_bitangent, float* out_new_s_t);
 
 #endif
-

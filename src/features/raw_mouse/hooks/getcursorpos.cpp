@@ -15,7 +15,7 @@ BOOL getcursorpos_override_callback(LPPOINT lpPoint, detour_GetCursorPos::tGetCu
     if (!in_mouse_raw || in_mouse_raw->value == 0.0f) {
         // Raw mouse disabled - call original
         SOFBUDDY_ASSERT(original != nullptr);
-        return original ? original(lpPoint) : FALSE;
+        return original(lpPoint);
     }
 
     if (!lpPoint) {
@@ -23,12 +23,10 @@ BOOL getcursorpos_override_callback(LPPOINT lpPoint, detour_GetCursorPos::tGetCu
         return FALSE;
     }
 
-    if (!raw_mouse_center_valid && original) {
-        if (original(lpPoint)) {
-            raw_mouse_update_center(lpPoint->x, lpPoint->y);
-        } else {
-            return FALSE;
-        }
+    if (!raw_mouse_center_valid) {
+        SOFBUDDY_ASSERT(original != nullptr);
+        if (!original(lpPoint)) return FALSE;
+        raw_mouse_update_center(lpPoint->x, lpPoint->y);
     }
     if (!raw_mouse_center_valid) {
         return FALSE;

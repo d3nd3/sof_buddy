@@ -24,7 +24,8 @@ BOOL __stdcall hkSetCursorPos(int X, int Y)
     }
 
     raw_mouse_update_center(X, Y);
-    raw_mouse_refresh_cursor_clip(hwnd);
+    // Cursor clip is refreshed via DispatchMessageA on focus/move/size events; avoid
+    // doing heavy Win32 clip computations on every recenter call.
 
     // In raw mode, do not physically warp the OS cursor.
     return TRUE;

@@ -234,28 +234,37 @@ void CallsiteClassifier::initialize(const char *mapsDirectory) {
 			strncpy(g_mapsDir, mapsDirectory, sizeof(g_mapsDir)-1);
 			g_mapsDir[sizeof(g_mapsDir)-1] = '\0';
 		}
-    } else {
-        HMODULE self = nullptr;
-        GetModuleHandleExA(
-            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
-            GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-            reinterpret_cast<LPCSTR>(&CallsiteClassifier::initialize),
-            &self);
-        if (self) {
-            char modPath[MAX_PATH] = {0};
-            if (GetModuleFileNameA(self, modPath, MAX_PATH)) {
-                // Trim filename to directory
-                PathRemoveFileSpecA(modPath);
-                // Append sof_buddy/funcmaps
-                snprintf(g_mapsDir, sizeof(g_mapsDir), "%s/%s", modPath, "sof_buddy/funcmaps");
-            }
-        }
-    }
+	} else {
+		HMODULE self = nullptr;
+		GetModuleHandleExA(
+			GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+			GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+			reinterpret_cast<LPCSTR>(&CallsiteClassifier::initialize),
+			&self);
+		if (self) {
+			char modPath[MAX_PATH] = {0};
+			if (GetModuleFileNameA(self, modPath, MAX_PATH)) {
+				// Trim filename to directory
+				PathRemoveFileSpecA(modPath);
+				// Append sof_buddy/funcmaps
+				snprintf(g_mapsDir, sizeof(g_mapsDir), "%s/%s", modPath, "sof_buddy/funcmaps");
+			}
+		}
+	}
+
 	ensureLoadedFor(Module::SofExe, g_mapsDir);
 	ensureLoadedFor(Module::RefDll, g_mapsDir);
 	ensureLoadedFor(Module::PlayerDll, g_mapsDir);
 	ensureLoadedFor(Module::GameDll, g_mapsDir);
 	ensureLoadedFor(Module::SpclDll, g_mapsDir);
+
+	// Callsite classification can happen in hot paths (UI hooks). Pre-reserve to reduce
+	// rehash hiccups as new callsites are discovered.
+	static bool s_cache_reserved = false;
+	if (!s_cache_reserved) {
+		g_cache.reserve(4096);
+		s_cache_reserved = true;
+	}
 }
 
 bool CallsiteClassifier::classify(void *returnAddress, CallerInfo &out) {
@@ -412,5 +421,3 @@ void CallsiteClassifier::invalidateModuleCache(Module m) {
         }
     }
 }
-
-
