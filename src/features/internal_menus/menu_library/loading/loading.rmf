@@ -10,6 +10,6 @@
 
 <frame header 420 95 page loading_header border 1 1 red backfill red>
 <frame status 420 105 page loading_status border 1 1 green backfill green>
-<frame files 420 150 page loading_files 1 1 blue backfill blue>
-<frame recent 420 130 page loading_recent 1 1 white backfill white>
+<frame files 420 150 page loading_files border 1 1 blue backfill blue>
+<frame recent 420 130 page loading_recent border 1 1 white backfill white>
 </stm>

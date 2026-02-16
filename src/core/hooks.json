@@ -24,6 +24,11 @@
     "callback": "sv_shutdowngameprogs_callback",
     "phase": "Post",
     "priority": 100
+  },
+  {
+    "function": "CL_Shutdown",
+    "callback": "sofbuddy_cfg_cl_shutdown_post_callback",
+    "phase": "Post",
+    "priority": 100
   }
 ]
-

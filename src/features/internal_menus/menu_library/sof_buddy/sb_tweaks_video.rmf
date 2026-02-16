@@ -1,0 +1,30 @@
+<stm global>
+<include tints>
+<tint normaltext 0xffffffff>
+<tint hilitetext 0xffffffff>
+<key escape "sofbuddy_menu sof_buddy">
+<cursor 1>
+
+<vbar tint cyan>
+<backdrop stretch "backdrop/mission_failed" bgcolor black>
+<defaults noborder tiptint black tipbtint white>
+
+<center>
+<font type title tint white atint white>
+<text "SOF BUDDY: VIDEO TWEAKS">
+<hr width 420 tint cyan>
+
+<font type title tint white atint white>
+<list "H95,V79,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111" match "0,1,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111" cvar _sp_cl_vid_fov atext "FOV: " noshade><hbr>
+<list "Off,On" cvar cl_gun atext "Gun: " noshade><hbr>
+<list "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15" cvar cl_showfps atext "FPS (0-15 bits): " noshade><hbr>
+<text "Set rate 20000" key mouse1 "set rate 20000" border 16 1 cyan regular><hbr>
+<list "Off,On" cvar gl_ext_anisotropic atext "Anisotropic: " noshade><hbr>
+<slider cvar _sp_cl_vid_gl_texture_max_anisotropy_ext min 0 max 16 step 2 atext "Aniso level 0-16: "><hbr>
+
+<hbr>
+<center>
+<font type title tint white atint white>
+<text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 16 1 cyan regular><br>
+<text "Back" key mouse1 "popmenu" border 16 1 cyan regular><br>
+</stm>

@@ -6,8 +6,8 @@
 
 ## What it does
 
-1. Intercepts `CL_Precache_f`.
-2. Reads current map name from SoF memory.
+1. Learns the map name as early as `CL_ParseConfigString`.
+2. Intercepts `CL_Precache_f`.
 3. If BSP exists locally, continues precache immediately.
 4. If BSP is missing, starts HTTP assist worker and defers `CL_Precache_f` continue.
 5. Fetches zip Central Directory via partial HTTP Range (CRC list only).
@@ -15,11 +15,13 @@
 7. Extracts into `user/` and validates extracted BSP CRC.
 8. Continues precache when worker completes (success = HTTP files ready, failure = engine fallback path).
 9. If map changes while waiting, a newer HTTP job preempts the older one.
+10. Mirrors progress/status/files into the embedded loading menu cvars.
 
 ## Addresses (current build)
 
 - `detours.yaml`:
   - `CL_Precache_f.identifier = 0x00112F0` (relative)
+  - `CL_ParseConfigString.identifier = 0x000E690` (relative)
 - `src/features/http_maps/http_maps.cpp`:
   - `kHttpMaps_MapNamePtr = 0x201E9DCC` (absolute address of map name string)
 

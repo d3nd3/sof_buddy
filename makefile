@@ -22,7 +22,6 @@ GENERATE_FEATURES_TXT_PY = tools/generate_features_txt.py
 GENERATE_MENU_EMBED_PY = tools/generate_menu_embed.py
 MENU_DATA_CPP = $(SDIR)/features/internal_menus/menu_data.cpp
 MENU_LIBRARY_DIR = $(SDIR)/features/internal_menus/menu_library
-MENU_LIBRARY_RMF = $(shell find $(MENU_LIBRARY_DIR) -name "*.rmf" 2>/dev/null)
 
 # Host toolchain for native utilities (not cross-compiled)
 HOSTCC = g++
@@ -99,7 +98,9 @@ CALLBACKS_JSON = $(shell find $(SDIR)/features $(SDIR)/core -name "callbacks.jso
 # Default target
 all: $(MENU_DATA_CPP) $(FEATURES_TXT) $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(VERSION_H) $(GENERATED_DETOURS_H) $(GENERATED_DETOURS_CPP) $(GENERATED_REGISTRATIONS_H) $(OUT)
 
-$(MENU_DATA_CPP): $(GENERATE_MENU_EMBED_PY) $(MENU_LIBRARY_RMF)
+FORCE:
+
+$(MENU_DATA_CPP): FORCE $(GENERATE_MENU_EMBED_PY)
 	@python3 $(GENERATE_MENU_EMBED_PY)
 
 # Create build directory
@@ -130,7 +131,7 @@ $(FEATURE_CONFIG_H): $(FEATURES_TXT) | $(BDIR_GEN)
 	@echo '    - // feature_name  (disabled)' >> $@
 	@echo '*/' >> $@
 	@echo '' >> $@
-	@awk '{ line=$$0; sub(/\r$$/,"",line); gsub(/^[ \t]+|[ \t]+$$/,"",line); if(line=="") next; if(substr(line,1,2)=="//") { feature=substr(line,3); gsub(/^[ \t]+/,"",feature); if(feature!="") { macro="FEATURE_" feature; gsub(/-/,"_",macro); macro=toupper(macro); print "#define " macro " 0  // disabled" } next } if(substr(line,1,1)=="#") { feature=substr(line,2); gsub(/^[ \t]+/,"",feature); if(feature!="" && feature!~ /^[A-Z]/) { macro="FEATURE_" feature; gsub(/-/,"_",macro); macro=toupper(macro); print "#define " macro " 0  // disabled" } next } macro="FEATURE_" line; gsub(/-/,"_",macro); macro=toupper(macro); print "#define " macro " 1  // enabled" }' $(FEATURES_TXT) >> $@
+	@awk 'function strip(x){sub(/[ \t]#.*$$/,"",x); sub(/[ \t]+\/\/.*$$/,"",x); gsub(/^[ \t]+|[ \t]+$$/,"",x); return x} { line=$$0; sub(/\r$$/,"",line); gsub(/^[ \t]+|[ \t]+$$/,"",line); if(line=="") next; if(substr(line,1,2)=="//") { feature=strip(substr(line,3)); if(feature!="") { macro="FEATURE_" feature; gsub(/-/,"_",macro); macro=toupper(macro); print "#define " macro " 0  // disabled" } next } if(substr(line,1,1)=="#") { feature=strip(substr(line,2)); if(feature!="" && feature!~ /^[A-Z]/) { macro="FEATURE_" feature; gsub(/-/,"_",macro); macro=toupper(macro); print "#define " macro " 0  // disabled" } next } feature=strip(line); macro="FEATURE_" feature; gsub(/-/,"_",macro); macro=toupper(macro); print "#define " macro " 1  // enabled" }' $(FEATURES_TXT) >> $@
 	@echo '' >> $@
 	@echo '/*' >> $@
 	@echo '    Usage in feature files:' >> $@
@@ -182,8 +183,8 @@ $(VERSION_H): $(VERSION_FILE)
 	@echo '#define SOFBUDDY_VERSION "'$$(cat $(VERSION_FILE) | tr -d '\r\n')'"' >> $@
 	@echo "Generated version header with version: $$(cat $(VERSION_FILE) | tr -d '\r\n')"
 
-# Generate hook headers from detours.yaml and hooks.json files
-$(GENERATED_DETOURS_H): $(DETOURS_YAML) $(GENERATE_HOOKS_PY) $(HOOKS_JSON) $(CALLBACKS_JSON) | $(BDIR_GEN)
+# Generate hook headers from detours.yaml, FEATURES.txt, and hooks.json files
+$(GENERATED_DETOURS_H): $(DETOURS_YAML) $(FEATURES_TXT) $(GENERATE_HOOKS_PY) $(HOOKS_JSON) $(CALLBACKS_JSON) | $(BDIR_GEN)
 	@echo "Generating hook headers from $(DETOURS_YAML)..."
 	@python3 $(GENERATE_HOOKS_PY)
 	@cp -f build/generated_detours.h $(GENERATED_DETOURS_H)
@@ -251,7 +252,7 @@ config:
 	@echo "Sources found: $(words $(SOURCES))"
 	@echo "Target: $(OUT)"
 
-.PHONY: all debug debug-gdb debug-collect release xp xp-debug clean config features compdb symbols
+.PHONY: all debug debug-gdb debug-collect release xp xp-debug clean config features compdb symbols FORCE
 
 # ------------------------------
 # Tools (host-native utilities)

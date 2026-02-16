@@ -36,7 +36,7 @@ void raw_mouse_on_change(cvar_t *cvar)
 }
 
 void create_raw_mouse_cvars(void) {
-    in_mouse_raw = orig_Cvar_Get("_sofbuddy_rawmouse", "0", CVAR_ARCHIVE, &raw_mouse_on_change);
+    in_mouse_raw = orig_Cvar_Get("_sofbuddy_rawmouse", "0", CVAR_SOFBUDDY_ARCHIVE, &raw_mouse_on_change);
 
     // Apply archived state immediately in case callback is not triggered on load.
     if (in_mouse_raw && in_mouse_raw->value != 0.0f) {

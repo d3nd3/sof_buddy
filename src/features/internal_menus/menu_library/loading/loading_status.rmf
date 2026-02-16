@@ -7,7 +7,7 @@
 <font tint gray atint gray>
 <center>
 <vbar tint vbargray width 8 height 90>
-"Status:"<hbr>
+"HTTP status:"<hbr>
 <ctext _sofbuddy_loading_status_1 atext "" invisible><hbr>
 <ctext _sofbuddy_loading_status_2 atext "" invisible><hbr>
 <ctext _sofbuddy_loading_status_3 atext "" invisible><hbr>

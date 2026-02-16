@@ -8,9 +8,9 @@
 #include "util.h"
 
 extern qboolean cbuf_addlatecommands_override_callback(detour_Cbuf_AddLateCommands::tCbuf_AddLateCommands original);
-extern void cbuf_limit_increase_EarlyStartup();
 extern void cinematicfreeze_callback(bool bEnable);
 extern void cl_maxfps_EarlyStartup();
+extern void cl_precache_http_maps_override_callback(detour_CL_Precache_f::tCL_Precache_f original);
 extern void console_protection_EarlyStartup();
 extern LRESULT dispatchmessagea_override_callback(const MSG* msg, detour_DispatchMessageA::tDispatchMessageA original);
 extern void drawteamicons_pre_callback(float*& targetPlayerOrigin, char*& playerName, char*& imageNameTeamIcon, int& redOrBlue);
@@ -35,6 +35,10 @@ extern void hkcCtfFlag_Draw(void* self, detour_cCtfFlag_Draw::tcCtfFlag_Draw ori
 extern void hkcDMRanking_Draw(void* self, detour_cDMRanking_Draw::tcDMRanking_Draw original);
 extern void hkcHealthArmor2_Draw(void* self, detour_cHealthArmor2_Draw::tcHealthArmor2_Draw original);
 extern void hkcInventory2_And_cGunAmmo2_Draw(void* self, detour_cInventory2_And_cGunAmmo2_Draw::tcInventory2_And_cGunAmmo2_Draw original);
+extern void http_maps_PostCvarInit();
+extern void http_maps_cl_parseconfigstring_post_callback();
+extern void http_maps_qcommon_frame_post_callback(int msec);
+extern void http_maps_qcommon_frame_pre_callback(int& msec);
 extern void in_menumouse_callback(void* cvar1, void* cvar2);
 extern void in_mousemove_callback(void* cmd);
 extern void internal_menus_EarlyStartup();
@@ -54,6 +58,7 @@ extern void scaledCon_EarlyStartup();
 extern void scaledHud_RefDllLoaded(char const* name);
 extern void scaledUIBase_RefDllLoaded(char const* name);
 extern void setup_minmag_filters(char const* name);
+extern void sofbuddy_cfg_cl_shutdown_post_callback();
 extern void sv_shutdowngameprogs_callback();
 extern void* sys_getgameapi_override_callback(void* imports, detour_Sys_GetGameApi::tSys_GetGameApi original);
 extern int sys_milliseconds_override_callback(detour_Sys_Milliseconds::tSys_Milliseconds original);
@@ -117,14 +122,14 @@ inline void RegisterAllFeatureHooks() {
         "RefDllLoaded", "vsync_toggle", "vsync_on_postcvarinit",
         std::function<void(char const*)>([](char const* name) { vsync_on_postcvarinit(name); }), 50, SharedHookPhase::Post);
     SharedHookManager::Instance().RegisterCallback(
+        "PostCvarInit", "http_maps", "http_maps_PostCvarInit",
+        []() { http_maps_PostCvarInit(); }, 60, SharedHookPhase::Post);
+    SharedHookManager::Instance().RegisterCallback(
         "EarlyStartup", "internal_menus", "internal_menus_EarlyStartup",
         []() { internal_menus_EarlyStartup(); }, 75, SharedHookPhase::Post);
     SharedHookManager::Instance().RegisterCallback(
         "PostCvarInit", "internal_menus", "internal_menus_PostCvarInit",
         []() { internal_menus_PostCvarInit(); }, 70, SharedHookPhase::Post);
-    SharedHookManager::Instance().RegisterCallback(
-        "EarlyStartup", "cbuf_limit_increase", "cbuf_limit_increase_EarlyStartup",
-        []() { cbuf_limit_increase_EarlyStartup(); }, 72, SharedHookPhase::Post);
     {
         auto& mgr = detour_CinematicFreeze::GetManager();
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] CinematicFreeze manager at 0x%p\n", &mgr);
@@ -190,6 +195,28 @@ inline void RegisterAllFeatureHooks() {
         "vsync_toggle", "vsync_pre_vid_checkchanges",
         []() { vsync_pre_vid_checkchanges(); },
         50);
+    {
+        auto& mgr = detour_CL_ParseConfigString::GetManager();
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] CL_ParseConfigString manager at 0x%p\n", &mgr);
+        mgr.RegisterPostCallback(
+            "http_maps", "http_maps_cl_parseconfigstring_post_callback",
+            []() { http_maps_cl_parseconfigstring_post_callback(); },
+            100);
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] CL_ParseConfigString post callbacks: %zu\n", mgr.GetPostCallbackCount());
+    }
+    {
+        auto& mgr = detour_Qcommon_Frame::GetManager();
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] Qcommon_Frame manager at 0x%p\n", &mgr);
+        mgr.RegisterPostCallback(
+            "http_maps", "http_maps_qcommon_frame_post_callback",
+            [](int msec) { http_maps_qcommon_frame_post_callback(msec); },
+            100);
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] Qcommon_Frame post callbacks: %zu\n", mgr.GetPostCallbackCount());
+    }
+    detour_Qcommon_Frame::GetManager().RegisterPreCallback(
+        "http_maps", "http_maps_qcommon_frame_pre_callback",
+        [](int& msec) { http_maps_qcommon_frame_pre_callback(msec); },
+        100);
     detour_M_PushMenu::GetManager().RegisterPreCallback(
         "internal_menus", "internal_menus_M_PushMenu_pre",
         [](char const*& menu_file, char const*& parentFrame, bool& lock_input) { internal_menus_M_PushMenu_pre(menu_file, parentFrame, lock_input); },
@@ -211,5 +238,14 @@ inline void RegisterAllFeatureHooks() {
             []() { sv_shutdowngameprogs_callback(); },
             100);
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] SV_ShutdownGameProgs post callbacks: %zu\n", mgr.GetPostCallbackCount());
+    }
+    {
+        auto& mgr = detour_CL_Shutdown::GetManager();
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] CL_Shutdown manager at 0x%p\n", &mgr);
+        mgr.RegisterPostCallback(
+            "core", "sofbuddy_cfg_cl_shutdown_post_callback",
+            []() { sofbuddy_cfg_cl_shutdown_post_callback(); },
+            100);
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] CL_Shutdown post callbacks: %zu\n", mgr.GetPostCallbackCount());
     }
 }

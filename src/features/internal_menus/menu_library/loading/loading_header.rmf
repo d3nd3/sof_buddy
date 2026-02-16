@@ -10,6 +10,7 @@
 <hbr>
 <ctext _sofbuddy_loading_current atext "Map: "><hbr>
 <hbr>
+<ctext _sofbuddy_loading_progress atext "Progress: " invisible><hbr>
 <hbar "misc/l_clip" "misc/l_bullet" cvar _sofbuddy_loading_progress invisible><hbr>
 <hbr>
 <hr width 320>

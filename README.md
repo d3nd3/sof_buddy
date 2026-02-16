@@ -61,6 +61,7 @@
   - **`enable_sofplus_and_buddy.cmd`** → Loads `sof_buddy.dll` (recommended: SoF Buddy + optional SoF Plus)
   - **`enable_sofplus.cmd`** → Loads `spcl.dll` (SoF Plus only, disables SoF Buddy)
   - **`enable_vanilla.cmd`** → Loads `WSOCK32.dll` (vanilla SoF, no mods)
+  - **`update_from_zip.cmd`** → Extract newest downloaded SoF Buddy update zip (`sof_buddy/update/*.zip`) into SoF root
 - SoF Buddy auto-loads `spcl.dll` if present, so it works _with_ SoF Plus.
 
 </details>
@@ -75,6 +76,9 @@
 - **Windows:** Run `sof_buddy/enable_sofplus_and_buddy.cmd`
 - **Linux/Wine:** Run `sof_buddy/enable_sofplus_and_buddy.sh`
 - This enables SoF Buddy and optionally loads SoF Plus (if `spcl.dll` is present)
+- To apply a downloaded update zip, run:
+  - **Windows:** `sof_buddy/update_from_zip.cmd`
+  - **Linux/Wine:** `sof_buddy/update_from_zip.sh`
 
 ### Enable SoF Plus Only
 - **Windows:** Run `sof_buddy/enable_sofplus.cmd`
@@ -89,6 +93,11 @@
 ### In-Game Commands
 - `sofbuddy_list_features` — Print compiled features (and whether they are on/off).
 - `sofbuddy_menu <name>` — Open an embedded internal menu page (examples: `loading`, `http_downloading`).
+- `sofbuddy_menu <menu>/<page>` — Open a specific embedded page inside a menu (example: `sofbuddy_menu sof_buddy/sb_perf`).
+- `F12` is auto-bound at startup to `sofbuddy_menu sof_buddy`.
+- `sofbuddy_update` — Check latest release on GitHub and compare with your current version.
+- `sofbuddy_update download` — Download latest release zip to `sof_buddy/update/` (apply after closing game).
+- `sofbuddy_openurl <https_url>` — Open trusted community links in your default browser (used by the Social Links menu page).
 
 </details>
 
@@ -146,6 +155,12 @@
 | `_sofbuddy_shiny_spherical` | 1 | should shiny gl_detailtexturing change with viewangles? |
 | `_sofbuddy_rawmouse` | 0 | Enable raw mouse input (1 = on, bypasses Windows acceleration) |
 | `sofbuddy_menu_internal` | 0 | Internal menus: serve embedded RMF assets from memory (normally toggled automatically) |
+| `_sofbuddy_update_status` | `idle` | Last updater status text (for console/internal menus) |
+| `_sofbuddy_update_latest` | `""` | Latest GitHub release tag discovered by `sofbuddy_update` |
+| `_sofbuddy_update_download_path` | `""` | Last downloaded update zip path |
+| `_sofbuddy_update_checked_utc` | `""` | UTC timestamp of last update check |
+| `_sofbuddy_openurl_status` | `idle` | Last social-link open status (`opened`, `blocked`, or `open failed`) |
+| `_sofbuddy_openurl_last` | `""` | Last URL requested through `sofbuddy_openurl` |
 | `_sofbuddy_http_maps` | 1 | HTTP map assist: 0=off, 1=url1, 2=random url (only if `http_maps` feature is enabled) |
 | `_sofbuddy_http_maps_dl_1` | `https://raw.githubusercontent.com/plowsof/sof1maps/main` | Zip download base URL (index 1) |
 | `_sofbuddy_http_maps_dl_2` | `""` | Zip download base URL (index 2) |

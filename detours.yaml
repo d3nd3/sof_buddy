@@ -69,6 +69,22 @@ functions:
     detour_len: 6
     params: []
 
+  - name: CL_ParseConfigString
+    module: SofExe
+    identifier: "0x000E690"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
+  - name: CL_Shutdown
+    module: SofExe
+    identifier: "0x000DDE0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
   - name: SV_ShutdownGameProgs
     module: SofExe
     identifier: "0x005CD70"

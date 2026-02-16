@@ -1,0 +1,53 @@
+<stm global>
+<include tints>
+<tint normaltext 0xffffffff>
+<tint hilitetext 0xffffffff>
+<key escape "sofbuddy_menu sof_buddy/sb_tweaks_other">
+<cursor 1>
+
+<vbar tint cyan>
+<backdrop stretch "backdrop/mission_failed" bgcolor black>
+<defaults noborder tiptint black tipbtint white>
+
+<center>
+<font type title tint white atint white>
+<text "SOF BUDDY: UPDATE INSTALL HELP">
+<hr width 520 tint cyan>
+
+<font type title tint white atint white>
+<ctext _sofbuddy_update_status atext "Updater: " noshade><hbr>
+<ctext _sofbuddy_update_latest atext "Latest tag: " noshade><hbr>
+<ctext _sofbuddy_update_checked_utc atext "Last check UTC: " noshade><hbr>
+<ctext _sofbuddy_update_download_path atext "Downloaded zip: " noshade><hbr>
+
+<hbr>
+<font type medium tint white atint white>
+"Step 1: Run 'Check SoF Buddy Update' to compare your current version."
+<hbr>
+"Step 2: Run 'Download Latest Update Zip' to fetch the release zip."
+<hbr>
+"Step 3: Close Soldier of Fortune completely."
+<hbr>
+"Step 4: Extract the downloaded zip into your SoF root and overwrite files."
+<hbr>
+"Step 5: Launch the game again using your normal launcher/arguments."
+<hbr>
+"No auto-restart is attempted (launcher flags may vary: Wine, gamemoderun, params)."
+<hbr>
+"If script extraction fails, unzip manually into the SoF root and overwrite files."
+<hbr>
+"Shortcut script: sof_buddy/update_from_zip.cmd (Windows)."
+<hbr>
+"Shortcut script: sof_buddy/update_from_zip.sh (Linux/Wine)."
+<hbr>
+"Note: sof_buddy.dll cannot be replaced while the game is still running."
+<hbr>
+
+<hr width 520 tint cyan>
+<hbr>
+<font type title tint white atint white>
+<text "Check Update Now" key mouse1 "sofbuddy_update" tip "Checks GitHub release tag vs your loaded _sofbuddy_version." border 16 1 cyan regular><br>
+<text "Download Latest Zip" key mouse1 "sofbuddy_update download" tip "Downloads release zip; install after closing the game." border 16 1 cyan regular><br>
+<text "Open Latest Release Page" key mouse1 "sofbuddy_openurl https://github.com/d3nd3/sof_buddy/releases/latest" tip "Open release notes and assets in browser." border 16 1 cyan regular><br>
+<text "Back to Update/Tweaks" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_other" border 16 1 cyan regular><br>
+</stm>

@@ -5,6 +5,12 @@
     "override": true
   },
   {
+    "function": "CL_ParseConfigString",
+    "callback": "http_maps_cl_parseconfigstring_post_callback",
+    "phase": "Post",
+    "priority": 100
+  },
+  {
     "function": "Qcommon_Frame",
     "callback": "http_maps_qcommon_frame_post_callback",
     "phase": "Post",

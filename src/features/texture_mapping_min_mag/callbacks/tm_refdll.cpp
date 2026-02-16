@@ -11,7 +11,7 @@
 void setup_minmag_filters(char const* name) {
 	static bool first_run = true;
 
-	_gl_texturemode = orig_Cvar_Get("gl_texturemode","GL_LINEAR_MIPMAP_LINEAR",CVAR_ARCHIVE,NULL);
+	_gl_texturemode = orig_Cvar_Get("gl_texturemode","GL_LINEAR_MIPMAP_LINEAR",CVAR_SOFBUDDY_ARCHIVE,NULL);
 
 	orig_glTexParameterf = (glTexParameterf_t)(*(int*)rvaToAbsRef((void*)0x000A457C));
 
@@ -37,4 +37,3 @@ void setup_minmag_filters(char const* name) {
 }
 
 #endif // FEATURE_TEXTURE_MAPPING_MIN_MAG
-

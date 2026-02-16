@@ -17,6 +17,8 @@
 
 #include "debug/callsite_classifier.h"
 #include "version.h"
+#include "update_command.h"
+#include "sofbuddy_cfg.h"
 #include "generated_detours.h"
 #include "generated_registrations.h"
 #if !defined(NDEBUG) && defined(SOFBUDDY_ENABLE_CALLSITE_LOGGER)
@@ -49,6 +51,8 @@ void fs_initfilesystem_override_callback(detour_FS_InitFilesystem::tFS_InitFiles
     
     orig_Com_Printf = reinterpret_cast<void(*)(const char*,...)>(0x2001C6E0);
     if (!orig_Cmd_ExecuteString) orig_Cmd_ExecuteString = (void(*)(const char*))rvaToAbsExe((void*)0x194F0);
+
+    sofbuddy_cfg_exec_startup();
     
     DISPATCH_SHARED_HOOK(PreCvarInit, Post);
     
@@ -70,15 +74,25 @@ qboolean cbuf_addlatecommands_override_callback(detour_Cbuf_AddLateCommands::tCb
     PrintOut(PRINT_LOG, "Attempting to register sofbuddy_list_features command...\n");
     orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_list_features"), Cmd_SoFBuddy_ListFeatures_f);
     PrintOut(PRINT_LOG, "Registered sofbuddy_list_features command\n");
+
+    PrintOut(PRINT_LOG, "Attempting to register sofbuddy_update command...\n");
+    orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_update"), Cmd_SoFBuddy_Update_f);
+    orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_openurl"), Cmd_SoFBuddy_OpenUrl_f);
+    PrintOut(PRINT_LOG, "Registered sofbuddy_update command\n");
     
     PrintOut(PRINT_LOG, "Registering _sofbuddy_version cvar...\n");
-    cvar_t* version_cvar = orig_Cvar_Get("_sofbuddy_version", SOFBUDDY_VERSION, CVAR_ARCHIVE | CVAR_NOSET, NULL);
+    cvar_t* version_cvar = orig_Cvar_Get("_sofbuddy_version", SOFBUDDY_VERSION, CVAR_NOSET, NULL);
     if (version_cvar) {
         orig_Cvar_Set2(const_cast<char*>("_sofbuddy_version"), const_cast<char*>(SOFBUDDY_VERSION), true);
     }
     PrintOut(PRINT_LOG, "Registered _sofbuddy_version cvar with value: %s\n", SOFBUDDY_VERSION);
+
+    PrintOut(PRINT_LOG, "Registering updater state cvars...\n");
+    sofbuddy_update_init();
+    PrintOut(PRINT_LOG, "Updater state cvars ready\n");
     
     DISPATCH_SHARED_HOOK(PostCvarInit, Post);
+    sofbuddy_cfg_save_now();
     
     PrintOut(PRINT_LOG, "=== Post-CVar Init Phase Complete ===\n");
     PrintOut(PRINT_LOG, "\n");

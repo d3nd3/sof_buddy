@@ -169,6 +169,114 @@ namespace {
     static AutoDetour_Cbuf_AddLateCommands g_AutoDetour_Cbuf_AddLateCommands;
 }
 
+namespace detour_Qcommon_Frame {
+    using tQcommon_Frame = void(__cdecl*)(int msec);
+    extern tQcommon_Frame oQcommon_Frame;
+    using ManagerType = TypedSharedHookManager<void, int>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkQcommon_Frame(int msec);
+}
+
+namespace {
+    struct AutoDetour_Qcommon_Frame {
+        AutoDetour_Qcommon_Frame() {
+            using namespace detour_Qcommon_Frame;
+            if (!GetDetourSystem().IsDetourRegistered("Qcommon_Frame")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x2001F720),
+                    reinterpret_cast<void*>(detour_Qcommon_Frame::hkQcommon_Frame),
+                    reinterpret_cast<void**>(&detour_Qcommon_Frame::oQcommon_Frame),
+                    "Qcommon_Frame",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(10));
+            }
+        }
+    };
+    static AutoDetour_Qcommon_Frame g_AutoDetour_Qcommon_Frame;
+}
+
+namespace detour_CL_Precache_f {
+    using tCL_Precache_f = void(__cdecl*)();
+    extern tCL_Precache_f oCL_Precache_f;
+    using ManagerType = TypedSharedHookManager<void>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkCL_Precache_f();
+}
+
+namespace {
+    struct AutoDetour_CL_Precache_f {
+        AutoDetour_CL_Precache_f() {
+            using namespace detour_CL_Precache_f;
+            if (!GetDetourSystem().IsDetourRegistered("CL_Precache_f")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x00112F0),
+                    reinterpret_cast<void*>(detour_CL_Precache_f::hkCL_Precache_f),
+                    reinterpret_cast<void**>(&detour_CL_Precache_f::oCL_Precache_f),
+                    "CL_Precache_f",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(6));
+            }
+        }
+    };
+    static AutoDetour_CL_Precache_f g_AutoDetour_CL_Precache_f;
+}
+
+namespace detour_CL_ParseConfigString {
+    using tCL_ParseConfigString = void(__cdecl*)();
+    extern tCL_ParseConfigString oCL_ParseConfigString;
+    using ManagerType = TypedSharedHookManager<void>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkCL_ParseConfigString();
+}
+
+namespace {
+    struct AutoDetour_CL_ParseConfigString {
+        AutoDetour_CL_ParseConfigString() {
+            using namespace detour_CL_ParseConfigString;
+            if (!GetDetourSystem().IsDetourRegistered("CL_ParseConfigString")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x000E690),
+                    reinterpret_cast<void*>(detour_CL_ParseConfigString::hkCL_ParseConfigString),
+                    reinterpret_cast<void**>(&detour_CL_ParseConfigString::oCL_ParseConfigString),
+                    "CL_ParseConfigString",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_CL_ParseConfigString g_AutoDetour_CL_ParseConfigString;
+}
+
+namespace detour_CL_Shutdown {
+    using tCL_Shutdown = void(__cdecl*)();
+    extern tCL_Shutdown oCL_Shutdown;
+    using ManagerType = TypedSharedHookManager<void>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkCL_Shutdown();
+}
+
+namespace {
+    struct AutoDetour_CL_Shutdown {
+        AutoDetour_CL_Shutdown() {
+            using namespace detour_CL_Shutdown;
+            if (!GetDetourSystem().IsDetourRegistered("CL_Shutdown")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x000DDE0),
+                    reinterpret_cast<void*>(detour_CL_Shutdown::hkCL_Shutdown),
+                    reinterpret_cast<void**>(&detour_CL_Shutdown::oCL_Shutdown),
+                    "CL_Shutdown",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_CL_Shutdown g_AutoDetour_CL_Shutdown;
+}
+
 namespace detour_SV_ShutdownGameProgs {
     using tSV_ShutdownGameProgs = void(__cdecl*)();
     extern tSV_ShutdownGameProgs oSV_ShutdownGameProgs;

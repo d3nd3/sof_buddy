@@ -7,7 +7,7 @@
 <font tint gray atint gray>
 <center>
 <vbar tint vbargray width 8 height 135>
-"Files from zip:"<hbr>
+"Zip file list:"<hbr>
 <ctext _sofbuddy_loading_file_1 atext "" invisible><hbr>
 <ctext _sofbuddy_loading_file_2 atext "" invisible><hbr>
 <ctext _sofbuddy_loading_file_3 atext "" invisible><hbr>

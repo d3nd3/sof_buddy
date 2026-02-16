@@ -52,12 +52,14 @@ jobs:
           cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
+          cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
           cp bin/sof_buddy.dll sof_buddy.dll
           zip -r release_windows.zip sof_buddy.dll sof_buddy/
           
           rm -f sof_buddy/*.cmd sof_buddy/*.ps1
           cp rsrc/lin_scripts/enable_*.sh sof_buddy/
           cp rsrc/lin_scripts/patch_sof_binary.sh sof_buddy/
+          cp rsrc/lin_scripts/update_from_zip.sh sof_buddy/
           zip -r release_linux_wine.zip sof_buddy.dll sof_buddy/
           
           make clean
@@ -65,6 +67,7 @@ jobs:
           rm -f sof_buddy/*.sh
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
+          cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
           cp bin/sof_buddy.dll sof_buddy.dll
           zip -r release_windows_xp.zip sof_buddy.dll sof_buddy/
           
@@ -73,6 +76,7 @@ jobs:
           rm -f sof_buddy/*.cmd sof_buddy/*.ps1
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
+          cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
           cp bin/sof_buddy.dll sof_buddy.dll
           zip -r debug_windows.zip sof_buddy.dll sof_buddy/
           
@@ -81,6 +85,7 @@ jobs:
           rm -f sof_buddy/*.cmd sof_buddy/*.ps1
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
+          cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
           cp bin/sof_buddy.dll sof_buddy.dll
           zip -r debug_windows_xp.zip sof_buddy.dll sof_buddy/
         # The working-directory is not strictly necessary here as it's the default, but it's good for clarity.

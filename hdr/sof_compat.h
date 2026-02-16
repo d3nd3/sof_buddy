@@ -77,6 +77,9 @@ extern void (*orig_Cvar_SetInternal)(bool active);
 #define CVAR_MENU_MASK  (CVAR_WEAPON | CVAR_ITEM | CVAR_AMMO | CVAR_MISC)
 #define CVAR_INFO    (CVAR_MENU_MASK | CVAR_USERINFO | CVAR_SERVERINFO)
 
+// sof_buddy-local persistence marker (saved to base/sofbuddy.cfg by sof_buddy code)
+#define CVAR_SOFBUDDY_ARCHIVE 0x40000000
+
 
 extern void ( *orig_Com_Printf)(const char * msg, ...);
 extern void (*orig_Qcommon_Frame) (int msec);
@@ -101,5 +104,4 @@ extern cvar_t* _gl_texturemode;  // OpenGL texture mode cvar
 extern void InitDefaults(void);
 
 #endif // SOF_COMPAT_H
-
 

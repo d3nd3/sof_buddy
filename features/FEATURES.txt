@@ -19,7 +19,7 @@ lighting_blend
 teamicons_offset
 
 # Network Features
-# http_maps
+http_maps
 
 # Menu Features
 internal_menus
@@ -28,7 +28,7 @@ internal_menus
 new_system_bug
 console_protection
 cl_maxfps_singleplayer
-cbuf_limit_increase
+# cbuf_limit_increase  # Deprecated: sofbuddy.cfg persistence replaced config.cfg Cbuf workaround
 
 # Input Features
 raw_mouse

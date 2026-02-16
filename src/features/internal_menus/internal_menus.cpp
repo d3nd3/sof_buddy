@@ -160,11 +160,12 @@ bool patch_fs_callsite(uintptr_t rva) {
 void create_loading_cvars() {
     if (!orig_Cvar_Get) return;
 
-    // Runtime UI state only. Do not archive into config.cfg.
-    constexpr int kLoadingCvarFlags = CVAR_ARCHIVE;//CVAR_INTERNAL;
+    // Runtime UI state only. Do not persist to sofbuddy.cfg.
+    constexpr int kLoadingCvarFlags = 0;
 
     orig_Cvar_Get("_sofbuddy_loading_progress", "0", kLoadingCvarFlags, nullptr);
     orig_Cvar_Get("_sofbuddy_loading_current", "", kLoadingCvarFlags, nullptr);
+    orig_Cvar_Get("_sofbuddy_tab", "0", 0, nullptr);
 
     for (int i = 1; i <= 5; ++i) {
         char name[48];
@@ -243,7 +244,7 @@ void internal_menus_PostCvarInit(void) {
         return;
     }
 
-    _sofbuddy_menu_internal = orig_Cvar_Get("sofbuddy_menu_internal", "0", CVAR_ARCHIVE, nullptr);
+    _sofbuddy_menu_internal = orig_Cvar_Get("sofbuddy_menu_internal", "0", 0, nullptr);
     create_loading_cvars();
 
     if (!orig_Cmd_AddCommand) {
@@ -252,6 +253,11 @@ void internal_menus_PostCvarInit(void) {
     }
 
     orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_menu"), Cmd_SoFBuddy_Menu_f);
+
+    if (orig_Cmd_ExecuteString) {
+        orig_Cmd_ExecuteString("bind F12 \"sofbuddy_menu sof_buddy\"");
+        PrintOut(PRINT_GOOD, "Internal menus: bound F12 to sofbuddy_menu sof_buddy\n");
+    }
 }
 
 void Cmd_SoFBuddy_Menu_f(void) {
@@ -260,11 +266,47 @@ void Cmd_SoFBuddy_Menu_f(void) {
 
     const char* name = orig_Cmd_Argv(1);
     if (!name || !name[0]) return;
-    if (std::strstr(name, "..") || std::strchr(name, '/')) return;
-    if (g_menu_internal_files.find(name) == g_menu_internal_files.end()) return;
+
+    std::string requested(name);
+    std::replace(requested.begin(), requested.end(), '\\', '/');
+    if (requested.find("..") != std::string::npos) return;
+
+    bool exists = false;
+    std::string menu_to_push = requested;
+
+    const size_t slash = requested.rfind('/');
+    if (slash == std::string::npos) {
+        auto menu_it = g_menu_internal_files.find(requested);
+        if (menu_it != g_menu_internal_files.end()) {
+            std::string default_file = requested;
+            if (default_file.find('.') == std::string::npos) default_file += ".rmf";
+
+            auto default_it = menu_it->second.find(default_file);
+            if (default_it != menu_it->second.end()) {
+                exists = true;
+            } else {
+                auto sb_main_it = menu_it->second.find("sb_main.rmf");
+                if (sb_main_it != menu_it->second.end()) {
+                    exists = true;
+                    menu_to_push = requested + "/sb_main";
+                }
+            }
+        }
+    } else {
+        const std::string menu_name = requested.substr(0, slash);
+        std::string file_name = requested.substr(slash + 1);
+        if (menu_name.empty() || file_name.empty()) return;
+        if (file_name.find('.') == std::string::npos) file_name += ".rmf";
+
+        auto menu_it = g_menu_internal_files.find(menu_name);
+        if (menu_it != g_menu_internal_files.end())
+            exists = (menu_it->second.find(file_name) != menu_it->second.end());
+    }
+
+    if (!exists) return;
 
     ScopedInternalMenuPush scoped_internal_call;
-    detour_M_PushMenu::oM_PushMenu(name, "", false);
+    detour_M_PushMenu::oM_PushMenu(menu_to_push.c_str(), "", false);
 }
 
 void loading_push_history(const char* map_name) {

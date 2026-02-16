@@ -1,0 +1,49 @@
+<stm global>
+<include tints>
+<tint normaltext 0xffffffff>
+<tint hilitetext 0xffffffff>
+<key escape "sofbuddy_menu sof_buddy">
+<cursor 1>
+
+<vbar tint cyan>
+<backdrop stretch "backdrop/mission_failed" bgcolor black>
+<defaults noborder tiptint black tipbtint white>
+
+<center>
+<font type title tint white atint white>
+<text "SOF BUDDY: LIGHTING / BLEND">
+<hr width 420 tint cyan>
+
+<font type title tint white atint white>
+<list "Off,On" cvari _sofbuddy_lighting_overbright atext "Overbright : " noshade><br>
+<list "Off,On" cvari _sofbuddy_shiny_spherical atext "Shiny Spherical : " noshade><br>
+
+<font type title tint white atint white>
+<slider cvar _sofbuddy_lighting_cutoff min 1 max 256 step 1 atext "Lighting Cutoff : "><br>
+
+<font type title tint white atint white>
+<slider cvar _sofbuddy_water_size min 16 max 256 step 1 atext "Water Size : "><br>
+
+<hbr>
+<font type title tint white atint white>
+"Lightblend Source"
+<font type title tint white atint white>
+<list "ZERO,ONE,SRC_C,1-SRC_C,DST_C,1-DST_C,SRC_A,1-SRC_A,DST_A,1-DST_A,CONST_C,1-CONST_C,CONST_A,1-CONST_A,SRC_A_SAT" match "GL_ZERO,GL_ONE,GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR,GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA,GL_DST_ALPHA,GL_ONE_MINUS_DST_ALPHA,GL_CONSTANT_COLOR,GL_ONE_MINUS_CONSTANT_COLOR,GL_CONSTANT_ALPHA,GL_ONE_MINUS_CONSTANT_ALPHA,GL_SRC_ALPHA_SATURATE" cvar _sofbuddy_lightblend_src atext "Src : " noshade><br>
+
+<font type title tint white atint white>
+"Lightblend Destination"
+<font type title tint white atint white>
+<list "ZERO,ONE,SRC_C,1-SRC_C,DST_C,1-DST_C,SRC_A,1-SRC_A,DST_A,1-DST_A,CONST_C,1-CONST_C,CONST_A,1-CONST_A,SRC_A_SAT" match "GL_ZERO,GL_ONE,GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR,GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA,GL_DST_ALPHA,GL_ONE_MINUS_DST_ALPHA,GL_CONSTANT_COLOR,GL_ONE_MINUS_CONSTANT_COLOR,GL_CONSTANT_ALPHA,GL_ONE_MINUS_CONSTANT_ALPHA,GL_SRC_ALPHA_SATURATE" cvar _sofbuddy_lightblend_dst atext "Dst : " noshade><br>
+
+<hbr>
+<font type medium tint white atint white>
+"Overbright overrides manual blend src/dst behavior."
+<hbr>
+
+<center>
+<font type title tint white atint white>
+<text "Restore Lighting Defaults" key mouse1 "set _sofbuddy_lighting_overbright 0;set _sofbuddy_lighting_cutoff 64;set _sofbuddy_water_size 64;set _sofbuddy_lightblend_src GL_ZERO;set _sofbuddy_lightblend_dst GL_SRC_COLOR;set _sofbuddy_shiny_spherical 1;refresh" border 16 1 cyan regular><br>
+<text "Vid Restart" key mouse1 "vid_restart" border 16 1 cyan regular><br>
+<text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 16 1 cyan regular><br>
+<text "Back" key mouse1 "popmenu" border 16 1 cyan regular><br>
+</stm>

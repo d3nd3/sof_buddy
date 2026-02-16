@@ -1,5 +1,13 @@
 # cbuf_limit_increase
 
+## Deprecation
+This feature is deprecated and disabled by default.
+
+Reason:
+- SoF Buddy now persists buddy cvars into `SoFDirRoot/{basedir}/base/sofbuddy.cfg`.
+- `sofbuddy.cfg` is executed automatically after `FS_InitFilesystem`.
+- Buddy cvars no longer rely on `CVAR_ARCHIVE`/`config.cfg`, so the original `exec config.cfg` Cbuf overflow workaround is no longer needed.
+
 ## Purpose
 Mitigates command-buffer overflows (`Cbuf_AddText: overflow`) that prevent large script files (for example `exec config.cfg`) from being executed.
 

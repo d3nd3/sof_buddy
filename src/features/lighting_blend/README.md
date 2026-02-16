@@ -66,7 +66,7 @@ Where:
 - `_sofbuddy_water_size` - Water size parameter (default: 16.0, minimum: 16.0)
 - `_sofbuddy_shiny_spherical` - Enable shiny spherical rendering (default: 0)
 
-All CVars are `CVAR_ARCHIVE` (saved to config.cfg).
+All persisted CVars are marked with `CVAR_SOFBUDDY_ARCHIVE` and saved to `base/sofbuddy.cfg`.
 
 ### Valid Blend Mode Values
 - `GL_ZERO`, `GL_ONE`, `GL_SRC_COLOR`, `GL_ONE_MINUS_SRC_COLOR`

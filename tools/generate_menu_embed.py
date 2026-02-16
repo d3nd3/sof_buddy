@@ -11,14 +11,16 @@ def main():
     out_cpp = project_root / "src" / "features" / "internal_menus" / "menu_data.cpp"
 
     if not menu_lib.exists():
-        out_cpp.parent.mkdir(parents=True, exist_ok=True)
-        with open(out_cpp, 'w') as f:
-            f.write('''#include "feature_config.h"
+        content = '''#include "feature_config.h"
 #if FEATURE_INTERNAL_MENUS
 #include "shared.h"
 void internal_menus_load_library(void) { g_menu_internal_files.clear(); }
 #endif
-''')
+'''
+        out_cpp.parent.mkdir(parents=True, exist_ok=True)
+        old_content = out_cpp.read_text() if out_cpp.exists() else None
+        if old_content != content:
+            out_cpp.write_text(content)
         return 0
 
     lines = [
@@ -44,9 +46,12 @@ void internal_menus_load_library(void) { g_menu_internal_files.clear(); }
             lines.append(f'    }}')
 
     lines.extend(['}', '', '#endif'])
+    content = '\n'.join(lines) + '\n'
+
     out_cpp.parent.mkdir(parents=True, exist_ok=True)
-    with open(out_cpp, 'w') as f:
-        f.write('\n'.join(lines))
+    old_content = out_cpp.read_text() if out_cpp.exists() else None
+    if old_content != content:
+        out_cpp.write_text(content)
     return 0
 
 if __name__ == '__main__':

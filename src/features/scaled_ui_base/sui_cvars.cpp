@@ -46,12 +46,12 @@ extern void crosshairscale_change(cvar_t * cvar);
 */
 void create_scaled_ui_cvars(void) {
 #if FEATURE_SCALED_CON
-    _sofbuddy_font_scale = orig_Cvar_Get("_sofbuddy_font_scale", "1", CVAR_ARCHIVE, fontscale_change);
-    _sofbuddy_console_size = orig_Cvar_Get("_sofbuddy_console_size", "0.5", CVAR_ARCHIVE, consolesize_change);
+    _sofbuddy_font_scale = orig_Cvar_Get("_sofbuddy_font_scale", "1", CVAR_SOFBUDDY_ARCHIVE, fontscale_change);
+    _sofbuddy_console_size = orig_Cvar_Get("_sofbuddy_console_size", "0.5", CVAR_SOFBUDDY_ARCHIVE, consolesize_change);
 #endif
 #if FEATURE_SCALED_HUD
-    _sofbuddy_hud_scale = orig_Cvar_Get("_sofbuddy_hud_scale", "1", CVAR_ARCHIVE, hudscale_change);
-    _sofbuddy_crossh_scale = orig_Cvar_Get("_sofbuddy_crossh_scale", "1", CVAR_ARCHIVE, crosshairscale_change);
+    _sofbuddy_hud_scale = orig_Cvar_Get("_sofbuddy_hud_scale", "1", CVAR_SOFBUDDY_ARCHIVE, hudscale_change);
+    _sofbuddy_crossh_scale = orig_Cvar_Get("_sofbuddy_crossh_scale", "1", CVAR_SOFBUDDY_ARCHIVE, crosshairscale_change);
 #endif
 }
 

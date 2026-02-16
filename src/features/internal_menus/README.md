@@ -32,9 +32,12 @@ That keeps normal game menu loads untouched.
 ### 3) Direct menu push
 `sofbuddy_menu <name>`:
 1. Validates `name`.
-2. Temporarily sets `sofbuddy_menu_internal=1`.
-3. Calls `M_PushMenu(name, "", false)`.
-4. Restores `sofbuddy_menu_internal=0`.
+2. Resolves entry page as `<name>.rmf` (or `<name>/sb_main.rmf` when no root file exists).
+3. Temporarily sets `sofbuddy_menu_internal=1`.
+4. Calls `M_PushMenu(resolved_name, "", false)`.
+5. Restores `sofbuddy_menu_internal=0`.
+
+It also accepts `sofbuddy_menu <menu>/<page>` for direct embedded sub-pages.
 
 No pending queue, no delayed retries.
 
@@ -66,6 +69,8 @@ From `callbacks/callbacks.json`:
 ```text
 sofbuddy_menu loading
 sofbuddy_menu http_downloading
+sofbuddy_menu sof_buddy
+sofbuddy_menu sof_buddy/sb_perf
 ```
 
 ## Editing menus

@@ -29,6 +29,22 @@ namespace detour_Cbuf_AddLateCommands {
     tCbuf_AddLateCommands oCbuf_AddLateCommands = nullptr;
 }
 
+namespace detour_Qcommon_Frame {
+    tQcommon_Frame oQcommon_Frame = nullptr;
+}
+
+namespace detour_CL_Precache_f {
+    tCL_Precache_f oCL_Precache_f = nullptr;
+}
+
+namespace detour_CL_ParseConfigString {
+    tCL_ParseConfigString oCL_ParseConfigString = nullptr;
+}
+
+namespace detour_CL_Shutdown {
+    tCL_Shutdown oCL_Shutdown = nullptr;
+}
+
 namespace detour_SV_ShutdownGameProgs {
     tSV_ShutdownGameProgs oSV_ShutdownGameProgs = nullptr;
 }
@@ -193,6 +209,50 @@ namespace detour_FS_InitFilesystem {
 }
 
 namespace detour_Cbuf_AddLateCommands {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_Qcommon_Frame {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_CL_Precache_f {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_CL_ParseConfigString {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_CL_Shutdown {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
         if (!instance) {
@@ -544,6 +604,39 @@ namespace detour_VID_CheckChanges {
     }
 }
 
+namespace detour_Qcommon_Frame {
+    void __cdecl hkQcommon_Frame(int msec) {
+        ManagerType& mgr = GetManager();
+        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre(msec);
+        if (oQcommon_Frame) {
+            oQcommon_Frame(msec);
+        }
+        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost(msec);
+    }
+}
+
+namespace detour_CL_ParseConfigString {
+    void __cdecl hkCL_ParseConfigString() {
+        ManagerType& mgr = GetManager();
+        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre();
+        if (oCL_ParseConfigString) {
+            oCL_ParseConfigString();
+        }
+        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost();
+    }
+}
+
+namespace detour_CL_Shutdown {
+    void __cdecl hkCL_Shutdown() {
+        ManagerType& mgr = GetManager();
+        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre();
+        if (oCL_Shutdown) {
+            oCL_Shutdown();
+        }
+        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost();
+    }
+}
+
 namespace detour_SV_ShutdownGameProgs {
     void __cdecl hkSV_ShutdownGameProgs() {
         ManagerType& mgr = GetManager();
@@ -614,6 +707,12 @@ namespace detour_IN_MenuMouse {
 
 // Override hooks (hooks.json override: true)
 // Note: Override hooks with custom_detour: true are manually installed at runtime and not generated here
+namespace detour_CL_Precache_f {
+    void __cdecl hkCL_Precache_f() {
+        ::cl_precache_http_maps_override_callback(oCL_Precache_f);
+    }
+}
+
 namespace detour_Cbuf_AddLateCommands {
     qboolean __cdecl hkCbuf_AddLateCommands() {
         return ::cbuf_addlatecommands_override_callback(oCbuf_AddLateCommands);

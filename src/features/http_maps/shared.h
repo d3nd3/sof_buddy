@@ -18,6 +18,7 @@ extern cvar_t* _sofbuddy_http_download_progress;
 extern cvar_t* _sofbuddy_http_download_map;
 
 void create_http_maps_cvars(void);
+void http_maps_on_parse_configstring_post(void);
 void http_maps_try_begin_precache(detour_CL_Precache_f::tCL_Precache_f original);
 void http_maps_pump(void);
 void http_maps_run_deferred_continue_if_pending(void);

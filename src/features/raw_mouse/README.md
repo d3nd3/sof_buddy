@@ -48,7 +48,7 @@ The implementation works by **faking cursor position changes** so the original m
    - Game’s recenter calls are intercepted: we update `window_center` and return TRUE without calling the real SetCursorPos, so the OS cursor is never moved by the game
 
 5. **Cursor Confinement** (ClipCursor):
-   - While raw input is enabled and the game window is foregrounded, cursor is clipped to the game client area inset by 4px on left and right (smaller clip area reduces accidental escape on focus regain)
+   - While raw input is enabled and the game window is foregrounded, cursor is clipped to the game client area inset by 64px on all edges to reduce edge-of-screen issues
    - On each clip refresh (e.g. after alt-tab), if the OS cursor is outside the clip rect it is warped back inside via the real SetCursorPos so the cursor is always within bounds when regaining focus
    - Clip is automatically released when raw input is disabled or focus is lost
 
