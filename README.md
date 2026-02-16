@@ -92,7 +92,7 @@
 
 ### In-Game Commands
 - `sofbuddy_list_features` — Print compiled features (and whether they are on/off).
-- `sofbuddy_menu <name>` — Open an embedded internal menu page (examples: `loading`, `http_downloading`).
+- `sofbuddy_menu <name>` — Open an embedded internal menu page (examples: `loading`, `sof_buddy`).
 - `sofbuddy_menu <menu>/<page>` — Open a specific embedded page inside a menu (example: `sofbuddy_menu sof_buddy/sb_perf`).
 - `F12` is auto-bound at startup to `sofbuddy_menu sof_buddy`.
 - `sofbuddy_update` — Check latest release on GitHub and compare with your current version.
@@ -168,8 +168,6 @@
 | `_sofbuddy_http_maps_crc_1` | `https://raw.githubusercontent.com/plowsof/sof1maps/main` | CRC lookup base URL (index 1, Range fetch of zip central directory) |
 | `_sofbuddy_http_maps_crc_2` | `""` | CRC lookup base URL (index 2) |
 | `_sofbuddy_http_maps_crc_3` | `""` | CRC lookup base URL (index 3) |
-| `_sofbuddy_http_download_map` | `""` | Current map being downloaded/prepared (UI helper) |
-| `_sofbuddy_http_download_progress` | 0 | HTTP download progress 0-1 (UI helper) |
 
 - See [OpenGL glBlendFunc docs](https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glBlendFunc.xhtml) for blend values.
 - If `_sofbuddy_lighting_overbright` is enabled, it overrides blend cvars.

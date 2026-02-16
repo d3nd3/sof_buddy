@@ -9,6 +9,11 @@
 #define GL_SRC_COLOR                      0x0300
 
 void r_blendlightmaps_pre_callback(void) {
+	if (!lightblend_target_src || !lightblend_target_dst || !_sofbuddy_lighting_overbright) {
+		is_blending = false;
+		return;
+	}
+
 	if ( _sofbuddy_lighting_overbright->value == 1.0f ) {
 		PrintOut(PRINT_LOG, "Using overbright lighting\n");
 		*lightblend_target_src = GL_DST_COLOR;
@@ -22,4 +27,3 @@ void r_blendlightmaps_pre_callback(void) {
 }
 
 #endif // FEATURE_LIGHTING_BLEND
-

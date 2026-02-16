@@ -68,10 +68,18 @@ From `callbacks/callbacks.json`:
 
 ```text
 sofbuddy_menu loading
-sofbuddy_menu http_downloading
 sofbuddy_menu sof_buddy
 sofbuddy_menu sof_buddy/sb_perf
 ```
+
+## Menu library
+
+Menus under `menu_library/<name>/` are embedded and served from memory.
+
+| Menu | Purpose |
+|------|--------|
+| **loading** | Engine-driven loading screen. When the game calls `M_PushMenu("loading", ...)`, the FS override serves `loading*.rmf` from memory. Shows current map, progress bar, zip file list, recent maps, and status lines. Sub-pages: `loading_header`, `loading_status`, `loading_files`, `loading_recent`. Updated via `loading_set_current`, `loading_push_status`, `loading_set_files`, `loading_push_history`. |
+| **sof_buddy** | Main control panel; F12 is bound to `sofbuddy_menu sof_buddy`. Entry page `sb_main.rmf` lists links to sub-pages: Performance (`sb_perf`), UI Scaling (`sb_scaling`), Input (`sb_input`), Texture Filtering (`sb_texture`), Lighting/Blend (`sb_lighting`), Video/Perf/Other Tweaks (`sb_tweaks_video`, `sb_tweaks_perf`, `sb_tweaks_other`), Update Install Help (`sb_update_help`), Community/Social (`sb_social`). |
 
 ## Editing menus
 

@@ -15,7 +15,7 @@
 7. Extracts into `user/` and validates extracted BSP CRC.
 8. Continues precache when worker completes (success = HTTP files ready, failure = engine fallback path).
 9. If map changes while waiting, a newer HTTP job preempts the older one.
-10. Mirrors progress/status/files into the embedded loading menu cvars.
+10. Prints download progress to the console (bar per 1%); when internal_menus is enabled, also mirrors progress/status/files into the loading menu cvars.
 
 ## Addresses (current build)
 

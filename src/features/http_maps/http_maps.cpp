@@ -38,8 +38,6 @@ cvar_t* _sofbuddy_http_maps_dl_3 = nullptr;
 cvar_t* _sofbuddy_http_maps_crc_1 = nullptr;
 cvar_t* _sofbuddy_http_maps_crc_2 = nullptr;
 cvar_t* _sofbuddy_http_maps_crc_3 = nullptr;
-cvar_t* _sofbuddy_http_download_progress = nullptr;
-cvar_t* _sofbuddy_http_download_map = nullptr;
 
 namespace
 {
@@ -839,13 +837,29 @@ static void http_maps_flush_pending_ui_updates(void)
 #endif
 }
 
+static void http_maps_console_progress(float p, const char* map_bsp)
+{
+	static int s_last_pct = -1;
+	const int pct = static_cast<int>(http_maps_clamp_progress(p) * 100);
+	if (pct == s_last_pct) return;
+	s_last_pct = (pct >= 100) ? -1 : pct;
+	const int bar_len = 20;
+	int filled = (pct * bar_len) / 100;
+	if (filled > bar_len) filled = bar_len;
+	char bar[32];
+	bar[0] = '[';
+	for (int i = 1; i <= bar_len; ++i) bar[i] = (i <= filled) ? '=' : ' ';
+	bar[bar_len + 1] = ']';
+	bar[bar_len + 2] = '\0';
+	PrintOut(PRINT_LOG, "http_maps: %s %s %d%%\n", map_bsp && map_bsp[0] ? map_bsp : "download", bar, pct);
+}
+
 static void http_maps_apply_progress_cvar(float p)
 {
-	if (!_sofbuddy_http_download_progress || !orig_Cvar_Set2) return;
+#if FEATURE_INTERNAL_MENUS
+	if (!orig_Cvar_Set2) return;
 	char val[32];
 	snprintf(val, sizeof(val), "%.2f", http_maps_clamp_progress(p));
-	orig_Cvar_Set2(const_cast<char*>("_sofbuddy_http_download_progress"), val, true);
-#if FEATURE_INTERNAL_MENUS
 	orig_Cvar_Set2(const_cast<char*>("_sofbuddy_loading_progress"), val, true);
 #endif
 }
@@ -854,8 +868,6 @@ static void http_maps_clear_loading_cvars(void)
 {
 	http_maps_clear_pending_ui_updates();
 	if (!orig_Cvar_Set2) return;
-	orig_Cvar_Set2(const_cast<char*>("_sofbuddy_http_download_map"), const_cast<char*>(""), true);
-	orig_Cvar_Set2(const_cast<char*>("_sofbuddy_http_download_progress"), const_cast<char*>("0"), true);
 #if FEATURE_INTERNAL_MENUS
 	orig_Cvar_Set2(const_cast<char*>("_sofbuddy_loading_progress"), const_cast<char*>("0"), true);
 	for (int i = 1; i <= 4; ++i) {
@@ -1115,8 +1127,6 @@ static void http_maps_download_worker(std::string map_bsp_path, std::string zip_
 void create_http_maps_cvars(void)
 {
 	_sofbuddy_http_maps = orig_Cvar_Get("_sofbuddy_http_maps", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
-	_sofbuddy_http_download_progress = orig_Cvar_Get("_sofbuddy_http_download_progress", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
-	_sofbuddy_http_download_map = orig_Cvar_Get("_sofbuddy_http_download_map", "", CVAR_SOFBUDDY_ARCHIVE, nullptr);
 	_sofbuddy_http_maps_dl_1 = orig_Cvar_Get("_sofbuddy_http_maps_dl_1", kHttpMapsDefaultRepo, CVAR_SOFBUDDY_ARCHIVE, nullptr);
 	_sofbuddy_http_maps_dl_2 = orig_Cvar_Get("_sofbuddy_http_maps_dl_2", "", CVAR_SOFBUDDY_ARCHIVE, nullptr);
 	_sofbuddy_http_maps_dl_3 = orig_Cvar_Get("_sofbuddy_http_maps_dl_3", "", CVAR_SOFBUDDY_ARCHIVE, nullptr);
@@ -1187,14 +1197,11 @@ void http_maps_try_begin_precache(detour_CL_Precache_f::tCL_Precache_f original)
 	PrintOut(PRINT_LOG, "http_maps: Preparing map %s (zip: %s)\n", map_bsp_path.c_str(), zip_rel_path.c_str());
 
 #if FEATURE_INTERNAL_MENUS
-	if (_sofbuddy_http_download_map && orig_Cvar_Set2) {
-		orig_Cvar_Set2(const_cast<char*>("_sofbuddy_http_download_map"), const_cast<char*>(map_bsp_path.c_str()), true);
-		http_maps_apply_progress_cvar(0.0f);
-		loading_set_current(map_bsp_path.c_str());
-		loading_set_files(nullptr, 0);
-		loading_push_status("HTTP map assist active.");
-		loading_push_status("Checking local files...");
-	}
+	http_maps_apply_progress_cvar(0.0f);
+	loading_set_current(map_bsp_path.c_str());
+	loading_set_files(nullptr, 0);
+	loading_push_status("HTTP map assist active.");
+	loading_push_status("Checking local files...");
 #endif
 
 	try {
@@ -1219,6 +1226,7 @@ void http_maps_pump(void)
 {
 	if (g_http_maps_state.progress_dirty.exchange(false, std::memory_order_acq_rel)) {
 		const float p = g_http_maps_state.worker_progress.load(std::memory_order_acquire);
+		http_maps_console_progress(p, g_http_maps_state.pending_map_bsp.c_str());
 		http_maps_apply_progress_cvar(p);
 	}
 	http_maps_flush_pending_ui_updates();

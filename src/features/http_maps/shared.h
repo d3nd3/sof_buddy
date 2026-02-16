@@ -14,8 +14,6 @@ extern cvar_t* _sofbuddy_http_maps_dl_3;
 extern cvar_t* _sofbuddy_http_maps_crc_1;
 extern cvar_t* _sofbuddy_http_maps_crc_2;
 extern cvar_t* _sofbuddy_http_maps_crc_3;
-extern cvar_t* _sofbuddy_http_download_progress;
-extern cvar_t* _sofbuddy_http_download_map;
 
 void create_http_maps_cvars(void);
 void http_maps_on_parse_configstring_post(void);
