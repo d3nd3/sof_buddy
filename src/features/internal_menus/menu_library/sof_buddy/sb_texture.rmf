@@ -10,7 +10,7 @@
 <defaults noborder tiptint black tipbtint white>
 
 <frame root 640 0 border 0 0 clear backfill clear>
-<frame left_spacer 40 0 cut root border 0 0 clear backfill clear>
+<frame left_spacer 40 0 cut root border 10000 0 clear backfill black>
 <frame center_panel 560 0 cut root page sof_buddy/sb_texture_content border 0 0 clear backfill clear>
-<frame right_spacer 40 0 cut root border 0 0 clear backfill clear>
+<frame right_spacer 40 0 cut root border 10000 0 clear backfill black>
 </stm>
