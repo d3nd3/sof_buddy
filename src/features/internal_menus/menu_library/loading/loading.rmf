@@ -8,8 +8,8 @@
 <tint vbargray 0xff606060>
 <backdrop bgcolor black>
 
-<frame header 640 95 page loading_header border 1 1 lblue backfill black>
-<frame status 640 105 page loading_status border 1 1 gray backfill black>
-<frame files 640 150 page loading_files border 1 1 gray backfill black>
-<frame recent 640 130 page loading_recent border 1 1 gray backfill black>
+<frame header 0 88 page loading_header border 1 1 lblue backfill black>
+<frame status 0 86 page loading_status border 1 1 gray backfill black>
+<frame files 0 126 page loading_files border 1 1 gray backfill black>
+<frame recent 0 0 page loading_recent border 1 1 gray backfill black>
 </stm>

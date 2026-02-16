@@ -1,0 +1,43 @@
+<stm>
+<include tints>
+<tint normaltext 0xffffffff>
+<tint hilitetext 0xffffffff>
+<key escape "sofbuddy_menu sof_buddy">
+<cursor 1>
+
+<defaults noborder tiptint black tipbtint white>
+
+<normal>
+<font type medium tint white atint white>
+<blank 84 1><text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 12 1 cyan regular>
+<blank 8 1><text "Perf" key mouse1 "sofbuddy_menu sof_buddy/sb_perf" border 12 1 orange regular>
+<blank 8 1><text "Scaling" key mouse1 "sofbuddy_menu sof_buddy/sb_scaling" border 12 1 cyan regular>
+<blank 8 1><text "Input" key mouse1 "sofbuddy_menu sof_buddy/sb_input" border 12 1 cyan regular>
+<blank 8 1><text "Texture" key mouse1 "sofbuddy_menu sof_buddy/sb_texture" border 12 1 cyan regular>
+<blank 8 1><text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/sb_lighting" border 12 1 cyan regular><hbr>
+<blank 116 1><text "Video T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_video" border 12 1 cyan regular>
+<blank 8 1><text "Perf T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_perf" border 12 1 cyan regular>
+<blank 8 1><text "Other T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_other" border 12 1 cyan regular>
+<blank 8 1><text "Update" key mouse1 "sofbuddy_menu sof_buddy/sb_update_help" border 12 1 cyan regular>
+<blank 8 1><text "Social" key mouse1 "sofbuddy_menu sof_buddy/sb_social" border 12 1 cyan regular><hbr>
+<hr width 560 tint cyan>
+<center>
+
+<font type title tint white atint white>
+<text "SOF BUDDY: PERFORMANCE / TIMERS">
+<hr width 520 tint cyan>
+
+<list "Normal,High" match "0,1" cvari _sofbuddy_high_priority atext "Process Priority : " tint white atint white noshade><br>
+<list "Off,On" cvari _sofbuddy_sleep atext "CPU Sleep Mode : " noshade><br>
+<list "Off,On" cvari _sofbuddy_sleep_jitter atext "Sleep Jitter : " noshade><br>
+<list "0,1,2,3,4,5,6,7,8,9,10" match "0,1,2,3,4,5,6,7,8,9,10" cvar _sofbuddy_sleep_busyticks atext "Busyloop Ticks : " noshade><br>
+
+<hbr>
+<font type medium tint white atint white>
+"Lower busy ticks = less CPU use but can stutter on some systems."
+<hbr>
+
+<font type title tint white atint white>
+<text "Restore Perf Defaults" key mouse1 "set _sofbuddy_high_priority 1;set _sofbuddy_sleep 1;set _sofbuddy_sleep_jitter 0;set _sofbuddy_sleep_busyticks 2;refresh" border 16 1 cyan regular>
+<text "Close" key mouse1 "popmenu" border 16 1 cyan regular>
+</stm>

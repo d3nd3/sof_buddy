@@ -1,0 +1,48 @@
+<stm>
+<include tints>
+<tint normaltext 0xffffffff>
+<tint hilitetext 0xffffffff>
+<key escape "popmenu">
+<cursor 1>
+
+<defaults noborder tiptint black tipbtint white>
+
+<normal>
+<font type medium tint white atint white>
+<blank 84 1><text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 12 1 orange regular>
+<blank 8 1><text "Perf" key mouse1 "sofbuddy_menu sof_buddy/sb_perf" border 12 1 cyan regular>
+<blank 8 1><text "Scaling" key mouse1 "sofbuddy_menu sof_buddy/sb_scaling" border 12 1 cyan regular>
+<blank 8 1><text "Input" key mouse1 "sofbuddy_menu sof_buddy/sb_input" border 12 1 cyan regular>
+<blank 8 1><text "Texture" key mouse1 "sofbuddy_menu sof_buddy/sb_texture" border 12 1 cyan regular>
+<blank 8 1><text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/sb_lighting" border 12 1 cyan regular><hbr>
+<blank 116 1><text "Video T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_video" border 12 1 cyan regular>
+<blank 8 1><text "Perf T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_perf" border 12 1 cyan regular>
+<blank 8 1><text "Other T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_other" border 12 1 cyan regular>
+<blank 8 1><text "Update" key mouse1 "sofbuddy_menu sof_buddy/sb_update_help" border 12 1 cyan regular>
+<blank 8 1><text "Social" key mouse1 "sofbuddy_menu sof_buddy/sb_social" border 12 1 cyan regular><hbr>
+<hr width 560 tint cyan>
+<center>
+
+<font type title tint white atint white>
+<text "SOF BUDDY CONTROL PANEL" tip "UI for sofbuddy cvars">
+<hr width 560 tint cyan>
+
+<ctext _sofbuddy_version atext "Version : " tint white atint white noshade><hbr>
+<ctext _sofbuddy_update_status atext "Updater : " tint white atint white noshade><hbr>
+<ctext _sofbuddy_update_latest atext "Latest : " tint white atint white noshade><hbr>
+
+<hbr>
+<text "Check Update" key mouse1 "sofbuddy_update" border 16 1 cyan regular>
+<text "Download Zip" key mouse1 "sofbuddy_update download" border 16 1 cyan regular>
+<text "Open Release" key mouse1 "sofbuddy_openurl https://github.com/d3nd3/sof_buddy/releases/latest" border 16 1 cyan regular><hbr>
+<text "Open Vanilla Video" key mouse1 "menu video" border 16 1 cyan regular>
+<text "Close" key mouse1 "popmenu" border 16 1 cyan regular><hbr>
+
+<hbr>
+<font type medium tint white atint white>
+"Press F12 anytime to open this panel."
+<hbr>
+"Use the top tabs to switch sections quickly."
+<hbr>
+"Some renderer changes require vid_restart to apply."
+</stm>

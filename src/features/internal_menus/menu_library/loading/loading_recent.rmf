@@ -6,7 +6,7 @@
 <backdrop bgcolor black>
 <font tint gray atint gray>
 <center>
-<vbar tint vbargray width 8 height 115>
+<vbar tint vbargray>
 "Recent:"<hbr>
 <ctext _sofbuddy_loading_history_1 atext "" invisible><hbr>
 <ctext _sofbuddy_loading_history_2 atext "" invisible><hbr>

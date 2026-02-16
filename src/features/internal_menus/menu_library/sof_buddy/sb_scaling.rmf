@@ -9,33 +9,8 @@
 <backdrop stretch "backdrop/mission_failed" bgcolor black>
 <defaults noborder tiptint black tipbtint white>
 
-<center>
-<font type title tint white atint white>
-<text "SOF BUDDY: UI SCALING">
-<hr width 420 tint cyan>
-
-<font type title tint white atint white>
-<list "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" match "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" cvar _sofbuddy_font_scale atext "Font Scale : " noshade><br>
-
-<font type title tint white atint white>
-<ctext _sofbuddy_console_size atext "Console Size : " noshade><br>
-<font type title tint white atint white>
-<slider cvar _sofbuddy_console_size min 0.00 max 1.00 step 0.01><br>
-
-<font type title tint white atint white>
-<list "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" match "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" cvar _sofbuddy_hud_scale atext "HUD Scale : " noshade><br>
-
-<font type title tint white atint white>
-<list "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" match "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" cvar _sofbuddy_crossh_scale atext "Crosshair Scale : " noshade><br>
-
-<hbr>
-<font type medium tint white atint white>
-"Scales are rounded to quarter-step increments by sof_buddy."
-<hbr>
-
-<center>
-<font type title tint white atint white>
-<text "Restore Scaling Defaults" key mouse1 "set _sofbuddy_font_scale 1;set _sofbuddy_console_size 0.5;set _sofbuddy_hud_scale 1;set _sofbuddy_crossh_scale 1;refresh" border 16 1 cyan regular><br>
-<text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 16 1 cyan regular><br>
-<text "Back" key mouse1 "popmenu" border 16 1 cyan regular><br>
+<frame root 640 0 border 0 0 clear backfill clear>
+<frame left_spacer 40 0 cut root border 0 0 clear backfill clear>
+<frame center_panel 560 0 cut root page sof_buddy/sb_scaling_content border 0 0 clear backfill clear>
+<frame right_spacer 40 0 cut root border 0 0 clear backfill clear>
 </stm>

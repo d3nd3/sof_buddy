@@ -1,0 +1,52 @@
+<stm>
+<include tints>
+<tint normaltext 0xffffffff>
+<tint hilitetext 0xffffffff>
+<key escape "sofbuddy_menu sof_buddy">
+<cursor 1>
+
+<defaults noborder tiptint black tipbtint white>
+
+<normal>
+<font type medium tint white atint white>
+<blank 84 1><text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 12 1 cyan regular>
+<blank 8 1><text "Perf" key mouse1 "sofbuddy_menu sof_buddy/sb_perf" border 12 1 cyan regular>
+<blank 8 1><text "Scaling" key mouse1 "sofbuddy_menu sof_buddy/sb_scaling" border 12 1 cyan regular>
+<blank 8 1><text "Input" key mouse1 "sofbuddy_menu sof_buddy/sb_input" border 12 1 cyan regular>
+<blank 8 1><text "Texture" key mouse1 "sofbuddy_menu sof_buddy/sb_texture" border 12 1 cyan regular>
+<blank 8 1><text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/sb_lighting" border 12 1 cyan regular><hbr>
+<blank 116 1><text "Video T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_video" border 12 1 cyan regular>
+<blank 8 1><text "Perf T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_perf" border 12 1 cyan regular>
+<blank 8 1><text "Other T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_other" border 12 1 cyan regular>
+<blank 8 1><text "Update" key mouse1 "sofbuddy_menu sof_buddy/sb_update_help" border 12 1 cyan regular>
+<blank 8 1><text "Social" key mouse1 "sofbuddy_menu sof_buddy/sb_social" border 12 1 orange regular><hbr>
+<hr width 560 tint cyan>
+<center>
+
+<font type title tint white atint white>
+<text "SOF BUDDY: COMMUNITY / SOCIAL LINKS">
+<hr width 560 tint cyan>
+
+<font type medium tint white atint white>
+"These open in your default browser."
+<hbr>
+"Only trusted HTTPS community hosts are allowed."
+<hbr>
+"Blocked links will show the reason in Link status."
+<hbr>
+
+<font type title tint white atint white>
+<ctext _sofbuddy_openurl_status atext "Link status: " noshade><hbr>
+<ctext _sofbuddy_openurl_last atext "Last URL: " noshade><hbr>
+<hbr>
+
+<text "GitHub Repository" key mouse1 "sofbuddy_openurl https://github.com/d3nd3/sof_buddy" tip "Open source, releases, and readme." border 16 1 cyan regular><br>
+<text "Latest Release Page" key mouse1 "sofbuddy_openurl https://github.com/d3nd3/sof_buddy/releases/latest" tip "Open latest release notes and assets." border 16 1 cyan regular><br>
+<text "GitHub Issues / Requests" key mouse1 "sofbuddy_openurl https://github.com/d3nd3/sof_buddy/issues" tip "Report bugs or request features." border 16 1 cyan regular><br>
+<text "Discord Invite" key mouse1 "sofbuddy_openurl https://discord.com/invite/zZjnsRKPEJ" tip "Join the community Discord." border 16 1 cyan regular><br>
+<text "SoF1 Forums" key mouse1 "sofbuddy_openurl https://www.sof1.org/" tip "Community forum hub." border 16 1 cyan regular><br>
+<text "Server List" key mouse1 "sofbuddy_openurl https://sof1.megalag.org/server/" tip "Find active multiplayer servers." border 16 1 cyan regular><br>
+
+<hbr>
+<text "Close" key mouse1 "popmenu" border 16 1 cyan regular>
+</stm>
