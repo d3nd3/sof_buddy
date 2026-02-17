@@ -113,26 +113,11 @@ void create_loading_cvars() {
     orig_Cvar_Get("_sofbuddy_tab", "0", 0, nullptr);
     // User preference: keep loading menu input locked (default), or allow interaction.
     orig_Cvar_Get("_sofbuddy_loading_lock_input", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    // User preference: key used to open SoF Buddy menu.
+    orig_Cvar_Get("_sofbuddy_menu_hotkey", "F12", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     // Performance profile selector used by Perf Tweaks page.
     orig_Cvar_Get("_sofbuddy_perf_profile", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
 
-    for (int i = 1; i <= kInternalMenusLoadingHistoryRows; ++i) {
-        char name[48];
-        std::snprintf(name, sizeof(name), "_sofbuddy_loading_history_%d", i);
-        orig_Cvar_Get(name, "", kLoadingCvarFlags, nullptr);
-    }
-
-    for (int i = 1; i <= kInternalMenusLoadingStatusRows; ++i) {
-        char name[48];
-        std::snprintf(name, sizeof(name), "_sofbuddy_loading_status_%d", i);
-        orig_Cvar_Get(name, "", kLoadingCvarFlags, nullptr);
-    }
-
-    for (int i = 1; i <= kInternalMenusLoadingFileRows; ++i) {
-        char name[48];
-        std::snprintf(name, sizeof(name), "_sofbuddy_loading_file_%d", i);
-        orig_Cvar_Get(name, "", kLoadingCvarFlags, nullptr);
-    }
 }
 
 constexpr int kSofBuddyCenterPanelVirtualWidth = 560;
@@ -173,6 +158,48 @@ void set_runtime_cvar_int(const char* name, int value) {
 void set_runtime_cvar_str(const char* name, const char* value) {
     if (!orig_Cvar_Set2 || !name || !value) return;
     orig_Cvar_Set2(const_cast<char*>(name), const_cast<char*>(value), true);
+}
+
+std::string sanitize_menu_hotkey_token(const char* raw) {
+    if (!raw) return "F12";
+
+    std::string key(raw);
+    key.erase(std::remove_if(key.begin(), key.end(), [](unsigned char c) {
+        return std::isspace(c) != 0;
+    }), key.end());
+
+    std::transform(key.begin(), key.end(), key.begin(), [](unsigned char c) {
+        return static_cast<char>(std::toupper(c));
+    });
+
+    if (key.empty()) return "F12";
+    if (key.size() > 31) key.resize(31);
+
+    for (size_t i = 0; i < key.size(); ++i) {
+        const unsigned char c = static_cast<unsigned char>(key[i]);
+        const bool ok = (std::isalnum(c) != 0) || c == '_';
+        if (!ok) return "F12";
+    }
+    return key;
+}
+
+void apply_menu_hotkey_binding() {
+    if (!orig_Cvar_Get || !orig_Cmd_ExecuteString) return;
+
+    cvar_t* key_cvar = orig_Cvar_Get("_sofbuddy_menu_hotkey", "F12", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    const std::string key = sanitize_menu_hotkey_token((key_cvar && key_cvar->string) ? key_cvar->string : "F12");
+
+    if (orig_Cvar_Set2 && key_cvar && key_cvar->string && key != key_cvar->string)
+        orig_Cvar_Set2(const_cast<char*>("_sofbuddy_menu_hotkey"), const_cast<char*>(key.c_str()), true);
+
+    char cmd[128];
+    std::snprintf(cmd, sizeof(cmd), "bind %s \"sofbuddy_menu sof_buddy\"", key.c_str());
+    orig_Cmd_ExecuteString(cmd);
+    PrintOut(PRINT_GOOD, "Internal menus: bound %s to sofbuddy_menu sof_buddy\n", key.c_str());
+}
+
+void Cmd_SoFBuddy_Apply_Menu_Hotkey_f() {
+    apply_menu_hotkey_binding();
 }
 
 void apply_sofbuddy_perf_profile_common(const char* profile_value,
@@ -259,62 +286,6 @@ void update_layout_cvars(bool trigger_reloadall_if_changed) {
     (void)changed;
 }
 
-void push_rolling_text_cvars(const char* base_name, int count, const char* newest) {
-    if (!orig_Cvar_Get || !orig_Cvar_Set2 || !base_name || count <= 0 || !newest) return;
-
-    std::vector<std::string> prev_values(static_cast<size_t>(count));
-    char names[16][64] = {};
-    if (count > 16) count = 16;
-
-    for (int i = 0; i < count; ++i) {
-        std::snprintf(names[i], sizeof(names[i]), "%s%d", base_name, i + 1);
-        cvar_t* c = orig_Cvar_Get(names[i], "", 0, nullptr);
-        prev_values[static_cast<size_t>(i)] = (c && c->string) ? c->string : "";
-    }
-
-    for (int i = count - 1; i > 0; --i)
-        orig_Cvar_Set2(names[i], const_cast<char*>(prev_values[static_cast<size_t>(i - 1)].c_str()), true);
-
-    orig_Cvar_Set2(names[0], const_cast<char*>(newest), true);
-}
-
-std::string sanitize_loading_status_line(const char* msg) {
-    auto sanitize_loading_line = [](const char* text, size_t max_chars) -> std::string {
-        if (!text) return "";
-
-        std::string cleaned;
-        cleaned.reserve(96);
-
-        bool prev_space = false;
-        for (const unsigned char* p = reinterpret_cast<const unsigned char*>(text); *p; ++p) {
-            unsigned char c = *p;
-            if (c == '\r' || c == '\n' || c == '\t' || c < 32) c = ' ';
-            const bool is_space = (c == ' ');
-            if (is_space) {
-                if (prev_space) continue;
-                prev_space = true;
-            } else {
-                prev_space = false;
-            }
-            cleaned.push_back(static_cast<char>(c));
-        }
-
-        while (!cleaned.empty() && cleaned.front() == ' ')
-            cleaned.erase(cleaned.begin());
-        while (!cleaned.empty() && cleaned.back() == ' ')
-            cleaned.pop_back();
-
-        if (max_chars > 3 && cleaned.size() > max_chars)
-            cleaned = cleaned.substr(0, max_chars - 3) + "...";
-
-        return cleaned;
-    };
-
-    // Keep lines short enough to avoid wrap/merge artifacts in narrow loading panes.
-    constexpr size_t kMaxStatusChars = 36;
-    return sanitize_loading_line(msg, kMaxStatusChars);
-}
-
 } // namespace
 
 bool internal_menus_should_lock_loading_input(void) {
@@ -346,13 +317,11 @@ void internal_menus_PostCvarInit(void) {
     }
 
     orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_menu"), Cmd_SoFBuddy_Menu_f);
+    orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_apply_menu_hotkey"), Cmd_SoFBuddy_Apply_Menu_Hotkey_f);
     orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_apply_profile_comp"), Cmd_SoFBuddy_Apply_Profile_Comp_f);
     orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_apply_profile_visual"), Cmd_SoFBuddy_Apply_Profile_Visual_f);
 
-    if (orig_Cmd_ExecuteString) {
-        orig_Cmd_ExecuteString("bind F12 \"sofbuddy_menu sof_buddy\"");
-        PrintOut(PRINT_GOOD, "Internal menus: bound F12 to sofbuddy_menu sof_buddy\n");
-    }
+    apply_menu_hotkey_binding();
 }
 
 void Cmd_SoFBuddy_Menu_f(void) {
@@ -422,59 +391,9 @@ void internal_menus_OnVidChanged(void) {
     update_layout_cvars(true);
 }
 
-void loading_push_history(const char* map_name) {
-    if (!map_name || !map_name[0]) return;
-
-    std::string label(map_name);
-    std::replace(label.begin(), label.end(), '\\', '/');
-    if (label.compare(0, 5, "maps/") == 0)
-        label.erase(0, 5);
-    if (label.size() >= 4) {
-        const std::string tail = label.substr(label.size() - 4);
-        if (tail == ".bsp" || tail == ".BSP")
-            label.erase(label.size() - 4);
-    }
-
-    std::string cleaned = sanitize_loading_status_line(label.c_str());
-    if (cleaned.empty()) return;
-
-    if (orig_Cvar_Get) {
-        cvar_t* current = orig_Cvar_Get("_sofbuddy_loading_history_1", "", 0, nullptr);
-        if (current && current->string && cleaned == current->string)
-            return;
-    }
-
-    push_rolling_text_cvars("_sofbuddy_loading_history_", kInternalMenusLoadingHistoryRows, cleaned.c_str());
-}
-
 void loading_set_current(const char* map_name) {
     if (!map_name || !orig_Cvar_Set2) return;
     orig_Cvar_Set2(const_cast<char*>("_sofbuddy_loading_current"), const_cast<char*>(map_name), true);
-}
-
-void loading_push_status(const char* msg) {
-    std::string status = sanitize_loading_status_line(msg);
-    if (status.empty()) return;
-
-    if (orig_Cvar_Get) {
-        cvar_t* current = orig_Cvar_Get("_sofbuddy_loading_status_1", "", 0, nullptr);
-        if (current && current->string && status == current->string)
-            return;
-    }
-
-    PrintOut(PRINT_GOOD, "%s\n", status.c_str());
-    push_rolling_text_cvars("_sofbuddy_loading_status_", kInternalMenusLoadingStatusRows, status.c_str());
-}
-
-void loading_set_files(const char* const* filenames, int count) {
-    if (!orig_Cvar_Set2) return;
-
-    for (int i = 1; i <= kInternalMenusLoadingFileRows; ++i) {
-        char name[48];
-        std::snprintf(name, sizeof(name), "_sofbuddy_loading_file_%d", i);
-        const char* value = (filenames && i <= count && filenames[i - 1]) ? filenames[i - 1] : "";
-        orig_Cvar_Set2(name, const_cast<char*>(value), true);
-    }
 }
 
 #endif

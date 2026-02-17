@@ -1,26 +1,20 @@
 <stm>
 <strings menu_generic>
-<defaults noborder>
+<cursor 0>
 <include tints>
 <backdrop bgcolor black>
-<font type title tint lblue atint lblue>
+
+<font type title>
 <center>
 <hbr>
+<hbr>
+<font tint lblue atint lblue>
 "^MENU_GENERIC_LOADING^"<hbr>
 <hbr>
-<font type medium tint gray atint gray>
-<ctext _sofbuddy_loading_current atext "Map: "><hbr>
-<ctext _sofbuddy_loading_status_1 atext "Stage: " invisible><hbr>
-<hbr>
-
-<font type small tint lblue atint lblue>
-"Engine progress"<hbr>
 <hbar "misc/l_clip" "misc/l_bullet" cvar menu_loading><hbr>
-
-<font type small tint gray atint gray>
-<ctext cl_download_filename atext "Engine file: " invisible><hbr>
-<hbar "misc/l_clip" "misc/l_bullet" cvar cl_download_percent invisible><hbr>
-
+<hbr>
+<font type medium tint gray atint gray>
+<ctext _sofbuddy_loading_current atext "Map: " invisible><hbr>
 <ctext _sofbuddy_loading_progress atext "HTTP zip: " invisible><hbr>
 <hbar "misc/l_clip" "misc/l_bullet" cvar _sofbuddy_loading_progress invisible><hbr>
 </stm>

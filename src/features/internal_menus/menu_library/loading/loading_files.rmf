@@ -1,34 +1,21 @@
 <stm>
-<defaults noborder>
+<strings menu_dm_generic>
 <include tints>
+<defaults noborder>
+<backdrop bgcolor black>
 <key enter "disconnect;menuoff">
-<backdrop bgcolor 0xff1b1b1b>
-<font tint white atint white>
-<left>
+
+<font type title>
+<center>
 <hbr>
-"Download details"<hbr>
-<hr width 236 tint gray>
-<font tint gray atint gray>
-<ctext cl_downloading atext "State: " invisible><hbr>
-<ctext cl_download_filename atext "File: " invisible><hbr>
-<ctext cl_download_percent atext "Percent: " invisible><hbr>
-<ctext _sofbuddy_loading_progress atext "HTTP: " invisible><hbr>
+<hbr>
+<font tint lblue atint lblue>
+<ctext cl_downloading invisible><hbr>
+<ctext cl_download_filename invisible><hbr>
+<hbr>
+<hbar "misc/l_clip" "misc/l_bullet" cvar cl_download_percent invisible><hbr>
+<hbr>
 <hbr>
 <font tint hgreen atint hilitetext>
-<text "Disconnect Now" key mouse1 "disconnect;menuoff" border 16 1 gray><hbr>
-<font tint gray atint gray>
-"Press ENTER to disconnect and close menu."<hbr>
-<hbr>
-<font tint white atint white>
-"Zip content preview"<hbr>
-<hr width 236 tint gray>
-<font tint gray atint gray>
-<ctext _sofbuddy_loading_file_1 atext "" invisible><hbr>
-<ctext _sofbuddy_loading_file_2 atext "" invisible><hbr>
-<ctext _sofbuddy_loading_file_3 atext "" invisible><hbr>
-<ctext _sofbuddy_loading_file_4 atext "" invisible><hbr>
-<ctext _sofbuddy_loading_file_5 atext "" invisible><hbr>
-<ctext _sofbuddy_loading_file_6 atext "" invisible><hbr>
-<ctext _sofbuddy_loading_file_7 atext "" invisible><hbr>
-<ctext _sofbuddy_loading_file_8 atext "" invisible><hbr>
+<text "^MENU_DM_GENERIC_DISCONNECT^" key mouse1 "disconnect;menuoff" border 16 1 gray><hbr>
 </stm>

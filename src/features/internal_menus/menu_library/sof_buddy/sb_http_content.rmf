@@ -30,11 +30,11 @@
 <center>
 
 <font type title tint white atint white>
-<text "SOF BUDDY: HTTP / LOADING TIMELINE">
+<text "SOF BUDDY: HTTP / LOADING">
 <hr width 560 tint cyan>
 
 <font type small tint gray atint white>
-"Provider URLs are optional. Timeline and map history work independently."<hbr>
+"Provider URLs are optional. Leave empty providers disabled."<hbr>
 <hbr>
 
 <font type medium tint cyan atint cyan>
@@ -45,7 +45,7 @@
 <list "Off,Primary,Random,Rotate" match "0,1,2,3" cvar _sofbuddy_http_maps atext "HTTP map assist mode: " noshade tip "0=Off, 1=Primary only, 2=Random provider, 3=Rotate providers."><hbr>
 <list "Unlocked,Locked" match "0,1" cvar _sofbuddy_loading_lock_input atext "Loading menu input: " noshade tip "Locked blocks accidental game input while loading menu is visible."><hbr>
 <list "Off,On" match "0,1" cvar _sofbuddy_update_check_startup atext "Check updates on startup: " noshade tip "Runs a GitHub release check when SoF starts. Default Off."><hbr>
-<list "Hidden,Shown" match "0,1" cvar _sofbuddy_http_show_providers atext "Provider fields: " noshade tip "Hide to keep timeline visible; show only when editing provider URLs." key mouse1 "sofbuddy_menu sof_buddy/sb_http" key mouse2 "sofbuddy_menu sof_buddy/sb_http"><hbr>
+<list "Hidden,Shown" match "0,1" cvar _sofbuddy_http_show_providers atext "Provider fields: " noshade tip "Show only when editing provider URLs." key mouse1 "sofbuddy_menu sof_buddy/sb_http" key mouse2 "sofbuddy_menu sof_buddy/sb_http"><hbr>
 
 <font type small tint gray atint white>
 <ctext _sofbuddy_loading_current atext "Current map: " noshade><hbr>
@@ -53,45 +53,6 @@
 
 <cninclude _sofbuddy_http_show_providers sof_buddy/sb_http_providers_hidden>
 <cinclude _sofbuddy_http_show_providers sof_buddy/sb_http_providers_visible>
-
-<hbr>
-<font type medium tint cyan atint cyan>
-"HTTP Status Timeline"
-<hr width 520 tint gray>
-<font type small tint gray atint white>
-<ctext _sofbuddy_loading_status_1 atext "> " invisible noshade><hbr>
-<ctext _sofbuddy_loading_status_2 atext "  " invisible noshade><hbr>
-<ctext _sofbuddy_loading_status_3 atext "  " invisible noshade><hbr>
-<ctext _sofbuddy_loading_status_4 atext "  " invisible noshade><hbr>
-<ctext _sofbuddy_loading_status_5 atext "  " invisible noshade><hbr>
-<ctext _sofbuddy_loading_status_6 atext "  " invisible noshade><hbr>
-<ctext _sofbuddy_loading_status_7 atext "  " invisible noshade><hbr>
-<ctext _sofbuddy_loading_status_8 atext "  " invisible noshade><hbr>
-
-<hbr>
-<font type medium tint cyan atint cyan>
-"Recent Maps"
-<hr width 520 tint gray>
-<font type small tint gray atint white>
-<ctext _sofbuddy_loading_history_1 atext "> " invisible noshade><hbr>
-<ctext _sofbuddy_loading_history_2 atext "  " invisible noshade><hbr>
-<ctext _sofbuddy_loading_history_3 atext "  " invisible noshade><hbr>
-<ctext _sofbuddy_loading_history_4 atext "  " invisible noshade><hbr>
-<ctext _sofbuddy_loading_history_5 atext "  " invisible noshade><hbr>
-
-<hbr>
-<font type medium tint cyan atint cyan>
-"Zip File Preview"
-<hr width 520 tint gray>
-<font type small tint gray atint white>
-<ctext _sofbuddy_loading_file_1 atext "- " invisible noshade><hbr>
-<ctext _sofbuddy_loading_file_2 atext "- " invisible noshade><hbr>
-<ctext _sofbuddy_loading_file_3 atext "- " invisible noshade><hbr>
-<ctext _sofbuddy_loading_file_4 atext "- " invisible noshade><hbr>
-<ctext _sofbuddy_loading_file_5 atext "- " invisible noshade><hbr>
-<ctext _sofbuddy_loading_file_6 atext "- " invisible noshade><hbr>
-<ctext _sofbuddy_loading_file_7 atext "- " invisible noshade><hbr>
-<ctext _sofbuddy_loading_file_8 atext "- " invisible noshade><hbr>
 
 <hbr>
 <font type medium tint white atint white>

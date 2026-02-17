@@ -46,7 +46,7 @@
 
 <hbr>
 <font type medium tint white atint white>
-"Press F12 anytime to open this panel."
+<ctext _sofbuddy_menu_hotkey atext "Open key : " noshade><hbr>
 <hbr>
 "Use the top tabs to switch sections quickly."
 <hbr>

@@ -55,9 +55,6 @@ Pre-hook (`internal_menus_M_PushMenu_pre`):
 ### 5) Loading UI cvar updates
 Loading UI is fed by direct helpers:
 - `loading_set_current(...)`
-- `loading_push_status(...)`
-- `loading_set_files(...)`
-- `loading_push_history(...)`
 
 ### 6) Dynamic layout cvars (SoF Buddy tabs/centering)
 Created in `PostCvarInit` and recomputed on vid changes:
@@ -66,6 +63,7 @@ Created in `PostCvarInit` and recomputed on vid changes:
 - `_sofbuddy_sb_tabs_row1_prefix_px`, `_sofbuddy_sb_tabs_row2_prefix_px`
 - `_sofbuddy_sb_tabs_row1_prefix_rmf`, `_sofbuddy_sb_tabs_row2_prefix_rmf`
 - `_sofbuddy_loading_lock_input` (`CVAR_SOFBUDDY_ARCHIVE`, default `1`)
+- `_sofbuddy_menu_hotkey` (`CVAR_SOFBUDDY_ARCHIVE`, default `F12`)
 - `_sofbuddy_perf_profile` (`CVAR_SOFBUDDY_ARCHIVE`, default `0`, used by Perf T profile list)
 - Tunables: `_sofbuddy_sb_tabs_row1_content_px`, `_sofbuddy_sb_tabs_row2_content_px`, `_sofbuddy_sb_tabs_center_bias_px`, `_sofbuddy_sb_tabs_row1_bias_px`, `_sofbuddy_sb_tabs_row2_bias_px`
 
@@ -79,7 +77,7 @@ From `hooks/hooks.json`:
 
 From `callbacks/callbacks.json`:
 - `EarlyStartup` (Post): load embedded library and materialize RMFs to `user/menus`.
-- `PostCvarInit` (Post): register runtime cvars, register `sofbuddy_menu`, bind `F12` to `sofbuddy_menu sof_buddy`.
+- `PostCvarInit` (Post): register runtime cvars; register `sofbuddy_menu`, `sofbuddy_apply_menu_hotkey`, and Perf profile apply commands; bind `_sofbuddy_menu_hotkey` to `sofbuddy_menu sof_buddy`.
 
 Cross-feature integration:
 - `scaled_ui_base` calls `internal_menus_OnVidChanged()` from `vid_checkchanges_post()` so layout cvars stay in sync with current vid mode.
@@ -91,6 +89,7 @@ sofbuddy_menu loading
 sofbuddy_menu sof_buddy
 sofbuddy_menu sof_buddy/sb_perf
 sofbuddy_menu sof_buddy/sb_http
+sofbuddy_apply_menu_hotkey
 ```
 
 ## Menu library
@@ -99,8 +98,8 @@ Menus under `menu_library/<name>/` are embedded and written to `user/menus/<name
 
 | Menu | Purpose |
 |------|---------|
-| **loading** | Engine loading override pages (`loading`, `loading_header`, `loading_status`, `loading_files`, `loading_recent`). The header keeps classic engine progress (`menu_loading`, `cl_download_percent`) and adds HTTP zip progress (`_sofbuddy_loading_progress`). Status panel keeps an 8-line HTTP timeline plus recent maps; files panel shows download details and zip content preview. |
-| **sof_buddy** | Main SoF Buddy menu set with tabbed top navigation and per-page content files (`sb_*` + `sb_*_content`). Includes HTTP tab (`sb_http`) for timeline/queue visibility, loading-lock toggle, startup update-check toggle (`_sofbuddy_update_check_startup`), HTTP provider mode selection, and direct URL editing via RMF `<input>` fields for `_sofbuddy_http_maps_dl_*` / `_sofbuddy_http_maps_crc_*`; provider inputs can be collapsed via `_sofbuddy_http_show_providers`; includes startup update requester (`sb_update_prompt`) when a newer release is found; plus `sb_margin_backdrop.rmf` for margin/background composition. |
+| **loading** | Engine loading override pages (`loading`, `loading_header`, `loading_files`) kept slim: classic loading flow/progress, optional HTTP zip progress, and disconnect action. |
+| **sof_buddy** | Main SoF Buddy menu set with tabbed top navigation and per-page content files (`sb_*` + `sb_*_content`). Includes HTTP tab (`sb_http`) for loading-lock toggle, startup update-check toggle (`_sofbuddy_update_check_startup`), HTTP provider mode selection, and direct URL editing via RMF `<input>` fields for `_sofbuddy_http_maps_dl_*` / `_sofbuddy_http_maps_crc_*`; provider inputs can be collapsed via `_sofbuddy_http_show_providers`; includes startup update requester (`sb_update_prompt`) when a newer release is found; plus `sb_margin_backdrop.rmf` for margin/background composition. |
 
 ## Editing menus
 

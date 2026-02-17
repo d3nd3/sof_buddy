@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.5
+
+- Internal menus: loading screen RMF consolidated (loading_recent/loading_status removed; loading, loading_files, loading_header reworked); SoF Buddy tabs (main, input, HTTP content) layout tweaks; internal_menus/menu_data/README cleanup.
+- HTTP maps: code simplification and trim.
+
 ## v2.4
 
 - Internal menus: SoF Buddy in-game tabs (main, input, lighting, perf, scaling, social, texture, tweaks), loading screens, RMF layout rework.
