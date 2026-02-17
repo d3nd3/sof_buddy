@@ -5,21 +5,27 @@
 <key escape "sofbuddy_menu sof_buddy">
 <cursor 1>
 
+<vbar tint cyan>
+
 <defaults noborder tiptint black tipbtint white>
+<backdrop stretch "backdrop/mission_failed" bgcolor black>
 
 <normal>
 <font type medium tint white atint white>
-<blank 84 1><text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 12 1 cyan regular>
+<includecvar _sofbuddy_sb_tabs_row1_prefix_rmf>
+<text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 12 1 cyan regular>
 <blank 8 1><text "Perf" key mouse1 "sofbuddy_menu sof_buddy/sb_perf" border 12 1 cyan regular>
 <blank 8 1><text "Scaling" key mouse1 "sofbuddy_menu sof_buddy/sb_scaling" border 12 1 cyan regular>
 <blank 8 1><text "Input" key mouse1 "sofbuddy_menu sof_buddy/sb_input" border 12 1 cyan regular>
 <blank 8 1><text "Texture" key mouse1 "sofbuddy_menu sof_buddy/sb_texture" border 12 1 cyan regular>
 <blank 8 1><text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/sb_lighting" border 12 1 orange regular><hbr>
-<blank 116 1><text "Video T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_video" border 12 1 cyan regular>
+<includecvar _sofbuddy_sb_tabs_row2_prefix_rmf>
+<text "Video T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_video" border 12 1 cyan regular>
 <blank 8 1><text "Perf T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_perf" border 12 1 cyan regular>
 <blank 8 1><text "Other T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_other" border 12 1 cyan regular>
 <blank 8 1><text "Update" key mouse1 "sofbuddy_menu sof_buddy/sb_update_help" border 12 1 cyan regular>
-<blank 8 1><text "Social" key mouse1 "sofbuddy_menu sof_buddy/sb_social" border 12 1 cyan regular><hbr>
+<blank 8 1><text "Social" key mouse1 "sofbuddy_menu sof_buddy/sb_social" border 12 1 cyan regular>
+<blank 8 1><text "HTTP" key mouse1 "sofbuddy_menu sof_buddy/sb_http" border 12 1 cyan regular><hbr>
 <hr width 560 tint cyan>
 <center>
 
@@ -29,8 +35,11 @@
 
 <list "Off,On" cvari _sofbuddy_lighting_overbright atext "Overbright : " noshade><br>
 <list "Off,On" cvari _sofbuddy_shiny_spherical atext "Shiny Spherical : " noshade><br>
-<slider cvar _sofbuddy_lighting_cutoff min 1 max 256 step 1 atext "Lighting Cutoff : "><br>
-<slider cvar _sofbuddy_water_size min 16 max 256 step 1 atext "Water Size : "><br>
+<ctext _sofbuddy_lighting_cutoff atext "Lighting Cutoff : " noshade><br>
+<slider cvar _sofbuddy_lighting_cutoff min 1 max 256 step 1><br>
+<ctext _sofbuddy_water_size atext "Water Size : " noshade><br>
+<slider cvar _sofbuddy_water_size min 16 max 256 step 1><br>
+
 
 <hbr>
 "Lightblend Source"

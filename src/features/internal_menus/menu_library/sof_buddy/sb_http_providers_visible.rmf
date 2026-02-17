@@ -1,0 +1,34 @@
+<hbr>
+<font type medium tint cyan atint cyan>
+"HTTP Providers"
+<hr width 520 tint gray>
+<font type small tint gray atint white>
+"Edit URL fields directly. Changes apply immediately."<hbr>
+"Random/Rotate use only provider slots with both DL and CRC set."<hbr>
+<hbr>
+<font type small tint cyan atint cyan>
+"DL source #1"<hbr>
+<font type small tint white atint white>
+<input width 520 cvar _sofbuddy_http_maps_dl_1 border 8 1 gray maxchars 255 tip "Primary provider download base URL."><hbr>
+<font type small tint cyan atint cyan>
+"CRC source #1"<hbr>
+<font type small tint white atint white>
+<input width 520 cvar _sofbuddy_http_maps_crc_1 border 8 1 gray maxchars 255 tip "Primary provider CRC lookup base URL."><hbr>
+<hbr>
+<font type small tint cyan atint cyan>
+"DL source #2"<hbr>
+<font type small tint white atint white>
+<input width 520 cvar _sofbuddy_http_maps_dl_2 border 8 1 gray maxchars 255 tip "Secondary provider download base URL (used in Random/Rotate)."><hbr>
+<font type small tint cyan atint cyan>
+"CRC source #2"<hbr>
+<font type small tint white atint white>
+<input width 520 cvar _sofbuddy_http_maps_crc_2 border 8 1 gray maxchars 255 tip "Secondary provider CRC lookup base URL (pair with DL #2)."><hbr>
+<hbr>
+<font type small tint cyan atint cyan>
+"DL source #3"<hbr>
+<font type small tint white atint white>
+<input width 520 cvar _sofbuddy_http_maps_dl_3 border 8 1 gray maxchars 255 tip "Tertiary provider download base URL (used in Random/Rotate)."><hbr>
+<font type small tint cyan atint cyan>
+"CRC source #3"<hbr>
+<font type small tint white atint white>
+<input width 520 cvar _sofbuddy_http_maps_crc_3 border 8 1 gray maxchars 255 tip "Tertiary provider CRC lookup base URL (pair with DL #3)."><hbr>

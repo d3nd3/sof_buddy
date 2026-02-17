@@ -45,6 +45,7 @@ constexpr uintptr_t kHttpMaps_MapNamePtr = 0x201E9DCC;
 constexpr const char* kHttpMapsDefaultRepo = "https://raw.githubusercontent.com/plowsof/sof1maps/main";
 constexpr size_t kHttpMapsMaxMapNameLen = 256;
 constexpr DWORD kHttpMapsRequestTimeoutMs = 5000;
+constexpr DWORD kHttpMapsContinueWatchdogMs = 45000;
 
 struct FileData { uint32_t crc; std::string filename; };
 
@@ -53,6 +54,7 @@ enum class HttpMapsWorkerResult : int { None = 0, Success = 1, Failure = 2 };
 struct HttpMapsRuntimeState
 {
 	bool waiting = false; // Main-thread only.
+	DWORD waiting_started_ms = 0; // Main-thread only.
 	std::string pending_map_bsp;
 	detour_CL_Precache_f::tCL_Precache_f continue_callback = nullptr;
 	const char* deferred_continue_reason = nullptr; // Main-thread only.
@@ -67,7 +69,7 @@ struct HttpMapsRuntimeState
 	std::string cached_map_bsp;
 	std::atomic<bool> status_dirty{false};
 	std::atomic<bool> files_dirty{false};
-	std::string pending_status;
+	std::vector<std::string> pending_statuses;
 	std::vector<std::string> pending_files;
 	std::mutex ui_mutex;
 };
@@ -104,7 +106,7 @@ static int http_maps_mode(void)
 	if (!_sofbuddy_http_maps->string || _sofbuddy_http_maps->string[0] == '0') return 0;
 	int v = static_cast<int>(_sofbuddy_http_maps->value);
 	if (v < 0) v = 0;
-	if (v > 2) v = 2;
+	if (v > 3) v = 3;
 	return v;
 }
 
@@ -139,36 +141,67 @@ static std::string http_maps_get_cvar_url(cvar_t* c, const char* def)
 	return http_maps_trim_trailing_slash(std::string(c->string));
 }
 
-static std::string http_maps_select_dl_base(void)
+struct HttpMapsProviderSelection
 {
-	int mode = http_maps_mode();
-	if (mode == 0) return "";
-	std::string urls[3];
-	urls[0] = http_maps_get_cvar_url(_sofbuddy_http_maps_dl_1, kHttpMapsDefaultRepo);
-	urls[1] = http_maps_get_cvar_url(_sofbuddy_http_maps_dl_2, nullptr);
-	urls[2] = http_maps_get_cvar_url(_sofbuddy_http_maps_dl_3, nullptr);
-	if (mode == 1) return urls[0];
-	std::vector<std::string> valid;
-	for (int i = 0; i < 3; ++i) if (!urls[i].empty()) valid.push_back(urls[i]);
-	if (valid.empty()) return urls[0];
-	std::random_device rd;
-	return valid[rd() % valid.size()];
+	std::string dl_base;
+	std::string crc_base;
+	int provider_index = -1;
+	int mode = 0;
+};
+
+static const char* http_maps_mode_label(int mode)
+{
+	switch (mode) {
+	case 1: return "primary";
+	case 2: return "random";
+	case 3: return "rotate";
+	default: return "off";
+	}
 }
 
-static std::string http_maps_select_crc_base(void)
+static bool http_maps_select_provider(HttpMapsProviderSelection& out)
 {
-	int mode = http_maps_mode();
-	if (mode == 0) return "";
-	std::string urls[3];
-	urls[0] = http_maps_get_cvar_url(_sofbuddy_http_maps_crc_1, kHttpMapsDefaultRepo);
-	urls[1] = http_maps_get_cvar_url(_sofbuddy_http_maps_crc_2, nullptr);
-	urls[2] = http_maps_get_cvar_url(_sofbuddy_http_maps_crc_3, nullptr);
-	if (mode == 1) return urls[0];
-	std::vector<std::string> valid;
-	for (int i = 0; i < 3; ++i) if (!urls[i].empty()) valid.push_back(urls[i]);
-	if (valid.empty()) return urls[0];
-	std::random_device rd;
-	return valid[rd() % valid.size()];
+	out = HttpMapsProviderSelection();
+	const int mode = http_maps_mode();
+	out.mode = mode;
+	if (mode == 0) return false;
+
+	std::string dl_urls[3];
+	std::string crc_urls[3];
+	dl_urls[0] = http_maps_get_cvar_url(_sofbuddy_http_maps_dl_1, kHttpMapsDefaultRepo);
+	dl_urls[1] = http_maps_get_cvar_url(_sofbuddy_http_maps_dl_2, nullptr);
+	dl_urls[2] = http_maps_get_cvar_url(_sofbuddy_http_maps_dl_3, nullptr);
+	crc_urls[0] = http_maps_get_cvar_url(_sofbuddy_http_maps_crc_1, kHttpMapsDefaultRepo);
+	crc_urls[1] = http_maps_get_cvar_url(_sofbuddy_http_maps_crc_2, nullptr);
+	crc_urls[2] = http_maps_get_cvar_url(_sofbuddy_http_maps_crc_3, nullptr);
+
+	std::vector<int> valid_indices;
+	for (int i = 0; i < 3; ++i) {
+		if (!dl_urls[i].empty() && !crc_urls[i].empty())
+			valid_indices.push_back(i);
+	}
+	if (valid_indices.empty()) return false;
+
+	int chosen = valid_indices.front();
+	if (mode == 1) {
+		// Primary-only mode: prefer provider #1, fallback to first valid.
+		if (!dl_urls[0].empty() && !crc_urls[0].empty())
+			chosen = 0;
+	} else if (mode == 2) {
+		// Random mode across configured providers.
+		std::random_device rd;
+		chosen = valid_indices[rd() % valid_indices.size()];
+	} else if (mode == 3) {
+		// Rotate mode across configured providers.
+		static size_t s_rr_cursor = 0;
+		chosen = valid_indices[s_rr_cursor % valid_indices.size()];
+		++s_rr_cursor;
+	}
+
+	out.provider_index = chosen;
+	out.dl_base = dl_urls[chosen];
+	out.crc_base = crc_urls[chosen];
+	return true;
 }
 
 static void http_maps_ensure_parent_dirs(const std::string& file_path)
@@ -737,7 +770,7 @@ static std::string http_maps_loading_file_label(std::string path)
 		if (path[i] == '\\') path[i] = '/';
 	if (path.compare(0, 5, "maps/") == 0) path.erase(0, 5);
 
-	const size_t kMaxLabelLen = 46;
+	const size_t kMaxLabelLen = 34;
 	if (path.size() > kMaxLabelLen) {
 		const size_t keep = kMaxLabelLen - 3;
 		path = std::string("...") + path.substr(path.size() - keep);
@@ -751,7 +784,7 @@ static void http_maps_clear_pending_ui_updates(void)
 #if FEATURE_INTERNAL_MENUS
 	{
 		std::lock_guard<std::mutex> lock(g_http_maps_state.ui_mutex);
-		g_http_maps_state.pending_status.clear();
+		g_http_maps_state.pending_statuses.clear();
 		g_http_maps_state.pending_files.clear();
 	}
 	g_http_maps_state.status_dirty.store(false, std::memory_order_release);
@@ -767,7 +800,12 @@ static void http_maps_queue_status(uint32_t job_id, const char* status)
 
 	{
 		std::lock_guard<std::mutex> lock(g_http_maps_state.ui_mutex);
-		g_http_maps_state.pending_status = status;
+		std::vector<std::string>& queued = g_http_maps_state.pending_statuses;
+		if (!queued.empty() && queued.back() == status) return;
+		queued.emplace_back(status);
+		const size_t kMaxQueuedStatus = 16;
+		if (queued.size() > kMaxQueuedStatus)
+			queued.erase(queued.begin(), queued.begin() + (queued.size() - kMaxQueuedStatus));
 	}
 	g_http_maps_state.status_dirty.store(true, std::memory_order_release);
 #else
@@ -813,12 +851,14 @@ static void http_maps_flush_pending_ui_updates(void)
 {
 #if FEATURE_INTERNAL_MENUS
 	if (g_http_maps_state.status_dirty.exchange(false, std::memory_order_acq_rel)) {
-		std::string status;
+		std::vector<std::string> statuses;
 		{
 			std::lock_guard<std::mutex> lock(g_http_maps_state.ui_mutex);
-			status = g_http_maps_state.pending_status;
+			statuses.swap(g_http_maps_state.pending_statuses);
 		}
-		if (!status.empty()) loading_push_status(status.c_str());
+		for (size_t i = 0; i < statuses.size(); ++i) {
+			if (!statuses[i].empty()) loading_push_status(statuses[i].c_str());
+		}
 	}
 
 	if (g_http_maps_state.files_dirty.exchange(false, std::memory_order_acq_rel)) {
@@ -870,7 +910,7 @@ static void http_maps_clear_loading_cvars(void)
 	if (!orig_Cvar_Set2) return;
 #if FEATURE_INTERNAL_MENUS
 	orig_Cvar_Set2(const_cast<char*>("_sofbuddy_loading_progress"), const_cast<char*>("0"), true);
-	for (int i = 1; i <= 4; ++i) {
+	for (int i = 1; i <= kInternalMenusLoadingStatusRows; ++i) {
 		char name[48];
 		std::snprintf(name, sizeof(name), "_sofbuddy_loading_status_%d", i);
 		orig_Cvar_Set2(name, const_cast<char*>(""), true);
@@ -1044,16 +1084,18 @@ static void http_maps_download_worker(std::string map_bsp_path, std::string zip_
 			http_maps_queue_status(job_id, "HTTP assist disabled.");
 			break;
 		}
-		const std::string dl_base = http_maps_select_dl_base();
-		const std::string crc_base = http_maps_select_crc_base();
-
-		if (dl_base.empty() || crc_base.empty()) {
-			PrintOut(PRINT_BAD, "http_maps: Mode 0 or no valid URLs\n");
+		HttpMapsProviderSelection provider;
+		if (!http_maps_select_provider(provider)) {
+			PrintOut(PRINT_BAD, "http_maps: Mode off or no valid provider URLs\n");
 			http_maps_queue_status(job_id, "HTTP URLs are not configured.");
 			break;
 		}
+		char provider_status[96];
+		std::snprintf(provider_status, sizeof(provider_status), "Provider #%d selected (%s).",
+			provider.provider_index + 1, http_maps_mode_label(provider.mode));
+		http_maps_queue_status(job_id, provider_status);
 
-		const std::string crc_url = crc_base + "/" + zip_rel_path;
+		const std::string crc_url = provider.crc_base + "/" + zip_rel_path;
 		const std::string temp_zip_path = http_maps_temp_zip_path(map_bsp_path);
 
 		std::vector<FileData> zip_content;
@@ -1091,8 +1133,8 @@ static void http_maps_download_worker(std::string map_bsp_path, std::string zip_
 			break;
 		}
 
-		DeleteFileA(temp_zip_path.c_str());
-		const std::string dl_url = dl_base + "/" + zip_rel_path;
+			DeleteFileA(temp_zip_path.c_str());
+			const std::string dl_url = provider.dl_base + "/" + zip_rel_path;
 		http_maps_queue_status(job_id, "Downloading map zip...");
 		if (http_maps_download_zip_winhttp(dl_url, temp_zip_path, job_id)) {
 			http_maps_queue_status(job_id, "Extracting zip to user/...");
@@ -1133,6 +1175,7 @@ void create_http_maps_cvars(void)
 	_sofbuddy_http_maps_crc_1 = orig_Cvar_Get("_sofbuddy_http_maps_crc_1", kHttpMapsDefaultRepo, CVAR_SOFBUDDY_ARCHIVE, nullptr);
 	_sofbuddy_http_maps_crc_2 = orig_Cvar_Get("_sofbuddy_http_maps_crc_2", "", CVAR_SOFBUDDY_ARCHIVE, nullptr);
 	_sofbuddy_http_maps_crc_3 = orig_Cvar_Get("_sofbuddy_http_maps_crc_3", "", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+	orig_Cvar_Get("_sofbuddy_http_show_providers", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
 	g_http_maps_state.cached_map_bsp.clear();
 	http_maps_clear_loading_cvars();
 }
@@ -1171,6 +1214,7 @@ void http_maps_try_begin_precache(detour_CL_Precache_f::tCL_Precache_f original)
 
 	if (g_http_maps_state.waiting && g_http_maps_state.pending_map_bsp == map_bsp_path) {
 		PrintOut(PRINT_LOG, "http_maps: Already waiting on %s\n", map_bsp_path.c_str());
+		http_maps_run_deferred_continue_if_pending();
 		return;
 	}
 	if (g_http_maps_state.waiting) {
@@ -1184,6 +1228,7 @@ void http_maps_try_begin_precache(detour_CL_Precache_f::tCL_Precache_f original)
 	g_http_maps_state.worker_running.store(true, std::memory_order_release);
 
 	g_http_maps_state.waiting = true;
+	g_http_maps_state.waiting_started_ms = GetTickCount();
 	g_http_maps_state.pending_map_bsp = map_bsp_path;
 	g_http_maps_state.continue_callback = original;
 	g_http_maps_state.deferred_continue_reason = nullptr;
@@ -1211,6 +1256,7 @@ void http_maps_try_begin_precache(detour_CL_Precache_f::tCL_Precache_f original)
 		if (g_http_maps_state.active_job_id.load(std::memory_order_acquire) == job_id)
 			g_http_maps_state.active_job_id.store(0, std::memory_order_release);
 		g_http_maps_state.waiting = false;
+		g_http_maps_state.waiting_started_ms = 0;
 		g_http_maps_state.pending_map_bsp.clear();
 		g_http_maps_state.continue_callback = nullptr;
 		g_http_maps_state.deferred_continue_reason = nullptr;
@@ -1232,7 +1278,22 @@ void http_maps_pump(void)
 	http_maps_flush_pending_ui_updates();
 
 	if (!g_http_maps_state.waiting) return;
-	if (g_http_maps_state.worker_running.load(std::memory_order_acquire)) return;
+	if (g_http_maps_state.waiting_started_ms != 0) {
+		const DWORD elapsed = GetTickCount() - g_http_maps_state.waiting_started_ms;
+		if (elapsed >= kHttpMapsContinueWatchdogMs && !g_http_maps_state.deferred_continue_reason) {
+			PrintOut(PRINT_BAD, "http_maps: Wait timed out after %lu ms, forcing engine precache continue\n",
+				static_cast<unsigned long>(elapsed));
+			g_http_maps_state.deferred_continue_reason = "http wait watchdog timeout";
+#if FEATURE_INTERNAL_MENUS
+			loading_push_status("HTTP assist timed out. Falling back to engine.");
+#endif
+		}
+	}
+
+	if (g_http_maps_state.worker_running.load(std::memory_order_acquire)) {
+		http_maps_run_deferred_continue_if_pending();
+		return;
+	}
 
 	const HttpMapsWorkerResult result = static_cast<HttpMapsWorkerResult>(
 		g_http_maps_state.worker_result.exchange(static_cast<int>(HttpMapsWorkerResult::None), std::memory_order_acq_rel)
@@ -1240,7 +1301,7 @@ void http_maps_pump(void)
 	if (result == HttpMapsWorkerResult::Success) {
 		g_http_maps_state.deferred_continue_reason = "http download success";
 #if FEATURE_INTERNAL_MENUS
-		loading_push_status("HTTP map ready. Continuing precache.");
+		loading_push_status("Continuing precache.");
 #endif
 	} else if (result == HttpMapsWorkerResult::Failure) {
 		g_http_maps_state.deferred_continue_reason = "http download failed";
@@ -1253,6 +1314,8 @@ void http_maps_pump(void)
 		loading_push_status("HTTP worker ended unexpectedly.");
 #endif
 	}
+
+	http_maps_run_deferred_continue_if_pending();
 }
 
 static void http_maps_continue_precache(const char* reason)
@@ -1265,13 +1328,13 @@ static void http_maps_continue_precache(const char* reason)
 	}
 #endif
 	g_http_maps_state.waiting = false;
+	g_http_maps_state.waiting_started_ms = 0;
 	g_http_maps_state.pending_map_bsp.clear();
 	g_http_maps_state.continue_callback = nullptr;
 	g_http_maps_state.deferred_continue_reason = nullptr;
 	g_http_maps_state.active_job_id.store(0, std::memory_order_release);
 	g_http_maps_state.worker_running.store(false, std::memory_order_release);
 	g_http_maps_state.worker_result.store(static_cast<int>(HttpMapsWorkerResult::None), std::memory_order_release);
-	http_maps_clear_loading_cvars();
 	g_http_maps_state.loading_ui_active = false;
 	g_http_maps_state.loading_ui_map.clear();
 	g_http_maps_state.progress_dirty.store(false, std::memory_order_release);

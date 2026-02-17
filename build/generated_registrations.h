@@ -42,9 +42,9 @@ extern void http_maps_qcommon_frame_pre_callback(int& msec);
 extern void in_menumouse_callback(void* cvar1, void* cvar2);
 extern void in_mousemove_callback(void* cmd);
 extern void internal_menus_EarlyStartup();
-extern void internal_menus_M_PushMenu_post(char const* menu_file, char const* parentFrame, bool lock_input);
 extern void internal_menus_M_PushMenu_pre(char const*& menu_file, char const*& parentFrame, bool& lock_input);
 extern void internal_menus_PostCvarInit();
+extern void internal_menus_Reconnect_f_pre();
 extern void lightblend_PostCvarInit();
 extern void lightblend_RefDllLoaded(char const* name);
 extern void mediaTimers_EarlyStartup();
@@ -221,15 +221,10 @@ inline void RegisterAllFeatureHooks() {
         "internal_menus", "internal_menus_M_PushMenu_pre",
         [](char const*& menu_file, char const*& parentFrame, bool& lock_input) { internal_menus_M_PushMenu_pre(menu_file, parentFrame, lock_input); },
         90);
-    {
-        auto& mgr = detour_M_PushMenu::GetManager();
-        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] M_PushMenu manager at 0x%p\n", &mgr);
-        mgr.RegisterPostCallback(
-            "internal_menus", "internal_menus_M_PushMenu_post",
-            [](char const* menu_file, char const* parentFrame, bool lock_input) { internal_menus_M_PushMenu_post(menu_file, parentFrame, lock_input); },
-            90);
-        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] M_PushMenu post callbacks: %zu\n", mgr.GetPostCallbackCount());
-    }
+    detour_Reconnect_f::GetManager().RegisterPreCallback(
+        "internal_menus", "internal_menus_Reconnect_f_pre",
+        []() { internal_menus_Reconnect_f_pre(); },
+        90);
     {
         auto& mgr = detour_SV_ShutdownGameProgs::GetManager();
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] SV_ShutdownGameProgs manager at 0x%p\n", &mgr);

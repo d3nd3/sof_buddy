@@ -30,6 +30,16 @@
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/core/simple_init.cpp"
     },
     {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/core/sofbuddy_cfg.o src/core/sofbuddy_cfg.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/core/sofbuddy_cfg.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/core/update_command.o src/core/update_command.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/core/update_command.cpp"
+    },
+    {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/core/wsock_entry.o src/core/wsock_entry.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/core/wsock_entry.cpp"
@@ -100,6 +110,11 @@
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/http_maps/callbacks/http_maps_postcvar.cpp"
     },
     {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/http_maps/hooks/cl_parseconfigstring_post.o src/features/http_maps/hooks/cl_parseconfigstring_post.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/http_maps/hooks/cl_parseconfigstring_post.cpp"
+    },
+    {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/http_maps/hooks/cl_precache_override.o src/features/http_maps/hooks/cl_precache_override.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/http_maps/hooks/cl_precache_override.cpp"
@@ -118,6 +133,11 @@
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/http_maps/http_maps.o src/features/http_maps/http_maps.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/http_maps/http_maps.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/internal_menus/hooks/connect_reconnect_pre.o src/features/internal_menus/hooks/connect_reconnect_pre.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/internal_menus/hooks/connect_reconnect_pre.cpp"
     },
     {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/internal_menus/hooks/m_pushmenu_post.o src/features/internal_menus/hooks/m_pushmenu_post.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",

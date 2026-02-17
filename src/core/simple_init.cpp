@@ -89,6 +89,7 @@ qboolean cbuf_addlatecommands_override_callback(detour_Cbuf_AddLateCommands::tCb
 
     PrintOut(PRINT_LOG, "Registering updater state cvars...\n");
     sofbuddy_update_init();
+    sofbuddy_update_maybe_check_startup();
     PrintOut(PRINT_LOG, "Updater state cvars ready\n");
     
     DISPATCH_SHARED_HOOK(PostCvarInit, Post);

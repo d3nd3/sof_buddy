@@ -1,15 +1,16 @@
 <stm>
+<strings menu_generic>
 <cursor 0>
 <defaults noborder>
 <include tints>
-<tint lblue 0xffff8080>
-<tint gray 0xff808080>
-<tint black 0xff000000>
-<tint vbargray 0xff606060>
+<tint panelbg 0xff141414>
+<tint panelalt 0xff1b1b1b>
+<tint panelline 0xff606060>
+<set scr_menuoverlay 1>
+<set menu_loading 0.0>
 <backdrop bgcolor black>
 
-<frame header 0 88 page loading_header border 1 1 lblue backfill black>
-<frame status 0 86 page loading_status border 1 1 gray backfill black>
-<frame files 0 126 page loading_files border 1 1 gray backfill black>
-<frame recent 0 0 page loading_recent border 1 1 gray backfill black>
+<frame header 0 178 page loading/loading_header border 1 1 lblue backfill black>
+<frame status 372 0 page loading/loading_status border 1 1 panelline backfill panelbg>
+<frame files 0 0 page loading/loading_files border 1 1 panelline backfill panelalt>
 </stm>

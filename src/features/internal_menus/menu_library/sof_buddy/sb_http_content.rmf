@@ -1,0 +1,100 @@
+<stm>
+<include tints>
+<tint normaltext 0xffffffff>
+<tint hilitetext 0xffffffff>
+<key escape "sofbuddy_menu sof_buddy">
+<cursor 1>
+
+<vbar tint cyan>
+
+<defaults noborder tiptint black tipbtint white>
+<backdrop stretch "backdrop/mission_failed" bgcolor black>
+
+<normal>
+<font type medium tint white atint white>
+<includecvar _sofbuddy_sb_tabs_row1_prefix_rmf>
+<text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 12 1 cyan regular>
+<blank 8 1><text "Perf" key mouse1 "sofbuddy_menu sof_buddy/sb_perf" border 12 1 cyan regular>
+<blank 8 1><text "Scaling" key mouse1 "sofbuddy_menu sof_buddy/sb_scaling" border 12 1 cyan regular>
+<blank 8 1><text "Input" key mouse1 "sofbuddy_menu sof_buddy/sb_input" border 12 1 cyan regular>
+<blank 8 1><text "Texture" key mouse1 "sofbuddy_menu sof_buddy/sb_texture" border 12 1 cyan regular>
+<blank 8 1><text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/sb_lighting" border 12 1 cyan regular><hbr>
+<includecvar _sofbuddy_sb_tabs_row2_prefix_rmf>
+<text "Video T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_video" border 12 1 cyan regular>
+<blank 8 1><text "Perf T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_perf" border 12 1 cyan regular>
+<blank 8 1><text "Other T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_other" border 12 1 cyan regular>
+<blank 8 1><text "Update" key mouse1 "sofbuddy_menu sof_buddy/sb_update_help" border 12 1 cyan regular>
+<blank 8 1><text "Social" key mouse1 "sofbuddy_menu sof_buddy/sb_social" border 12 1 cyan regular>
+<blank 8 1><text "HTTP" key mouse1 "sofbuddy_menu sof_buddy/sb_http" border 12 1 orange regular><hbr>
+<hr width 560 tint cyan>
+<center>
+
+<font type title tint white atint white>
+<text "SOF BUDDY: HTTP / LOADING TIMELINE">
+<hr width 560 tint cyan>
+
+<font type small tint gray atint white>
+"Provider URLs are optional. Timeline and map history work independently."<hbr>
+<hbr>
+
+<font type medium tint cyan atint cyan>
+"Session Controls"
+<hr width 520 tint gray>
+
+<font type medium tint white atint white>
+<list "Off,Primary,Random,Rotate" match "0,1,2,3" cvar _sofbuddy_http_maps atext "HTTP map assist mode: " noshade tip "0=Off, 1=Primary only, 2=Random provider, 3=Rotate providers."><hbr>
+<list "Unlocked,Locked" match "0,1" cvar _sofbuddy_loading_lock_input atext "Loading menu input: " noshade tip "Locked blocks accidental game input while loading menu is visible."><hbr>
+<list "Off,On" match "0,1" cvar _sofbuddy_update_check_startup atext "Check updates on startup: " noshade tip "Runs a GitHub release check when SoF starts. Default Off."><hbr>
+<list "Hidden,Shown" match "0,1" cvar _sofbuddy_http_show_providers atext "Provider fields: " noshade tip "Hide to keep timeline visible; show only when editing provider URLs." key mouse1 "sofbuddy_menu sof_buddy/sb_http" key mouse2 "sofbuddy_menu sof_buddy/sb_http"><hbr>
+
+<font type small tint gray atint white>
+<ctext _sofbuddy_loading_current atext "Current map: " noshade><hbr>
+<ctext _sofbuddy_loading_progress atext "HTTP zip progress: " noshade><hbr>
+
+<cninclude _sofbuddy_http_show_providers sof_buddy/sb_http_providers_hidden>
+<cinclude _sofbuddy_http_show_providers sof_buddy/sb_http_providers_visible>
+
+<hbr>
+<font type medium tint cyan atint cyan>
+"HTTP Status Timeline"
+<hr width 520 tint gray>
+<font type small tint gray atint white>
+<ctext _sofbuddy_loading_status_1 atext "> " invisible noshade><hbr>
+<ctext _sofbuddy_loading_status_2 atext "  " invisible noshade><hbr>
+<ctext _sofbuddy_loading_status_3 atext "  " invisible noshade><hbr>
+<ctext _sofbuddy_loading_status_4 atext "  " invisible noshade><hbr>
+<ctext _sofbuddy_loading_status_5 atext "  " invisible noshade><hbr>
+<ctext _sofbuddy_loading_status_6 atext "  " invisible noshade><hbr>
+<ctext _sofbuddy_loading_status_7 atext "  " invisible noshade><hbr>
+<ctext _sofbuddy_loading_status_8 atext "  " invisible noshade><hbr>
+
+<hbr>
+<font type medium tint cyan atint cyan>
+"Recent Maps"
+<hr width 520 tint gray>
+<font type small tint gray atint white>
+<ctext _sofbuddy_loading_history_1 atext "> " invisible noshade><hbr>
+<ctext _sofbuddy_loading_history_2 atext "  " invisible noshade><hbr>
+<ctext _sofbuddy_loading_history_3 atext "  " invisible noshade><hbr>
+<ctext _sofbuddy_loading_history_4 atext "  " invisible noshade><hbr>
+<ctext _sofbuddy_loading_history_5 atext "  " invisible noshade><hbr>
+
+<hbr>
+<font type medium tint cyan atint cyan>
+"Zip File Preview"
+<hr width 520 tint gray>
+<font type small tint gray atint white>
+<ctext _sofbuddy_loading_file_1 atext "- " invisible noshade><hbr>
+<ctext _sofbuddy_loading_file_2 atext "- " invisible noshade><hbr>
+<ctext _sofbuddy_loading_file_3 atext "- " invisible noshade><hbr>
+<ctext _sofbuddy_loading_file_4 atext "- " invisible noshade><hbr>
+<ctext _sofbuddy_loading_file_5 atext "- " invisible noshade><hbr>
+<ctext _sofbuddy_loading_file_6 atext "- " invisible noshade><hbr>
+<ctext _sofbuddy_loading_file_7 atext "- " invisible noshade><hbr>
+<ctext _sofbuddy_loading_file_8 atext "- " invisible noshade><hbr>
+
+<hbr>
+<font type medium tint white atint white>
+<text "Open Loading Screen" key mouse1 "sofbuddy_menu loading" border 16 1 cyan regular>
+<text "Close" key mouse1 "popmenu" border 16 1 cyan regular>
+</stm>

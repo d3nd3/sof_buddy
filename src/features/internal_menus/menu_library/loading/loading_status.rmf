@@ -1,15 +1,30 @@
 <stm>
 <defaults noborder>
-<tint black 0xff000000>
-<tint gray 0xff808080>
-<tint vbargray 0xff606060>
-<backdrop bgcolor black>
+<include tints>
+<backdrop bgcolor 0xff141414>
+<font tint white atint white>
+<left>
+<hbr>
+"HTTP status timeline"<hbr>
+<hr width 336 tint gray>
+<font tint lblue atint lblue>
+<ctext _sofbuddy_loading_status_1 atext "> " invisible><hbr>
 <font tint gray atint gray>
-<center>
-<vbar tint vbargray>
-"HTTP status:"<hbr>
-<ctext _sofbuddy_loading_status_1 atext "" invisible><hbr>
-<ctext _sofbuddy_loading_status_2 atext "" invisible><hbr>
-<ctext _sofbuddy_loading_status_3 atext "" invisible><hbr>
-<ctext _sofbuddy_loading_status_4 atext "" invisible><hbr>
+<ctext _sofbuddy_loading_status_2 atext "  " invisible><hbr>
+<ctext _sofbuddy_loading_status_3 atext "  " invisible><hbr>
+<ctext _sofbuddy_loading_status_4 atext "  " invisible><hbr>
+<ctext _sofbuddy_loading_status_5 atext "  " invisible><hbr>
+<ctext _sofbuddy_loading_status_6 atext "  " invisible><hbr>
+<ctext _sofbuddy_loading_status_7 atext "  " invisible><hbr>
+<ctext _sofbuddy_loading_status_8 atext "  " invisible><hbr>
+<hbr>
+<font tint white atint white>
+"Recent maps"<hbr>
+<hr width 336 tint gray>
+<font tint gray atint gray>
+<ctext _sofbuddy_loading_history_1 atext "> " invisible><hbr>
+<ctext _sofbuddy_loading_history_2 atext "  " invisible><hbr>
+<ctext _sofbuddy_loading_history_3 atext "  " invisible><hbr>
+<ctext _sofbuddy_loading_history_4 atext "  " invisible><hbr>
+<ctext _sofbuddy_loading_history_5 atext "  " invisible><hbr>
 </stm>

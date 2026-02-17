@@ -223,6 +223,33 @@ namespace {
     static AutoDetour_CL_Precache_f g_AutoDetour_CL_Precache_f;
 }
 
+namespace detour_Reconnect_f {
+    using tReconnect_f = void(__cdecl*)();
+    extern tReconnect_f oReconnect_f;
+    using ManagerType = TypedSharedHookManager<void>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkReconnect_f();
+}
+
+namespace {
+    struct AutoDetour_Reconnect_f {
+        AutoDetour_Reconnect_f() {
+            using namespace detour_Reconnect_f;
+            if (!GetDetourSystem().IsDetourRegistered("Reconnect_f")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x0000BCC0),
+                    reinterpret_cast<void*>(detour_Reconnect_f::hkReconnect_f),
+                    reinterpret_cast<void**>(&detour_Reconnect_f::oReconnect_f),
+                    "Reconnect_f",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(5));
+            }
+        }
+    };
+    static AutoDetour_Reconnect_f g_AutoDetour_Reconnect_f;
+}
+
 namespace detour_CL_ParseConfigString {
     using tCL_ParseConfigString = void(__cdecl*)();
     extern tCL_ParseConfigString oCL_ParseConfigString;
@@ -243,7 +270,7 @@ namespace {
                     reinterpret_cast<void**>(&detour_CL_ParseConfigString::oCL_ParseConfigString),
                     "CL_ParseConfigString",
                     DetourModule::SofExe,
-                    static_cast<size_t>(0));
+                    static_cast<size_t>(11));
             }
         }
     };

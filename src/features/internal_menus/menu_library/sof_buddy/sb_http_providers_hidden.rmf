@@ -1,0 +1,7 @@
+<hbr>
+<font type medium tint cyan atint cyan>
+"HTTP Providers"
+<hr width 520 tint gray>
+<font type small tint gray atint white>
+"Provider fields are hidden. Set 'Provider fields' to Shown to edit URLs."<hbr>
+"Random/Rotate only use provider slots with both DL and CRC set."<hbr>

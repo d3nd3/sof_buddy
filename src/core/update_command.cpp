@@ -1,4 +1,5 @@
 #include "update_command.h"
+#include "feature_config.h"
 
 #include "sof_compat.h"
 #include "util.h"
@@ -27,6 +28,7 @@ constexpr const char* kCvarUpdateStatus = "_sofbuddy_update_status";
 constexpr const char* kCvarUpdateLatest = "_sofbuddy_update_latest";
 constexpr const char* kCvarUpdateDownloadPath = "_sofbuddy_update_download_path";
 constexpr const char* kCvarUpdateCheckedUtc = "_sofbuddy_update_checked_utc";
+constexpr const char* kCvarUpdateCheckStartup = "_sofbuddy_update_check_startup";
 constexpr const char* kCvarOpenUrlStatus = "_sofbuddy_openurl_status";
 constexpr const char* kCvarOpenUrlLast = "_sofbuddy_openurl_last";
 
@@ -656,42 +658,16 @@ void print_update_usage() {
     PrintOut(PRINT_GOOD, "  sofbuddy_update download force (always download latest zip)\n");
 }
 
-} // namespace
-
-void sofbuddy_update_init(void) {
-    if (!orig_Cvar_Get) return;
-    orig_Cvar_Get(kCvarUpdateStatus, "idle", 0, nullptr);
-    orig_Cvar_Get(kCvarUpdateLatest, "", 0, nullptr);
-    orig_Cvar_Get(kCvarUpdateDownloadPath, "", 0, nullptr);
-    orig_Cvar_Get(kCvarUpdateCheckedUtc, "", 0, nullptr);
-    orig_Cvar_Get(kCvarOpenUrlStatus, "idle", 0, nullptr);
-    orig_Cvar_Get(kCvarOpenUrlLast, "", 0, nullptr);
+void maybe_open_startup_update_prompt() {
+#if FEATURE_INTERNAL_MENUS
+    if (!orig_Cmd_ExecuteString) return;
+    orig_Cmd_ExecuteString("menu sof_buddy/sb_update_prompt");
+#endif
 }
 
-void Cmd_SoFBuddy_Update_f(void) {
-    if (!orig_Cmd_Argc || !orig_Cmd_Argv) return;
+} // namespace
 
-    bool do_download = false;
-    bool force_download = false;
-
-    int argc = orig_Cmd_Argc();
-    for (int i = 1; i < argc; ++i) {
-        const char* arg = orig_Cmd_Argv(i);
-        if (!arg || !arg[0]) continue;
-        if (!std::strcmp(arg, "download") || !std::strcmp(arg, "install")) {
-            do_download = true;
-        } else if (!std::strcmp(arg, "force")) {
-            force_download = true;
-        } else if (!std::strcmp(arg, "help") || !std::strcmp(arg, "-h") || !std::strcmp(arg, "--help")) {
-            print_update_usage();
-            return;
-        } else {
-            PrintOut(PRINT_BAD, "Unknown sofbuddy_update argument: %s\n", arg);
-            print_update_usage();
-            return;
-        }
-    }
-
+static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool startup_check) {
     set_update_status("checking github releases");
     set_update_cvar(kCvarUpdateCheckedUtc, current_utc_timestamp());
 
@@ -710,18 +686,31 @@ void Cmd_SoFBuddy_Update_f(void) {
     if (cmp < 0) {
         std::string status = "update available (" + latest.tag_name + ")";
         set_update_status(status);
-        PrintOut(PRINT_GOOD, "Update available: %s -> %s\n", SOFBUDDY_VERSION, latest.tag_name.c_str());
+        if (startup_check)
+            PrintOut(PRINT_GOOD, "Startup check: update available: %s -> %s\n", SOFBUDDY_VERSION, latest.tag_name.c_str());
+        else
+            PrintOut(PRINT_GOOD, "Update available: %s -> %s\n", SOFBUDDY_VERSION, latest.tag_name.c_str());
         if (!latest.html_url.empty())
             PrintOut(PRINT_GOOD, "Release page: %s\n", latest.html_url.c_str());
         else
             PrintOut(PRINT_GOOD, "Release page: %s\n", kUpdateReleasesUrl);
+        if (startup_check)
+            maybe_open_startup_update_prompt();
     } else if (cmp == 0) {
         set_update_status("up to date");
-        PrintOut(PRINT_GOOD, "SoF Buddy is up to date (%s).\n", SOFBUDDY_VERSION);
+        if (startup_check)
+            PrintOut(PRINT_GOOD, "Startup check: SoF Buddy is up to date (%s).\n", SOFBUDDY_VERSION);
+        else
+            PrintOut(PRINT_GOOD, "SoF Buddy is up to date (%s).\n", SOFBUDDY_VERSION);
     } else {
         set_update_status("local build is newer");
-        PrintOut(PRINT_GOOD, "Local build (%s) is newer than latest tagged release (%s).\n",
-            SOFBUDDY_VERSION, latest.tag_name.c_str());
+        if (startup_check) {
+            PrintOut(PRINT_GOOD, "Startup check: local build (%s) is newer than latest tagged release (%s).\n",
+                SOFBUDDY_VERSION, latest.tag_name.c_str());
+        } else {
+            PrintOut(PRINT_GOOD, "Local build (%s) is newer than latest tagged release (%s).\n",
+                SOFBUDDY_VERSION, latest.tag_name.c_str());
+        }
     }
 
     if (!do_download) {
@@ -763,6 +752,57 @@ void Cmd_SoFBuddy_Update_f(void) {
     PrintOut(PRINT_GOOD, "Close SoF completely before replacing sof_buddy.dll (it is currently loaded).\n");
     PrintOut(PRINT_GOOD, "Then run sof_buddy/update_from_zip.cmd (Windows) or sof_buddy/update_from_zip.sh (Linux/Wine).\n");
     PrintOut(PRINT_GOOD, "If you prefer manual install: extract that zip into your SoF root and relaunch normally.\n");
+}
+
+void sofbuddy_update_init(void) {
+    if (!orig_Cvar_Get) return;
+    orig_Cvar_Get(kCvarUpdateStatus, "idle", 0, nullptr);
+    orig_Cvar_Get(kCvarUpdateLatest, "", 0, nullptr);
+    orig_Cvar_Get(kCvarUpdateDownloadPath, "", 0, nullptr);
+    orig_Cvar_Get(kCvarUpdateCheckedUtc, "", 0, nullptr);
+    orig_Cvar_Get(kCvarUpdateCheckStartup, "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    orig_Cvar_Get(kCvarOpenUrlStatus, "idle", 0, nullptr);
+    orig_Cvar_Get(kCvarOpenUrlLast, "", 0, nullptr);
+}
+
+void sofbuddy_update_maybe_check_startup(void) {
+    static bool s_checked_startup = false;
+    if (s_checked_startup) return;
+    s_checked_startup = true;
+
+    if (!orig_Cvar_Get) return;
+    cvar_t* startup_check = orig_Cvar_Get(kCvarUpdateCheckStartup, "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    if (!startup_check || startup_check->value == 0.0f) return;
+
+    PrintOut(PRINT_GOOD, "sofbuddy_update: startup check is enabled.\n");
+    sofbuddy_run_update_flow(false, false, true);
+}
+
+void Cmd_SoFBuddy_Update_f(void) {
+    if (!orig_Cmd_Argc || !orig_Cmd_Argv) return;
+
+    bool do_download = false;
+    bool force_download = false;
+
+    int argc = orig_Cmd_Argc();
+    for (int i = 1; i < argc; ++i) {
+        const char* arg = orig_Cmd_Argv(i);
+        if (!arg || !arg[0]) continue;
+        if (!std::strcmp(arg, "download") || !std::strcmp(arg, "install")) {
+            do_download = true;
+        } else if (!std::strcmp(arg, "force")) {
+            force_download = true;
+        } else if (!std::strcmp(arg, "help") || !std::strcmp(arg, "-h") || !std::strcmp(arg, "--help")) {
+            print_update_usage();
+            return;
+        } else {
+            PrintOut(PRINT_BAD, "Unknown sofbuddy_update argument: %s\n", arg);
+            print_update_usage();
+            return;
+        }
+    }
+
+    sofbuddy_run_update_flow(do_download, force_download, false);
 }
 
 static bool open_url(const std::string& url, std::string& error) {

@@ -9,6 +9,6 @@
 
 <frame root 640 0>
 <frame left_spacer 40 0 cut root page sof_buddy/sb_margin_backdrop>
-<frame center_panel 560 0 cut root page sof_buddy/sb_input_content>
+<frame center_panel 560 0 cut root page sof_buddy/sb_http_content>
 <frame right_spacer 40 0 cut root page sof_buddy/sb_margin_backdrop>
 </stm>

@@ -1,0 +1,6 @@
+<stm resize 500 260>
+<include tints>
+
+<frame main 500 260 border 40 1 gray backfill smokey>
+<frame alert 0 0 page sof_buddy/sb_update_prompt_content cut main>
+</stm>

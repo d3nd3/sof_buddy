@@ -1,13 +1,28 @@
 <stm>
 <defaults noborder>
-<tint black 0xff000000>
-<tint gray 0xff808080>
-<tint vbargray 0xff606060>
-<backdrop bgcolor black>
+<include tints>
+<key enter "disconnect;menuoff">
+<backdrop bgcolor 0xff1b1b1b>
+<font tint white atint white>
+<left>
+<hbr>
+"Download details"<hbr>
+<hr width 236 tint gray>
 <font tint gray atint gray>
-<center>
-<vbar tint vbargray>
-"Zip file list:"<hbr>
+<ctext cl_downloading atext "State: " invisible><hbr>
+<ctext cl_download_filename atext "File: " invisible><hbr>
+<ctext cl_download_percent atext "Percent: " invisible><hbr>
+<ctext _sofbuddy_loading_progress atext "HTTP: " invisible><hbr>
+<hbr>
+<font tint hgreen atint hilitetext>
+<text "Disconnect Now" key mouse1 "disconnect;menuoff" border 16 1 gray><hbr>
+<font tint gray atint gray>
+"Press ENTER to disconnect and close menu."<hbr>
+<hbr>
+<font tint white atint white>
+"Zip content preview"<hbr>
+<hr width 236 tint gray>
+<font tint gray atint gray>
 <ctext _sofbuddy_loading_file_1 atext "" invisible><hbr>
 <ctext _sofbuddy_loading_file_2 atext "" invisible><hbr>
 <ctext _sofbuddy_loading_file_3 atext "" invisible><hbr>

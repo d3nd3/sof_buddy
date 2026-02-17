@@ -5,21 +5,27 @@
 <key escape "sofbuddy_menu sof_buddy/sb_tweaks_other">
 <cursor 1>
 
+<vbar tint cyan>
+
 <defaults noborder tiptint black tipbtint white>
+<backdrop stretch "backdrop/mission_failed" bgcolor black>
 
 <normal>
 <font type medium tint white atint white>
-<blank 84 1><text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 12 1 cyan regular>
+<includecvar _sofbuddy_sb_tabs_row1_prefix_rmf>
+<text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 12 1 cyan regular>
 <blank 8 1><text "Perf" key mouse1 "sofbuddy_menu sof_buddy/sb_perf" border 12 1 cyan regular>
 <blank 8 1><text "Scaling" key mouse1 "sofbuddy_menu sof_buddy/sb_scaling" border 12 1 cyan regular>
 <blank 8 1><text "Input" key mouse1 "sofbuddy_menu sof_buddy/sb_input" border 12 1 cyan regular>
 <blank 8 1><text "Texture" key mouse1 "sofbuddy_menu sof_buddy/sb_texture" border 12 1 cyan regular>
 <blank 8 1><text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/sb_lighting" border 12 1 cyan regular><hbr>
-<blank 116 1><text "Video T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_video" border 12 1 cyan regular>
+<includecvar _sofbuddy_sb_tabs_row2_prefix_rmf>
+<text "Video T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_video" border 12 1 cyan regular>
 <blank 8 1><text "Perf T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_perf" border 12 1 cyan regular>
 <blank 8 1><text "Other T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_other" border 12 1 cyan regular>
 <blank 8 1><text "Update" key mouse1 "sofbuddy_menu sof_buddy/sb_update_help" border 12 1 orange regular>
-<blank 8 1><text "Social" key mouse1 "sofbuddy_menu sof_buddy/sb_social" border 12 1 cyan regular><hbr>
+<blank 8 1><text "Social" key mouse1 "sofbuddy_menu sof_buddy/sb_social" border 12 1 cyan regular>
+<blank 8 1><text "HTTP" key mouse1 "sofbuddy_menu sof_buddy/sb_http" border 12 1 cyan regular><hbr>
 <hr width 560 tint cyan>
 <center>
 
@@ -40,17 +46,13 @@
 <hbr>
 "Step 3: Close Soldier of Fortune completely."
 <hbr>
-"Step 4: Extract the downloaded zip into your SoF root and overwrite files."
+"Step 4: Run sof_buddy/update_from_zip.cmd (Windows) or update_from_zip.sh (Linux/Wine)."
 <hbr>
-"Step 5: Launch the game again using your normal launcher/arguments."
+"Step 5: If script install fails, extract the downloaded zip into your SoF root and overwrite files."
+<hbr>
+"Step 6: Launch the game again using your normal launcher/arguments."
 <hbr>
 "No auto-restart is attempted (launcher flags may vary: Wine, gamemoderun, params)."
-<hbr>
-"If script extraction fails, unzip manually into the SoF root and overwrite files."
-<hbr>
-"Shortcut script: sof_buddy/update_from_zip.cmd (Windows)."
-<hbr>
-"Shortcut script: sof_buddy/update_from_zip.sh (Linux/Wine)."
 <hbr>
 "Note: sof_buddy.dll cannot be replaced while the game is still running."
 <hbr>

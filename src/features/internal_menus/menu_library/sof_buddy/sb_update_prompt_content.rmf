@@ -1,0 +1,30 @@
+<stm>
+<include tints>
+
+<backdrop bgcolor smokey>
+<key n "killmenu">
+<key y "killmenu;sofbuddy_update download;sofbuddy_menu sof_buddy/sb_update_help">
+<key escape "killmenu">
+
+<font type title tint orange atint orange>
+<center>
+"SOF BUDDY UPDATE AVAILABLE"<hbr>
+<hbr>
+
+<font type medium tint white atint white>
+<ctext _sofbuddy_update_latest atext "Latest tag: " invisible><hbr>
+"Download latest release zip now?"<hbr>
+<hbr>
+
+<font type small tint gray atint gray>
+"After download: close SoF, run update_from_zip.cmd/.sh."<hbr>
+"Fallback: extract the zip into SoF root and overwrite files."<hbr>
+<hbr>
+
+<font type medium tint normaltext atint red>
+<left>
+<text "Not now" border 16 1 gray key mouse1 "killmenu">
+<right>
+<font type medium tint normaltext atint green>
+<text "Download now" border 16 1 gray key mouse1 "killmenu;sofbuddy_update download;sofbuddy_menu sof_buddy/sb_update_help">
+</stm>

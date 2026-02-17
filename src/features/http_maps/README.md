@@ -28,15 +28,21 @@
 ## CVars
 
 - `_sofbuddy_http_maps` (default `1`)
-  - Mode: 0=off, 1=use first URL index, 2=random index.
+  - Mode:
+    - `0` = off
+    - `1` = primary provider only (`*_1`)
+    - `2` = random provider pick across configured providers
+    - `3` = rotate providers (round-robin) across configured providers
 - `_sofbuddy_http_maps_dl_1` (default `https://raw.githubusercontent.com/plowsof/sof1maps/main`)
   - Zip download base URL (index 1).
 - `_sofbuddy_http_maps_dl_2`, `_sofbuddy_http_maps_dl_3` (empty)
-  - Extra download URLs.
+  - Extra download URLs (for secondary/tertiary provider modes).
 - `_sofbuddy_http_maps_crc_1` (default same as dl_1)
   - CRC lookup base URL (partial range to zip).
 - `_sofbuddy_http_maps_crc_2`, `_sofbuddy_http_maps_crc_3` (empty)
-  - Extra CRC URLs.
+  - Extra CRC URLs (paired with corresponding download provider index).
+- `_sofbuddy_http_show_providers` (default `0`)
+  - HTTP tab UI toggle: `0` hides provider URL inputs, `1` shows them.
 
 ## Notes
 
@@ -44,3 +50,4 @@
 - Local map checks: `maps/...`, `user/maps/...`.
 - CRC comparison avoids full zip download when local files match.
 - No `_sofbuddy_http_maps_timeout` CVar; engine fallback occurs on worker failure.
+- If `internal_menus` is enabled, `sofbuddy_menu sof_buddy/sb_http` exposes mode/lock toggles and `<input>` fields to edit `_sofbuddy_http_maps_dl_*` / `_sofbuddy_http_maps_crc_*` directly in menu.

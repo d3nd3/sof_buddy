@@ -69,12 +69,20 @@ functions:
     detour_len: 6
     params: []
 
+  - name: Reconnect_f
+    module: SofExe
+    identifier: "0x0000BCC0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 5
+    params: []
+
   - name: CL_ParseConfigString
     module: SofExe
     identifier: "0x000E690"
     return_type: void
     calling_convention: __cdecl
-    detour_len: 0
+    detour_len: 11
     params: []
 
   - name: CL_Shutdown

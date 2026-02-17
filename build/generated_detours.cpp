@@ -37,6 +37,10 @@ namespace detour_CL_Precache_f {
     tCL_Precache_f oCL_Precache_f = nullptr;
 }
 
+namespace detour_Reconnect_f {
+    tReconnect_f oReconnect_f = nullptr;
+}
+
 namespace detour_CL_ParseConfigString {
     tCL_ParseConfigString oCL_ParseConfigString = nullptr;
 }
@@ -231,6 +235,17 @@ namespace detour_Qcommon_Frame {
 }
 
 namespace detour_CL_Precache_f {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_Reconnect_f {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
         if (!instance) {
@@ -612,6 +627,17 @@ namespace detour_Qcommon_Frame {
             oQcommon_Frame(msec);
         }
         if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost(msec);
+    }
+}
+
+namespace detour_Reconnect_f {
+    void __cdecl hkReconnect_f() {
+        ManagerType& mgr = GetManager();
+        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre();
+        if (oReconnect_f) {
+            oReconnect_f();
+        }
+        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost();
     }
 }
 
