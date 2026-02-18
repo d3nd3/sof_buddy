@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.6
+
+- Wine/Proton updater downloads: runtime Wine detection now biases asset selection toward `release_linux_wine.zip` during `sofbuddy_update download` (non-XP builds).
+- Auto-install launch hardening: reverted Wine `/unix` launch path and standardized `winstart` install command to `update_from_zip.cmd` to avoid repeated `Invalid Name` dialogs from `start` wrapper parsing.
+- Installer scripts: `update_from_zip.cmd` now prefers non-PowerShell extractors first (`tar`, `7z`, VBScript) and uses PowerShell only as fallback.
+- Post-install cleanup: both Windows and Linux/Wine update scripts now delete the extracted zip on successful install to prevent `sof_buddy/update/` accumulation.
+
 ## v3.5
 
 - Updater install: `sofbuddy_update_install` now detects Wine (`wine_get_version`) and prefers `sof_buddy/update_from_zip.sh` under Wine/Proton.

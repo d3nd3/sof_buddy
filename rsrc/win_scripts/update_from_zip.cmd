@@ -58,6 +58,13 @@ if errorlevel 1 (
 
 echo.
 echo Update extraction complete.
+echo Deleting used update zip...
+del /f /q "!ZIP_PATH!" >nul 2>&1
+if exist "!ZIP_PATH!" (
+    echo Warning: could not delete "!ZIP_PATH!".
+) else (
+    echo Deleted: !ZIP_PATH!
+)
 echo.
 echo Searching for old configuration to prune...
 for /r "%ROOT_DIR%" %%F in (sofbuddy.cfg) do (
@@ -75,12 +82,6 @@ exit /b 0
 :extract_zip
 set "ZIP=%~1"
 
-where powershell.exe >nul 2>&1
-if not errorlevel 1 (
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "try { Expand-Archive -LiteralPath '%ZIP%' -DestinationPath '%ROOT_DIR%' -Force; exit 0 } catch { exit 1 }"
-    if not errorlevel 1 exit /b 0
-)
-
 where tar.exe >nul 2>&1
 if not errorlevel 1 (
     tar -xf "%ZIP%" -C "%ROOT_DIR%"
@@ -95,6 +96,12 @@ if not errorlevel 1 (
 
 call :extract_with_vbscript "%ZIP%"
 if not errorlevel 1 exit /b 0
+
+where powershell.exe >nul 2>&1
+if not errorlevel 1 (
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "try { Expand-Archive -LiteralPath '%ZIP%' -DestinationPath '%ROOT_DIR%' -Force; exit 0 } catch { exit 1 }"
+    if not errorlevel 1 exit /b 0
+)
 
 exit /b 1
 

@@ -44,6 +44,12 @@ fi
 
 echo
 echo "Update extraction complete."
+echo "Deleting used update zip..."
+if rm -f -- "${ZIP_PATH}"; then
+    echo "Deleted: ${ZIP_PATH}"
+else
+    echo "Warning: could not delete ${ZIP_PATH}"
+fi
 echo
 echo "Searching for old configuration to prune..."
 find "${ROOT_DIR}" -type f -name "sofbuddy.cfg" -print -delete 2>/dev/null || true

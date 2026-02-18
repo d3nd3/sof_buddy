@@ -35,7 +35,6 @@ constexpr const char* kUpdateReleasesUrl = kUpdateReleasesUrlGitHub;
 #endif
 constexpr const char* kUpdateOutputDir = "sof_buddy/update";
 constexpr const char* kUpdateInstallScript = "sof_buddy/update_from_zip.cmd";
-constexpr const char* kUpdateInstallScriptWine = "sof_buddy/update_from_zip.sh";
 constexpr DWORD kUpdateTimeoutMs = 8000;
 constexpr uintptr_t kWinstartRva = 0x0040353C;
 
@@ -74,6 +73,7 @@ struct ReleaseInfo {
 };
 
 bool parse_url(const std::string& url, ParsedUrl& out, std::string& error);
+std::wstring utf8_to_wide(const std::string& value);
 
 bool is_regular_file(const char* path) {
     if (!path || !path[0]) return false;
@@ -84,6 +84,14 @@ bool is_regular_file(const char* path) {
 bool is_running_under_wine() {
     HMODULE ntdll = GetModuleHandleA("ntdll.dll");
     return ntdll && GetProcAddress(ntdll, "wine_get_version");
+}
+
+bool prefer_linux_wine_release_zip() {
+#if defined(SOFBUDDY_XP_BUILD)
+    return false;
+#else
+    return is_running_under_wine();
+#endif
 }
 
 bool queue_winstart_command(const char* command) {
@@ -598,6 +606,7 @@ int score_release_zip_candidate(const std::string& url) {
     const bool is_linux_wine = (name.find("linux") != std::string::npos) ||
                                (name.find("wine") != std::string::npos);
     const bool is_xp = (name.find("xp") != std::string::npos);
+    const bool prefer_linux_wine = prefer_linux_wine_release_zip();
 
     int score = 0;
     if (is_release) score += 400;
@@ -618,9 +627,15 @@ int score_release_zip_candidate(const std::string& url) {
     if (is_windows && !is_xp) score -= 400;
     if (is_linux_wine) score -= 700;
 #else
-    if (is_windows && !is_xp) score += 1200;
-    if (is_windows && is_xp) score -= 700;
-    if (is_linux_wine) score -= 150;
+    if (prefer_linux_wine) {
+        if (is_linux_wine) score += 1200;
+        if (is_windows && !is_xp) score -= 150;
+        if (is_windows && is_xp) score -= 700;
+    } else {
+        if (is_windows && !is_xp) score += 1200;
+        if (is_windows && is_xp) score -= 700;
+        if (is_linux_wine) score -= 150;
+    }
 #endif
 
     return score;
@@ -636,12 +651,18 @@ bool zip_matches_build_preference(const std::string& url) {
     const bool is_linux_wine = (name.find("linux") != std::string::npos) ||
                                (name.find("wine") != std::string::npos);
     const bool is_xp = (name.find("xp") != std::string::npos);
+    const bool prefer_linux_wine = prefer_linux_wine_release_zip();
 
 #if defined(SOFBUDDY_XP_BUILD)
     if (is_windows && is_xp) return true;
     if (is_windows && !is_xp) return false;
     if (is_linux_wine) return false;
 #else
+    if (prefer_linux_wine) {
+        if (is_linux_wine) return true;
+        if (is_windows && !is_xp) return false;
+        if (is_windows && is_xp) return false;
+    }
     if (is_windows && !is_xp) return true;
     if (is_windows && is_xp) return false;
 #endif
@@ -1035,9 +1056,7 @@ void Cmd_SoFBuddy_Update_f(void) {
 void Cmd_SoFBuddy_UpdateInstall_f(void) {
     if (!orig_Cmd_ExecuteString) return;
     const bool wine = is_running_under_wine();
-    const char* script = wine ? kUpdateInstallScriptWine : kUpdateInstallScript;
-    if (!is_regular_file(script) && wine && is_regular_file(kUpdateInstallScript))
-        script = kUpdateInstallScript;
+    const char* script = kUpdateInstallScript;
     if (!is_regular_file(script)) {
         set_update_status("install script missing");
         PrintOut(PRINT_BAD, "sofbuddy_update_install: missing %s\n", script);
@@ -1050,18 +1069,12 @@ void Cmd_SoFBuddy_UpdateInstall_f(void) {
         return;
     }
     std::string command;
-    if (wine && std::strcmp(script, kUpdateInstallScriptWine) == 0) {
-        command = "/unix \"";
-        command += script;
-        command += "\" \"";
-        command += zip_path;
-        command += "\"";
-    } else {
-        command = script;
-        command += " \"";
-        command += zip_path;
-        command += "\"";
-    }
+    if (wine)
+        PrintOut(PRINT_DEV, "sofbuddy_update_install: Wine detected; using %s via winstart\n", script);
+    command = script;
+    command += " \"";
+    command += zip_path;
+    command += "\"";
 
     if (!queue_winstart_command(command.c_str())) {
         set_update_status("failed to queue install command");
