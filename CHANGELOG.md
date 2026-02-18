@@ -1,5 +1,9 @@
 # Changelog
 
+## v4.1
+
+- Windows updater UX polish: silenced noisy extractor stderr/stdout (`tar`, `7z`, PowerShell fallback) in `update_from_zip.cmd` so successful fallback installs do not show misleading error spam.
+
 ## v4.0
 
 - Windows updater launch fix: switched queued installer script path to Windows separators (`sof_buddy\update_from_zip.cmd`) so post-exit `cmd.exe` execution no longer misparses the script path on Win10/11.

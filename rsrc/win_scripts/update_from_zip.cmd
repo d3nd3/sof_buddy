@@ -86,13 +86,13 @@ set "ZIP=%~1"
 
 where tar.exe >nul 2>&1
 if not errorlevel 1 (
-    tar.exe -xf "%ZIP%" -C "%ROOT_DIR%"
+    tar.exe -xf "%ZIP%" -C "%ROOT_DIR%" >nul 2>&1
     if not errorlevel 1 exit /b 0
 )
 
 where 7z.exe >nul 2>&1
 if not errorlevel 1 (
-    7z.exe x -y "%ZIP%" -o"%ROOT_DIR%"
+    7z.exe x -y "%ZIP%" -o"%ROOT_DIR%" >nul 2>&1
     if not errorlevel 1 exit /b 0
 )
 
@@ -101,7 +101,7 @@ if not errorlevel 1 exit /b 0
 
 where powershell.exe >nul 2>&1
 if not errorlevel 1 (
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "try { Expand-Archive -LiteralPath '%ZIP%' -DestinationPath '%ROOT_DIR%' -Force; exit 0 } catch { exit 1 }"
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "try { Expand-Archive -LiteralPath '%ZIP%' -DestinationPath '%ROOT_DIR%' -Force; exit 0 } catch { exit 1 }" >nul 2>&1
     if not errorlevel 1 exit /b 0
 )
 
