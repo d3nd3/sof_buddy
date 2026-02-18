@@ -72,6 +72,7 @@ struct HttpMapsRuntimeState
 	std::atomic<bool> progress_dirty{false};
 	std::atomic<int> worker_result{static_cast<int>(HttpMapsWorkerResult::None)};
 	std::atomic<bool> worker_success_no_crc_list{false}; // Success but zip not in repo; pump sets status from local file.
+	std::atomic<bool> worker_did_download{false};
 	bool loading_ui_active = false; // Main-thread only.
 	std::string loading_ui_map;
 	std::string cached_map_bsp;
@@ -1131,6 +1132,7 @@ void http_maps_reset_state(void)
 	g_http_maps_state.cached_map_bsp.clear();
 	g_http_maps_state.completed_map_bsp.clear();
 	g_http_maps_state.worker_success_no_crc_list.store(false, std::memory_order_release);
+	g_http_maps_state.worker_did_download.store(false, std::memory_order_release);
 	g_http_maps_state.progress_dirty.store(false, std::memory_order_release);
 	http_maps_clear_loading_cvars(true);
 }
@@ -1141,6 +1143,7 @@ static void http_maps_start_worker(const std::string& map_bsp_path, detour_CL_Pr
 	const uint32_t job_id = g_http_maps_state.next_job_id.fetch_add(1, std::memory_order_acq_rel);
 	g_http_maps_state.active_job_id.store(job_id, std::memory_order_release);
 	g_http_maps_state.worker_running.store(true, std::memory_order_release);
+	g_http_maps_state.worker_did_download.store(false, std::memory_order_release);
 	g_http_maps_state.waiting = true;
 	g_http_maps_state.waiting_started_ms = GetTickCount();
 	g_http_maps_state.pending_map_bsp = map_bsp_path;
@@ -1328,7 +1331,10 @@ void http_maps_pump(void)
 			http_maps_set_loading_status("UDP Downloading...");
 		else if (result == HttpMapsWorkerResult::Success) {
 			g_http_maps_state.worker_success_no_crc_list.exchange(false, std::memory_order_acq_rel);
-			http_maps_set_loading_status(http_maps_map_exists_via_engine(g_http_maps_state.pending_map_bsp) ? "MAP PRESENT" : "UDP Downloading...");
+			const bool did_download = g_http_maps_state.worker_did_download.exchange(false, std::memory_order_acq_rel);
+			if (!did_download) {
+				http_maps_set_loading_status(http_maps_map_exists_via_engine(g_http_maps_state.pending_map_bsp) ? "MAP PRESENT" : "UDP Downloading...");
+			}
 		}
 		else if (result != HttpMapsWorkerResult::Success) {
 			cvar_t* cur = findCvar(const_cast<char*>("_sofbuddy_loading_status"));

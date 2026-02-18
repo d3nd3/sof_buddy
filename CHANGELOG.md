@@ -1,5 +1,10 @@
 # Changelog
 
+## v3.2
+
+- http_maps: when a map is downloaded/extracted, loading status stays at "HTTP Downloading..." (MAP PRESENT is only used when no HTTP download was needed).
+- Core: `sofbuddy_list_features` now logs via PRINT_DEV instead of the normal console, keeping the feature listing in the dev log channel.
+
 ## v3.1
 
 - Internal menus: startup update prompt now triggers on menu disclaimer (root `disclaimer`) instead of `start`; README and docs use "menu disclaimer" naming.

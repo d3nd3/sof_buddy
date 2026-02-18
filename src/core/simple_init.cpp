@@ -116,7 +116,7 @@ qboolean cbuf_addlatecommands_override_callback(detour_Cbuf_AddLateCommands::tCb
 void Cmd_SoFBuddy_ListFeatures_f(void) {
     if (!orig_Com_Printf) return;
     
-    orig_Com_Printf("=== SoF Buddy Compiled Features ===\n");
+    PrintOut(PRINT_DEV, "=== SoF Buddy Compiled Features ===\n");
     
     // Include the feature config to check which features are enabled
     #include "feature_config.h"
@@ -125,120 +125,120 @@ void Cmd_SoFBuddy_ListFeatures_f(void) {
     int total_features = 0;
     
     #if FEATURE_MEDIA_TIMERS
-    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "media_timers\n");
+    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "media_timers\n");
     feature_count++;
     #else
-    orig_Com_Printf(P_RED "[OFF] " P_WHITE "media_timers\n");
+    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "media_timers\n");
     #endif
     total_features++;
     
     #if FEATURE_TEXTURE_MAPPING_MIN_MAG
-    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "texture_mapping_min_mag\n");
+    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "texture_mapping_min_mag\n");
     feature_count++;
     #else
-    orig_Com_Printf(P_RED "[OFF] " P_WHITE "texture_mapping_min_mag\n");
+    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "texture_mapping_min_mag\n");
     #endif
     total_features++;
     
     #if FEATURE_SCALED_UI_BASE || FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
-    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "scaled_ui (base/con/hud/menu)\n");
+    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "scaled_ui (base/con/hud/menu)\n");
     feature_count++;
     #else
-    orig_Com_Printf(P_RED "[OFF] " P_WHITE "scaled_ui (base/con/hud/menu)\n");
+    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "scaled_ui (base/con/hud/menu)\n");
     #endif
     total_features++;
     
     #if FEATURE_HD_TEXTURES
-    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "hd_textures\n");
+    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "hd_textures\n");
     feature_count++;
     #else
-    orig_Com_Printf(P_RED "[OFF] " P_WHITE "hd_textures\n");
+    PrintOut(PRINT_DEV, PRED "[OFF] " P_WHITE "hd_textures\n");
     #endif
     total_features++;
     
     #if FEATURE_VSYNC_TOGGLE
-    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "vsync_toggle\n");
+    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "vsync_toggle\n");
     feature_count++;
     #else
-    orig_Com_Printf(P_RED "[OFF] " P_WHITE "vsync_toggle\n");
+    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "vsync_toggle\n");
     #endif
     total_features++;
     
     #if FEATURE_LIGHTING_BLEND
-    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "lighting_blend\n");
+    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "lighting_blend\n");
     feature_count++;
     #else
-    orig_Com_Printf(P_RED "[OFF] " P_WHITE "lighting_blend\n");
+    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "lighting_blend\n");
     #endif
     total_features++;
     
     #if FEATURE_TEAMICONS_OFFSET
-    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "teamicons_offset\n");
+    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "teamicons_offset\n");
     feature_count++;
     #else
-    orig_Com_Printf(P_RED "[OFF] " P_WHITE "teamicons_offset\n");
+    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "teamicons_offset\n");
     #endif
     total_features++;
 
     #if FEATURE_HTTP_MAPS
-    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "http_maps\n");
+    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "http_maps\n");
     feature_count++;
     #else
-    orig_Com_Printf(P_RED "[OFF] " P_WHITE "http_maps\n");
+    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "http_maps\n");
     #endif
     total_features++;
 
     #if FEATURE_INTERNAL_MENUS
-    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "internal_menus\n");
+    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "internal_menus\n");
     feature_count++;
     #else
-    orig_Com_Printf(P_RED "[OFF] " P_WHITE "internal_menus\n");
+    PrintOut(PRINT_DEV, P_RED "[OFF] " PWHITE "internal_menus\n");
     #endif
     total_features++;
     
     #if FEATURE_NEW_SYSTEM_BUG
-    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "new_system_bug\n");
+    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "new_system_bug\n");
     feature_count++;
     #else
-    orig_Com_Printf(P_RED "[OFF] " P_WHITE "new_system_bug\n");
+    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "new_system_bug\n");
     #endif
     total_features++;
     
     #if FEATURE_CONSOLE_PROTECTION
-    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "console_protection\n");
+    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "console_protection\n");
     feature_count++;
     #else
-    orig_Com_Printf(P_RED "[OFF] " P_WHITE "console_protection\n");
+    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "console_protection\n");
     #endif
     total_features++;
     
     #if FEATURE_CL_MAXFPS_SINGLEPLAYER
-    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "cl_maxfps_singleplayer\n");
+    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "cl_maxfps_singleplayer\n");
     feature_count++;
     #else
-    orig_Com_Printf(P_RED "[OFF] " P_WHITE "cl_maxfps_singleplayer\n");
+    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "cl_maxfps_singleplayer\n");
     #endif
     total_features++;
 
     #if FEATURE_CBUF_LIMIT_INCREASE
-    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "cbuf_limit_increase\n");
+    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "cbuf_limit_increase\n");
     feature_count++;
     #else
-    orig_Com_Printf(P_RED "[OFF] " P_WHITE "cbuf_limit_increase\n");
+    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "cbuf_limit_increase\n");
     #endif
     total_features++;
     
     #if FEATURE_RAW_MOUSE
-    orig_Com_Printf(P_GREEN "[ON] " P_WHITE "raw_mouse\n");
+    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "raw_mouse\n");
     feature_count++;
     #else
-    orig_Com_Printf(P_RED "[OFF] " P_WHITE "raw_mouse\n");
+    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "raw_mouse\n");
     #endif
     total_features++;
     
-    orig_Com_Printf("Total: " P_GREEN "%d" P_WHITE " active, " P_RED "%d" P_WHITE " disabled (%d total)\n", 
-                    feature_count, total_features - feature_count, total_features);
-    orig_Com_Printf("===============================\n");
+    PrintOut(PRINT_DEV, "Total: " P_GREEN "%d" P_WHITE " active, " P_RED "%d" P_WHITE " disabled (%d total)\n",
+             feature_count, total_features - feature_count, total_features);
+    PrintOut(PRINT_DEV, "===============================\n");
 }
 
 
