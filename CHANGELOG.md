@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.8
+
+- Build system: removed `http_maps` from `tools/generate_features_txt.py` default-disabled set, so `make`/CI auto-generation no longer silently disables it in `features/FEATURES.txt`.
+
 ## v2.7
 
 - HTTP maps: removed experimental/default-disabled note from docs; feature is now treated as normal.

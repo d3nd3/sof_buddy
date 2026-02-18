@@ -46,7 +46,6 @@ CATEGORIES = {
 # Features that should be commented out by default
 DEFAULT_DISABLED = {
     "scaled_menu": "Experimental menu scaling (requires UI_MENU)",
-    "http_maps": "Requires IDA addresses before enabling",
     "cbuf_limit_increase": "Deprecated: sofbuddy.cfg persistence replaced config.cfg Cbuf workaround",
 }
 
