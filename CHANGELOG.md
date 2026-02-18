@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.6
+
+- HTTP maps: reconnect-stage hook path added, frame/config handling tightened, and provider/update wiring refined.
+- Internal menus: SoF Buddy RMF tab/content layout pass, loading screen variants added, and FS load override integrated.
+- Update flow: update command and zip-update scripts hardened for Linux/Windows and compatibility glue cleaned up.
+- Build/docs: detour registrations regenerated and feature READMEs/root docs refreshed.
+
 ## v2.5
 
 - Internal menus: loading screen RMF consolidated (loading_recent/loading_status removed; loading, loading_files, loading_header reworked); SoF Buddy tabs (main, input, HTTP content) layout tweaks; internal_menus/menu_data/README cleanup.

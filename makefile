@@ -50,10 +50,10 @@ else ifeq ($(BUILD),debug-collect)
     CFLAGS = $(COMMON_CFLAGS) -g -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__ -DSOFBUDDY_ENABLE_CALLSITE_LOGGER
     TARGET_SUFFIX = 
 else ifeq ($(BUILD),xp-debug)
-    CFLAGS = $(COMMON_CFLAGS) -O0 -g -fno-omit-frame-pointer -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__
+    CFLAGS = $(COMMON_CFLAGS) -O0 -g -fno-omit-frame-pointer -D__LOGGING__ -D __FILEOUT__ -D __TERMINALOUT__ -DSOFBUDDY_XP_BUILD
     TARGET_SUFFIX = 
 else ifeq ($(BUILD),xp)
-    CFLAGS = $(COMMON_CFLAGS) -O0 -fno-omit-frame-pointer -DNDEBUG
+    CFLAGS = $(COMMON_CFLAGS) -O0 -fno-omit-frame-pointer -DNDEBUG -DSOFBUDDY_XP_BUILD
     TARGET_SUFFIX = 
 else ifeq ($(BUILD),release)
     # With -fno-omit-frame-pointer, the game will not crash when using optimization.

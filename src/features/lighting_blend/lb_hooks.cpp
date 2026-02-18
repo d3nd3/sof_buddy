@@ -150,7 +150,7 @@ void lighting_overbright_change(cvar_t * cvar) {
 		orig_Cvar_Set2(const_cast<char*>("gl_ext_multitexture"), const_cast<char*>("0"), true);
 		cvar_t * vid_ref = findCvar(const_cast<char*>("vid_ref"));
 		if (vid_ref) vid_ref->modified = true;
-		PrintOut(PRINT_GOOD, "lighting_blend: Set gl_ext_multitexture to 0 and flagged vid_ref for restart.\n");
+		PrintOut(PRINT_DEV, "lighting_blend: Set gl_ext_multitexture to 0 and flagged vid_ref for restart.\n");
 	}
 	
 	PrintOut(PRINT_LOG, "lighting_blend: CVar changed: %s\n", cvar->name);
@@ -231,7 +231,7 @@ void lightblend_change(cvar_t * cvar) {
 		orig_Cvar_Set2(const_cast<char*>("gl_ext_multitexture"), const_cast<char*>("0"), true);
 		cvar_t * vid_ref = findCvar(const_cast<char*>("vid_ref"));
 		if (vid_ref) vid_ref->modified = true;
-		PrintOut(PRINT_GOOD, "lighting_blend: Set gl_ext_multitexture to 0 and flagged vid_ref for restart.\n");
+		PrintOut(PRINT_DEV, "lighting_blend: Set gl_ext_multitexture to 0 and flagged vid_ref for restart.\n");
 	}
 	
 	PrintOut(PRINT_LOG, "lighting_blend: CVar changed: %s\n", cvar->name);
@@ -277,10 +277,10 @@ void lightblend_change(cvar_t * cvar) {
 		                     cvar->string);
 		
 		if (is_src) {
-			PrintOut(PRINT_GOOD, "Defaulting to src:GL_ZERO\n");
+			PrintOut(PRINT_DEV, "Defaulting to src:GL_ZERO\n");
 			value = GL_ZERO;
 		} else {
-			PrintOut(PRINT_GOOD, "Defaulting to dst:GL_SRC_COLOR\n");
+			PrintOut(PRINT_DEV, "Defaulting to dst:GL_SRC_COLOR\n");
 			value = GL_SRC_COLOR;
 		}
 	}

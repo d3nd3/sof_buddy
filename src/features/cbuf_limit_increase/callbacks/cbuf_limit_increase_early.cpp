@@ -162,7 +162,7 @@ void __cdecl hk_Cbuf_AddText(const char* text) {
 
     if (!s_seen) {
         s_seen = true;
-        PrintOut(PRINT_GOOD, "cbuf_limit_increase: Cbuf_AddText hook is active\n");
+        PrintOut(PRINT_DEV, "cbuf_limit_increase: Cbuf_AddText hook is active\n");
     }
 
     if (!text || !orig_Cmd_ExecuteString) {
@@ -185,7 +185,7 @@ void __cdecl hk_Cbuf_InsertText(const char* text) {
 
     if (!s_seen) {
         s_seen = true;
-        PrintOut(PRINT_GOOD, "cbuf_limit_increase: Cbuf_InsertText hook is active\n");
+        PrintOut(PRINT_DEV, "cbuf_limit_increase: Cbuf_InsertText hook is active\n");
     }
 
     if (!text || !orig_Cmd_ExecuteString) {
@@ -209,7 +209,7 @@ void __cdecl hk_Cmd_Exec_f(void) {
     static bool s_seen = false;
     if (!s_seen) {
         s_seen = true;
-        PrintOut(PRINT_GOOD, "cbuf_limit_increase: Cmd_Exec_f hook is active\n");
+        PrintOut(PRINT_DEV, "cbuf_limit_increase: Cmd_Exec_f hook is active\n");
     }
 
     if (!orig_Cmd_Argc || !orig_Cmd_Argv || !orig_Cmd_ExecuteString) {
@@ -319,12 +319,12 @@ void cbuf_limit_increase_EarlyStartup(void) {
     if (kFsLoadFileRva != 0 && !orig_FS_LoadFile) {
         void* fs_load_addr = rvaToAbsExe(reinterpret_cast<void*>(kFsLoadFileRva));
         orig_FS_LoadFile = reinterpret_cast<FS_LoadFile_t>(fs_load_addr);
-        PrintOut(PRINT_GOOD, "cbuf_limit_increase: resolved FS_LoadFile at %p\n", fs_load_addr);
+        PrintOut(PRINT_DEV, "cbuf_limit_increase: resolved FS_LoadFile at %p\n", fs_load_addr);
     }
     if (kFsFreeFileRva != 0 && !orig_FS_FreeFile) {
         void* fs_free_addr = rvaToAbsExe(reinterpret_cast<void*>(kFsFreeFileRva));
         orig_FS_FreeFile = reinterpret_cast<FS_FreeFile_t>(fs_free_addr);
-        PrintOut(PRINT_GOOD, "cbuf_limit_increase: resolved FS_FreeFile at %p\n", fs_free_addr);
+        PrintOut(PRINT_DEV, "cbuf_limit_increase: resolved FS_FreeFile at %p\n", fs_free_addr);
     }
 
 #ifndef NDEBUG
@@ -336,7 +336,7 @@ void cbuf_limit_increase_EarlyStartup(void) {
                 reinterpret_cast<void**>(&orig_Com_Printf_trampoline),
                 "Com_Printf",
                 0)) {
-            PrintOut(PRINT_GOOD, "cbuf_limit_increase: detoured Com_Printf at %p\n", com_printf_addr);
+            PrintOut(PRINT_DEV, "cbuf_limit_increase: detoured Com_Printf at %p\n", com_printf_addr);
         } else {
             PrintOut(PRINT_BAD, "cbuf_limit_increase: failed to detour Com_Printf at %p\n", com_printf_addr);
         }
@@ -355,7 +355,7 @@ void cbuf_limit_increase_EarlyStartup(void) {
             reinterpret_cast<void**>(&orig_Cbuf_AddText),
             "Cbuf_AddText",
             0)) {
-        PrintOut(PRINT_GOOD, "cbuf_limit_increase: detoured Cbuf_AddText at %p\n", cbuf_addtext_addr);
+        PrintOut(PRINT_DEV, "cbuf_limit_increase: detoured Cbuf_AddText at %p\n", cbuf_addtext_addr);
     } else {
         PrintOut(PRINT_BAD, "cbuf_limit_increase: failed to detour Cbuf_AddText at %p\n", cbuf_addtext_addr);
     }
@@ -372,7 +372,7 @@ void cbuf_limit_increase_EarlyStartup(void) {
             reinterpret_cast<void**>(&orig_Cbuf_InsertText),
             "Cbuf_InsertText",
             0)) {
-        PrintOut(PRINT_GOOD, "cbuf_limit_increase: detoured Cbuf_InsertText at %p\n", cbuf_inserttext_addr);
+        PrintOut(PRINT_DEV, "cbuf_limit_increase: detoured Cbuf_InsertText at %p\n", cbuf_inserttext_addr);
     } else {
         PrintOut(PRINT_BAD, "cbuf_limit_increase: failed to detour Cbuf_InsertText at %p\n", cbuf_inserttext_addr);
     }
@@ -389,7 +389,7 @@ void cbuf_limit_increase_EarlyStartup(void) {
             reinterpret_cast<void**>(&orig_Cmd_Exec_f),
             "Cmd_Exec_f",
             0)) {
-        PrintOut(PRINT_GOOD, "cbuf_limit_increase: detoured Cmd_Exec_f at %p\n", cmd_execf_addr);
+        PrintOut(PRINT_DEV, "cbuf_limit_increase: detoured Cmd_Exec_f at %p\n", cmd_execf_addr);
     } else {
         PrintOut(PRINT_BAD, "cbuf_limit_increase: failed to detour Cmd_Exec_f at %p\n", cmd_execf_addr);
     }

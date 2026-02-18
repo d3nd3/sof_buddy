@@ -50,10 +50,10 @@ extern "C" void sofbuddy_debug_breakpoint(void);
 #define SOFBUDDY_ASSERT(condition) ((void)0)
 #endif
 
-#define PRINT_GOOD 1
 #define PRINT_BAD 2
 #define PRINT_LOG 3
 #define PRINT_LOG_EMPTY 4
+#define PRINT_DEV 5
 
 // show debug-log-type-messages?
 // Controlled by __LOGGING__ define in makefile for debug builds
@@ -104,10 +104,8 @@ void PrintOutImpl(int mode, const char *msg, ...);
 #define PrintOut(mode, msg, ...) PrintOutImpl(mode, msg, ##__VA_ARGS__)
 #else
 #define PrintOut(mode, msg, ...) do { \
-    if (mode == PRINT_GOOD || mode == PRINT_BAD) \
+    if (mode == PRINT_BAD || mode == PRINT_DEV) \
         PrintOutImpl(mode, msg, ##__VA_ARGS__); \
-    else \
-        do { } while(0); \
 } while(0)
 #endif
 

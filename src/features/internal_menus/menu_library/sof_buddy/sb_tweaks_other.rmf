@@ -1,14 +1,14 @@
-<stm global>
+<stm nopush global>
 <include tints>
 <tint normaltext 0xffffffff>
 <tint hilitetext 0xffffffff>
 <key escape "sofbuddy_menu sof_buddy">
 <cursor 1>
 
-<defaults noborder tiptint black tipbtint white>
+<defaults noborder tiptint black tipbtint white tipfont title>
 
 <frame root 640 0>
-<frame left_spacer 40 0 cut root page sof_buddy/sb_margin_backdrop>
-<frame center_panel 560 0 cut root page sof_buddy/sb_tweaks_other_content>
-<frame right_spacer 40 0 cut root page sof_buddy/sb_margin_backdrop>
+<frame left_spacer 24 0 cut root page sof_buddy/sb_margin_backdrop>
+<frame center_panel 592 0 cut root page sof_buddy/sb_tweaks_other_content>
+<frame right_spacer 24 0 cut root page sof_buddy/sb_margin_backdrop>
 </stm>

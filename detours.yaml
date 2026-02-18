@@ -43,6 +43,20 @@ functions:
     detour_len: 0
     params: []
 
+  - name: FS_LoadFile
+    module: SofExe
+    identifier: "0x20025370"
+    return_type: int
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: char*
+        name: path
+      - type: void**
+        name: buffer
+      - type: bool
+        name: override_pak
+
   - name: Cbuf_AddLateCommands
     module: SofExe
     identifier: "0x20018740"
@@ -50,6 +64,16 @@ functions:
     calling_convention: __cdecl
     detour_len: 0
     params: []
+
+  - name: Cmd_ExecuteString
+    module: SofExe
+    identifier: "0x194F0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: char*
+        name: text
 
   - name: Qcommon_Frame
     module: SofExe

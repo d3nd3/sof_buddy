@@ -13,6 +13,7 @@
 void (*orig_Z_Free) (void * v);
 char *(*orig_CopyString) (char *in);
 void (*orig_Cmd_ExecuteString)(const char * string);
+extern void (*orig_Com_DPrintf)(const char *fmt, ...);
 
 FILE * go_logfile = NULL;
 
@@ -135,12 +136,8 @@ void PrintOutImpl(int mode, const char *msg,...)
 		case PRINT_LOG_EMPTY :
 			printf("%s",ac_tmp);
 		break;
-		case PRINT_GOOD :
-
-			strcpy(ac_buf,"SoFBuddy Success: ");
-			strcat(ac_buf,ac_tmp);
-			printf("%s",ac_buf);
-
+		case PRINT_DEV :
+			printf("SoFBuddy Dev: %s",ac_tmp);
 		break;
 		case PRINT_BAD :
 
@@ -168,12 +165,8 @@ void PrintOutImpl(int mode, const char *msg,...)
 		case PRINT_LOG_EMPTY :
 			fprintf(go_logfile,"%s",ac_tmp);
 		break;
-		case PRINT_GOOD :
-
-				strcpy(ac_buf,"SoFree Success: ");
-				strcat(ac_buf,ac_tmp);
-				fprintf(go_logfile,"%s",ac_buf);
-
+		case PRINT_DEV :
+			fprintf(go_logfile,"SoFBuddy Dev: %s",ac_tmp);
 		break;
 		case PRINT_BAD :
 
@@ -189,9 +182,15 @@ void PrintOutImpl(int mode, const char *msg,...)
 #endif
 
     extern void (*orig_Com_Printf)(const char*, ...);
+    extern void (*orig_Com_DPrintf)(const char*, ...);
     if (!orig_Com_Printf) return;
 	//in-game print
 	switch (mode) {
+		case PRINT_DEV:
+			if (orig_Com_DPrintf) {
+				orig_Com_DPrintf("%s", ac_tmp);
+			}
+			break;
 		case PRINT_LOG :
 
                 strcpy(ac_buf, P_CYAN "~~~~~~~~~~" P_BLACK "\x24\xF8\x46" P_CYAN "\xAE\xC9\xC9 : " P_ORANGE);
@@ -201,13 +200,6 @@ void PrintOutImpl(int mode, const char *msg,...)
 		break;
 		case PRINT_LOG_EMPTY :
 			orig_Com_Printf("%s",ac_tmp);
-		break;
-		case PRINT_GOOD :
-
-                strcpy(ac_buf, P_CYAN "~~~~~~~~~~" P_BLACK "\x24\xF8\x46" P_CYAN "\xAE\xC9\xC9 : " P_GREEN);
-				strcat(ac_buf,ac_tmp);
-				orig_Com_Printf("%s",ac_buf);
-
 		break;
 		case PRINT_BAD :
 

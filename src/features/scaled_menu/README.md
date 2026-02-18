@@ -8,8 +8,7 @@ Scales menu elements to be readable and properly sized on modern high-resolution
   - `scaledMenu_EarlyStartup()` - Initializes menu scaling system
 
 ## Hooks
-- **VID_CheckChanges** (Post, Priority: 100)
-  - `vid_checkchanges_post()` - Updates screen dimensions when video mode changes
+None (screen dimensions are updated by scaled_ui_base's VID_CheckChanges Post hook).
 
 ## OverrideHooks
 None (uses shared hooks from scaled_ui_base)

@@ -8,8 +8,7 @@ Scales HUD elements (health, armor, ammo, inventory, scoreboard, CTF flag) to be
   - `scaledHud_RefDllLoaded()` - Installs custom detours for cropped pic vertex manipulation
 
 ## Hooks
-- **VID_CheckChanges** (Post, Priority: 100)
-  - `vid_checkchanges_post()` - Updates screen dimensions when video mode changes
+None (screen dimensions are updated by scaled_ui_base's VID_CheckChanges Post hook).
 
 ## OverrideHooks
 - **Draw_PicOptions** (SoF.exe)

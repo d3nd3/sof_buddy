@@ -1,3 +1,4 @@
 <stm>
-<backdrop stretch "backdrop/mission_failed" bgcolor black>
+<tint sb_bg 0xff050913>
+<backdrop bgcolor sb_bg>
 </stm>

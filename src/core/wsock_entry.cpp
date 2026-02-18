@@ -1139,7 +1139,7 @@ void sofplus_copy(void)
         return;
 	} else {
 		//MessageBox(NULL, "Success", "Error", MB_ICONERROR | MB_OK);
-		PrintOut(PRINT_GOOD,"Successfully loaded sofplus! %08X\n",o_sofplus);
+		PrintOut(PRINT_DEV,"Successfully loaded sofplus! %08X\n",o_sofplus);
 
 		//sofplus patches done.
 		
@@ -1250,7 +1250,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 					while(!feof(fp) && !ferror(fp))
 						crc32(buf, fread(buf, 1, sizeof(buf), fp), &crc);
 					if(!ferror(fp)) {
-						// PrintOut(PRINT_GOOD,"%08x : spsv.dll\n", crc);
+						// PrintOut(PRINT_DEV,"%08x : spsv.dll\n", crc);
 						// MessageBox(NULL, (std::string("spcl.dll checksum") + std::to_string(crc)).c_str(), "Error", MB_ICONERROR | MB_OK);
 						if ( crc == SPCL_CHECKSUM ) {
 							b_sofplus = true;
@@ -1276,7 +1276,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 				#endif
 			) {
 				PrintOut(PRINT_LOG,"SOFPLUS LOAD ATTEMPT\n");
-				PrintOut(PRINT_GOOD,"SoFplus detected\n");
+				PrintOut(PRINT_DEV,"SoFplus detected\n");
 				sofplus_copy();
 			} else {
 				PrintOut(PRINT_LOG,"NON SOFPLUS LOAD ATTEMPT\n");

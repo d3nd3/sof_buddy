@@ -142,6 +142,33 @@ namespace {
     static AutoDetour_FS_InitFilesystem g_AutoDetour_FS_InitFilesystem;
 }
 
+namespace detour_FS_LoadFile {
+    using tFS_LoadFile = int(__cdecl*)(char* path, void** buffer, bool override_pak);
+    extern tFS_LoadFile oFS_LoadFile;
+    using ManagerType = TypedSharedHookManager<int, char*, void**, bool>;
+    ManagerType& GetManager();
+    
+    int __cdecl hkFS_LoadFile(char* path, void** buffer, bool override_pak);
+}
+
+namespace {
+    struct AutoDetour_FS_LoadFile {
+        AutoDetour_FS_LoadFile() {
+            using namespace detour_FS_LoadFile;
+            if (!GetDetourSystem().IsDetourRegistered("FS_LoadFile")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x20025370),
+                    reinterpret_cast<void*>(detour_FS_LoadFile::hkFS_LoadFile),
+                    reinterpret_cast<void**>(&detour_FS_LoadFile::oFS_LoadFile),
+                    "FS_LoadFile",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_FS_LoadFile g_AutoDetour_FS_LoadFile;
+}
+
 namespace detour_Cbuf_AddLateCommands {
     using tCbuf_AddLateCommands = qboolean(__cdecl*)();
     extern tCbuf_AddLateCommands oCbuf_AddLateCommands;
@@ -167,6 +194,33 @@ namespace {
         }
     };
     static AutoDetour_Cbuf_AddLateCommands g_AutoDetour_Cbuf_AddLateCommands;
+}
+
+namespace detour_Cmd_ExecuteString {
+    using tCmd_ExecuteString = void(__cdecl*)(char* text);
+    extern tCmd_ExecuteString oCmd_ExecuteString;
+    using ManagerType = TypedSharedHookManager<void, char*>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkCmd_ExecuteString(char* text);
+}
+
+namespace {
+    struct AutoDetour_Cmd_ExecuteString {
+        AutoDetour_Cmd_ExecuteString() {
+            using namespace detour_Cmd_ExecuteString;
+            if (!GetDetourSystem().IsDetourRegistered("Cmd_ExecuteString")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x194F0),
+                    reinterpret_cast<void*>(detour_Cmd_ExecuteString::hkCmd_ExecuteString),
+                    reinterpret_cast<void**>(&detour_Cmd_ExecuteString::oCmd_ExecuteString),
+                    "Cmd_ExecuteString",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_Cmd_ExecuteString g_AutoDetour_Cmd_ExecuteString;
 }
 
 namespace detour_Qcommon_Frame {

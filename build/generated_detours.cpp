@@ -25,8 +25,16 @@ namespace detour_FS_InitFilesystem {
     tFS_InitFilesystem oFS_InitFilesystem = nullptr;
 }
 
+namespace detour_FS_LoadFile {
+    tFS_LoadFile oFS_LoadFile = nullptr;
+}
+
 namespace detour_Cbuf_AddLateCommands {
     tCbuf_AddLateCommands oCbuf_AddLateCommands = nullptr;
+}
+
+namespace detour_Cmd_ExecuteString {
+    tCmd_ExecuteString oCmd_ExecuteString = nullptr;
 }
 
 namespace detour_Qcommon_Frame {
@@ -212,7 +220,29 @@ namespace detour_FS_InitFilesystem {
     }
 }
 
+namespace detour_FS_LoadFile {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
 namespace detour_Cbuf_AddLateCommands {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_Cmd_ExecuteString {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
         if (!instance) {
@@ -745,6 +775,12 @@ namespace detour_Cbuf_AddLateCommands {
     }
 }
 
+namespace detour_Cmd_ExecuteString {
+    void __cdecl hkCmd_ExecuteString(char* text) {
+        ::cmd_executestring_override_callback(text, oCmd_ExecuteString);
+    }
+}
+
 namespace detour_Con_CheckResize {
     void __cdecl hkCon_CheckResize() {
         ::hkCon_CheckResize(oCon_CheckResize);
@@ -802,6 +838,12 @@ namespace detour_Draw_StretchPic {
 namespace detour_FS_InitFilesystem {
     void __cdecl hkFS_InitFilesystem() {
         ::fs_initfilesystem_override_callback(oFS_InitFilesystem);
+    }
+}
+
+namespace detour_FS_LoadFile {
+    int __cdecl hkFS_LoadFile(char* path, void** buffer, bool override_pak) {
+        return ::internal_menus_fs_loadfile_override_callback(path, buffer, override_pak, oFS_LoadFile);
     }
 }
 

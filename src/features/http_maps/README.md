@@ -1,53 +1,31 @@
 # http_maps
 
-`http_maps` is a client-side map download assist feature inspired by:
+Client-side assist for missing maps. If a BSP is missing, it can fetch zip content over HTTP and resume normal precache.
 
-- `d3nd3/sof-plus-plus-nix` `httpdl.cpp` (precache interception + HTTP map assist)
+## Runtime flow
 
-## What it does
-
-1. Learns the map name as early as `CL_ParseConfigString`.
-2. Intercepts `CL_Precache_f`.
-3. If BSP exists locally, continues precache immediately.
-4. If BSP is missing, starts HTTP assist worker and defers `CL_Precache_f` continue.
-5. Fetches zip Central Directory via partial HTTP Range (CRC list only).
-6. Compares each file CRC to disk; if any missing or CRC mismatch, downloads full zip.
-7. Extracts into `user/` and validates extracted BSP CRC.
-8. Continues precache when worker completes (success = HTTP files ready, failure = engine fallback path).
-9. If map changes while waiting, a newer HTTP job preempts the older one.
-10. Prints download progress to the console (bar per 1%); when internal_menus is enabled, also mirrors progress/status/files into the loading menu cvars.
-
-## Addresses (current build)
-
-- `detours.yaml`:
-  - `CL_Precache_f.identifier = 0x00112F0` (relative)
-  - `CL_ParseConfigString.identifier = 0x000E690` (relative)
-- `src/features/http_maps/http_maps.cpp`:
-  - `kHttpMaps_MapNamePtr = 0x201E9DCC` (absolute address of map name string)
-
-## CVars
-
-- `_sofbuddy_http_maps` (default `1`)
-  - Mode:
-    - `0` = off
-    - `1` = primary provider only (`*_1`)
-    - `2` = random provider pick across configured providers
-    - `3` = rotate providers (round-robin) across configured providers
-- `_sofbuddy_http_maps_dl_1` (default `https://raw.githubusercontent.com/plowsof/sof1maps/main`)
-  - Zip download base URL (index 1).
-- `_sofbuddy_http_maps_dl_2`, `_sofbuddy_http_maps_dl_3` (empty)
-  - Extra download URLs (for secondary/tertiary provider modes).
-- `_sofbuddy_http_maps_crc_1` (default same as dl_1)
-  - CRC lookup base URL (partial range to zip).
-- `_sofbuddy_http_maps_crc_2`, `_sofbuddy_http_maps_crc_3` (empty)
-  - Extra CRC URLs (paired with corresponding download provider index).
-- `_sofbuddy_http_show_providers` (default `0`)
-  - HTTP tab UI toggle: `0` hides provider URL inputs, `1` shows them.
+1. `CL_ParseConfigString` pre reads the next configstring index from `net_message`.
+2. `CL_ParseConfigString` post runs only for index `36`, reads map path, caches it, updates loading UI, and may start worker early.
+3. `CL_Precache_f` resolves map name (memory first, then cached), then:
+   - passes through immediately if disabled or unresolved,
+   - attaches to an already-running worker, or
+   - starts a new worker and defers engine continue.
+4. Worker flow: CRC-list fetch -> local CRC compare -> optional full zip download -> extract to `user/` -> BSP CRC validate.
+   - if CRC-list is missing remotely, BSP presence is checked via engine FS (`FS_LoadFile(..., NULL, false)`) to decide `MAP PRESENT` vs `UDP Downloading...`.
+5. `Qcommon_Frame` pre/post pumps progress/completion and runs deferred continue.
 
 ## Notes
 
-- Uses WinHTTP for partial Range requests (CRC-only) and full zip download.
-- Local map checks: `maps/...`, `user/maps/...`.
-- CRC comparison avoids full zip download when local files match.
-- No `_sofbuddy_http_maps_timeout` CVar; engine fallback occurs on worker failure.
-- If `internal_menus` is enabled, `sofbuddy_menu sof_buddy/sb_http` exposes mode/lock toggles and `<input>` fields to edit `_sofbuddy_http_maps_dl_*` / `_sofbuddy_http_maps_crc_*` directly in menu.
+- Early map detection keeps menu/loading status responsive.
+- Post hook is hard-gated to configstring index `36`.
+- Old worker jobs cannot complete over newer jobs.
+- State resets on `Reconnect_f`, init, and transition to `ca_disconnected`.
+- Statuses: `CHECKING`, `MAP PRESENT`, `HTTP Downloading...`, `UDP Downloading...`.
+- If HTTP path fails, engine fallback stays normal.
+
+## CVars
+
+- `_sofbuddy_http_maps`: `0` off, `1` primary, `2` random provider, `3` rotate provider.
+- `_sofbuddy_http_maps_dl_1/2/3`: zip download base URLs.
+- `_sofbuddy_http_maps_crc_1/2/3`: CRC-list lookup base URLs.
+- `_sofbuddy_http_show_providers`: show/hide provider UI inputs.

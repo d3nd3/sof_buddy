@@ -45,6 +45,18 @@ typedef struct paletteRGBA_s
 } paletteRGBA_t;
 
 
+typedef enum {
+	ca_uninitialized,			// 0-default *ca_uninitialized* BEFORE CL_InitLocal()
+	ca_disconnected,			// 1-Not connected  *ca_disconnected*
+	ca_connecting,				// 2-Attempting to connect to a server  *ca_connecting* ca_earlyconnecting (reconnect_f or connect_f)
+	ca_won_receive_result,		// 3-Loki WON ReceiveResult CL_HandleChallenge()
+	ca_connecting_stage2,		// 4-(Re)connecting to a server  *ca_connecting_stage2* ( CL_CheckForResend())
+	ca_won_challenge,			// 5- Loki WON Challenge CL_HandleChallenge()
+	ca_won_receive_challenge1,	// 6- Loki WON ReceiveChallenge1 CL_HandleChallenge()
+	ca_connected,				// 7-Loading map  *ca_connected*client_connect CL_ConnectionlessPacket()
+	ca_active					// 8-Spawned into the map *ca_active*
+} connstate_t;
+
 extern cvar_t *(*orig_Cvar_Get)(const char * name, const char * value, int flags, cvarcommand_t command);
 extern cvar_t *(*orig_Cvar_Set2) (char *var_name, char *value, qboolean force);
 extern void (*orig_Cvar_SetInternal)(bool active); 
@@ -84,6 +96,7 @@ extern void (*orig_Cvar_SetInternal)(bool active);
 extern void ( *orig_Com_Printf)(const char * msg, ...);
 extern void (*orig_Qcommon_Frame) (int msec);
 extern void (*orig_Qcommon_Init) (int argc, char **argv);
+extern void (*orig_Com_DPrintf)(const char *fmt, ...);
 extern qboolean (*orig_Cbuf_AddLateCommands)(void);
 
 //vid_ref access

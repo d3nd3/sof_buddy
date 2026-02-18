@@ -1,49 +1,48 @@
 <stm>
 <include tints>
-<tint normaltext 0xffffffff>
-<tint hilitetext 0xffffffff>
+<tint normaltext 0xfff3f7ff>
+<tint hilitetext 0xff05070b>
+<tint sb_bg 0xff050913>
+<tint sb_panel 0xff101b2b>
+<tint sb_accent 0xff43ffd0>
+<tint sb_subtle 0xff2b3b55>
 <key escape "sofbuddy_menu sof_buddy">
 <cursor 1>
 
-<vbar tint cyan>
+<vbar tint sb_accent>
 
-<defaults noborder tiptint black tipbtint white>
-<backdrop stretch "backdrop/mission_failed" bgcolor black>
+<defaults noborder tiptint normaltext tipbtint sb_panel tipfont title>
+<backdrop bgcolor sb_bg>
 
 <normal>
-<font type medium tint white atint white>
+<font type title tint white atint white>
 <includecvar _sofbuddy_sb_tabs_row1_prefix_rmf>
-<text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 12 1 cyan regular>
-<blank 8 1><text "Perf" key mouse1 "sofbuddy_menu sof_buddy/sb_perf" border 12 1 cyan regular>
-<blank 8 1><text "Scaling" key mouse1 "sofbuddy_menu sof_buddy/sb_scaling" border 12 1 cyan regular>
-<blank 8 1><text "Input" key mouse1 "sofbuddy_menu sof_buddy/sb_input" border 12 1 orange regular>
-<blank 8 1><text "Texture" key mouse1 "sofbuddy_menu sof_buddy/sb_texture" border 12 1 cyan regular>
-<blank 8 1><text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/sb_lighting" border 12 1 cyan regular><hbr>
+<text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 8 1 cyan regular>
+<blank 6 1><text "CPU" key mouse1 "sofbuddy_menu sof_buddy/sb_perf" border 8 1 cyan regular>
+<blank 6 1><text "UI Scale" key mouse1 "sofbuddy_menu sof_buddy/sb_scaling" border 8 1 cyan regular>
+<blank 6 1><text "Input" key mouse1 "sofbuddy_menu sof_buddy/sb_input" border 8 1 orange regular>
+<blank 6 1><text "Network" key mouse1 "sofbuddy_menu sof_buddy/sb_http" border 8 1 cyan regular><hbr>
 <includecvar _sofbuddy_sb_tabs_row2_prefix_rmf>
-<text "Video T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_video" border 12 1 cyan regular>
-<blank 8 1><text "Perf T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_perf" border 12 1 cyan regular>
-<blank 8 1><text "Other T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_other" border 12 1 cyan regular>
-<blank 8 1><text "Update" key mouse1 "sofbuddy_menu sof_buddy/sb_update_help" border 12 1 cyan regular>
-<blank 8 1><text "Social" key mouse1 "sofbuddy_menu sof_buddy/sb_social" border 12 1 cyan regular>
-<blank 8 1><text "HTTP" key mouse1 "sofbuddy_menu sof_buddy/sb_http" border 12 1 cyan regular><hbr>
-<hr width 560 tint cyan>
-<center>
+<text "Texture" key mouse1 "sofbuddy_menu sof_buddy/sb_texture" border 8 1 cyan regular>
+<blank 6 1><text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/sb_lighting" border 8 1 cyan regular>
+<blank 6 1><text "Video" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_video" border 8 1 cyan regular>
+<blank 6 1><text "Profiles" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_perf" border 8 1 cyan regular>
+<blank 6 1><text "Misc" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_other" border 8 1 cyan regular>
+<blank 6 1><text "Updates" key mouse1 "sofbuddy_menu sof_buddy/sb_update_help" border 8 1 cyan regular>
+<blank 6 1><text "Social" key mouse1 "sofbuddy_menu sof_buddy/sb_social" border 8 1 cyan regular><hbr>
+<hr width 560 tint sb_accent>
 
+<center>
 <font type title tint white atint white>
 <text "SOF BUDDY: INPUT">
-<hr width 520 tint cyan>
+<hr width 560 tint cyan>
 
-<list "Off,On" cvari _sofbuddy_rawmouse atext "Raw Mouse Input : " noshade><br>
-<list "F1,F2,F3,F4,F5,F6,F7,F8,F9,F10,F11,F12" cvar _sofbuddy_menu_hotkey atext "Open SoFBuddy key : " noshade tip "Select key then press Apply Menu Hotkey."><br>
-<text "Apply Menu Hotkey" key mouse1 "sofbuddy_apply_menu_hotkey" border 16 1 cyan regular><hbr>
-
-<hbr>
-<font type medium tint white atint white>
-"Raw mouse depends on platform support (Wine/Proton build)."
-"Menu hotkey is saved and re-applied at startup."
-<hbr>
-
+<center>
 <font type title tint white atint white>
-<text "Restore Input Defaults" key mouse1 "set _sofbuddy_rawmouse 0;set _sofbuddy_menu_hotkey F12;sofbuddy_apply_menu_hotkey;refresh" border 16 1 cyan regular>
-<text "Close" key mouse1 "popmenu" border 16 1 cyan regular>
+<list "Off,On" cvari _sofbuddy_rawmouse atext "Raw Mouse Input : " noshade><br>
+
+<hr width 520 tint sb_subtle>
+<font type title tint white atint white>
+<text "Restore Input Defaults" key mouse1 "set _sofbuddy_rawmouse 0;set _sofbuddy_menu_hotkey F12;sofbuddy_apply_menu_hotkey;refresh" border 14 1 cyan regular>
+<text "Close" key mouse1 "popmenu" border 14 1 cyan regular>
 </stm>

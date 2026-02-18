@@ -212,7 +212,7 @@ bool raw_mouse_register_input(HWND hwnd, bool log_result)
     }
 
     if (log_result) {
-        PrintOut(PRINT_GOOD, "raw_mouse: Successfully registered raw input device\n");
+        PrintOut(PRINT_DEV, "raw_mouse: Successfully registered raw input device\n");
     }
 
     raw_mouse_registered = true;

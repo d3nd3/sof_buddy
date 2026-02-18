@@ -44,4 +44,8 @@ fi
 
 echo
 echo "Update extraction complete."
+echo
+echo "Searching for old configuration to prune..."
+find "${ROOT_DIR}" -type f -name "sofbuddy.cfg" -print -delete 2>/dev/null || true
+echo
 echo "You can now launch SoF normally."

@@ -1,60 +1,67 @@
 <stm>
 <include tints>
-<tint normaltext 0xffffffff>
-<tint hilitetext 0xffffffff>
+<tint normaltext 0xfff3f7ff>
+<tint hilitetext 0xff05070b>
+<tint sb_bg 0xff050913>
+<tint sb_panel 0xff101b2b>
+<tint sb_accent 0xff43ffd0>
+<tint sb_subtle 0xff2b3b55>
 <key escape "sofbuddy_menu sof_buddy">
 <cursor 1>
 
-<vbar tint cyan>
+<vbar tint sb_accent>
 
-<defaults noborder tiptint black tipbtint white>
-<backdrop stretch "backdrop/mission_failed" bgcolor black>
+<defaults noborder tiptint normaltext tipbtint sb_panel tipfont title>
+<backdrop bgcolor sb_bg>
 
 <normal>
-<font type medium tint white atint white>
-<includecvar _sofbuddy_sb_tabs_row1_prefix_rmf>
-<text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 12 1 cyan regular>
-<blank 8 1><text "Perf" key mouse1 "sofbuddy_menu sof_buddy/sb_perf" border 12 1 cyan regular>
-<blank 8 1><text "Scaling" key mouse1 "sofbuddy_menu sof_buddy/sb_scaling" border 12 1 cyan regular>
-<blank 8 1><text "Input" key mouse1 "sofbuddy_menu sof_buddy/sb_input" border 12 1 cyan regular>
-<blank 8 1><text "Texture" key mouse1 "sofbuddy_menu sof_buddy/sb_texture" border 12 1 cyan regular>
-<blank 8 1><text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/sb_lighting" border 12 1 cyan regular><hbr>
-<includecvar _sofbuddy_sb_tabs_row2_prefix_rmf>
-<text "Video T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_video" border 12 1 cyan regular>
-<blank 8 1><text "Perf T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_perf" border 12 1 orange regular>
-<blank 8 1><text "Other T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_other" border 12 1 cyan regular>
-<blank 8 1><text "Update" key mouse1 "sofbuddy_menu sof_buddy/sb_update_help" border 12 1 cyan regular>
-<blank 8 1><text "Social" key mouse1 "sofbuddy_menu sof_buddy/sb_social" border 12 1 cyan regular>
-<blank 8 1><text "HTTP" key mouse1 "sofbuddy_menu sof_buddy/sb_http" border 12 1 cyan regular><hbr>
-<hr width 560 tint cyan>
-<center>
-
 <font type title tint white atint white>
-<text "SOF BUDDY: PERF TWEAKS">
-<hr width 520 tint cyan>
+<includecvar _sofbuddy_sb_tabs_row1_prefix_rmf>
+<text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 8 1 cyan regular>
+<blank 6 1><text "CPU" key mouse1 "sofbuddy_menu sof_buddy/sb_perf" border 8 1 cyan regular>
+<blank 6 1><text "UI Scale" key mouse1 "sofbuddy_menu sof_buddy/sb_scaling" border 8 1 cyan regular>
+<blank 6 1><text "Input" key mouse1 "sofbuddy_menu sof_buddy/sb_input" border 8 1 cyan regular>
+<blank 6 1><text "Network" key mouse1 "sofbuddy_menu sof_buddy/sb_http" border 8 1 cyan regular><hbr>
+<includecvar _sofbuddy_sb_tabs_row2_prefix_rmf>
+<text "Texture" key mouse1 "sofbuddy_menu sof_buddy/sb_texture" border 8 1 cyan regular>
+<blank 6 1><text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/sb_lighting" border 8 1 cyan regular>
+<blank 6 1><text "Video" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_video" border 8 1 cyan regular>
+<blank 6 1><text "Profiles" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_perf" border 8 1 orange regular>
+<blank 6 1><text "Misc" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_other" border 8 1 cyan regular>
+<blank 6 1><text "Updates" key mouse1 "sofbuddy_menu sof_buddy/sb_update_help" border 8 1 cyan regular>
+<blank 6 1><text "Social" key mouse1 "sofbuddy_menu sof_buddy/sb_social" border 8 1 cyan regular><hbr>
+<hr width 560 tint sb_accent>
 
-<list "Competitive,Visual" match "0,1" cvar _sofbuddy_perf_profile atext "Profile: " noshade tip "Competitive=low visuals/high FPS. Visual=high fidelity."><hbr>
-<text "Apply Selected Profile" ckey mouse1 _sofbuddy_perf_profile "sofbuddy_apply_profile_comp" "sofbuddy_apply_profile_visual" tip "Applies all listed profile cvars." border 16 1 cyan regular><hbr>
-<hr width 520 tint gray>
+<center>
+<font type title tint white atint white>
+<text "SOF BUDDY: PROFILE TWEAKS">
+<hr width 560 tint cyan>
 
-<list "2,128" match "2,128" cvar cl_max_debris atext "Max debris: " noshade><hbr>
-<list "0,128" match "0,128" cvar fx_maxdebrisonscreen atext "FX debris on screen: " noshade><hbr>
-<list "Off,On" cvar gl_dynamic atext "Dynamic lighting: " noshade><hbr>
-<list "0,1,2,3" cvar ghl_light_method atext "Light (0Flat 1CPU 2GPU+dyn 3GPU): " noshade><hbr>
-<list "Low,High" cvar cl_quads atext "Quads (0/1): " noshade><hbr>
-<list "Low,High" match "1,0" cvar cl_freezequads atext "Freeze quads: " noshade><hbr>
-<list "Off,Blob,Detailed" cvar ghl_shadows atext "Shadows: " noshade><hbr>
-<list "1,2" cvar gl_modulate atext "Modulate (1 def 2 comp): " noshade><hbr>
-<list "1.3,2" cvar ghl_light_multiply atext "Light mult (1.3/2): " noshade><hbr>
-<ctext gl_dlightintensity atext "Dlight 0-4: " noshade><hbr>
-<slider cvar gl_dlightintensity min 0 max 4 step 1><hbr>
-<list "Off,On" cvar _sofbuddy_sleep atext "Sleep: " noshade><hbr>
-<list "0,1,2,3" cvar ghl_mip atext "GHL mip: " noshade><hbr>
-<list "Off,On" cvar gl_pictip atext "Pic tip (off rec): " noshade><hbr>
-<ctext gl_picmip atext "Picmip (-10 high, 5 low): " noshade><hbr>
-<slider cvar gl_picmip min -10 max 5 step 1><hbr>
+<center>
+<font type title tint white atint white>
+<list "Competitive,Visual" match "0,1" cvar _sofbuddy_perf_profile atext "Profile : " noshade tip "Competitive = low visuals/high FPS, Visual = high fidelity."><hbr>
+<text "Apply Selected Profile" ckey mouse1 _sofbuddy_perf_profile "sofbuddy_apply_profile_comp" "sofbuddy_apply_profile_visual" tip "Applies all listed profile cvars." border 14 1 cyan regular><hbr>
+
+<hr width 520 tint sb_subtle>
+<font type title tint white atint white>
+<list "2,128" match "2,128" cvar cl_max_debris atext "cl_max_debris : " noshade tip "Max world debris entities."><hbr>
+<list "0,128" match "0,128" cvar fx_maxdebrisonscreen atext "fx_maxdebrisonscreen : " noshade tip "FX system debris on screen at once."><hbr>
+<list "Off,On" cvar gl_dynamic atext "gl_dynamic : " noshade tip "Toggle engine dynamic lights."><hbr>
+<list "Flat,Cpu,GpuDlightSpecular,GpuOnly" match "0,1,2,3" cvar ghl_light_method atext "ghl_light_method : " noshade tip "Ghoul lighting: recommended GpuDlightSpecular."><hbr>
+<list "Off,On" cvar cl_quads atext "cl_quads : " noshade tip "On enables quads; Off disables quad effects."><hbr>
+<list "Off,On" match "0,1" cvar cl_freezequads atext "cl_freezequads : " noshade tip "On freezes (effectively disables) cl_quads; Off lets quads animate."><hbr>
+<list "Off,Blob,Detailed" cvar ghl_shadows atext "ghl_shadows : " noshade tip "Shadow style for GHL characters."><hbr>
+<list "1,2" cvar gl_modulate atext "gl_modulate : " noshade tip "Base light modulation (overall brightness)."><hbr>
+<list "1.3,2" cvar ghl_light_multiply atext "ghl_light_multiply : " noshade tip "Extra multiplier for GHL lighting."><hbr>
+<ctext gl_dlightintensity atext "gl_dlightintensity (0-4) : " noshade><hbr>
+<slider cvar gl_dlightintensity min 0 max 4 step 1 tip "Dynamic light intensity scale (e.g. flaglight brightness)."><hbr>
+<list "Off,On" cvar _sofbuddy_sleep atext "_sofbuddy_sleep : " noshade tip "Extra low-CPU sleep mode for SoF Buddy."><hbr>
+<list "0,1,2,3" cvar ghl_mip atext "ghl_mip : " noshade tip "Whether to downscale Ghoul textures by this factor."><hbr>
+<list "Off,On" cvar gl_pictip atext "gl_pictip : " noshade tip "gl_pictip: use altname textures, let textures apply mip control, and add misc_ model fluff for server load."><hbr>
+<ctext gl_picmip atext "gl_picmip (-10..10) : " noshade><hbr>
+<slider cvar gl_picmip min -10 max 10 step 1 tip "Global texture mip level (lower = sharper)."><hbr>
 
 <hbr>
 <font type title tint white atint white>
-<text "Close" key mouse1 "popmenu" border 16 1 cyan regular>
+<text "Close" key mouse1 "popmenu" border 14 1 cyan regular>
 </stm>

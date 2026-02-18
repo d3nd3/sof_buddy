@@ -13,8 +13,8 @@
 <hbr>
 <hbar "misc/l_clip" "misc/l_bullet" cvar menu_loading><hbr>
 <hbr>
-<font type medium tint gray atint gray>
-<ctext _sofbuddy_loading_current atext "Map: " invisible><hbr>
-<ctext _sofbuddy_loading_progress atext "HTTP zip: " invisible><hbr>
-<hbar "misc/l_clip" "misc/l_bullet" cvar _sofbuddy_loading_progress invisible><hbr>
+<font type title tint gray atint gray>
+<ctext _sofbuddy_loading_current atext "Map: "><hbr>
+<hbr>
+<ctext _sofbuddy_loading_status atext "Download: "><hbr>
 </stm>

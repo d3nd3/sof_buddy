@@ -30,6 +30,7 @@ cvar_t *(*orig_Cvar_Get)(const char * name, const char * value, int flags, cvarc
 cvar_t *(*orig_Cvar_Set2) (char *var_name, char *value, qboolean force) = reinterpret_cast<cvar_t*(*)(char*,char*,qboolean)>(0x20021D70);
 void (*orig_Cvar_SetInternal)(bool active) = reinterpret_cast<void(*)(bool)>(0x200216C0);
 void ( *orig_Com_Printf)(const char * msg, ...) = NULL;
+void (*orig_Com_DPrintf)(const char *fmt, ...) = NULL;
 void (*orig_Qcommon_Frame) (int msec) = reinterpret_cast<void(*)(int)>(0x2001F720);
 void (*orig_Qcommon_Init) (int argc, char **argv) = reinterpret_cast<void(*)(int,char**)>(0x2001F390);
 
@@ -50,6 +51,7 @@ void fs_initfilesystem_override_callback(detour_FS_InitFilesystem::tFS_InitFiles
     PrintOut(PRINT_LOG, "=== Lifecycle: Pre-CVar Init Phase ===\n");
     
     orig_Com_Printf = reinterpret_cast<void(*)(const char*,...)>(0x2001C6E0);
+    orig_Com_DPrintf = reinterpret_cast<void(*)(const char*,...)>(0x2001C8E0);
     if (!orig_Cmd_ExecuteString) orig_Cmd_ExecuteString = (void(*)(const char*))rvaToAbsExe((void*)0x194F0);
 
     sofbuddy_cfg_exec_startup();
@@ -71,26 +73,26 @@ qboolean cbuf_addlatecommands_override_callback(detour_Cbuf_AddLateCommands::tCb
     
     PrintOut(PRINT_LOG, "=== Lifecycle: Post-CVar Init Phase ===\n");
     
-    PrintOut(PRINT_LOG, "Attempting to register sofbuddy_list_features command...\n");
+    PrintOut(PRINT_DEV, "Attempting to register sofbuddy_list_features command...\n");
     orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_list_features"), Cmd_SoFBuddy_ListFeatures_f);
-    PrintOut(PRINT_LOG, "Registered sofbuddy_list_features command\n");
+    PrintOut(PRINT_DEV, "Registered sofbuddy_list_features command\n");
 
-    PrintOut(PRINT_LOG, "Attempting to register sofbuddy_update command...\n");
+    PrintOut(PRINT_DEV, "Attempting to register sofbuddy_update command...\n");
     orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_update"), Cmd_SoFBuddy_Update_f);
     orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_openurl"), Cmd_SoFBuddy_OpenUrl_f);
-    PrintOut(PRINT_LOG, "Registered sofbuddy_update command\n");
+    PrintOut(PRINT_DEV, "Registered sofbuddy_update command\n");
     
-    PrintOut(PRINT_LOG, "Registering _sofbuddy_version cvar...\n");
+    PrintOut(PRINT_DEV, "Registering _sofbuddy_version cvar...\n");
     cvar_t* version_cvar = orig_Cvar_Get("_sofbuddy_version", SOFBUDDY_VERSION, CVAR_NOSET, NULL);
     if (version_cvar) {
         orig_Cvar_Set2(const_cast<char*>("_sofbuddy_version"), const_cast<char*>(SOFBUDDY_VERSION), true);
     }
-    PrintOut(PRINT_LOG, "Registered _sofbuddy_version cvar with value: %s\n", SOFBUDDY_VERSION);
+    PrintOut(PRINT_DEV, "Registered _sofbuddy_version cvar with value: %s\n", SOFBUDDY_VERSION);
 
-    PrintOut(PRINT_LOG, "Registering updater state cvars...\n");
+    PrintOut(PRINT_DEV, "Registering updater state cvars...\n");
     sofbuddy_update_init();
     sofbuddy_update_maybe_check_startup();
-    PrintOut(PRINT_LOG, "Updater state cvars ready\n");
+    PrintOut(PRINT_DEV, "Updater state cvars ready\n");
     
     DISPATCH_SHARED_HOOK(PostCvarInit, Post);
     sofbuddy_cfg_save_now();

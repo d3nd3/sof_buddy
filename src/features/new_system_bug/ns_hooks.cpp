@@ -53,7 +53,7 @@ static void new_system_bug_InitDefaults(void)
 	orig_Cmd_ExecuteString("set r_isf GL_SOLID_FORMAT\n");
 	orig_Cmd_ExecuteString("set r_iaf GL_ALPHA_FORMAT\n");
 
-	PrintOut(PRINT_GOOD, "New System Bug Fix: Optimal defaults applied\n");
+	PrintOut(PRINT_DEV, "New System Bug Fix: Optimal defaults applied\n");
 }
 
 /*

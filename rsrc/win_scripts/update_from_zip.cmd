@@ -58,6 +58,15 @@ if errorlevel 1 (
 
 echo.
 echo Update extraction complete.
+echo.
+echo Searching for old configuration to prune...
+for /r "%ROOT_DIR%" %%F in (sofbuddy.cfg) do (
+    if exist "%%F" (
+        echo   Deleting: %%F
+        del /f /q "%%F" >nul 2>&1
+    )
+)
+echo.
 echo You can now launch SoF normally.
 popd
 pause

@@ -1,59 +1,66 @@
 <stm>
 <include tints>
-<tint normaltext 0xffffffff>
-<tint hilitetext 0xffffffff>
+<tint normaltext 0xfff3f7ff>
+<tint hilitetext 0xff05070b>
+<tint sb_bg 0xff050913>
+<tint sb_panel 0xff101b2b>
+<tint sb_accent 0xff43ffd0>
+<tint sb_subtle 0xff2b3b55>
 <key escape "sofbuddy_menu sof_buddy">
 <cursor 1>
 
-<vbar tint cyan>
+<vbar tint sb_accent>
 
-<defaults noborder tiptint black tipbtint white>
-<backdrop stretch "backdrop/mission_failed" bgcolor black>
+<defaults noborder tiptint normaltext tipbtint sb_panel tipfont title>
+<backdrop bgcolor sb_bg>
 
 <normal>
-<font type medium tint white atint white>
+<font type title tint white atint white>
 <includecvar _sofbuddy_sb_tabs_row1_prefix_rmf>
-<text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 12 1 cyan regular>
-<blank 8 1><text "Perf" key mouse1 "sofbuddy_menu sof_buddy/sb_perf" border 12 1 cyan regular>
-<blank 8 1><text "Scaling" key mouse1 "sofbuddy_menu sof_buddy/sb_scaling" border 12 1 cyan regular>
-<blank 8 1><text "Input" key mouse1 "sofbuddy_menu sof_buddy/sb_input" border 12 1 cyan regular>
-<blank 8 1><text "Texture" key mouse1 "sofbuddy_menu sof_buddy/sb_texture" border 12 1 orange regular>
-<blank 8 1><text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/sb_lighting" border 12 1 cyan regular><hbr>
+<text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 8 1 cyan regular>
+<blank 6 1><text "CPU" key mouse1 "sofbuddy_menu sof_buddy/sb_perf" border 8 1 cyan regular>
+<blank 6 1><text "UI Scale" key mouse1 "sofbuddy_menu sof_buddy/sb_scaling" border 8 1 cyan regular>
+<blank 6 1><text "Input" key mouse1 "sofbuddy_menu sof_buddy/sb_input" border 8 1 cyan regular>
+<blank 6 1><text "Network" key mouse1 "sofbuddy_menu sof_buddy/sb_http" border 8 1 cyan regular><hbr>
 <includecvar _sofbuddy_sb_tabs_row2_prefix_rmf>
-<text "Video T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_video" border 12 1 cyan regular>
-<blank 8 1><text "Perf T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_perf" border 12 1 cyan regular>
-<blank 8 1><text "Other T" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_other" border 12 1 cyan regular>
-<blank 8 1><text "Update" key mouse1 "sofbuddy_menu sof_buddy/sb_update_help" border 12 1 cyan regular>
-<blank 8 1><text "Social" key mouse1 "sofbuddy_menu sof_buddy/sb_social" border 12 1 cyan regular>
-<blank 8 1><text "HTTP" key mouse1 "sofbuddy_menu sof_buddy/sb_http" border 12 1 cyan regular><hbr>
-<hr width 560 tint cyan>
-<center>
+<text "Texture" key mouse1 "sofbuddy_menu sof_buddy/sb_texture" border 8 1 orange regular>
+<blank 6 1><text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/sb_lighting" border 8 1 cyan regular>
+<blank 6 1><text "Video" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_video" border 8 1 cyan regular>
+<blank 6 1><text "Profiles" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_perf" border 8 1 cyan regular>
+<blank 6 1><text "Misc" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_other" border 8 1 cyan regular>
+<blank 6 1><text "Updates" key mouse1 "sofbuddy_menu sof_buddy/sb_update_help" border 8 1 cyan regular>
+<blank 6 1><text "Social" key mouse1 "sofbuddy_menu sof_buddy/sb_social" border 8 1 cyan regular><hbr>
+<hr width 560 tint sb_accent>
 
+<center>
 <font type title tint white atint white>
 <text "SOF BUDDY: TEXTURE FILTERING">
-<hr width 520 tint cyan>
+<hr width 560 tint cyan>
 
+<center>
+<font type title tint cyan atint cyan>
 "Unmipped (sky/detail)"
+<font type title tint white atint white>
 <list "NEAREST,LINEAR,NM_NEAR,LM_NEAR,NM_LIN,LM_LIN" match "GL_NEAREST,GL_LINEAR,GL_NEAREST_MIPMAP_NEAREST,GL_LINEAR_MIPMAP_NEAREST,GL_NEAREST_MIPMAP_LINEAR,GL_LINEAR_MIPMAP_LINEAR" cvar _sofbuddy_minfilter_unmipped atext "Min : " noshade><br>
 <list "NEAREST,LINEAR" match "GL_NEAREST,GL_LINEAR" cvar _sofbuddy_magfilter_unmipped atext "Mag : " noshade><br>
 
-<hbr>
+<hr width 520 tint sb_subtle>
+<font type title tint cyan atint cyan>
 "Mipped (world)"
+<font type title tint white atint white>
 <list "NEAREST,LINEAR,NM_NEAR,LM_NEAR,NM_LIN,LM_LIN" match "GL_NEAREST,GL_LINEAR,GL_NEAREST_MIPMAP_NEAREST,GL_LINEAR_MIPMAP_NEAREST,GL_NEAREST_MIPMAP_LINEAR,GL_LINEAR_MIPMAP_LINEAR" cvar _sofbuddy_minfilter_mipped atext "Min : " noshade><br>
 <list "NEAREST,LINEAR" match "GL_NEAREST,GL_LINEAR" cvar _sofbuddy_magfilter_mipped atext "Mag : " noshade><br>
 
-<hbr>
+<hr width 520 tint sb_subtle>
+<font type title tint cyan atint cyan>
 "UI"
+<font type title tint white atint white>
 <list "NEAREST,LINEAR,NM_NEAR,LM_NEAR,NM_LIN,LM_LIN" match "GL_NEAREST,GL_LINEAR,GL_NEAREST_MIPMAP_NEAREST,GL_LINEAR_MIPMAP_NEAREST,GL_NEAREST_MIPMAP_LINEAR,GL_LINEAR_MIPMAP_LINEAR" cvar _sofbuddy_minfilter_ui atext "Min : " noshade><br>
 <list "NEAREST,LINEAR" match "GL_NEAREST,GL_LINEAR" cvar _sofbuddy_magfilter_ui atext "Mag : " noshade><br>
 
-<hbr>
-<font type medium tint white atint white>
-"Use vid_restart after changing filter modes."
-<hbr>
-
+<hr width 520 tint sb_subtle>
 <font type title tint white atint white>
-<text "Restore Filter Defaults" key mouse1 "set _sofbuddy_minfilter_unmipped GL_LINEAR;set _sofbuddy_magfilter_unmipped GL_LINEAR;set _sofbuddy_minfilter_mipped GL_LINEAR_MIPMAP_LINEAR;set _sofbuddy_magfilter_mipped GL_LINEAR;set _sofbuddy_minfilter_ui GL_NEAREST;set _sofbuddy_magfilter_ui GL_NEAREST;refresh" border 16 1 cyan regular><hbr>
-<text "Vid Restart" key mouse1 "vid_restart" border 16 1 cyan regular>
-<text "Close" key mouse1 "popmenu" border 16 1 cyan regular>
+<text "Restore Filter Defaults" key mouse1 "set _sofbuddy_minfilter_unmipped GL_LINEAR;set _sofbuddy_magfilter_unmipped GL_LINEAR;set _sofbuddy_minfilter_mipped GL_LINEAR_MIPMAP_LINEAR;set _sofbuddy_magfilter_mipped GL_LINEAR;set _sofbuddy_minfilter_ui GL_NEAREST;set _sofbuddy_magfilter_ui GL_NEAREST;refresh" border 14 1 cyan regular><hbr>
+<text "Vid Restart" key mouse1 "vid_restart" border 14 1 cyan regular>
+<text "Close" key mouse1 "popmenu" border 14 1 cyan regular>
 </stm>

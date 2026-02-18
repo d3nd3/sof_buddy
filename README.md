@@ -28,6 +28,8 @@
 - 🧾 **Large `config.cfg` Exec Fix** — Avoid `Cbuf_AddText: overflow` when running `exec config.cfg` with very large configs.
 - 🧩 **Embedded Loading / Internal Menus** — Serve RMF menu assets from memory (includes loading UI) and open internal pages via `sofbuddy_menu`.
 - 🌐 **HTTP Map Download Assist (Experimental)** — Optional helper for downloading missing maps over HTTP and resuming precache (disabled by default in `features/FEATURES.txt`).
+- ⬆️ **In-Game Updater + Startup Prompt** — Check/download release zips in-game, with optional startup check and internal-menu prompt.
+- 🧓 **Windows XP Updater Mirror Defaults** — XP builds default updater feed URLs to `sofvault.org` (overrideable via cvars).
 - 📚 **Feature Docs** — See `src/features/internal_menus/README.md`, `src/features/http_maps/README.md`, and `src/features/cbuf_limit_increase/README.md`.
 
 </details>
@@ -42,9 +44,11 @@
 - **Option A:** [Download pre-compiled release](https://github.com/d3nd3/sof_buddy/releases)
 - **Option B:** Compile from source:
   ```sh
-  make              # Release build (optimized)
-  make debug        # Debug build (with logging)
-  make debug-gdb    # Debug build with GDB breakpoint function
+  make               # Release build (optimized)
+  make BUILD=xp      # Windows XP-targeted build
+  make debug         # Debug build (with logging)
+  make BUILD=xp-debug # XP-targeted debug build
+  make debug-gdb     # Debug build with GDB breakpoint function
   make debug-collect # Debug build with func_parents collection
   ```
   See [docs/DEBUGGING.md](docs/DEBUGGING.md) for details on build configurations.
@@ -95,9 +99,34 @@
 - `sofbuddy_menu <name>` — Open an embedded internal menu page (examples: `loading`, `sof_buddy`).
 - `sofbuddy_menu <menu>/<page>` — Open a specific embedded page inside a menu (example: `sofbuddy_menu sof_buddy/sb_perf`).
 - `F12` is auto-bound at startup to `sofbuddy_menu sof_buddy`.
-- `sofbuddy_update` — Check latest release on GitHub and compare with your current version.
-- `sofbuddy_update download` — Download latest release zip to `sof_buddy/update/` (apply after closing game).
+- `sofbuddy_apply_menu_hotkey` — Re-apply bind from `_sofbuddy_menu_hotkey` (default `F12`).
+- `sofbuddy_apply_profile_comp` — Apply competitive/low-visual profile preset.
+- `sofbuddy_apply_profile_visual` — Apply visual/high-fidelity profile preset.
+- `sofbuddy_update` — Check latest release from configured update API endpoint and compare with your current version.
+- `sofbuddy_update download` — Download latest release zip to `sof_buddy/update/` (apply after closing game; release zips are preferred over debug zips).
 - `sofbuddy_openurl <https_url>` — Open trusted community links in your default browser (used by the Social Links menu page).
+
+</details>
+
+---
+
+## 🧓 Windows XP
+<details>
+<summary><b>Click to expand</b></summary>
+
+- Use the **XP package** from releases (`release_windows_xp.zip`) or compile with:
+  ```sh
+  make BUILD=xp
+  ```
+- XP builds define `SOFBUDDY_XP_BUILD` and default updater endpoints to:
+  - `_sofbuddy_update_api_url` = `http://sofvault.org/sof_buddy/releases/latest.json`
+  - `_sofbuddy_update_releases_url` = `http://sofvault.org/sof_buddy/releases/latest`
+- If you run your own mirror/proxy feed, override in console:
+  ```cfg
+  set _sofbuddy_update_api_url "http://your-endpoint/latest.json"
+  set _sofbuddy_update_releases_url "http://your-endpoint/releases/latest"
+  ```
+- XP users may hit WinHTTP TLS failures on modern HTTPS endpoints (for example GitHub API). The mirror defaults above avoid that path.
 
 </details>
 
@@ -156,22 +185,29 @@
 | `_sofbuddy_rawmouse` | 0 | Enable raw mouse input (1 = on, bypasses Windows acceleration) |
 | `sofbuddy_menu_internal` | 0 | Internal menus: serve embedded RMF assets from memory (normally toggled automatically) |
 | `_sofbuddy_update_status` | `idle` | Last updater status text (for console/internal menus) |
-| `_sofbuddy_update_latest` | `""` | Latest GitHub release tag discovered by `sofbuddy_update` |
+| `_sofbuddy_update_latest` | `""` | Latest release tag discovered by `sofbuddy_update` from configured updater feed |
 | `_sofbuddy_update_download_path` | `""` | Last downloaded update zip path |
 | `_sofbuddy_update_checked_utc` | `""` | UTC timestamp of last update check |
+| `_sofbuddy_update_check_startup` | 0 | If `1`, runs updater check on startup and opens internal prompt when update is found |
+| `_sofbuddy_update_api_url` | build-dependent | Updater JSON feed URL (XP build defaults to sofvault mirror, non-XP defaults to GitHub API) |
+| `_sofbuddy_update_releases_url` | build-dependent | Human release page URL shown in updater status/help |
 | `_sofbuddy_openurl_status` | `idle` | Last social-link open status (`opened`, `blocked`, or `open failed`) |
 | `_sofbuddy_openurl_last` | `""` | Last URL requested through `sofbuddy_openurl` |
-| `_sofbuddy_http_maps` | 1 | HTTP map assist: 0=off, 1=url1, 2=random url (only if `http_maps` feature is enabled) |
+| `_sofbuddy_menu_hotkey` | `F12` | Preferred key token used by `sofbuddy_apply_menu_hotkey` / internal menu bind sync |
+| `_sofbuddy_perf_profile` | 0 | Perf profile selector (`0=Competitive`, `1=Visual`) used by internal Perf Tweaks page |
+| `_sofbuddy_loading_lock_input` | 1 | Loading menu input lock mode (`1` locked, `0` unlocked) |
+| `_sofbuddy_http_maps` | 1 | HTTP map assist mode: `0=Off`, `1=Primary`, `2=Random`, `3=Rotate` |
 | `_sofbuddy_http_maps_dl_1` | `https://raw.githubusercontent.com/plowsof/sof1maps/main` | Zip download base URL (index 1) |
 | `_sofbuddy_http_maps_dl_2` | `""` | Zip download base URL (index 2) |
 | `_sofbuddy_http_maps_dl_3` | `""` | Zip download base URL (index 3) |
 | `_sofbuddy_http_maps_crc_1` | `https://raw.githubusercontent.com/plowsof/sof1maps/main` | CRC lookup base URL (index 1, Range fetch of zip central directory) |
 | `_sofbuddy_http_maps_crc_2` | `""` | CRC lookup base URL (index 2) |
 | `_sofbuddy_http_maps_crc_3` | `""` | CRC lookup base URL (index 3) |
+| `_sofbuddy_http_show_providers` | 0 | HTTP tab toggle to show/hide provider + updater URL input fields |
 
 - See [OpenGL glBlendFunc docs](https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glBlendFunc.xhtml) for blend values.
 - If `_sofbuddy_lighting_overbright` is enabled, it overrides blend cvars.
-- `internal_menus` also maintains loading UI CVars: `_sofbuddy_loading_progress`, `_sofbuddy_loading_current`, `_sofbuddy_loading_history_1..5`, `_sofbuddy_loading_status_1..4`, `_sofbuddy_loading_file_1..8`.
+- `internal_menus` loading UI cvars used by current slim loading pages: `_sofbuddy_loading_progress`, `_sofbuddy_loading_current`.
 
 </details>
 

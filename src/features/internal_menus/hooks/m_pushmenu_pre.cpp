@@ -63,8 +63,10 @@ void internal_menus_M_PushMenu_pre(char const*& menu_file, char const*& parentFr
         menu_name = "loading/loading";
     }
 
-    if (is_loading_menu_path(menu_name))
+    if (is_loading_menu_path(menu_name)) {
+        loading_seed_current_from_engine_mapname();
         lock_input = internal_menus_should_lock_loading_input();
+    }
 }
 
 #endif

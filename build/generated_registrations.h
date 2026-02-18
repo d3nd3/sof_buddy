@@ -11,6 +11,7 @@ extern qboolean cbuf_addlatecommands_override_callback(detour_Cbuf_AddLateComman
 extern void cinematicfreeze_callback(bool bEnable);
 extern void cl_maxfps_EarlyStartup();
 extern void cl_precache_http_maps_override_callback(detour_CL_Precache_f::tCL_Precache_f original);
+extern void cmd_executestring_override_callback(char* text, detour_Cmd_ExecuteString::tCmd_ExecuteString original);
 extern void console_protection_EarlyStartup();
 extern LRESULT dispatchmessagea_override_callback(const MSG* msg, detour_DispatchMessageA::tDispatchMessageA original);
 extern void drawteamicons_pre_callback(float*& targetPlayerOrigin, char*& playerName, char*& imageNameTeamIcon, int& redOrBlue);
@@ -37,14 +38,18 @@ extern void hkcHealthArmor2_Draw(void* self, detour_cHealthArmor2_Draw::tcHealth
 extern void hkcInventory2_And_cGunAmmo2_Draw(void* self, detour_cInventory2_And_cGunAmmo2_Draw::tcInventory2_And_cGunAmmo2_Draw original);
 extern void http_maps_PostCvarInit();
 extern void http_maps_cl_parseconfigstring_post_callback();
+extern void http_maps_cl_parseconfigstring_pre_callback();
 extern void http_maps_qcommon_frame_post_callback(int msec);
 extern void http_maps_qcommon_frame_pre_callback(int& msec);
+extern void http_maps_reconnect_f_pre_callback();
 extern void in_menumouse_callback(void* cvar1, void* cvar2);
 extern void in_mousemove_callback(void* cmd);
 extern void internal_menus_EarlyStartup();
+extern void internal_menus_M_PushMenu_post(char const* menu_file, char const* parentFrame, bool lock_input);
 extern void internal_menus_M_PushMenu_pre(char const*& menu_file, char const*& parentFrame, bool& lock_input);
 extern void internal_menus_PostCvarInit();
 extern void internal_menus_Reconnect_f_pre();
+extern int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool override_pak, detour_FS_LoadFile::tFS_LoadFile original);
 extern void lightblend_PostCvarInit();
 extern void lightblend_RefDllLoaded(char const* name);
 extern void mediaTimers_EarlyStartup();
@@ -195,6 +200,10 @@ inline void RegisterAllFeatureHooks() {
         "vsync_toggle", "vsync_pre_vid_checkchanges",
         []() { vsync_pre_vid_checkchanges(); },
         50);
+    detour_CL_ParseConfigString::GetManager().RegisterPreCallback(
+        "http_maps", "http_maps_cl_parseconfigstring_pre_callback",
+        []() { http_maps_cl_parseconfigstring_pre_callback(); },
+        100);
     {
         auto& mgr = detour_CL_ParseConfigString::GetManager();
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] CL_ParseConfigString manager at 0x%p\n", &mgr);
@@ -217,10 +226,23 @@ inline void RegisterAllFeatureHooks() {
         "http_maps", "http_maps_qcommon_frame_pre_callback",
         [](int& msec) { http_maps_qcommon_frame_pre_callback(msec); },
         100);
+    detour_Reconnect_f::GetManager().RegisterPreCallback(
+        "http_maps", "http_maps_reconnect_f_pre_callback",
+        []() { http_maps_reconnect_f_pre_callback(); },
+        80);
     detour_M_PushMenu::GetManager().RegisterPreCallback(
         "internal_menus", "internal_menus_M_PushMenu_pre",
         [](char const*& menu_file, char const*& parentFrame, bool& lock_input) { internal_menus_M_PushMenu_pre(menu_file, parentFrame, lock_input); },
         90);
+    {
+        auto& mgr = detour_M_PushMenu::GetManager();
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] M_PushMenu manager at 0x%p\n", &mgr);
+        mgr.RegisterPostCallback(
+            "internal_menus", "internal_menus_M_PushMenu_post",
+            [](char const* menu_file, char const* parentFrame, bool lock_input) { internal_menus_M_PushMenu_post(menu_file, parentFrame, lock_input); },
+            90);
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] M_PushMenu post callbacks: %zu\n", mgr.GetPostCallbackCount());
+    }
     detour_Reconnect_f::GetManager().RegisterPreCallback(
         "internal_menus", "internal_menus_Reconnect_f_pre",
         []() { internal_menus_Reconnect_f_pre(); },

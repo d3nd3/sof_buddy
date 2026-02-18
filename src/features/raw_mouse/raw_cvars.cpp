@@ -25,13 +25,13 @@ void raw_mouse_on_change(cvar_t *cvar)
         HWND hwnd = GetActiveWindow();
         if (!hwnd) hwnd = GetForegroundWindow();
         if (raw_mouse_register_input(hwnd, true)) {
-            PrintOut(PRINT_GOOD, "raw_mouse: Raw input is now ENABLED\n");
+            PrintOut(PRINT_DEV, "raw_mouse: Raw input is now ENABLED\n");
         } else {
             PrintOut(PRINT_BAD, "raw_mouse: Raw input was requested but registration failed\n");
         }
     } else {
         raw_mouse_unregister_input(true);
-        PrintOut(PRINT_LOG, "raw_mouse: Raw input is now DISABLED (using legacy cursor mode)\n");
+        PrintOut(PRINT_DEV, "raw_mouse: Raw input is now DISABLED (using legacy cursor mode)\n");
     }
 }
 
@@ -43,7 +43,7 @@ void create_raw_mouse_cvars(void) {
         raw_mouse_on_change(in_mouse_raw);
     }
 
-    PrintOut(PRINT_LOG, "raw_mouse: Registered _sofbuddy_rawmouse cvar with change callback\n");
+    PrintOut(PRINT_DEV, "raw_mouse: Registered _sofbuddy_rawmouse cvar with change callback\n");
 }
 
 #endif

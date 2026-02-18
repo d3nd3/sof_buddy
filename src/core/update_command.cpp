@@ -14,13 +14,24 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <vector>
 
 namespace {
 
-constexpr const char* kUpdateApiUrl = "https://api.github.com/repos/d3nd3/sof_buddy/releases/latest";
-constexpr const char* kUpdateReleasesUrl = "https://github.com/d3nd3/sof_buddy/releases/latest";
+constexpr const char* kUpdateApiUrlGitHub = "https://api.github.com/repos/d3nd3/sof_buddy/releases/latest";
+constexpr const char* kUpdateReleasesUrlGitHub = "https://github.com/d3nd3/sof_buddy/releases/latest";
+constexpr const char* kUpdateApiUrlSofVault = "http://sofvault.org/sof_buddy/releases/latest.json";
+constexpr const char* kUpdateReleasesUrlSofVault = "http://sofvault.org/sof_buddy/releases/latest";
+
+#if defined(SOFBUDDY_XP_BUILD)
+constexpr const char* kUpdateApiUrl = kUpdateApiUrlSofVault;
+constexpr const char* kUpdateReleasesUrl = kUpdateReleasesUrlSofVault;
+#else
+constexpr const char* kUpdateApiUrl = kUpdateApiUrlGitHub;
+constexpr const char* kUpdateReleasesUrl = kUpdateReleasesUrlGitHub;
+#endif
 constexpr const char* kUpdateOutputDir = "sof_buddy/update";
 constexpr DWORD kUpdateTimeoutMs = 8000;
 
@@ -29,8 +40,11 @@ constexpr const char* kCvarUpdateLatest = "_sofbuddy_update_latest";
 constexpr const char* kCvarUpdateDownloadPath = "_sofbuddy_update_download_path";
 constexpr const char* kCvarUpdateCheckedUtc = "_sofbuddy_update_checked_utc";
 constexpr const char* kCvarUpdateCheckStartup = "_sofbuddy_update_check_startup";
+constexpr const char* kCvarUpdateApiUrl = "_sofbuddy_update_api_url";
+constexpr const char* kCvarUpdateReleasesUrl = "_sofbuddy_update_releases_url";
 constexpr const char* kCvarOpenUrlStatus = "_sofbuddy_openurl_status";
 constexpr const char* kCvarOpenUrlLast = "_sofbuddy_openurl_last";
+bool g_startup_update_prompt_pending = false;
 
 constexpr const char* kAllowedSocialHosts[] = {
     "github.com",
@@ -88,6 +102,47 @@ std::string format_error_code(const char* prefix, DWORD code) {
     char buffer[160];
     std::snprintf(buffer, sizeof(buffer), "%s (Win32 error %lu)", prefix, static_cast<unsigned long>(code));
     return std::string(buffer);
+}
+
+bool is_tls_secure_failure_error(DWORD code) {
+    return code == ERROR_WINHTTP_SECURE_FAILURE;
+}
+
+std::string get_update_cvar_or_default(const char* name, const char* fallback) {
+    if (!fallback) fallback = "";
+    if (!name || !name[0] || !orig_Cvar_Get) return std::string(fallback);
+
+    cvar_t* c = orig_Cvar_Get(name, fallback, CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    if (!c || !c->string || !c->string[0]) return std::string(fallback);
+    return std::string(c->string);
+}
+
+std::string get_update_api_url() {
+    return get_update_cvar_or_default(kCvarUpdateApiUrl, kUpdateApiUrl);
+}
+
+std::string get_update_releases_url() {
+    return get_update_cvar_or_default(kCvarUpdateReleasesUrl, kUpdateReleasesUrl);
+}
+
+bool cvar_is_empty_or_value(cvar_t* c, const char* expected) {
+    const char* s = (c && c->string) ? c->string : "";
+    if (!s[0]) return true;
+    if (!expected) return false;
+    return std::strcmp(s, expected) == 0;
+}
+
+void append_tls_failure_hint(std::string& error, const ParsedUrl& parsed) {
+    if (!parsed.secure) return;
+
+    const std::string host = to_lower_ascii(wide_to_utf8(parsed.host));
+    if (host.find("github.com") == std::string::npos &&
+        host.find("githubusercontent.com") == std::string::npos) {
+        return;
+    }
+
+    error += ". TLS handshake/certificate failed. GitHub requires modern TLS; on Windows XP WinHTTP this often fails. ";
+    error += "Use manual update, or set _sofbuddy_update_api_url to an XP-compatible mirror/proxy feed.";
 }
 
 bool ensure_parent_dirs(const std::string& file_path) {
@@ -291,7 +346,10 @@ bool http_begin_get(
     }
 
     if (!WinHttpSendRequest(request, headers, headers_len, WINHTTP_NO_REQUEST_DATA, 0, 0, 0)) {
-        error = format_error_code("WinHttpSendRequest failed", GetLastError());
+        const DWORD e = GetLastError();
+        error = format_error_code("WinHttpSendRequest failed", e);
+        if (is_tls_secure_failure_error(e))
+            append_tls_failure_hint(error, parsed);
         WinHttpCloseHandle(request);
         WinHttpCloseHandle(connect);
         WinHttpCloseHandle(session);
@@ -299,7 +357,10 @@ bool http_begin_get(
     }
 
     if (!WinHttpReceiveResponse(request, nullptr)) {
-        error = format_error_code("WinHttpReceiveResponse failed", GetLastError());
+        const DWORD e = GetLastError();
+        error = format_error_code("WinHttpReceiveResponse failed", e);
+        if (is_tls_secure_failure_error(e))
+            append_tls_failure_hint(error, parsed);
         WinHttpCloseHandle(request);
         WinHttpCloseHandle(connect);
         WinHttpCloseHandle(session);
@@ -478,6 +539,51 @@ bool json_find_string_field(
     return true;
 }
 
+std::string zip_asset_name_from_url(const std::string& url) {
+    if (url.empty()) return std::string();
+
+    size_t end = url.find_first_of("?#");
+    if (end == std::string::npos) end = url.size();
+    if (end == 0) return std::string();
+
+    size_t slash = url.rfind('/', end - 1);
+    size_t start = (slash == std::string::npos) ? 0 : (slash + 1);
+    if (start >= end) return std::string();
+
+    return to_lower_ascii(url.substr(start, end - start));
+}
+
+int score_release_zip_candidate(const std::string& url) {
+    const std::string name = zip_asset_name_from_url(url);
+    if (name.size() < 4 || name.compare(name.size() - 4, 4, ".zip") != 0)
+        return std::numeric_limits<int>::min();
+
+    const bool is_debug = (name.find("debug") != std::string::npos);
+    const bool is_release = (name.find("release") != std::string::npos);
+    const bool has_sofbuddy = (name.find("sof_buddy") != std::string::npos) ||
+                              (name.find("sofbuddy") != std::string::npos);
+    const bool is_windows = (name.find("windows") != std::string::npos);
+    const bool is_linux_wine = (name.find("linux") != std::string::npos) ||
+                               (name.find("wine") != std::string::npos);
+    const bool is_xp = (name.find("xp") != std::string::npos);
+
+    int score = 0;
+    if (is_release) score += 400;
+    if (has_sofbuddy) score += 120;
+    if (is_windows) score += 30;
+    if (is_linux_wine) score += 20;
+    if (is_xp) score -= 40;
+    if (is_debug) score -= 500;
+
+    if (name == "release_windows.zip") score += 200;
+    else if (name == "release_linux_wine.zip") score += 180;
+    else if (name == "release_windows_xp.zip") score += 100;
+    else if (name == "debug_windows.zip") score -= 100;
+    else if (name == "debug_windows_xp.zip") score -= 150;
+
+    return score;
+}
+
 std::vector<int> parse_version_parts(const std::string& version_text) {
     std::vector<int> parts;
     size_t i = 0;
@@ -530,6 +636,7 @@ std::string make_update_zip_path(const std::string& tag_name) {
 }
 
 bool write_update_readme(const ReleaseInfo& info, const std::string& zip_path) {
+    const std::string releases_url = get_update_releases_url();
     const std::string readme_path = std::string(kUpdateOutputDir) + "/README.txt";
     if (!ensure_parent_dirs(readme_path)) return false;
 
@@ -543,7 +650,7 @@ bool write_update_readme(const ReleaseInfo& info, const std::string& zip_path) {
     text += "\nLatest release tag: ";
     text += info.tag_name.empty() ? "unknown" : info.tag_name;
     text += "\nRelease page: ";
-    text += info.html_url.empty() ? kUpdateReleasesUrl : info.html_url;
+    text += info.html_url.empty() ? releases_url : info.html_url;
     text += "\nDownloaded zip: ";
     text += zip_path;
     text += "\n\n";
@@ -558,12 +665,15 @@ bool write_update_readme(const ReleaseInfo& info, const std::string& zip_path) {
 }
 
 bool fetch_latest_release(ReleaseInfo& out, std::string& error) {
+    const std::string api_url = get_update_api_url();
+    const std::string releases_url = get_update_releases_url();
+
     HINTERNET session = nullptr;
     HINTERNET connect = nullptr;
     HINTERNET request = nullptr;
     DWORD status = 0;
 
-    if (!http_begin_get(kUpdateApiUrl, true, session, connect, request, status, error))
+    if (!http_begin_get(api_url, true, session, connect, request, status, error))
         return false;
 
     std::vector<uint8_t> payload;
@@ -580,24 +690,31 @@ bool fetch_latest_release(ReleaseInfo& out, std::string& error) {
         return false;
     }
 
-    if (!json_find_string_field(body, "tag_name", 0, out.tag_name, nullptr)) {
-        error = "GitHub response missing tag_name";
+    if (!json_find_string_field(body, "tag_name", 0, out.tag_name, nullptr) &&
+        !json_find_string_field(body, "version", 0, out.tag_name, nullptr) &&
+        !json_find_string_field(body, "tag", 0, out.tag_name, nullptr)) {
+        error = "Update feed missing version tag (expected tag_name/version/tag)";
         return false;
     }
-    if (!json_find_string_field(body, "html_url", 0, out.html_url, nullptr))
-        out.html_url = kUpdateReleasesUrl;
+    if (!json_find_string_field(body, "html_url", 0, out.html_url, nullptr) &&
+        !json_find_string_field(body, "release_url", 0, out.html_url, nullptr)) {
+        out.html_url = releases_url;
+    }
 
     out.zip_url.clear();
+    int best_score = std::numeric_limits<int>::min();
     size_t search = 0;
     std::string candidate;
     while (json_find_string_field(body, "browser_download_url", search, candidate, &search)) {
-        std::string lower = to_lower_ascii(candidate);
-        if (lower.size() < 4 || lower.substr(lower.size() - 4) != ".zip") continue;
-        if (out.zip_url.empty()) out.zip_url = candidate;
-        if (lower.find("sof_buddy") != std::string::npos) {
-            out.zip_url = candidate;
-            break;
-        }
+        const int score = score_release_zip_candidate(candidate);
+        if (score <= best_score) continue;
+        best_score = score;
+        out.zip_url = candidate;
+    }
+    if (out.zip_url.empty()) {
+        json_find_string_field(body, "zip_url", 0, out.zip_url, nullptr) ||
+            json_find_string_field(body, "download_url", 0, out.zip_url, nullptr) ||
+            json_find_string_field(body, "asset_url", 0, out.zip_url, nullptr);
     }
 
     return true;
@@ -651,23 +768,26 @@ bool download_release_zip(const std::string& url, const std::string& out_path, s
 }
 
 void print_update_usage() {
-    PrintOut(PRINT_GOOD, "sofbuddy_update: checks GitHub releases for updates.\n");
-    PrintOut(PRINT_GOOD, "Usage:\n");
-    PrintOut(PRINT_GOOD, "  sofbuddy_update                (check only)\n");
-    PrintOut(PRINT_GOOD, "  sofbuddy_update download       (check + download if newer)\n");
-    PrintOut(PRINT_GOOD, "  sofbuddy_update download force (always download latest zip)\n");
+    PrintOut(PRINT_DEV, "sofbuddy_update: checks GitHub releases for updates.\n");
+    PrintOut(PRINT_DEV, "Usage:\n");
+    PrintOut(PRINT_DEV, "  sofbuddy_update                (check only)\n");
+    PrintOut(PRINT_DEV, "  sofbuddy_update download       (check + download if newer)\n");
+    PrintOut(PRINT_DEV, "  sofbuddy_update download force (always download latest zip)\n");
+    PrintOut(PRINT_DEV, "Optional overrides (for XP/proxy mirrors):\n");
+    PrintOut(PRINT_DEV, "  set _sofbuddy_update_api_url <url>\n");
+    PrintOut(PRINT_DEV, "  set _sofbuddy_update_releases_url <url>\n");
 }
 
-void maybe_open_startup_update_prompt() {
+void queue_startup_update_prompt() {
 #if FEATURE_INTERNAL_MENUS
-    if (!orig_Cmd_ExecuteString) return;
-    orig_Cmd_ExecuteString("menu sof_buddy/sb_update_prompt");
+    g_startup_update_prompt_pending = true;
 #endif
 }
 
 } // namespace
 
 static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool startup_check) {
+    const std::string releases_url = get_update_releases_url();
     set_update_status("checking github releases");
     set_update_cvar(kCvarUpdateCheckedUtc, current_utc_timestamp());
 
@@ -676,7 +796,7 @@ static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool
     if (!fetch_latest_release(latest, error)) {
         set_update_status("check failed");
         PrintOut(PRINT_BAD, "sofbuddy_update: %s\n", error.c_str());
-        PrintOut(PRINT_BAD, "You can still check manually: %s\n", kUpdateReleasesUrl);
+        PrintOut(PRINT_BAD, "You can still check manually: %s\n", releases_url.c_str());
         return;
     }
 
@@ -687,41 +807,41 @@ static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool
         std::string status = "update available (" + latest.tag_name + ")";
         set_update_status(status);
         if (startup_check)
-            PrintOut(PRINT_GOOD, "Startup check: update available: %s -> %s\n", SOFBUDDY_VERSION, latest.tag_name.c_str());
+            PrintOut(PRINT_DEV, "Startup check: update available: %s -> %s\n", SOFBUDDY_VERSION, latest.tag_name.c_str());
         else
-            PrintOut(PRINT_GOOD, "Update available: %s -> %s\n", SOFBUDDY_VERSION, latest.tag_name.c_str());
+            PrintOut(PRINT_DEV, "Update available: %s -> %s\n", SOFBUDDY_VERSION, latest.tag_name.c_str());
         if (!latest.html_url.empty())
-            PrintOut(PRINT_GOOD, "Release page: %s\n", latest.html_url.c_str());
+            PrintOut(PRINT_DEV, "Release page: %s\n", latest.html_url.c_str());
         else
-            PrintOut(PRINT_GOOD, "Release page: %s\n", kUpdateReleasesUrl);
+            PrintOut(PRINT_DEV, "Release page: %s\n", releases_url.c_str());
         if (startup_check)
-            maybe_open_startup_update_prompt();
+            queue_startup_update_prompt();
     } else if (cmp == 0) {
         set_update_status("up to date");
         if (startup_check)
-            PrintOut(PRINT_GOOD, "Startup check: SoF Buddy is up to date (%s).\n", SOFBUDDY_VERSION);
+            PrintOut(PRINT_DEV, "Startup check: SoF Buddy is up to date (%s).\n", SOFBUDDY_VERSION);
         else
-            PrintOut(PRINT_GOOD, "SoF Buddy is up to date (%s).\n", SOFBUDDY_VERSION);
+            PrintOut(PRINT_DEV, "SoF Buddy is up to date (%s).\n", SOFBUDDY_VERSION);
     } else {
         set_update_status("local build is newer");
         if (startup_check) {
-            PrintOut(PRINT_GOOD, "Startup check: local build (%s) is newer than latest tagged release (%s).\n",
+            PrintOut(PRINT_DEV, "Startup check: local build (%s) is newer than latest tagged release (%s).\n",
                 SOFBUDDY_VERSION, latest.tag_name.c_str());
         } else {
-            PrintOut(PRINT_GOOD, "Local build (%s) is newer than latest tagged release (%s).\n",
+            PrintOut(PRINT_DEV, "Local build (%s) is newer than latest tagged release (%s).\n",
                 SOFBUDDY_VERSION, latest.tag_name.c_str());
         }
     }
 
     if (!do_download) {
         if (cmp < 0) {
-            PrintOut(PRINT_GOOD, "Run `sofbuddy_update download` to fetch the latest zip now.\n");
+            PrintOut(PRINT_DEV, "Run `sofbuddy_update download` to fetch the latest zip now.\n");
         }
         return;
     }
 
     if (!force_download && cmp >= 0) {
-        PrintOut(PRINT_GOOD, "Skipping download (no newer release). Use `sofbuddy_update download force` if you still want the zip.\n");
+        PrintOut(PRINT_DEV, "Skipping download (no newer release). Use `sofbuddy_update download force` if you still want the zip.\n");
         return;
     }
 
@@ -736,7 +856,7 @@ static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool
     const std::string zip_path = make_update_zip_path(latest.tag_name);
     size_t written_bytes = 0;
     set_update_status("downloading release zip");
-    PrintOut(PRINT_GOOD, "Downloading %s\n", latest.zip_url.c_str());
+    PrintOut(PRINT_DEV, "Downloading %s\n", latest.zip_url.c_str());
     if (!download_release_zip(latest.zip_url, zip_path, written_bytes, error)) {
         set_update_status("download failed");
         PrintOut(PRINT_BAD, "sofbuddy_update download failed: %s\n", error.c_str());
@@ -748,10 +868,10 @@ static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool
 
     write_update_readme(latest, zip_path);
 
-    PrintOut(PRINT_GOOD, "Downloaded %zu bytes to %s\n", written_bytes, zip_path.c_str());
-    PrintOut(PRINT_GOOD, "Close SoF completely before replacing sof_buddy.dll (it is currently loaded).\n");
-    PrintOut(PRINT_GOOD, "Then run sof_buddy/update_from_zip.cmd (Windows) or sof_buddy/update_from_zip.sh (Linux/Wine).\n");
-    PrintOut(PRINT_GOOD, "If you prefer manual install: extract that zip into your SoF root and relaunch normally.\n");
+    PrintOut(PRINT_DEV, "Downloaded %zu bytes to %s\n", written_bytes, zip_path.c_str());
+    PrintOut(PRINT_DEV, "Close SoF completely before replacing sof_buddy.dll (it is currently loaded).\n");
+    PrintOut(PRINT_DEV, "Then run sof_buddy/update_from_zip.cmd (Windows) or sof_buddy/update_from_zip.sh (Linux/Wine).\n");
+    PrintOut(PRINT_DEV, "If you prefer manual install: extract that zip into your SoF root and relaunch normally.\n");
 }
 
 void sofbuddy_update_init(void) {
@@ -761,6 +881,19 @@ void sofbuddy_update_init(void) {
     orig_Cvar_Get(kCvarUpdateDownloadPath, "", 0, nullptr);
     orig_Cvar_Get(kCvarUpdateCheckedUtc, "", 0, nullptr);
     orig_Cvar_Get(kCvarUpdateCheckStartup, "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    cvar_t* api_url_cvar = orig_Cvar_Get(kCvarUpdateApiUrl, kUpdateApiUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    cvar_t* releases_url_cvar = orig_Cvar_Get(kCvarUpdateReleasesUrl, kUpdateReleasesUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
+
+#if defined(SOFBUDDY_XP_BUILD)
+    // XP builds should default to the sofvault mirror. Preserve explicit user customizations.
+    if (orig_Cvar_Set2) {
+        if (cvar_is_empty_or_value(api_url_cvar, kUpdateApiUrlGitHub))
+            orig_Cvar_Set2(const_cast<char*>(kCvarUpdateApiUrl), const_cast<char*>(kUpdateApiUrlSofVault), true);
+        if (cvar_is_empty_or_value(releases_url_cvar, kUpdateReleasesUrlGitHub))
+            orig_Cvar_Set2(const_cast<char*>(kCvarUpdateReleasesUrl), const_cast<char*>(kUpdateReleasesUrlSofVault), true);
+    }
+#endif
+
     orig_Cvar_Get(kCvarOpenUrlStatus, "idle", 0, nullptr);
     orig_Cvar_Get(kCvarOpenUrlLast, "", 0, nullptr);
 }
@@ -774,8 +907,19 @@ void sofbuddy_update_maybe_check_startup(void) {
     cvar_t* startup_check = orig_Cvar_Get(kCvarUpdateCheckStartup, "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     if (!startup_check || startup_check->value == 0.0f) return;
 
-    PrintOut(PRINT_GOOD, "sofbuddy_update: startup check is enabled.\n");
+    PrintOut(PRINT_DEV, "sofbuddy_update: startup check is enabled.\n");
     sofbuddy_run_update_flow(false, false, true);
+}
+
+bool sofbuddy_update_consume_startup_prompt_request(void) {
+#if FEATURE_INTERNAL_MENUS
+    if (!g_startup_update_prompt_pending)
+        return false;
+    g_startup_update_prompt_pending = false;
+    return true;
+#else
+    return false;
+#endif
 }
 
 void Cmd_SoFBuddy_Update_f(void) {
@@ -823,8 +967,8 @@ static bool open_url(const std::string& url, std::string& error) {
 void Cmd_SoFBuddy_OpenUrl_f(void) {
     if (!orig_Cmd_Argc || !orig_Cmd_Argv) return;
     if (orig_Cmd_Argc() < 2) {
-        PrintOut(PRINT_GOOD, "Usage: sofbuddy_openurl <url>\n");
-        PrintOut(PRINT_GOOD, "Note: only trusted https social links are allowed.\n");
+        PrintOut(PRINT_DEV, "Usage: sofbuddy_openurl <url>\n");
+        PrintOut(PRINT_DEV, "Note: only trusted https social links are allowed.\n");
         return;
     }
 
@@ -854,5 +998,5 @@ void Cmd_SoFBuddy_OpenUrl_f(void) {
 
     set_update_cvar(kCvarOpenUrlLast, url);
     set_openurl_status("opened: " + host);
-    PrintOut(PRINT_GOOD, "Opened %s in your default browser.\n", host.c_str());
+    PrintOut(PRINT_DEV, "Opened %s in your default browser.\n", host.c_str());
 }

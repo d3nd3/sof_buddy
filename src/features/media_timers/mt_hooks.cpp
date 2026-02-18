@@ -116,12 +116,12 @@ void high_priority_change(cvar_t * cvar) {
 	SOFBUDDY_ASSERT(cvar != nullptr);
 	
 	if ( cvar->value ) {
-		PrintOut(PRINT_GOOD,"cpu priority is now HIGH\n");
+		PrintOut(PRINT_DEV,"cpu priority is now HIGH\n");
 		HANDLE hProcess = GetCurrentProcess();
 		// Set the priority class to HIGH_PRIORITY_CLASS
 		BOOL success = SetPriorityClass(hProcess, HIGH_PRIORITY_CLASS);
 	} else {
-		PrintOut(PRINT_GOOD,"cpu priority is now NORMAL\n");
+		PrintOut(PRINT_DEV,"cpu priority is now NORMAL\n");
 		HANDLE hProcess = GetCurrentProcess();
 		// Set the priority class to HIGH_PRIORITY_CLASS
 		BOOL success = SetPriorityClass(hProcess, NORMAL_PRIORITY_CLASS);
@@ -136,11 +136,11 @@ void sleep_change(cvar_t * cvar) {
 	if ( cvar->value ) {
 		sleep_mode = true;
 		extratime_resume=0;
-		PrintOut(PRINT_GOOD,"cpu sleep is ENABLED\n");
+		PrintOut(PRINT_DEV,"cpu sleep is ENABLED\n");
 	} else {
 		sleep_mode = false;
 		extratime_resume=0;
-		PrintOut(PRINT_GOOD,"cpu sleep is DISABLED\n");
+		PrintOut(PRINT_DEV,"cpu sleep is DISABLED\n");
 	}
 
 	// Sleep(1) accuracy is heavily impacted by the system timer period. Request 1ms while enabled
@@ -156,11 +156,11 @@ void sleep_jitter_change(cvar_t *cvar)
 	
 	if ( cvar->value ) {
 		sleep_jitter = true;
-		PrintOut(PRINT_GOOD,"sleep_jitter is ENABLED\n");
+		PrintOut(PRINT_DEV,"sleep_jitter is ENABLED\n");
 	}
 	else {
 		sleep_jitter = false;
-		PrintOut(PRINT_GOOD,"sleep_jitter is DISABLED\n");
+		PrintOut(PRINT_DEV,"sleep_jitter is DISABLED\n");
 	}
 }
 /*
@@ -170,10 +170,10 @@ void sleep_busyticks_change(cvar_t * cvar)
 {
 	SOFBUDDY_ASSERT(cvar != nullptr);
 	
-	// PrintOut(PRINT_GOOD,"sleep_exclude_change changed\n");
+	// PrintOut(PRINT_DEV,"sleep_exclude_change changed\n");
 	sleep_busyticks = (cvar->value < 0.0f) ? 0 : static_cast<int>(cvar->value);
 
-	PrintOut(PRINT_GOOD,"sleep_busyticks is now : %i\n",sleep_busyticks);
+	PrintOut(PRINT_DEV,"sleep_busyticks is now : %i\n",sleep_busyticks);
 }
 
 void cl_maxfps_change(cvar_t *cvar)
@@ -181,7 +181,7 @@ void cl_maxfps_change(cvar_t *cvar)
 	SOFBUDDY_ASSERT(cvar != nullptr);
 	SOFBUDDY_ASSERT(cvar->value > 0.0f);
 	
-	// PrintOut(PRINT_GOOD,"cl_maxfps changed %f\n",cvar->value);
+	// PrintOut(PRINT_DEV,"cl_maxfps changed %f\n",cvar->value);
 
 	//update _sofbuddy_sleep_gamma
 	// orig_Cvar_Set2("_sofbuddy_sleep_gamma",cvar->string,false);
