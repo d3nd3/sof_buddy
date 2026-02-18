@@ -13,6 +13,7 @@
 
 <font type title tint white atint white>
 <ctext _sofbuddy_update_latest atext "Latest tag: " invisible><hbr>
+<ctext _sofbuddy_update_downloaded_asset atext "Release zip: " invisible><hbr>
 "Download latest release zip now?"<hbr>
 <hbr>
 

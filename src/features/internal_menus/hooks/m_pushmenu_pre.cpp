@@ -2,7 +2,7 @@
 
 #if FEATURE_INTERNAL_MENUS
 
-#include "sof_compat.h"
+#include "update_command.h"
 #include "../shared.h"
 #include <algorithm>
 #include <cctype>
@@ -55,6 +55,13 @@ bool is_loading_menu_path(const std::string& menu_name) {
 void internal_menus_M_PushMenu_pre(char const*& menu_file, char const*& parentFrame, bool& lock_input) {
     std::string menu_name = normalize_menu_name(menu_file);
     const std::string leaf = menu_leaf(menu_name);
+
+    if ((!parentFrame || !parentFrame[0]) &&
+        leaf == "start" &&
+        sofbuddy_update_consume_startup_prompt_request()) {
+        menu_file = "sof_buddy/sb_update_prompt";
+        menu_name = "sof_buddy/sb_update_prompt";
+    }
 
     // Loading override trigger: when engine signals loading-related root menu names,
     // redirect to our internal loading root page on disk.

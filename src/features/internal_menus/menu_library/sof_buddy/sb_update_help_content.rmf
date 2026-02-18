@@ -42,6 +42,7 @@
 <ctext _sofbuddy_update_status atext "Updater : " noshade><hbr>
 <ctext _sofbuddy_update_latest atext "Latest tag : " noshade><hbr>
 <ctext _sofbuddy_update_checked_utc atext "Last check UTC : " noshade><hbr>
+<ctext _sofbuddy_update_downloaded_asset atext "Release asset : " noshade><hbr>
 <ctext _sofbuddy_update_download_path atext "Downloaded zip : " noshade><hbr>
 
 <hr width 520 tint sb_subtle>

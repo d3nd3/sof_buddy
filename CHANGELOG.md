@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.7
+
+- HTTP maps: removed experimental/default-disabled note from docs; feature is now treated as normal.
+- Updater: startup update prompt now pre-intercepts intro/start menu flow; redundant post-hook injection removed.
+- Updater downloads: zip asset selection tightened for build target (Windows vs Windows XP, Linux/Wine fallback penalties), with stricter fallback filtering.
+- Updater UX: selected/downloaded release asset filename is now printed via `PRINT_DEV` and surfaced in update prompt/help menus.
+
 ## v2.6
 
 - HTTP maps: reconnect-stage hook path added, frame/config handling tightened, and provider/update wiring refined.

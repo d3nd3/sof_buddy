@@ -38,6 +38,7 @@ constexpr DWORD kUpdateTimeoutMs = 8000;
 constexpr const char* kCvarUpdateStatus = "_sofbuddy_update_status";
 constexpr const char* kCvarUpdateLatest = "_sofbuddy_update_latest";
 constexpr const char* kCvarUpdateDownloadPath = "_sofbuddy_update_download_path";
+constexpr const char* kCvarUpdateDownloadedAsset = "_sofbuddy_update_downloaded_asset";
 constexpr const char* kCvarUpdateCheckedUtc = "_sofbuddy_update_checked_utc";
 constexpr const char* kCvarUpdateCheckStartup = "_sofbuddy_update_check_startup";
 constexpr const char* kCvarUpdateApiUrl = "_sofbuddy_update_api_url";
@@ -539,7 +540,7 @@ bool json_find_string_field(
     return true;
 }
 
-std::string zip_asset_name_from_url(const std::string& url) {
+std::string asset_name_from_url(const std::string& url) {
     if (url.empty()) return std::string();
 
     size_t end = url.find_first_of("?#");
@@ -550,7 +551,11 @@ std::string zip_asset_name_from_url(const std::string& url) {
     size_t start = (slash == std::string::npos) ? 0 : (slash + 1);
     if (start >= end) return std::string();
 
-    return to_lower_ascii(url.substr(start, end - start));
+    return url.substr(start, end - start);
+}
+
+std::string zip_asset_name_from_url(const std::string& url) {
+    return to_lower_ascii(asset_name_from_url(url));
 }
 
 int score_release_zip_candidate(const std::string& url) {
@@ -581,7 +586,39 @@ int score_release_zip_candidate(const std::string& url) {
     else if (name == "debug_windows.zip") score -= 100;
     else if (name == "debug_windows_xp.zip") score -= 150;
 
+#if defined(SOFBUDDY_XP_BUILD)
+    if (is_windows && is_xp) score += 1200;
+    if (is_windows && !is_xp) score -= 400;
+    if (is_linux_wine) score -= 700;
+#else
+    if (is_windows && !is_xp) score += 1200;
+    if (is_windows && is_xp) score -= 700;
+    if (is_linux_wine) score -= 150;
+#endif
+
     return score;
+}
+
+bool zip_matches_build_preference(const std::string& url) {
+    const std::string name = zip_asset_name_from_url(url);
+    if (name.empty()) return false;
+    if (name.size() < 4 || name.compare(name.size() - 4, 4, ".zip") != 0) return false;
+    if (name.find("debug") != std::string::npos) return false;
+
+    const bool is_windows = (name.find("windows") != std::string::npos);
+    const bool is_linux_wine = (name.find("linux") != std::string::npos) ||
+                               (name.find("wine") != std::string::npos);
+    const bool is_xp = (name.find("xp") != std::string::npos);
+
+#if defined(SOFBUDDY_XP_BUILD)
+    if (is_windows && is_xp) return true;
+    if (is_windows && !is_xp) return false;
+    if (is_linux_wine) return false;
+#else
+    if (is_windows && !is_xp) return true;
+    if (is_windows && is_xp) return false;
+#endif
+    return true;
 }
 
 std::vector<int> parse_version_parts(const std::string& version_text) {
@@ -712,9 +749,13 @@ bool fetch_latest_release(ReleaseInfo& out, std::string& error) {
         out.zip_url = candidate;
     }
     if (out.zip_url.empty()) {
-        json_find_string_field(body, "zip_url", 0, out.zip_url, nullptr) ||
-            json_find_string_field(body, "download_url", 0, out.zip_url, nullptr) ||
-            json_find_string_field(body, "asset_url", 0, out.zip_url, nullptr);
+        std::string fallback_zip_url;
+        if (json_find_string_field(body, "zip_url", 0, fallback_zip_url, nullptr) ||
+            json_find_string_field(body, "download_url", 0, fallback_zip_url, nullptr) ||
+            json_find_string_field(body, "asset_url", 0, fallback_zip_url, nullptr)) {
+            if (zip_matches_build_preference(fallback_zip_url))
+                out.zip_url = fallback_zip_url;
+        }
     }
 
     return true;
@@ -790,6 +831,7 @@ static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool
     const std::string releases_url = get_update_releases_url();
     set_update_status("checking github releases");
     set_update_cvar(kCvarUpdateCheckedUtc, current_utc_timestamp());
+    set_update_cvar(kCvarUpdateDownloadedAsset, "");
 
     ReleaseInfo latest;
     std::string error;
@@ -801,6 +843,11 @@ static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool
     }
 
     set_update_cvar(kCvarUpdateLatest, latest.tag_name);
+    const std::string release_asset = asset_name_from_url(latest.zip_url);
+    if (!release_asset.empty()) {
+        set_update_cvar(kCvarUpdateDownloadedAsset, release_asset);
+        PrintOut(PRINT_DEV, "Selected release zip asset: %s\n", release_asset.c_str());
+    }
 
     int cmp = compare_versions(SOFBUDDY_VERSION, latest.tag_name);
     if (cmp < 0) {
@@ -847,6 +894,7 @@ static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool
 
     if (latest.zip_url.empty()) {
         set_update_status("no zip asset found");
+        set_update_cvar(kCvarUpdateDownloadedAsset, "");
         PrintOut(PRINT_BAD, "Latest release does not expose a downloadable .zip asset.\n");
         if (!latest.html_url.empty())
             PrintOut(PRINT_BAD, "Check assets manually: %s\n", latest.html_url.c_str());
@@ -854,8 +902,11 @@ static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool
     }
 
     const std::string zip_path = make_update_zip_path(latest.tag_name);
+    const std::string selected_asset = asset_name_from_url(latest.zip_url);
     size_t written_bytes = 0;
     set_update_status("downloading release zip");
+    if (!selected_asset.empty())
+        PrintOut(PRINT_DEV, "Downloading release asset: %s\n", selected_asset.c_str());
     PrintOut(PRINT_DEV, "Downloading %s\n", latest.zip_url.c_str());
     if (!download_release_zip(latest.zip_url, zip_path, written_bytes, error)) {
         set_update_status("download failed");
@@ -864,10 +915,14 @@ static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool
     }
 
     set_update_cvar(kCvarUpdateDownloadPath, zip_path);
+    if (!selected_asset.empty())
+        set_update_cvar(kCvarUpdateDownloadedAsset, selected_asset);
     set_update_status("downloaded, close game to install");
 
     write_update_readme(latest, zip_path);
 
+    if (!selected_asset.empty())
+        PrintOut(PRINT_DEV, "Downloaded release asset: %s\n", selected_asset.c_str());
     PrintOut(PRINT_DEV, "Downloaded %zu bytes to %s\n", written_bytes, zip_path.c_str());
     PrintOut(PRINT_DEV, "Close SoF completely before replacing sof_buddy.dll (it is currently loaded).\n");
     PrintOut(PRINT_DEV, "Then run sof_buddy/update_from_zip.cmd (Windows) or sof_buddy/update_from_zip.sh (Linux/Wine).\n");
@@ -879,6 +934,7 @@ void sofbuddy_update_init(void) {
     orig_Cvar_Get(kCvarUpdateStatus, "idle", 0, nullptr);
     orig_Cvar_Get(kCvarUpdateLatest, "", 0, nullptr);
     orig_Cvar_Get(kCvarUpdateDownloadPath, "", 0, nullptr);
+    orig_Cvar_Get(kCvarUpdateDownloadedAsset, "", 0, nullptr);
     orig_Cvar_Get(kCvarUpdateCheckedUtc, "", 0, nullptr);
     orig_Cvar_Get(kCvarUpdateCheckStartup, "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     cvar_t* api_url_cvar = orig_Cvar_Get(kCvarUpdateApiUrl, kUpdateApiUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
