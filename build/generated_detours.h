@@ -196,33 +196,6 @@ namespace {
     static AutoDetour_Cbuf_AddLateCommands g_AutoDetour_Cbuf_AddLateCommands;
 }
 
-namespace detour_Cmd_ExecuteString {
-    using tCmd_ExecuteString = void(__cdecl*)(char* text);
-    extern tCmd_ExecuteString oCmd_ExecuteString;
-    using ManagerType = TypedSharedHookManager<void, char*>;
-    ManagerType& GetManager();
-    
-    void __cdecl hkCmd_ExecuteString(char* text);
-}
-
-namespace {
-    struct AutoDetour_Cmd_ExecuteString {
-        AutoDetour_Cmd_ExecuteString() {
-            using namespace detour_Cmd_ExecuteString;
-            if (!GetDetourSystem().IsDetourRegistered("Cmd_ExecuteString")) {
-                GetDetourSystem().RegisterDetour(
-                    reinterpret_cast<void*>(0x194F0),
-                    reinterpret_cast<void*>(detour_Cmd_ExecuteString::hkCmd_ExecuteString),
-                    reinterpret_cast<void**>(&detour_Cmd_ExecuteString::oCmd_ExecuteString),
-                    "Cmd_ExecuteString",
-                    DetourModule::SofExe,
-                    static_cast<size_t>(0));
-            }
-        }
-    };
-    static AutoDetour_Cmd_ExecuteString g_AutoDetour_Cmd_ExecuteString;
-}
-
 namespace detour_Qcommon_Frame {
     using tQcommon_Frame = void(__cdecl*)(int msec);
     extern tQcommon_Frame oQcommon_Frame;
@@ -302,6 +275,33 @@ namespace {
         }
     };
     static AutoDetour_Reconnect_f g_AutoDetour_Reconnect_f;
+}
+
+namespace detour_SCR_BeginLoadingPlaque {
+    using tSCR_BeginLoadingPlaque = void(__cdecl*)(qboolean noPlaque);
+    extern tSCR_BeginLoadingPlaque oSCR_BeginLoadingPlaque;
+    using ManagerType = TypedSharedHookManager<void, qboolean>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkSCR_BeginLoadingPlaque(qboolean noPlaque);
+}
+
+namespace {
+    struct AutoDetour_SCR_BeginLoadingPlaque {
+        AutoDetour_SCR_BeginLoadingPlaque() {
+            using namespace detour_SCR_BeginLoadingPlaque;
+            if (!GetDetourSystem().IsDetourRegistered("SCR_BeginLoadingPlaque")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x00013A50),
+                    reinterpret_cast<void*>(detour_SCR_BeginLoadingPlaque::hkSCR_BeginLoadingPlaque),
+                    reinterpret_cast<void**>(&detour_SCR_BeginLoadingPlaque::oSCR_BeginLoadingPlaque),
+                    "SCR_BeginLoadingPlaque",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_SCR_BeginLoadingPlaque g_AutoDetour_SCR_BeginLoadingPlaque;
 }
 
 namespace detour_CL_ParseConfigString {

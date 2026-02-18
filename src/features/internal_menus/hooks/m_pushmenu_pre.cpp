@@ -3,7 +3,6 @@
 #if FEATURE_INTERNAL_MENUS
 
 #include "update_command.h"
-#include "../shared.h"
 #include <algorithm>
 #include <cctype>
 #include <string>
@@ -39,17 +38,6 @@ std::string menu_leaf(const std::string& menu_name) {
     return (slash == std::string::npos) ? menu_name : menu_name.substr(slash + 1);
 }
 
-bool is_loading_signal_leaf(const std::string& leaf) {
-    return leaf == "loading" ||
-           leaf.rfind("m_loading", 0) == 0 ||
-           leaf.rfind("f_loading", 0) == 0;
-}
-
-bool is_loading_menu_path(const std::string& menu_name) {
-    return menu_name == "loading/loading" ||
-           menu_name.rfind("loading/", 0) == 0;
-}
-
 } // namespace
 
 void internal_menus_M_PushMenu_pre(char const*& menu_file, char const*& parentFrame, bool& lock_input) {
@@ -61,18 +49,6 @@ void internal_menus_M_PushMenu_pre(char const*& menu_file, char const*& parentFr
         sofbuddy_update_consume_startup_prompt_request()) {
         menu_file = "sof_buddy/sb_update_prompt";
         menu_name = "sof_buddy/sb_update_prompt";
-    }
-
-    // Loading override trigger: when engine signals loading-related root menu names,
-    // redirect to our internal loading root page on disk.
-    if ((!parentFrame || !parentFrame[0]) && is_loading_signal_leaf(leaf)) {
-        menu_file = "loading/loading";
-        menu_name = "loading/loading";
-    }
-
-    if (is_loading_menu_path(menu_name)) {
-        loading_seed_current_from_engine_mapname();
-        lock_input = internal_menus_should_lock_loading_input();
     }
 }
 

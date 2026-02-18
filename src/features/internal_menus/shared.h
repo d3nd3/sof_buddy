@@ -19,7 +19,7 @@ void internal_menus_OnVidChanged(void);
 void Cmd_SoFBuddy_Menu_f(void);
 bool internal_menus_should_lock_loading_input(void);
 void loading_set_current(const char* map_name);
-void loading_seed_current_from_engine_mapname(void);
 void loading_show_ui(void);
+void internal_menus_call_SCR_UpdateScreen(bool force);
 
 #endif

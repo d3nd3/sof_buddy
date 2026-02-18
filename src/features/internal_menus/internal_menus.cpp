@@ -225,27 +225,6 @@ void update_layout_cvars(bool trigger_reloadall_if_changed) {
 
 } // namespace
 
-void cmd_executestring_override_callback(char* text, detour_Cmd_ExecuteString::tCmd_ExecuteString original) {
-    if (!text || !orig_Cvar_Set2 || !orig_Cvar_Get) { if (original) original(text); return; }
-    const char* p = text;
-    while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') ++p;
-    if (std::strncmp(p, "bind ", 5) != 0) { original(text); return; }
-    p += 5;
-    while (*p == ' ' || *p == '\t') ++p;
-    const char* key_start = p;
-    while (*p && *p != ' ' && *p != '\t' && *p != '\n' && *p != '\r') ++p;
-    if (key_start == p || !std::strstr(p, "sofbuddy_menu sof_buddy")) { original(text); return; }
-    std::string key(key_start, p);
-    key.erase(std::remove_if(key.begin(), key.end(), [](unsigned char c) { return std::isspace(c) != 0; }), key.end());
-    std::transform(key.begin(), key.end(), key.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
-    if (key.empty() || key.size() > 31) { original(text); return; }
-    for (size_t i = 0; i < key.size(); ++i)
-        if (!std::isalnum(static_cast<unsigned char>(key[i])) && key[i] != '_') { original(text); return; }
-    orig_Cvar_Set2(const_cast<char*>("_sofbuddy_menu_hotkey"), const_cast<char*>(key.c_str()), true);
-    PrintOut(PRINT_DEV, "Internal menus: Learned hotkey from bind: %s\n", key.c_str());
-    original(text);
-}
-
 bool internal_menus_should_lock_loading_input(void) {
     if (!orig_Cvar_Get) return true;
     cvar_t* c = orig_Cvar_Get("_sofbuddy_loading_lock_input", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
@@ -253,9 +232,24 @@ bool internal_menus_should_lock_loading_input(void) {
     return c->value != 0.0f;
 }
 
+void loading_set_current(const char* map_name) {
+    if (!map_name || !orig_Cvar_Set2) return;
+    orig_Cvar_Set2(const_cast<char*>("_sofbuddy_loading_current"), const_cast<char*>(map_name), true);
+}
+
+namespace {
+    void (*g_SCR_UpdateScreen)(bool) = nullptr;
+}
+void internal_menus_call_SCR_UpdateScreen(bool force) {
+    if (g_SCR_UpdateScreen) g_SCR_UpdateScreen(force);
+}
 void internal_menus_EarlyStartup(void) {
     internal_menus_load_library();
     materialize_embedded_menus_to_disk();
+    g_SCR_UpdateScreen = reinterpret_cast<void (*)(bool)>(rvaToAbsExe(reinterpret_cast<void*>(0x15FA0)));
+    WriteNops(rvaToAbsExe(reinterpret_cast<void*>(0x13AAA)), 2);
+    WriteNops(rvaToAbsExe(reinterpret_cast<void*>(0x13AC7)), 5);
+    WriteNops(rvaToAbsExe(reinterpret_cast<void*>(0x13ACE)), 5);
 }
 
 void internal_menus_PostCvarInit(void) {
@@ -345,8 +339,6 @@ void Cmd_SoFBuddy_Menu_f(void) {
 
     const bool is_loading_menu = (menu_to_push == "loading/loading") ||
                                  (menu_to_push.rfind("loading/", 0) == 0);
-    if (is_loading_menu)
-        loading_seed_current_from_engine_mapname();
     const bool lock_input = is_loading_menu ? internal_menus_should_lock_loading_input() : false;
 
     detour_M_PushMenu::oM_PushMenu(menu_to_push.c_str(), "", lock_input);
@@ -356,39 +348,8 @@ void internal_menus_OnVidChanged(void) {
     update_layout_cvars(true);
 }
 
-void loading_set_current(const char* map_name) {
-    if (!map_name || !orig_Cvar_Set2) return;
-    orig_Cvar_Set2(const_cast<char*>("_sofbuddy_loading_current"), const_cast<char*>(map_name), true);
-}
-
-void loading_seed_current_from_engine_mapname(void) {
-    if (!orig_Cvar_Get || !orig_Cvar_Set2) return;
-
-    const char* best = nullptr;
-    const char* fallback = "resolving...";
-
-    const char* candidates[] = { "mapname", "cl_mapname" };
-    for (size_t i = 0; i < sizeof(candidates) / sizeof(candidates[0]); ++i) {
-        cvar_t* c = orig_Cvar_Get(candidates[i], "", 0, nullptr);
-        if (c && c->string && c->string[0]) {
-            best = c->string;
-            break;
-        }
-    }
-
-    if (best) {
-        orig_Cvar_Set2(const_cast<char*>("_sofbuddy_loading_current"), const_cast<char*>(best), true);
-        return;
-    }
-
-    cvar_t* cur = orig_Cvar_Get("_sofbuddy_loading_current", "", 0, nullptr);
-    if (!cur || !cur->string || !cur->string[0])
-        orig_Cvar_Set2(const_cast<char*>("_sofbuddy_loading_current"), const_cast<char*>(fallback), true);
-}
-
 void loading_show_ui(void) {
     if (detour_M_PushMenu::oM_PushMenu) {
-        loading_seed_current_from_engine_mapname();
         const bool lock_input = internal_menus_should_lock_loading_input();
         detour_M_PushMenu::oM_PushMenu("loading/loading", "", lock_input);
     }

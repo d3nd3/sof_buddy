@@ -17,6 +17,7 @@ Client-side assist for missing maps. If a BSP is missing, it can fetch zip conte
 ## Notes
 
 - Early map detection keeps menu/loading status responsive.
+- The loading screen is shown by internal_menus (SCR_BeginLoadingPlaque and `loading_show_ui()` when http_maps starts a job).
 - Post hook is hard-gated to configstring index `36`.
 - Old worker jobs cannot complete over newer jobs.
 - State resets on `Reconnect_f`, init, and transition to `ca_disconnected`.

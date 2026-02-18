@@ -101,6 +101,16 @@ functions:
     detour_len: 5
     params: []
 
+  - name: SCR_BeginLoadingPlaque
+    module: SofExe
+    identifier: "0x00013A50"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: qboolean
+        name: noPlaque
+
   - name: CL_ParseConfigString
     module: SofExe
     identifier: "0x000E690"

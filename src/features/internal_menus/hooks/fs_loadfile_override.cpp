@@ -1,3 +1,8 @@
+// Intercepts FS_LoadFile so menu file requests can be served from embedded RMF
+// in g_menu_internal_files instead of disk. If the path matches an internal menu,
+// we allocate with the engine's Z_Malloc, copy the embedded bytes, and return;
+// otherwise we call the original FS_LoadFile.
+
 #include "feature_config.h"
 #if FEATURE_INTERNAL_MENUS
 #include "sof_compat.h"
@@ -10,6 +15,8 @@
 #include <string>
 
 namespace {
+
+// Normalize path to a key: lowercase, forward slashes, strip "menus/", "menu/", ".rmf".
 std::string path_to_menu_key(const char* path) {
     if (!path || !path[0]) return "";
     std::string s(path);
@@ -22,6 +29,8 @@ std::string path_to_menu_key(const char* path) {
     if (s.size() > 4 && s.compare(s.size() - 4, 4, ".rmf") == 0) s.erase(s.size() - 4);
     return s;
 }
+
+// From path get the filename we use as key in g_menu_internal_files[menu_name], e.g. "loading.rmf".
 std::string path_to_filename(const char* path) {
     std::string key = path_to_menu_key(path);
     if (key.empty()) return "";
@@ -29,6 +38,8 @@ std::string path_to_filename(const char* path) {
     std::string stem = (slash == std::string::npos) ? key : key.substr(slash + 1);
     return stem + ".rmf";
 }
+
+// From path get the menu name (first part before last slash), e.g. "loading" from "menus/loading/loading.rmf".
 std::string path_to_menu_name(const char* path) {
     std::string key = path_to_menu_key(path);
     if (key.empty()) return "";
@@ -39,24 +50,30 @@ std::string path_to_menu_name(const char* path) {
 
 int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool override_pak, detour_FS_LoadFile::tFS_LoadFile original) {
     if (!path || !buffer || g_menu_internal_files.empty()) return original(path, buffer, override_pak);
+
     std::string menu_name = path_to_menu_name(path);
     std::string filename = path_to_filename(path);
     if (menu_name.empty() || filename.empty()) return original(path, buffer, override_pak);
+
+    // Look up in embedded menu map; if missing, let the engine load from disk/pak.
     auto menu_it = g_menu_internal_files.find(menu_name);
     if (menu_it == g_menu_internal_files.end()) return original(path, buffer, override_pak);
     auto file_it = menu_it->second.find(filename);
     if (file_it == menu_it->second.end()) return original(path, buffer, override_pak);
     const std::vector<uint8_t>& vec = file_it->second;
     if (vec.empty()) return original(path, buffer, override_pak);
+
+    // Use the engine's allocator so the engine can free the buffer later.
     static void* (*Z_Malloc)(int) = nullptr;
     if (!Z_Malloc) Z_Malloc = (void*(*)(int))rvaToAbsExe((void*)0x0001F120);
     if (!Z_Malloc) return original(path, buffer, override_pak);
+
     const int size = static_cast<int>(vec.size() + 1);
     void* copy = Z_Malloc(size);
     if (!copy) return original(path, buffer, override_pak);
     std::memcpy(copy, vec.data(), vec.size());
     static_cast<char*>(copy)[vec.size()] = '\0';
     *buffer = copy;
-    return static_cast<int>(vec.size());
+    return static_cast<int>(vec.size());  // Same convention as FS_LoadFile: return size, buffer set.
 }
 #endif

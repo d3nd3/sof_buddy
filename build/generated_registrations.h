@@ -11,7 +11,6 @@ extern qboolean cbuf_addlatecommands_override_callback(detour_Cbuf_AddLateComman
 extern void cinematicfreeze_callback(bool bEnable);
 extern void cl_maxfps_EarlyStartup();
 extern void cl_precache_http_maps_override_callback(detour_CL_Precache_f::tCL_Precache_f original);
-extern void cmd_executestring_override_callback(char* text, detour_Cmd_ExecuteString::tCmd_ExecuteString original);
 extern void console_protection_EarlyStartup();
 extern LRESULT dispatchmessagea_override_callback(const MSG* msg, detour_DispatchMessageA::tDispatchMessageA original);
 extern void drawteamicons_pre_callback(float*& targetPlayerOrigin, char*& playerName, char*& imageNameTeamIcon, int& redOrBlue);
@@ -48,7 +47,7 @@ extern void internal_menus_EarlyStartup();
 extern void internal_menus_M_PushMenu_post(char const* menu_file, char const* parentFrame, bool lock_input);
 extern void internal_menus_M_PushMenu_pre(char const*& menu_file, char const*& parentFrame, bool& lock_input);
 extern void internal_menus_PostCvarInit();
-extern void internal_menus_Reconnect_f_pre();
+extern void internal_menus_SCR_BeginLoadingPlaque_post(qboolean noPlaque);
 extern int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool override_pak, detour_FS_LoadFile::tFS_LoadFile original);
 extern void lightblend_PostCvarInit();
 extern void lightblend_RefDllLoaded(char const* name);
@@ -243,10 +242,15 @@ inline void RegisterAllFeatureHooks() {
             90);
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] M_PushMenu post callbacks: %zu\n", mgr.GetPostCallbackCount());
     }
-    detour_Reconnect_f::GetManager().RegisterPreCallback(
-        "internal_menus", "internal_menus_Reconnect_f_pre",
-        []() { internal_menus_Reconnect_f_pre(); },
-        90);
+    {
+        auto& mgr = detour_SCR_BeginLoadingPlaque::GetManager();
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] SCR_BeginLoadingPlaque manager at 0x%p\n", &mgr);
+        mgr.RegisterPostCallback(
+            "internal_menus", "internal_menus_SCR_BeginLoadingPlaque_post",
+            [](qboolean noPlaque) { internal_menus_SCR_BeginLoadingPlaque_post(noPlaque); },
+            90);
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] SCR_BeginLoadingPlaque post callbacks: %zu\n", mgr.GetPostCallbackCount());
+    }
     {
         auto& mgr = detour_SV_ShutdownGameProgs::GetManager();
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] SV_ShutdownGameProgs manager at 0x%p\n", &mgr);

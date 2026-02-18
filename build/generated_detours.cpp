@@ -33,10 +33,6 @@ namespace detour_Cbuf_AddLateCommands {
     tCbuf_AddLateCommands oCbuf_AddLateCommands = nullptr;
 }
 
-namespace detour_Cmd_ExecuteString {
-    tCmd_ExecuteString oCmd_ExecuteString = nullptr;
-}
-
 namespace detour_Qcommon_Frame {
     tQcommon_Frame oQcommon_Frame = nullptr;
 }
@@ -47,6 +43,10 @@ namespace detour_CL_Precache_f {
 
 namespace detour_Reconnect_f {
     tReconnect_f oReconnect_f = nullptr;
+}
+
+namespace detour_SCR_BeginLoadingPlaque {
+    tSCR_BeginLoadingPlaque oSCR_BeginLoadingPlaque = nullptr;
 }
 
 namespace detour_CL_ParseConfigString {
@@ -242,17 +242,6 @@ namespace detour_Cbuf_AddLateCommands {
     }
 }
 
-namespace detour_Cmd_ExecuteString {
-    ManagerType& GetManager() {
-        static ManagerType* instance = nullptr;
-        if (!instance) {
-            static char storage[sizeof(ManagerType)];
-            instance = new(storage) ManagerType();
-        }
-        return *instance;
-    }
-}
-
 namespace detour_Qcommon_Frame {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
@@ -276,6 +265,17 @@ namespace detour_CL_Precache_f {
 }
 
 namespace detour_Reconnect_f {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_SCR_BeginLoadingPlaque {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
         if (!instance) {
@@ -671,6 +671,17 @@ namespace detour_Reconnect_f {
     }
 }
 
+namespace detour_SCR_BeginLoadingPlaque {
+    void __cdecl hkSCR_BeginLoadingPlaque(qboolean noPlaque) {
+        ManagerType& mgr = GetManager();
+        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre(noPlaque);
+        if (oSCR_BeginLoadingPlaque) {
+            oSCR_BeginLoadingPlaque(noPlaque);
+        }
+        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost(noPlaque);
+    }
+}
+
 namespace detour_CL_ParseConfigString {
     void __cdecl hkCL_ParseConfigString() {
         ManagerType& mgr = GetManager();
@@ -772,12 +783,6 @@ namespace detour_CL_Precache_f {
 namespace detour_Cbuf_AddLateCommands {
     qboolean __cdecl hkCbuf_AddLateCommands() {
         return ::cbuf_addlatecommands_override_callback(oCbuf_AddLateCommands);
-    }
-}
-
-namespace detour_Cmd_ExecuteString {
-    void __cdecl hkCmd_ExecuteString(char* text) {
-        ::cmd_executestring_override_callback(text, oCmd_ExecuteString);
     }
 }
 

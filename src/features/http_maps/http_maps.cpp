@@ -822,6 +822,7 @@ static void http_maps_clear_loading_cvars(bool reset_status = true)
 	if (!orig_Cvar_Set2) return;
 #if FEATURE_INTERNAL_MENUS
 	orig_Cvar_Set2(const_cast<char*>("_sofbuddy_loading_progress"), const_cast<char*>(""), true);
+	orig_Cvar_Set2(const_cast<char*>("_sofbuddy_loading_current"), const_cast<char*>("resolving..."), true);
 	if (reset_status) http_maps_set_loading_status("CHECKING");
 #endif
 }
