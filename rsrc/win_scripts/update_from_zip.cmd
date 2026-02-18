@@ -32,8 +32,8 @@ if not defined ZIP_PATH (
     pause
     exit /b 1
 )
-set "ZIP_PATH=!ZIP_PATH:/=\!"
-if /i not "!ZIP_PATH:~1,1!"==":" set "ZIP_PATH=%ROOT_DIR%\!ZIP_PATH!"
+if /i not "%ZIP_PATH:~1,1%"==":" set "ZIP_PATH=%ROOT_DIR%\%ZIP_PATH%"
+for %%I in ("%ZIP_PATH%") do set "ZIP_PATH=%%~fI"
 if not exist "!ZIP_PATH!" (
     echo Update zip not found: "!ZIP_PATH!"
     popd
@@ -125,7 +125,7 @@ set "VBS=%VBS_DIR%\sofbuddy_unzip_%RANDOM%%RANDOM%.vbs"
     echo dst.CopyHere src.Items, 16
     echo WScript.Sleep 3000
     echo WScript.Quit 0
-) > "%VBS%" 2>nul
+) > "%VBS%"
 if not exist "%VBS%" exit /b 1
 
 where cscript.exe >nul 2>&1

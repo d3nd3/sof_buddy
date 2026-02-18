@@ -1,5 +1,10 @@
 # Changelog
 
+## v3.9
+
+- Windows updater path handling: canonicalized `%ZIP_PATH%` to full absolute form before existence/extract checks, preventing malformed Wine path edge-cases.
+- VBScript fallback noise cleanup: removed a fragile redirection from `.vbs` generation in `update_from_zip.cmd` to avoid spurious `'2' is not recognized` console errors.
+
 ## v3.8
 
 - Linux/Wine package completeness: `release_linux_wine.zip` now includes `update_from_zip.cmd` in CI packaging, matching the current auto-install launch path.
