@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.5
+
+- Updater install: `sofbuddy_update_install` now detects Wine (`wine_get_version`) and prefers `sof_buddy/update_from_zip.sh` under Wine/Proton.
+- Shutdown launch path: Wine install commands are queued in `winstart` as `/unix "<script>" "<zip>"`, with fallback to `.cmd` when `.sh` is unavailable.
+- Native Windows behavior remains unchanged (`update_from_zip.cmd`) while still using direct `winstart` buffer queueing.
+
 ## v3.4
 
 - Updater install: `sofbuddy_update_install` now writes the `winstart` command buffer directly (no `start` command seeding), improving reliability for auto-install on shutdown.

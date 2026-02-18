@@ -35,6 +35,7 @@ constexpr const char* kUpdateReleasesUrl = kUpdateReleasesUrlGitHub;
 #endif
 constexpr const char* kUpdateOutputDir = "sof_buddy/update";
 constexpr const char* kUpdateInstallScript = "sof_buddy/update_from_zip.cmd";
+constexpr const char* kUpdateInstallScriptWine = "sof_buddy/update_from_zip.sh";
 constexpr DWORD kUpdateTimeoutMs = 8000;
 constexpr uintptr_t kWinstartRva = 0x0040353C;
 
@@ -78,6 +79,11 @@ bool is_regular_file(const char* path) {
     if (!path || !path[0]) return false;
     const DWORD attr = GetFileAttributesA(path);
     return attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY) == 0;
+}
+
+bool is_running_under_wine() {
+    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+    return ntdll && GetProcAddress(ntdll, "wine_get_version");
 }
 
 bool queue_winstart_command(const char* command) {
@@ -1028,9 +1034,13 @@ void Cmd_SoFBuddy_Update_f(void) {
 
 void Cmd_SoFBuddy_UpdateInstall_f(void) {
     if (!orig_Cmd_ExecuteString) return;
-    if (!is_regular_file(kUpdateInstallScript)) {
+    const bool wine = is_running_under_wine();
+    const char* script = wine ? kUpdateInstallScriptWine : kUpdateInstallScript;
+    if (!is_regular_file(script) && wine && is_regular_file(kUpdateInstallScript))
+        script = kUpdateInstallScript;
+    if (!is_regular_file(script)) {
         set_update_status("install script missing");
-        PrintOut(PRINT_BAD, "sofbuddy_update_install: missing %s\n", kUpdateInstallScript);
+        PrintOut(PRINT_BAD, "sofbuddy_update_install: missing %s\n", script);
         return;
     }
     const std::string zip_path = get_update_cvar_or_default(kCvarUpdateDownloadPath, "");
@@ -1039,10 +1049,19 @@ void Cmd_SoFBuddy_UpdateInstall_f(void) {
         PrintOut(PRINT_BAD, "sofbuddy_update_install: exact downloaded zip missing; run sofbuddy_update download\n");
         return;
     }
-    std::string command = kUpdateInstallScript;
-    command += " \"";
-    command += zip_path;
-    command += "\"";
+    std::string command;
+    if (wine && std::strcmp(script, kUpdateInstallScriptWine) == 0) {
+        command = "/unix \"";
+        command += script;
+        command += "\" \"";
+        command += zip_path;
+        command += "\"";
+    } else {
+        command = script;
+        command += " \"";
+        command += zip_path;
+        command += "\"";
+    }
 
     if (!queue_winstart_command(command.c_str())) {
         set_update_status("failed to queue install command");
