@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.7
+
+- Misc tab UX: updated labels to show actual cvar names (matching Profiles tab style) for faster config auditing and copy/paste workflows.
+
 ## v3.6
 
 - Wine/Proton updater downloads: runtime Wine detection now biases asset selection toward `release_linux_wine.zip` during `sofbuddy_update download` (non-XP builds).

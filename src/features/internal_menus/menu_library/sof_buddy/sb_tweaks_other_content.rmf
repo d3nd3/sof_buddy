@@ -37,19 +37,19 @@
 <text "SOF BUDDY: MISC">
 <hr width 560 tint cyan>
 <font type title tint white atint white>
-<list "Off,On" cvar ghl_specular atext "GHL specular : " noshade><hbr>
-<list "0,1,2,3" cvar gl_detailtexturing atext "Detail tex : " noshade><hbr>
-<ctext gl_detailtexturingdistance atext "Detail dist : " noshade><br>
+<list "Off,On" cvar ghl_specular atext "ghl_specular : " noshade><hbr>
+<list "0,1,2,3" cvar gl_detailtexturing atext "gl_detailtexturing : " noshade><hbr>
+<ctext gl_detailtexturingdistance atext "gl_detailtexturingdistance : " noshade><br>
 <slider cvar gl_detailtexturingdistance min 50 max 500 step 50><hbr>
-<ctext gl_effectfill atext "Effectfill : " noshade><br>
+<ctext gl_effectfill atext "gl_effectfill : " noshade><br>
 <slider cvar gl_effectfill min 500 max 20000 step 500><hbr>
-<list "Off,On" cvar ghl_no_texture_stack atext "No tex stack : " noshade><hbr>
-<list "3,2,1,0" cvar mskins_variety_limit atext "Mskins variety : " noshade><hbr>
-<list "3,2,1,0" cvar mskins_expression_limit atext "Mskins expr : " noshade><hbr>
-<ctext ai_maxcorpses atext "Max corpses : " noshade><br>
+<list "Off,On" cvar ghl_no_texture_stack atext "ghl_no_texture_stack : " noshade><hbr>
+<list "3,2,1,0" cvar mskins_variety_limit atext "mskins_variety_limit : " noshade><hbr>
+<list "3,2,1,0" cvar mskins_expression_limit atext "mskins_expression_limit : " noshade><hbr>
+<ctext ai_maxcorpses atext "ai_maxcorpses : " noshade><br>
 <slider cvar ai_maxcorpses min 1 max 20 step 1><hbr>
-<list "0,50,250,1024" match "0,50,250,1024" cvar cl_max_quads atext "Max quads : " noshade><hbr>
-<list "16,32" match "16,32" cvar gl_bitdepth atext "Bit depth : " noshade><hbr>
+<list "0,50,250,1024" match "0,50,250,1024" cvar cl_max_quads atext "cl_max_quads : " noshade><hbr>
+<list "16,32" match "16,32" cvar gl_bitdepth atext "gl_bitdepth : " noshade><hbr>
 
 <hbr>
 <font type title tint white atint white>
