@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.1
+
+- Internal menus: startup update prompt now triggers on menu disclaimer (root `disclaimer`) instead of `start`; README and docs use "menu disclaimer" naming.
+
 ## v3.0
 
 - Internal menus (loading): engine loading UI is disabled via NOPs at exe 0x13AC7 (menu push) and 0x13ACE (SCR_UpdateScreen call); we push `loading/loading` and call SCR_UpdateScreen(true) in SCR_BeginLoadingPlaque Post hook. SCR_UpdateScreen at exe 0x15FA0. Additional 2-byte NOP at 0x13AAA so the plaque shows when the console is open.
@@ -16,7 +20,7 @@
 ## v2.7
 
 - HTTP maps: removed experimental/default-disabled note from docs; feature is now treated as normal.
-- Updater: startup update prompt now pre-intercepts intro/start menu flow; redundant post-hook injection removed.
+- Updater: startup update prompt now pre-intercepts menu disclaimer (start menu) flow; redundant post-hook injection removed.
 - Updater downloads: zip asset selection tightened for build target (Windows vs Windows XP, Linux/Wine fallback penalties), with stricter fallback filtering.
 - Updater UX: selected/downloaded release asset filename is now printed via `PRINT_DEV` and surfaced in update prompt/help menus.
 

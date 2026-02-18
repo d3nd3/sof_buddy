@@ -42,12 +42,12 @@ sofbuddy_menu <menu>/<page>
 ### 4) Serving embedded menus (`FS_LoadFile` override)
 **Internal menus have priority over the filesystem:** the override intercepts the path and filename of the requested `.rmf`, normalizes them, and looks up `menu_name`/`filename` in `g_menu_internal_files`. On a match, the hook serves the in-memory content (via engine `Z_Malloc`) and does not call the original; otherwise it falls through to the original `FS_LoadFile`.
 
-### 5) Loading and start-menu hooks
+### 5) Loading and menu-disclaimer (start) hooks
 **SCR_BeginLoadingPlaque**: At EarlyStartup we NOP 5 bytes at exe 0x13AC7 (engine’s menu push) and 5 at 0x13ACE (SCR_UpdateScreen call), so the original does not show its own loading UI. **SCR_BeginLoadingPlaque** Post (`internal_menus_SCR_BeginLoadingPlaque_post`): when `!noPlaque`, we run killmenu, `oM_PushMenu("loading/loading", "", lock_input)`, then `SCR_UpdateScreen(true)` (exe 0x15FA0). Loading is only pushed by us (this hook and `loading_show_ui()` from http_maps). The `"resolving..."` label is set in the loading reset state (http_maps), not here.
 
-**M_PushMenu** Pre (`internal_menus_M_PushMenu_pre`): Normalizes menu name; only handles start/update-prompt: when the engine pushes root `start` and the updater queued a startup prompt, rewrites to `sof_buddy/sb_update_prompt`. No loading-signal detection or rewrite.
+**M_PushMenu** Pre (`internal_menus_M_PushMenu_pre`): Normalizes menu name; only handles menu-disclaimer/update-prompt: when the engine pushes the menu disclaimer (root `start`) and the updater queued a startup prompt, rewrites to `sof_buddy/sb_update_prompt`. No loading-signal detection or rewrite.
 
-**M_PushMenu** Post (`internal_menus_M_PushMenu_post`): Watches root `start` pushes; if updater queued a startup update prompt, opens `sof_buddy/sb_update_prompt` on top once.
+**M_PushMenu** Post (`internal_menus_M_PushMenu_post`): Watches menu disclaimer (root `start`) pushes; if updater queued a startup update prompt, opens `sof_buddy/sb_update_prompt` on top once.
 
 ### 6) Loading UI cvar updates
 Loading UI is fed by direct helpers:
@@ -70,8 +70,8 @@ When video size changes, `update_layout_cvars(true)` recomputes runtime layout c
 
 From `hooks/hooks.json`:
 - `FS_LoadFile` (override): serve embedded RMF from `g_menu_internal_files` when path matches menu_library; otherwise fall through to original.
-- `M_PushMenu` Pre: start/update-prompt only (rewrite `start` to `sof_buddy/sb_update_prompt` when updater queued); no loading signals.
-- `M_PushMenu` Post: on `start` push, consume queued startup-update prompt request and open prompt once.
+- `M_PushMenu` Pre: menu-disclaimer/update-prompt only (rewrite `start` to `sof_buddy/sb_update_prompt` when updater queued); no loading signals.
+- `M_PushMenu` Post: on menu disclaimer (`start`) push, consume queued startup-update prompt request and open prompt once.
 - `SCR_BeginLoadingPlaque` Post: when `!noPlaque`, push `loading/loading` and call `SCR_UpdateScreen(true)` (engine’s own push/update are NOP’d at 0x13AC7 / 0x13ACE).
 
 From `callbacks/callbacks.json`:
