@@ -60,6 +60,7 @@ jobs:
           cp rsrc/lin_scripts/enable_*.sh sof_buddy/
           cp rsrc/lin_scripts/patch_sof_binary.sh sof_buddy/
           cp rsrc/lin_scripts/update_from_zip.sh sof_buddy/
+          cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
           zip -r release_linux_wine.zip sof_buddy.dll sof_buddy/
           
           make clean

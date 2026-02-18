@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.8
+
+- Linux/Wine package completeness: `release_linux_wine.zip` now includes `update_from_zip.cmd` in CI packaging, matching the current auto-install launch path.
+- Windows updater script hardening: normalized relative zip paths to absolute/backslash form for extraction/deletion reliability under Wine cmd.
+- Extraction command robustness: `update_from_zip.cmd` now calls `tar.exe`/`7z.exe` explicitly and hardens VBScript fallback temp-file creation + `cscript.exe` probing.
+
 ## v3.7
 
 - Misc tab UX: updated labels to show actual cvar names (matching Profiles tab style) for faster config auditing and copy/paste workflows.

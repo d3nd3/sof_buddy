@@ -32,6 +32,8 @@ if not defined ZIP_PATH (
     pause
     exit /b 1
 )
+set "ZIP_PATH=!ZIP_PATH:/=\!"
+if /i not "!ZIP_PATH:~1,1!"==":" set "ZIP_PATH=%ROOT_DIR%\!ZIP_PATH!"
 if not exist "!ZIP_PATH!" (
     echo Update zip not found: "!ZIP_PATH!"
     popd
@@ -84,13 +86,13 @@ set "ZIP=%~1"
 
 where tar.exe >nul 2>&1
 if not errorlevel 1 (
-    tar -xf "%ZIP%" -C "%ROOT_DIR%"
+    tar.exe -xf "%ZIP%" -C "%ROOT_DIR%"
     if not errorlevel 1 exit /b 0
 )
 
 where 7z.exe >nul 2>&1
 if not errorlevel 1 (
-    7z x -y "%ZIP%" -o"%ROOT_DIR%"
+    7z.exe x -y "%ZIP%" -o"%ROOT_DIR%"
     if not errorlevel 1 exit /b 0
 )
 
@@ -107,7 +109,11 @@ exit /b 1
 
 :extract_with_vbscript
 set "ZIP=%~1"
-set "VBS=%TEMP%\sofbuddy_unzip_%RANDOM%%RANDOM%.vbs"
+set "VBS_DIR=%TEMP%"
+if not defined VBS_DIR set "VBS_DIR=%UPDATE_DIR%"
+if not exist "%VBS_DIR%" set "VBS_DIR=%UPDATE_DIR%"
+if not exist "%VBS_DIR%" set "VBS_DIR=%ROOT_DIR%"
+set "VBS=%VBS_DIR%\sofbuddy_unzip_%RANDOM%%RANDOM%.vbs"
 (
     echo zipPath = WScript.Arguments(0^)
     echo dstPath = WScript.Arguments(1^)
@@ -119,9 +125,15 @@ set "VBS=%TEMP%\sofbuddy_unzip_%RANDOM%%RANDOM%.vbs"
     echo dst.CopyHere src.Items, 16
     echo WScript.Sleep 3000
     echo WScript.Quit 0
-) > "%VBS%"
+) > "%VBS%" 2>nul
+if not exist "%VBS%" exit /b 1
 
-cscript //nologo "%VBS%" "%ZIP%" "%ROOT_DIR%" >nul
+where cscript.exe >nul 2>&1
+if errorlevel 1 (
+    del /f /q "%VBS%" >nul 2>&1
+    exit /b 1
+)
+cscript.exe //nologo "%VBS%" "%ZIP%" "%ROOT_DIR%" >nul
 set "RC=%ERRORLEVEL%"
 del /f /q "%VBS%" >nul 2>&1
 
