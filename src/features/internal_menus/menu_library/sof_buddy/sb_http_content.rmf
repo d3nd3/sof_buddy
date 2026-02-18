@@ -43,9 +43,8 @@
 <list "Unlocked,Locked" match "0,1" cvar _sofbuddy_loading_lock_input atext "Loading menu input : " noshade tip "Locked blocks accidental game input while loading menu is visible."><hbr>
 <list "Off,On" match "0,1" cvar _sofbuddy_update_check_startup atext "Check updates on startup : " noshade tip "Runs release check when SoF starts."><hbr>
 
-<font type title tint sb_subtle atint normaltext>
-<ctext _sofbuddy_loading_current atext "Current map : " noshade><hbr>
-<ctext _sofbuddy_loading_progress atext "HTTP zip progress : " noshade><hbr>
+<font type title tint white atint white>
+<ctext mapname atext "Current map : " noshade><hbr>
 
 <include sof_buddy/sb_http_providers_visible>
 

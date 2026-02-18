@@ -46,22 +46,26 @@
 <ctext _sofbuddy_update_download_path atext "Downloaded zip : " noshade><hbr>
 
 <hr width 520 tint sb_subtle>
+<left>
 <font type title tint white atint white>
-"1) Run Check Update to compare your build against latest release."
+<blank 28 1>Auto-install is supported now. For manual install, follow steps below:
 <hbr>
-"2) Run Download Latest Zip."
+<blank 28 1>1) Run Check Update to compare your build against latest release.
 <hbr>
-"3) Run Install+Exit to launch updater script and close SoF."
+<blank 28 1>2) Run Download Latest Zip.
 <hbr>
-"4) Manual fallback: run sof_buddy/update_from_zip.cmd/.sh yourself."
+<blank 28 1>3) Run Install+Exit to launch updater script and close SoF.
 <hbr>
-"5) If script install fails, extract zip into SoF root and overwrite files manually."
+<blank 28 1>4) Manual fallback: run sof_buddy/update_from_zip.cmd/.sh yourself.
 <hbr>
-"6) Relaunch the game with your normal launcher/arguments."
+<blank 28 1>5) If script install fails, extract zip into SoF root and overwrite files manually.
 <hbr>
-"Note: sof_buddy.dll cannot be replaced while the game is running."
+<blank 28 1>6) Relaunch the game with your normal launcher/arguments.
+<hbr>
+<blank 28 1>Note: sof_buddy.dll cannot be replaced while the game is running.
 
 <hr width 520 tint sb_subtle>
+<center>
 <font type title tint white atint white>
 <text "Check Update" key mouse1 "sofbuddy_update" tip "Check release tag against _sofbuddy_version." border 14 1 cyan regular><hbr>
 <text "Download Latest Zip" key mouse1 "sofbuddy_update download" tip "Download release zip; install after closing the game." border 14 1 cyan regular><hbr>

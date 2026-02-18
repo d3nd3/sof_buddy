@@ -54,10 +54,12 @@
 <list "ZERO,ONE,SRC_C,1-SRC_C,DST_C,1-DST_C,SRC_A,1-SRC_A" match "GL_ZERO,GL_ONE,GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR,GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA" cvar _sofbuddy_lightblend_dst atext "Dst : " noshade><br>
 
 <hr width 520 tint sb_subtle>
+<left>
 <font type title tint white atint white>
-"Overbright mode overrides manual blend src/dst behavior."
+<blank 28 1>Overbright mode overrides manual blend src/dst behavior.
 
 <hbr>
+<center>
 <font type title tint white atint white>
 <text "Restore Lighting Defaults" key mouse1 "set _sofbuddy_lighting_overbright 0;set _sofbuddy_lighting_cutoff 64;set _sofbuddy_water_size 64;set _sofbuddy_lightblend_src GL_ZERO;set _sofbuddy_lightblend_dst GL_SRC_COLOR;set _sofbuddy_shiny_spherical 1;refresh" border 14 1 cyan regular><hbr>
 <text "Vid Restart" key mouse1 "vid_restart" border 14 1 cyan regular>

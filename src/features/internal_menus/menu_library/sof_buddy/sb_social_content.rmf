@@ -39,9 +39,6 @@
 
 <center>
 <font type title tint white atint white>
-<ctext _sofbuddy_openurl_status atext "Link status : " noshade><hbr>
-<ctext _sofbuddy_openurl_last atext "Last URL : " noshade><hbr>
-
 <hr width 520 tint sb_subtle>
 <font type title tint white atint white>
 <text "GitHub Repository" key mouse1 "sofbuddy_openurl https://github.com/d3nd3/sof_buddy" tip "Open source, releases, and docs." border 14 1 cyan regular><br>

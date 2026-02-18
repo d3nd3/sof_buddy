@@ -1,8 +1,10 @@
+<left>
 <hbr>
 <font type title tint cyan atint cyan>
-"HTTP Providers"
+HTTP Providers
 <hr width 552 tint gray>
 <font type title tint gray atint white>
-"Provider fields are hidden. Set 'Provider fields' to Shown to edit URLs."<hbr>
-"Random/Rotate modes only use provider slots with both DL and CRC set."<hbr>
-"Updater feed URL fields are hidden here too."<hbr>
+<blank 28 1>Provider fields are hidden. Set 'Provider fields' to Shown to edit URLs.<hbr>
+<blank 28 1>Random/Rotate modes only use provider slots with both DL and CRC set.<hbr>
+<blank 28 1>Updater feed URL fields are hidden here too.<hbr>
+<center>

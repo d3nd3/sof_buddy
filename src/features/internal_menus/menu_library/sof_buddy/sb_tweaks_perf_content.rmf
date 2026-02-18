@@ -40,7 +40,7 @@
 <center>
 <font type title tint white atint white>
 <list "Competitive,Visual" match "0,1" cvar _sofbuddy_perf_profile atext "Profile : " noshade tip "Competitive = low visuals/high FPS, Visual = high fidelity."><hbr>
-<text "Apply Selected Profile" ckey mouse1 _sofbuddy_perf_profile "sofbuddy_apply_profile_comp" "sofbuddy_apply_profile_visual" tip "Applies all listed profile cvars." border 14 1 cyan regular><hbr>
+<text "Apply Profile" ckey mouse1 _sofbuddy_perf_profile "sofbuddy_apply_profile_comp" "sofbuddy_apply_profile_visual" tip "Applies all listed profile cvars." border 14 1 cyan regular><hbr>
 
 <hr width 520 tint sb_subtle>
 <font type title tint white atint white>

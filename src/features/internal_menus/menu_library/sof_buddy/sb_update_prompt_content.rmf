@@ -1,7 +1,7 @@
 <stm>
 <include tints>
 
-<backdrop bgcolor smokey>
+<backdrop bgcolor black>
 <key n "killmenu">
 <key y "killmenu;sofbuddy_update download;sofbuddy_update_install">
 <key escape "killmenu">
@@ -11,15 +11,16 @@
 "SOF BUDDY UPDATE AVAILABLE"<hbr>
 <hbr>
 
+<left>
 <font type title tint white atint white>
 <ctext _sofbuddy_update_latest atext "Latest tag: " invisible><hbr>
 <ctext _sofbuddy_update_downloaded_asset atext "Release zip: " invisible><hbr>
-"Download latest release zip now?"<hbr>
+<hbr>
+<font type title tint cyan atint cyan>
+Download latest release zip now?<hbr>
 <hbr>
 
 <font type title tint gray atint gray>
-"After download: close SoF, run update_from_zip.cmd/.sh."<hbr>
-"Fallback: extract the zip into SoF root and overwrite files."<hbr>
 <hbr>
 
 <font type title tint normaltext atint red>

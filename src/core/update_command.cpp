@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 #include <cstdint>
@@ -80,21 +81,14 @@ bool is_regular_file(const char* path) {
 }
 
 bool queue_winstart_command(const char* command) {
-    if (!command || !command[0] || !orig_Cmd_ExecuteString) return false;
+    if (!command || !command[0]) return false;
     char** slot = reinterpret_cast<char**>(rvaToAbsExe(reinterpret_cast<void*>(kWinstartRva)));
     if (!slot) return false;
-
-    std::string seed = "start ";
-    seed += command;
-    orig_Cmd_ExecuteString(seed.c_str());
-
-    if (!*slot) return false;
     const size_t need = std::strlen(command) + 1;
-    if ((std::strlen(*slot) + 1) < need) {
-        orig_Cmd_ExecuteString(seed.c_str());
-        if (!*slot || (std::strlen(*slot) + 1) < need) return false;
-    }
-    std::memcpy(*slot, command, need);
+    char* buf = static_cast<char*>(std::malloc(need));
+    if (!buf) return false;
+    std::memcpy(buf, command, need);
+    *slot = buf;
     return true;
 }
 

@@ -117,6 +117,7 @@ Notice:
 * `backdrop` is primary full-background control. in many cut-frame layouts, `backfill` reads as frame-local/border-region fill
 * RMF tint  use ABGR-style interpretation
 * plain words are flow text; `<text ...>` is interactive/clickable area text.
+* Avoid long prose under `<center>` on 480p; prefer `<left>` + small inset (`<blank 20-32 1>`) for reliable wrapping/visibility.
 
  
 ---
@@ -125,31 +126,32 @@ Notice:
 
 ## Commands
 
-menu `<menu>` 
+menu `<menu>`  *This constructs a menu page or redisplays it if it has already been constructed. E.g. “menu main” brings up the main menu. If a frame name is specified, the page will be built in that frame.*
 * frame
 
-intermission `<menu>`
+intermission `<menu> *Identical to the menu command, with the exception that the created page cannot be exited.*`
 
-reloadall
+reloadall *Marks all pages in the stack to be reloaded when they are next visited. Used to change languages.*
 
-refresh
+refresh *Refreshes the topmost page. For example, if a displayed console variable has changed by another process, you will have to refresh the screen to see it in the menu.*
 
-popmenu
+popmenu *Pops the most recent page off the top of the stack as long as there is a valid page behind it. If the most recent page was the only page on the stack, then the menu will only be popped if the console is enabled.*
 
-killmenu
+killmenu *Identical to popmenu, but always pops the page irrelevant of the validity of the page behind or the availability of the console.*
 
-return
+return *Destroys the whole menu system provided there is an active game running in the background. I.e returns to the game.*
 
-menuoff
+menuoff *Destroys the whole menu system including all pages currently on the stack.*
 
-select `<cvar>`
+select `<cvar>` *Used to select items. Used exclusively with the selection area.*
 
-checkpass `<password>` `<pass menu>` `<fail menu>`
+checkpass `<password>` `<pass menu>` `<fail menu>` *Checks **password** against the parental lock password and displays the **pass menu** if they match or the **fail menu** if they don’t*
 
-changepass `<oldpass>` `<newpass>` `<verify newpass>` 
+changepass `<oldpass>` `<newpass>` `<verify newpass>`  *If **oldpass** matches the parental lock password, and **newpass** is the same as **verify newpass**, then the parental lock password will be changed. If **pass menu** is set, then this will be displayed if everything was ok, and if **fail menu** is set, then this will be displayed if any error occurred.*
 * pass menu 
 * fail menu
-freshgame
+
+freshgame *Starts a fresh game, bringing up a requester asking if you wish to exit the current game if you are in one.*
 
 
 ---
@@ -219,17 +221,20 @@ font
 * tint *defines the default colour for all following text*
 * atint *defines the default hilite colour for all following text.*
 
-br
+br *soft line break*
 
-hbr
+hbr *hard line break*
 
-center
+center *A layout command which forces all following areas to appear centred on the screen and applies a carriage return (I admit that this is not ideal). If you wish to centre a line with spaces in it, then place the phrase in quotes.*
 
-normal
+normal *A layout command which places all following areas to the right of the previous area until no more will fit, and then a carriage return is applied. This is the default layout state, all areas appearing from left to right just like on a page of text.*
 
-left
+left 
+```xml
+A layout command which places all the following areas from the left of the page going right. The only difference between this and <normal> is that <left> starts from the next available place on the left of the page and not the current “next area position”.
+```
 
-right
+right *A layout command which places the following areas at the right of the page working left.*
 
 cursor `<value>`
 
@@ -492,4 +497,3 @@ ifne
 ifeq
 ifset
 ifclr
-
