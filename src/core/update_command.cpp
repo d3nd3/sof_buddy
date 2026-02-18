@@ -936,7 +936,7 @@ void sofbuddy_update_init(void) {
     orig_Cvar_Get(kCvarUpdateDownloadPath, "", 0, nullptr);
     orig_Cvar_Get(kCvarUpdateDownloadedAsset, "", 0, nullptr);
     orig_Cvar_Get(kCvarUpdateCheckedUtc, "", 0, nullptr);
-    orig_Cvar_Get(kCvarUpdateCheckStartup, "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    orig_Cvar_Get(kCvarUpdateCheckStartup, "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     cvar_t* api_url_cvar = orig_Cvar_Get(kCvarUpdateApiUrl, kUpdateApiUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
     cvar_t* releases_url_cvar = orig_Cvar_Get(kCvarUpdateReleasesUrl, kUpdateReleasesUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.9
+
+- Updater: default `_sofbuddy_update_check_startup` is now enabled (`1`) so new installs check for updates on startup automatically.
+
 ## v2.8
 
 - Build system: removed `http_maps` from `tools/generate_features_txt.py` default-disabled set, so `make`/CI auto-generation no longer silently disables it in `features/FEATURES.txt`.
