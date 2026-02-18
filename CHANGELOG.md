@@ -1,5 +1,9 @@
 # Changelog
 
+## v4.0
+
+- Windows updater launch fix: switched queued installer script path to Windows separators (`sof_buddy\update_from_zip.cmd`) so post-exit `cmd.exe` execution no longer misparses the script path on Win10/11.
+
 ## v3.9
 
 - Windows updater path handling: canonicalized `%ZIP_PATH%` to full absolute form before existence/extract checks, preventing malformed Wine path edge-cases.

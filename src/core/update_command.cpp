@@ -34,7 +34,7 @@ constexpr const char* kUpdateApiUrl = kUpdateApiUrlGitHub;
 constexpr const char* kUpdateReleasesUrl = kUpdateReleasesUrlGitHub;
 #endif
 constexpr const char* kUpdateOutputDir = "sof_buddy/update";
-constexpr const char* kUpdateInstallScript = "sof_buddy/update_from_zip.cmd";
+constexpr const char* kUpdateInstallScript = "sof_buddy\\update_from_zip.cmd";
 constexpr DWORD kUpdateTimeoutMs = 8000;
 constexpr uintptr_t kWinstartRva = 0x0040353C;
 
