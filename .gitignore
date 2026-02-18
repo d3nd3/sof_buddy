@@ -17,6 +17,7 @@ rsrc/detours_prebuild.txt
 
 # Generated version header
 hdr/version.h
+src/features/internal_menus/menu_data.cpp
 
 # SDK submodules (these are tracked by git)
 # SDK/

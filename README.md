@@ -104,6 +104,7 @@
 - `sofbuddy_apply_profile_visual` — Apply visual/high-fidelity profile preset.
 - `sofbuddy_update` — Check latest release from configured update API endpoint and compare with your current version.
 - `sofbuddy_update download` — Download latest release zip to `sof_buddy/update/` (apply after closing game; release zips are preferred over debug zips).
+- `sofbuddy_update_install` — Queue `sof_buddy/update_from_zip.cmd` via engine `start` and quit SoF.
 - `sofbuddy_openurl <https_url>` — Open trusted community links in your default browser (used by the Social Links menu page).
 
 </details>

@@ -3,7 +3,7 @@
 
 <backdrop bgcolor smokey>
 <key n "killmenu">
-<key y "killmenu;sofbuddy_update download;sofbuddy_menu sof_buddy/sb_update_help">
+<key y "killmenu;sofbuddy_update download;sofbuddy_update_install">
 <key escape "killmenu">
 
 <font type title tint orange atint orange>
@@ -27,5 +27,5 @@
 <text "Not now" border 16 1 gray key mouse1 "killmenu">
 <right>
 <font type title tint normaltext atint green>
-<text "Download now" border 16 1 gray key mouse1 "killmenu;sofbuddy_update download;sofbuddy_menu sof_buddy/sb_update_help">
+<text "Download+Install" border 16 1 gray key mouse1 "killmenu;sofbuddy_update download;sofbuddy_update_install">
 </stm>

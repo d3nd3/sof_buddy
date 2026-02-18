@@ -79,6 +79,7 @@ qboolean cbuf_addlatecommands_override_callback(detour_Cbuf_AddLateCommands::tCb
 
     PrintOut(PRINT_DEV, "Attempting to register sofbuddy_update command...\n");
     orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_update"), Cmd_SoFBuddy_Update_f);
+    orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_update_install"), Cmd_SoFBuddy_UpdateInstall_f);
     orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_openurl"), Cmd_SoFBuddy_OpenUrl_f);
     PrintOut(PRINT_DEV, "Registered sofbuddy_update command\n");
     

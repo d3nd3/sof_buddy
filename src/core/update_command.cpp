@@ -33,7 +33,9 @@ constexpr const char* kUpdateApiUrl = kUpdateApiUrlGitHub;
 constexpr const char* kUpdateReleasesUrl = kUpdateReleasesUrlGitHub;
 #endif
 constexpr const char* kUpdateOutputDir = "sof_buddy/update";
+constexpr const char* kUpdateInstallScript = "sof_buddy/update_from_zip.cmd";
 constexpr DWORD kUpdateTimeoutMs = 8000;
+constexpr uintptr_t kWinstartRva = 0x0040353C;
 
 constexpr const char* kCvarUpdateStatus = "_sofbuddy_update_status";
 constexpr const char* kCvarUpdateLatest = "_sofbuddy_update_latest";
@@ -70,6 +72,31 @@ struct ReleaseInfo {
 };
 
 bool parse_url(const std::string& url, ParsedUrl& out, std::string& error);
+
+bool is_regular_file(const char* path) {
+    if (!path || !path[0]) return false;
+    const DWORD attr = GetFileAttributesA(path);
+    return attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY) == 0;
+}
+
+bool queue_winstart_command(const char* command) {
+    if (!command || !command[0] || !orig_Cmd_ExecuteString) return false;
+    char** slot = reinterpret_cast<char**>(rvaToAbsExe(reinterpret_cast<void*>(kWinstartRva)));
+    if (!slot) return false;
+
+    std::string seed = "start ";
+    seed += command;
+    orig_Cmd_ExecuteString(seed.c_str());
+
+    if (!*slot) return false;
+    const size_t need = std::strlen(command) + 1;
+    if ((std::strlen(*slot) + 1) < need) {
+        orig_Cmd_ExecuteString(seed.c_str());
+        if (!*slot || (std::strlen(*slot) + 1) < need) return false;
+    }
+    std::memcpy(*slot, command, need);
+    return true;
+}
 
 std::string to_lower_ascii(std::string value) {
     std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) {
@@ -1003,6 +1030,34 @@ void Cmd_SoFBuddy_Update_f(void) {
     }
 
     sofbuddy_run_update_flow(do_download, force_download, false);
+}
+
+void Cmd_SoFBuddy_UpdateInstall_f(void) {
+    if (!orig_Cmd_ExecuteString) return;
+    if (!is_regular_file(kUpdateInstallScript)) {
+        set_update_status("install script missing");
+        PrintOut(PRINT_BAD, "sofbuddy_update_install: missing %s\n", kUpdateInstallScript);
+        return;
+    }
+    const std::string zip_path = get_update_cvar_or_default(kCvarUpdateDownloadPath, "");
+    if (zip_path.empty() || !is_regular_file(zip_path.c_str()) || zip_path.find('"') != std::string::npos) {
+        set_update_status("no matching downloaded zip");
+        PrintOut(PRINT_BAD, "sofbuddy_update_install: exact downloaded zip missing; run sofbuddy_update download\n");
+        return;
+    }
+    std::string command = kUpdateInstallScript;
+    command += " \"";
+    command += zip_path;
+    command += "\"";
+
+    if (!queue_winstart_command(command.c_str())) {
+        set_update_status("failed to queue install command");
+        PrintOut(PRINT_BAD, "sofbuddy_update_install: failed to write winstart buffer\n");
+        return;
+    }
+
+    set_update_status("launching installer and exiting");
+    orig_Cmd_ExecuteString("quit");
 }
 
 static bool open_url(const std::string& url, std::string& error) {

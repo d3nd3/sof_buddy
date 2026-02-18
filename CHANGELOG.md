@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.3
+
+- Updater: added `sofbuddy_update_install` to queue install command through the engine `winstart` pointer (`0x40353C`) and quit for fully automatic post-exit update flow.
+- Updater install targeting: `sofbuddy_update_install` now passes the exact `_sofbuddy_update_download_path` zip into `update_from_zip.cmd`, avoiding wrong-zip selection when multiple zips exist.
+- Internal menus: update prompt/help actions now support one-click download+install+exit flow.
+- Build hygiene: `src/features/internal_menus/menu_data.cpp` is now ignored and untracked as generated output to avoid recurring dirty status.
+
 ## v3.2
 
 - http_maps: when a map is downloaded/extracted, loading status stays at "HTTP Downloading..." (MAP PRESENT is only used when no HTTP download was needed).
