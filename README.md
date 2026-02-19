@@ -10,6 +10,11 @@
 
 ---
 
+### ⚠️ **#1 THING YOU NEED TO KNOW**
+**Press `F12` in-game** (or bind a key to `sofbuddy_menu sof_buddy`). That opens the SoF Buddy menu — settings, updater, profiles, and everything else. **Do this first.** If you don’t, you’re missing the main way to use SoF Buddy.
+
+---
+
 ## ✨ Features
 <details open>
 <summary><b>Click to expand</b></summary>
@@ -97,10 +102,10 @@
 - This removes all mods and restores the original game
 
 ### In-Game Commands
+- **`F12`** (or **`bind <key> sofbuddy_menu sof_buddy`**) — **Open the SoF Buddy menu. Use this. It’s the main entry point for all settings, updater, and profiles.**
 - `sofbuddy_list_features` — Print compiled features (and whether they are on/off).
 - `sofbuddy_menu <name>` — Open an embedded internal menu page (examples: `loading`, `sof_buddy`).
-- `sofbuddy_menu <menu>/<page>` — Open a specific embedded page inside a menu (example: `sofbuddy_menu sof_buddy/sb_perf`).
-- `F12` is auto-bound at startup to `sofbuddy_menu sof_buddy`.
+- `sofbuddy_menu <menu>/<page>` — Open a specific embedded page (e.g. `sofbuddy_menu sof_buddy/sb_perf`).
 - `sofbuddy_apply_menu_hotkey` — Re-apply bind from `_sofbuddy_menu_hotkey` (default `F12`).
 - `sofbuddy_apply_profile_comp` — Apply competitive/low-visual profile preset.
 - `sofbuddy_apply_profile_visual` — Apply visual/high-fidelity profile preset.
