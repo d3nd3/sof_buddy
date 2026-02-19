@@ -34,7 +34,8 @@ constexpr const char* kUpdateApiUrl = kUpdateApiUrlGitHub;
 constexpr const char* kUpdateReleasesUrl = kUpdateReleasesUrlGitHub;
 #endif
 constexpr const char* kUpdateOutputDir = "sof_buddy/update";
-constexpr const char* kUpdateInstallScript = "sof_buddy\\update_from_zip.cmd";
+constexpr const char* kUpdateInstallScriptWindows = "sof_buddy\\update_from_zip.cmd";
+constexpr const char* kUpdateInstallScriptWine = "sof_buddy/update_from_zip.cmd";
 constexpr DWORD kUpdateTimeoutMs = 8000;
 constexpr uintptr_t kWinstartRva = 0x0040353C;
 
@@ -1056,7 +1057,7 @@ void Cmd_SoFBuddy_Update_f(void) {
 void Cmd_SoFBuddy_UpdateInstall_f(void) {
     if (!orig_Cmd_ExecuteString) return;
     const bool wine = is_running_under_wine();
-    const char* script = kUpdateInstallScript;
+    const char* script = wine ? kUpdateInstallScriptWine : kUpdateInstallScriptWindows;
     if (!is_regular_file(script)) {
         set_update_status("install script missing");
         PrintOut(PRINT_BAD, "sofbuddy_update_install: missing %s\n", script);

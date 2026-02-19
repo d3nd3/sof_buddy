@@ -1,5 +1,9 @@
 # Changelog
 
+## v4.3
+
+- Docs: add http.png hero image to README.
+
 ## v4.2
 
 - Internal menus: RMF layout and content pass across SoF Buddy tabs (main, input, lighting, perf, scaling, social, texture, tweaks, HTTP, update help/prompt), loading header, and HTTP providers; FS_LoadFile override and internal menu hooks refined.

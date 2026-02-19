@@ -119,6 +119,7 @@ Notice:
 * plain words are flow text; `<text ...>` is interactive/clickable area text.
 * CAUTION: `<center>` layout treats each space separated word as a new line, then if you use double quote around your space separated text, if the length is longer than the remaining space in the frame, it will not be rendered.
 * Seems wise to try to use 2 giant blank borders either side of the content, but they must be injected with resolution dependent pixels as: ((width_of_inner_frame_px - centered_content_size_px) / 2) . Then you have a fixed size area across resolutions. CAVEAT: hr element cant be used cos has inbuilt left
+* Its possible `<stm resize ` is the best solution for fixed size frames/layouts whilst being centered across different resolutions
  
 ---
 
@@ -158,7 +159,7 @@ freshgame *Starts a fresh game, bringing up a requester asking if you wish to ex
 
 ## Control
 
-stm `<name>` `<width>` `<height>`
+stm
 * nopush *this page is not pushed onto the page stack - it cannot be revisited.*
 * waitanim *the page waits for the ghoul animation to finish before allowing any input. (E.g. on the animating main page)*
 * fragile *Any keypress will instantly exit this screen. (E.g. On the start up animation)*
@@ -294,7 +295,7 @@ text `<text>`
 * {PARSE_RECT}
 
 ctext `<cvar>` *use the text stored within the cvar, invisible hides text if text is empty*
-* atext 
+* atext *useful in <center mode to have 2 piece of text next to each other on same line, shame you cannot style them separately though*
 * invisible
 * {PARSE_RECT}
 
@@ -500,8 +501,3 @@ ifne
 ifeq
 ifset
 ifclr
-
-
----
-
-![[Pasted image 20260217062306.png]]

@@ -24,9 +24,9 @@ Download latest release zip now?<hbr>
 <hbr>
 
 <font type title tint normaltext atint red>
-<normal>
+<left>
 <text "Not now" border 16 1 gray key mouse1 "killmenu">
-<blank 180 1>
+<right>
 <font type title tint normaltext atint green>
 <text "Download+Install" border 16 1 gray key mouse1 "killmenu;sofbuddy_update download;sofbuddy_update_install">
 </stm>

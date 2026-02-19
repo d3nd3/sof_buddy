@@ -1,6 +1,6 @@
-<stm resize 460 300>
+<stm resize 550 300>
 <include tints>
 
-<frame main 460 300 border 40 1 gray backfill black>
+<frame main 0 0 border 40 1 gray backfill black>
 <frame alert 0 0 page sof_buddy/sb_update_prompt_content cut main>
 </stm>
