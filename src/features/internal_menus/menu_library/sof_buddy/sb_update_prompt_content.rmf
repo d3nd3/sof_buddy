@@ -11,7 +11,7 @@
 "SOF BUDDY UPDATE AVAILABLE"<hbr>
 <hbr>
 
-<left>
+<normal>
 <font type title tint white atint white>
 <ctext _sofbuddy_update_latest atext "Latest tag: " invisible><hbr>
 <ctext _sofbuddy_update_downloaded_asset atext "Release zip: " invisible><hbr>
@@ -24,9 +24,9 @@ Download latest release zip now?<hbr>
 <hbr>
 
 <font type title tint normaltext atint red>
-<left>
+<normal>
 <text "Not now" border 16 1 gray key mouse1 "killmenu">
-<right>
+<blank 180 1>
 <font type title tint normaltext atint green>
 <text "Download+Install" border 16 1 gray key mouse1 "killmenu;sofbuddy_update download;sofbuddy_update_install">
 </stm>

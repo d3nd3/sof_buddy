@@ -21,5 +21,7 @@ bool internal_menus_should_lock_loading_input(void);
 void loading_set_current(const char* map_name);
 void loading_show_ui(void);
 void internal_menus_call_SCR_UpdateScreen(bool force);
+const char* internal_menus_get_content_inset_rmf(void);
+const char* internal_menus_get_content_inset_tall_rmf(void);
 
 #endif

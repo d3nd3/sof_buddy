@@ -14,30 +14,39 @@
 <defaults noborder tiptint normaltext tipbtint sb_panel tipfont title>
 <backdrop bgcolor sb_bg>
 
+<left>
+{content_inset_tall}
+<right>
+{content_inset_tall}
 <normal>
+
 <font type title tint white atint white>
-<includecvar _sofbuddy_sb_tabs_row1_prefix_rmf>
+<hbr>
 <text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 8 1 cyan regular>
-<blank 6 1><text "CPU" key mouse1 "sofbuddy_menu sof_buddy/sb_perf" border 8 1 cyan regular>
-<blank 6 1><text "UI Scale" key mouse1 "sofbuddy_menu sof_buddy/sb_scaling" border 8 1 cyan regular>
-<blank 6 1><text "Input" key mouse1 "sofbuddy_menu sof_buddy/sb_input" border 8 1 cyan regular>
-<blank 6 1><text "Network" key mouse1 "sofbuddy_menu sof_buddy/sb_http" border 8 1 cyan regular><hbr>
-<includecvar _sofbuddy_sb_tabs_row2_prefix_rmf>
+<text "CPU" key mouse1 "sofbuddy_menu sof_buddy/sb_perf" border 8 1 cyan regular>
+<text "UI Scale" key mouse1 "sofbuddy_menu sof_buddy/sb_scaling" border 8 1 cyan regular>
+<text "Input" key mouse1 "sofbuddy_menu sof_buddy/sb_input" border 8 1 cyan regular>
+<text "Network" key mouse1 "sofbuddy_menu sof_buddy/sb_http" border 8 1 cyan regular><hbr>
 <text "Texture" key mouse1 "sofbuddy_menu sof_buddy/sb_texture" border 8 1 cyan regular>
-<blank 6 1><text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/sb_lighting" border 8 1 orange regular>
-<blank 6 1><text "Video" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_video" border 8 1 cyan regular>
-<blank 6 1><text "Profiles" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_perf" border 8 1 cyan regular>
-<blank 6 1><text "Misc" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_other" border 8 1 cyan regular>
-<blank 6 1><text "Updates" key mouse1 "sofbuddy_menu sof_buddy/sb_update_help" border 8 1 cyan regular>
-<blank 6 1><text "Social" key mouse1 "sofbuddy_menu sof_buddy/sb_social" border 8 1 cyan regular><hbr>
-<hr width 560 tint sb_accent>
+<text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/sb_lighting" border 8 1 orange regular>
+<text "Video" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_video" border 8 1 cyan regular>
+<text "Profiles" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_perf" border 8 1 cyan regular>
+<text "Misc" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_other" border 8 1 cyan regular>
+<text "Updates" key mouse1 "sofbuddy_menu sof_buddy/sb_update_help" border 8 1 cyan regular>
+<text "Social" key mouse1 "sofbuddy_menu sof_buddy/sb_social" border 8 1 cyan regular><hbr>
 
 <center>
+<font type title tint sb_accent atint sb_accent>
+"_____________________________"
+<hbr>
+<hbr>
 <font type title tint white atint white>
 <text "SOF BUDDY: LIGHTING / BLEND">
-<hr width 560 tint cyan>
-
 <center>
+<font type title tint cyan atint cyan>
+"_____________________________"
+<hbr>
+<hbr>
 <font type title tint white atint white>
 <list "Off,On" cvari _sofbuddy_lighting_overbright atext "Overbright : " noshade><br>
 <list "Off,On" cvari _sofbuddy_shiny_spherical atext "Shiny Spherical : " noshade><br>
@@ -46,18 +55,29 @@
 <ctext _sofbuddy_water_size atext "Water Size : " noshade><br>
 <slider cvar _sofbuddy_water_size min 16 max 256 step 1><br>
 
-<hr width 520 tint sb_subtle>
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
 <font type title tint cyan atint cyan>
 "Lightblend"
 <font type title tint white atint white>
 <list "ZERO,ONE,SRC_C,1-SRC_C,DST_C,1-DST_C,SRC_A,1-SRC_A" match "GL_ZERO,GL_ONE,GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR,GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA" cvar _sofbuddy_lightblend_src atext "Src : " noshade><br>
 <list "ZERO,ONE,SRC_C,1-SRC_C,DST_C,1-DST_C,SRC_A,1-SRC_A" match "GL_ZERO,GL_ONE,GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR,GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA" cvar _sofbuddy_lightblend_dst atext "Dst : " noshade><br>
 
-<hr width 520 tint sb_subtle>
-<left>
-<font type title tint white atint white>
-<blank 28 1>Overbright mode overrides manual blend src/dst behavior.
-
+<center>
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<normal>
+<font type title tint gray atint gray>
+Overbright mode overrides manual blend src/dst behavior.
+<hbr>
+<center>
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
 <hbr>
 <center>
 <font type title tint white atint white>

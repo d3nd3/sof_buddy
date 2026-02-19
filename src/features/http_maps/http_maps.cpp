@@ -1080,6 +1080,7 @@ static void http_maps_download_worker(std::string map_bsp_path, std::string zip_
 				DeleteFileA(temp_zip_path.c_str());
 				PrintOut(PRINT_DEV, "http_maps: Downloaded and extracted %s\n", map_bsp_path.c_str());
 				http_maps_queue_status(job_id, "HTTP map ready.");
+				g_http_maps_state.worker_did_download.store(true, std::memory_order_release);
 				success = true;
 			} else {
 				DeleteFileA(temp_zip_path.c_str());

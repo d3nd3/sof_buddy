@@ -14,36 +14,48 @@
 <defaults noborder tiptint normaltext tipbtint sb_panel tipfont title>
 <backdrop bgcolor sb_bg>
 
+<left>
+{content_inset_tall}
+<right>
+{content_inset_tall}
 <normal>
+
 <font type title tint white atint white>
-<includecvar _sofbuddy_sb_tabs_row1_prefix_rmf>
+<hbr>
 <text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 8 1 orange regular>
-<blank 6 1><text "CPU" key mouse1 "sofbuddy_menu sof_buddy/sb_perf" border 8 1 cyan regular>
-<blank 6 1><text "UI Scale" key mouse1 "sofbuddy_menu sof_buddy/sb_scaling" border 8 1 cyan regular>
-<blank 6 1><text "Input" key mouse1 "sofbuddy_menu sof_buddy/sb_input" border 8 1 cyan regular>
-<blank 6 1><text "Network" key mouse1 "sofbuddy_menu sof_buddy/sb_http" border 8 1 cyan regular><hbr>
-<includecvar _sofbuddy_sb_tabs_row2_prefix_rmf>
+<text "CPU" key mouse1 "sofbuddy_menu sof_buddy/sb_perf" border 8 1 cyan regular>
+<text "UI Scale" key mouse1 "sofbuddy_menu sof_buddy/sb_scaling" border 8 1 cyan regular>
+<text "Input" key mouse1 "sofbuddy_menu sof_buddy/sb_input" border 8 1 cyan regular>
+<text "Network" key mouse1 "sofbuddy_menu sof_buddy/sb_http" border 8 1 cyan regular><hbr>
 <text "Texture" key mouse1 "sofbuddy_menu sof_buddy/sb_texture" border 8 1 cyan regular>
-<blank 6 1><text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/sb_lighting" border 8 1 cyan regular>
-<blank 6 1><text "Video" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_video" border 8 1 cyan regular>
-<blank 6 1><text "Profiles" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_perf" border 8 1 cyan regular>
-<blank 6 1><text "Misc" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_other" border 8 1 cyan regular>
-<blank 6 1><text "Updates" key mouse1 "sofbuddy_menu sof_buddy/sb_update_help" border 8 1 cyan regular>
-<blank 6 1><text "Social" key mouse1 "sofbuddy_menu sof_buddy/sb_social" border 8 1 cyan regular><hbr>
-<hr width 560 tint sb_accent>
+<text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/sb_lighting" border 8 1 cyan regular>
+<text "Video" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_video" border 8 1 cyan regular>
+<text "Profiles" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_perf" border 8 1 cyan regular>
+<text "Misc" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_other" border 8 1 cyan regular>
+<text "Updates" key mouse1 "sofbuddy_menu sof_buddy/sb_update_help" border 8 1 cyan regular>
+<text "Social" key mouse1 "sofbuddy_menu sof_buddy/sb_social" border 8 1 cyan regular><hbr>
 
 <center>
+<font type title tint sb_accent atint sb_accent>
+"_____________________________"
+<hbr>
+<hbr>
 <font type title tint white atint white>
 <text "SOF BUDDY CONTROL PANEL" tip "UI for sofbuddy cvars">
-<hr width 560 tint sb_accent>
-
 <center>
+<font type title tint cyan atint cyan>
+"_____________________________"
+<hbr>
+<hbr>
 <font type title tint white atint white>
 <ctext _sofbuddy_version atext "Version : " tint white atint white noshade><hbr>
 <ctext _sofbuddy_update_status atext "Updater : " tint white atint white noshade><hbr>
 <ctext _sofbuddy_update_latest atext "Latest : " tint white atint white noshade><hbr>
 
-<hr width 520 tint sb_subtle>
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
 <font type title tint sb_accent atint sb_accent>
 "Quick Actions"
 <font type title tint white atint white>
@@ -53,10 +65,13 @@
 <text "Open Vanilla Video" key mouse1 "menu video" border 14 1 cyan regular>
 <text "Close" key mouse1 "popmenu" border 14 1 cyan regular><hbr>
 
-<hr width 520 tint sb_subtle>
-<left>
-<font type title tint white atint white>
-<blank 28 1>Use tabs above to switch sections without leaving this menu.
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
 <hbr>
-<blank 28 1>Renderer-side changes may require vid_restart to fully apply.
+<hbr>
+<normal>
+<font type title tint gray atint gray>
+Use tabs above to switch sections without leaving this menu.
+<hbr><hbr>
+Renderer-side changes may require vid_restart to fully apply.
 </stm>

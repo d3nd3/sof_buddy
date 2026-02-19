@@ -1,11 +1,12 @@
-<left>
+<center>
 <hbr>
 <font type title tint cyan atint cyan>
-HTTP Providers
-<hr width 552 tint gray>
-<font type title tint gray atint white>
-<blank 28 1>Edit URL fields directly. Changes apply immediately.<hbr>
-<blank 28 1>Random/Rotate modes use only provider slots with both DL and CRC set.<hbr>
+"HTTP Providers"
+<hbr>
+<font type title tint gray atint gray>
+<normal>
+Edit URL fields directly. Changes apply immediately.<hbr>
+Random/Rotate modes use only provider slots with both DL and CRC set.<hbr>
 <hbr>
 <font type title tint cyan atint cyan>
 DL source #1<hbr>
@@ -34,12 +35,17 @@ CRC source #3<hbr>
 <font type title tint white atint white>
 <input width 552 cvar _sofbuddy_http_maps_crc_3 border 8 1 gray maxchars 255 tip "Tertiary provider CRC lookup base URL (pair with DL #3)."><hbr>
 
+<center>
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
 <hbr>
 <font type title tint cyan atint cyan>
-Updater Provider
-<hr width 552 tint gray>
-<font type title tint gray atint white>
-<blank 28 1>Update check/download feed URLs. XP builds default to sofvault.org mirror.<hbr>
+"Updater Provider"
+<hbr>
+<normal>
+<font type title tint gray atint gray>
+Update check/download feed URLs. XP builds default to sofvault.org mirror.<hbr>
 <hbr>
 <font type title tint cyan atint cyan>
 Update API URL<hbr>

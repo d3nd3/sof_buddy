@@ -8,7 +8,5 @@
 <defaults noborder tiptint black tipbtint white tipfont title>
 
 <frame root 640 0>
-<frame left_spacer 24 0 cut root page sof_buddy/sb_margin_backdrop>
-<frame center_panel 592 0 cut root page sof_buddy/sb_input_content>
-<frame right_spacer 24 0 cut root page sof_buddy/sb_margin_backdrop>
+<frame center_panel 640 0 cut root page sof_buddy/sb_input_content>
 </stm>

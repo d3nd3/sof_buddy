@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.2
+
+- Internal menus: RMF layout and content pass across SoF Buddy tabs (main, input, lighting, perf, scaling, social, texture, tweaks, HTTP, update help/prompt), loading header, and HTTP providers; FS_LoadFile override and internal menu hooks refined.
+- Menu docs: menu-know-how guidance and build/makefile tweaks.
+
 ## v4.1
 
 - Windows updater UX polish: silenced noisy extractor stderr/stdout (`tar`, `7z`, PowerShell fallback) in `update_from_zip.cmd` so successful fallback installs do not show misleading error spam.

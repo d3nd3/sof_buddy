@@ -117,8 +117,8 @@ Notice:
 * `backdrop` is primary full-background control. in many cut-frame layouts, `backfill` reads as frame-local/border-region fill
 * RMF tint  use ABGR-style interpretation
 * plain words are flow text; `<text ...>` is interactive/clickable area text.
-* Avoid long prose under `<center>` on 480p; prefer `<left>` + small inset (`<blank 20-32 1>`) for reliable wrapping/visibility.
-
+* CAUTION: `<center>` layout treats each space separated word as a new line, then if you use double quote around your space separated text, if the length is longer than the remaining space in the frame, it will not be rendered.
+* Seems wise to try to use 2 giant blank borders either side of the content, but they must be injected with resolution dependent pixels as: ((width_of_inner_frame_px - centered_content_size_px) / 2) . Then you have a fixed size area across resolutions. CAVEAT: hr element cant be used cos has inbuilt left
  
 ---
 
@@ -228,11 +228,14 @@ hbr *hard line break*
 center *A layout command which forces all following areas to appear centred on the screen and applies a carriage return (I admit that this is not ideal). If you wish to centre a line with spaces in it, then place the phrase in quotes.*
 
 normal *A layout command which places all following areas to the right of the previous area until no more will fit, and then a carriage return is applied. This is the default layout state, all areas appearing from left to right just like on a page of text.*
+aka **normal** will **target the next line with free space in it**
 
 left 
 ```xml
 A layout command which places all the following areas from the left of the page going right. The only difference between this and <normal> is that <left> starts from the next available place on the left of the page and not the current “next area position”.
 ```
+aka **left** will **always prioritise a new line further vertically down the frame even if off the screen, as long as that new line starts more left than the next line** 
+CAVEAT: hr element cant be used cos has inbuilt left
 
 right *A layout command which places the following areas at the right of the page working left.*
 
@@ -497,3 +500,8 @@ ifne
 ifeq
 ifset
 ifclr
+
+
+---
+
+![[Pasted image 20260217062306.png]]

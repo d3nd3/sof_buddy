@@ -52,7 +52,7 @@ void create_loading_cvars() {
 
 }
 
-constexpr int kSofBuddyCenterPanelVirtualWidth = 592;
+constexpr int kSofBuddyCenterPanelVirtualWidth = 640;
 constexpr int kSofBuddyDefaultRow1ContentWidth = 400;
 constexpr int kSofBuddyDefaultRow2ContentWidth = 520;
 
@@ -68,11 +68,13 @@ void create_layout_cvars() {
     constexpr int kLayoutCvarFlags = 0;
     orig_Cvar_Get("_sofbuddy_menu_vid_w", "640", kLayoutCvarFlags, nullptr);
     orig_Cvar_Get("_sofbuddy_menu_vid_h", "480", kLayoutCvarFlags, nullptr);
-    orig_Cvar_Get("_sofbuddy_sb_center_panel_px", "592", kLayoutCvarFlags, nullptr);
+    orig_Cvar_Get("_sofbuddy_sb_center_panel_px", "640", kLayoutCvarFlags, nullptr);
     orig_Cvar_Get("_sofbuddy_sb_tabs_row1_prefix_px", "96", kLayoutCvarFlags, nullptr);
     orig_Cvar_Get("_sofbuddy_sb_tabs_row2_prefix_px", "36", kLayoutCvarFlags, nullptr);
     orig_Cvar_Get("_sofbuddy_sb_tabs_row1_prefix_rmf", "<blank 96 1>", kLayoutCvarFlags, nullptr);
     orig_Cvar_Get("_sofbuddy_sb_tabs_row2_prefix_rmf", "<blank 36 1>", kLayoutCvarFlags, nullptr);
+    orig_Cvar_Get("_sofbuddy_sb_tabs_row1_suffix_rmf", "<blank 96 1>", kLayoutCvarFlags, nullptr);
+    orig_Cvar_Get("_sofbuddy_sb_tabs_row2_suffix_rmf", "<blank 36 1>", kLayoutCvarFlags, nullptr);
     _sofbuddy_sb_tabs_row1_content_px = orig_Cvar_Get("_sofbuddy_sb_tabs_row1_content_px", "400", kLayoutCvarFlags, nullptr);
     _sofbuddy_sb_tabs_row2_content_px = orig_Cvar_Get("_sofbuddy_sb_tabs_row2_content_px", "520", kLayoutCvarFlags, nullptr);
     _sofbuddy_sb_tabs_center_bias_px = orig_Cvar_Get("_sofbuddy_sb_tabs_center_bias_px", "0", kLayoutCvarFlags, nullptr);
@@ -182,8 +184,12 @@ void Cmd_SoFBuddy_Apply_Profile_Visual_f() {
 void update_layout_cvars(bool trigger_reloadall_if_changed) {
     if (!orig_Cvar_Get || !orig_Cvar_Set2) return;
 
-    const int vid_w = (current_vid_w > 0) ? current_vid_w : 640;
-    const int vid_h = (current_vid_h > 0) ? current_vid_h : 480;
+    int vid_w = (current_vid_w > 0) ? current_vid_w : 0;
+    int vid_h = (current_vid_h > 0) ? current_vid_h : 0;
+    if (vid_w <= 0 && viddef_width && *viddef_width > 0) vid_w = *viddef_width;
+    if (vid_h <= 0 && viddef_height && *viddef_height > 0) vid_h = *viddef_height;
+    if (vid_w <= 0) vid_w = 640;
+    if (vid_h <= 0) vid_h = 480;
 
     // center_panel uses frame units (560 / 640 of screen width).
     const int center_panel_px = (vid_w * kSofBuddyCenterPanelVirtualWidth + 320) / 640;
@@ -211,6 +217,8 @@ void update_layout_cvars(bool trigger_reloadall_if_changed) {
     set_runtime_cvar_int("_sofbuddy_sb_tabs_row2_prefix_px", row2_prefix_px);
     set_runtime_cvar_str("_sofbuddy_sb_tabs_row1_prefix_rmf", row1_rmf);
     set_runtime_cvar_str("_sofbuddy_sb_tabs_row2_prefix_rmf", row2_rmf);
+    set_runtime_cvar_str("_sofbuddy_sb_tabs_row1_suffix_rmf", row1_rmf);
+    set_runtime_cvar_str("_sofbuddy_sb_tabs_row2_suffix_rmf", row2_rmf);
 
     static int last_vid_w = -1;
     static int last_vid_h = -1;
@@ -224,6 +232,32 @@ void update_layout_cvars(bool trigger_reloadall_if_changed) {
 }
 
 } // namespace
+
+static int internal_menus_content_inset_px(void) {
+    int inner_frame_px = 0;
+    if (orig_Cvar_Get) {
+        cvar_t* c = orig_Cvar_Get("_sofbuddy_sb_center_panel_px", "640", 0, nullptr);
+        if (c && c->value > 0) inner_frame_px = static_cast<int>(c->value + 0.5f);
+    }
+    if (inner_frame_px <= 0) {
+        int vid_w = (current_vid_w > 0) ? current_vid_w : 0;
+        if (vid_w <= 0 && viddef_width && *viddef_width > 0) vid_w = *viddef_width;
+        if (vid_w <= 0) vid_w = 640;
+        inner_frame_px = (vid_w * 640 + 320) / 640;
+    }
+    const int centered_content_size_px = 640;
+    return std::max(28, (inner_frame_px - centered_content_size_px) / 2);
+}
+const char* internal_menus_get_content_inset_rmf(void) {
+    static char buf[32];
+    std::snprintf(buf, sizeof(buf), "<blank %d 1>", internal_menus_content_inset_px());
+    return buf;
+}
+const char* internal_menus_get_content_inset_tall_rmf(void) {
+    static char buf[32];
+    std::snprintf(buf, sizeof(buf), "<blank %d 10000>", internal_menus_content_inset_px());
+    return buf;
+}
 
 bool internal_menus_should_lock_loading_input(void) {
     if (!orig_Cvar_Get) return true;

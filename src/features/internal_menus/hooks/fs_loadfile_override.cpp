@@ -63,17 +63,25 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
     const std::vector<uint8_t>& vec = file_it->second;
     if (vec.empty()) return original(path, buffer, override_pak);
 
-    // Use the engine's allocator so the engine can free the buffer later.
+    std::string content(vec.begin(), vec.end());
+    content.erase(std::remove(content.begin(), content.end(), '\r'), content.end());
+    const char* inset = internal_menus_get_content_inset_rmf();
+    const char* inset_tall = internal_menus_get_content_inset_tall_rmf();
+    for (std::string::size_type pos = 0; (pos = content.find("{content_inset_tall}", pos)) != std::string::npos; )
+        content.replace(pos, 20, inset_tall), pos += std::strlen(inset_tall);
+    for (std::string::size_type pos = 0; (pos = content.find("{content_inset}", pos)) != std::string::npos; )
+        content.replace(pos, 15, inset), pos += std::strlen(inset);
+    for (std::string::size_type pos = 0; (pos = content.find("tall}", pos)) != std::string::npos; )
+        content.replace(pos, 5, "");
+
+    const int size = static_cast<int>(content.size() + 1);
     static void* (*Z_Malloc)(int) = nullptr;
     if (!Z_Malloc) Z_Malloc = (void*(*)(int))rvaToAbsExe((void*)0x0001F120);
     if (!Z_Malloc) return original(path, buffer, override_pak);
-
-    const int size = static_cast<int>(vec.size() + 1);
     void* copy = Z_Malloc(size);
     if (!copy) return original(path, buffer, override_pak);
-    std::memcpy(copy, vec.data(), vec.size());
-    static_cast<char*>(copy)[vec.size()] = '\0';
+    std::memcpy(copy, content.c_str(), content.size() + 1);
     *buffer = copy;
-    return static_cast<int>(vec.size());  // Same convention as FS_LoadFile: return size, buffer set.
+    return static_cast<int>(content.size());
 }
 #endif
