@@ -33,7 +33,6 @@ extern cvar_t *in_mouse_raw;
 extern int raw_mouse_delta_x;
 extern int raw_mouse_delta_y;
 extern POINT window_center;
-extern std::vector<BYTE> g_heapBuffer;
 extern bool raw_mouse_center_valid;
 extern bool raw_mouse_registered;
 extern bool raw_mouse_cursor_clipped;
@@ -51,6 +50,7 @@ void raw_mouse_refresh_cursor_clip(HWND hwnd_hint);
 void raw_mouse_release_cursor_clip();
 bool raw_mouse_register_input(HWND hwnd, bool log_result);
 void raw_mouse_unregister_input(bool log_result);
+void raw_mouse_poll();
 BOOL __stdcall hkSetCursorPos(int X, int Y);
 
 #endif // FEATURE_RAW_MOUSE

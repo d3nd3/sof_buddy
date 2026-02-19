@@ -1,5 +1,12 @@
 # Changelog
 
+## v4.4
+
+- Raw mouse: reworked raw input pipeline to buffer and drain high-Hz `WM_INPUT` via `GetRawInputBuffer`, skip zero-delta packets, and keep the game's original mouse cvars/flow intact while sourcing movement from hardware deltas instead of OS cursor position.
+- Raw mouse: hardened window/foreground and clip handling (no cursor warping on clip refresh, proper unregister on failure/teardown, disabled-path hooks now pure passthrough with no side effects when `_sofbuddy_rawmouse` is 0).
+- Raw mouse docs: expanded feature README with callback/override details, disabled-path behavior, jitter/high-polling guidance, and configuration notes so users understand how and when to enable it.
+- Docs: README now surfaces a prominent “#1 thing you need to know” section and in-game command docs that emphasize `F12` / `sofbuddy_menu sof_buddy` as the primary entry point into SoF Buddy.
+
 ## v4.3
 
 - Docs: add http.png hero image to README.

@@ -1,6 +1,6 @@
 ---
 name: new-release
-description: Bumps SoF Buddy version, updates VERSION and hdr/version.h, then git add/commit/push to trigger a GitHub Actions release. Use when creating a new release, cutting a build, or when the user asks to release, bump version, or push a new build. Agent must study commit history and changes to carefully create a changelog for the release.
+description: Bumps SoF Buddy version, updates VERSION and hdr/version.h, then git add/commit/push to trigger a GitHub Actions release. Use when creating a new release, cutting a build, or when the user asks to release, bump version, or push a new build. Agent must study commit history and changes to carefully create a changelog for the release. Do not skip over anything, if there is change in any feature, it must be documented in the changelog and change. This command is useful eg. `git diff v4.3-build143 --stat`
 ---
 
 # New Release

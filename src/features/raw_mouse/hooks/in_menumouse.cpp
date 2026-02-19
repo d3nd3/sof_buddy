@@ -13,6 +13,7 @@ void in_menumouse_callback(void* cvar1, void* cvar2)
         return;
     }
 
+    raw_mouse_poll();
     raw_mouse_consume_deltas();
 }
 

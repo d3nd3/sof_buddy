@@ -9,7 +9,7 @@
 int raw_mouse_delta_x = 0;
 int raw_mouse_delta_y = 0;
 POINT window_center = {0, 0};
-std::vector<BYTE> g_heapBuffer;
+static std::vector<BYTE> g_inputBuffer;
 bool raw_mouse_center_valid = false;
 bool raw_mouse_registered = false;
 bool raw_mouse_cursor_clipped = false;
@@ -17,242 +17,286 @@ HWND raw_mouse_hwnd_target = nullptr;
 static RECT raw_mouse_clip_rect = {0, 0, 0, 0};
 static const int RAW_MOUSE_CLIP_INSET = 64;
 
-bool raw_mouse_is_enabled()
-{
-    return in_mouse_raw && in_mouse_raw->value != 0.0f;
+bool raw_mouse_is_enabled() {
+  return in_mouse_raw && in_mouse_raw->value != 0.0f;
 }
 
-bool raw_mouse_api_supported()
-{
+bool raw_mouse_api_supported() {
 #if SOFBUDDY_RAWINPUT_API_AVAILABLE
-    return true;
+  return true;
 #else
-    return false;
+  return false;
 #endif
 }
 
-void raw_mouse_reset_deltas()
-{
-    raw_mouse_delta_x = 0;
-    raw_mouse_delta_y = 0;
+void raw_mouse_reset_deltas() {
+  raw_mouse_delta_x = 0;
+  raw_mouse_delta_y = 0;
 }
 
-void raw_mouse_consume_deltas()
-{
-    raw_mouse_reset_deltas();
+void raw_mouse_consume_deltas() { raw_mouse_reset_deltas(); }
+
+void raw_mouse_update_center(int x, int y) {
+  window_center.x = x;
+  window_center.y = y;
+  raw_mouse_center_valid = true;
 }
 
-void raw_mouse_update_center(int x, int y)
-{
-    window_center.x = x;
-    window_center.y = y;
-    raw_mouse_center_valid = true;
+void raw_mouse_accumulate_delta(LONG dx, LONG dy) {
+  long long next_x =
+      static_cast<long long>(raw_mouse_delta_x) + static_cast<long long>(dx);
+  long long next_y =
+      static_cast<long long>(raw_mouse_delta_y) + static_cast<long long>(dy);
+
+  if (next_x > INT_MAX)
+    next_x = INT_MAX;
+  if (next_x < INT_MIN)
+    next_x = INT_MIN;
+  if (next_y > INT_MAX)
+    next_y = INT_MAX;
+  if (next_y < INT_MIN)
+    next_y = INT_MIN;
+
+  raw_mouse_delta_x = static_cast<int>(next_x);
+  raw_mouse_delta_y = static_cast<int>(next_y);
 }
 
-void raw_mouse_accumulate_delta(LONG dx, LONG dy)
-{
-    long long next_x = static_cast<long long>(raw_mouse_delta_x) + static_cast<long long>(dx);
-    long long next_y = static_cast<long long>(raw_mouse_delta_y) + static_cast<long long>(dy);
+// Helper to process a single RAWINPUT struct
+static void RawMouseProcessStructure(const RAWINPUT* raw) {
+    if (raw->header.dwType != RIM_TYPEMOUSE) {
+        return;
+    }
 
-    if (next_x > INT_MAX) next_x = INT_MAX;
-    if (next_x < INT_MIN) next_x = INT_MIN;
-    if (next_y > INT_MAX) next_y = INT_MAX;
-    if (next_y < INT_MIN) next_y = INT_MIN;
+    const RAWMOUSE &mouse = raw->data.mouse;
+    // We only care about relative movement
+    if ((mouse.usFlags & MOUSE_MOVE_ABSOLUTE) != 0) {
+        return;
+    }
 
-    raw_mouse_delta_x = static_cast<int>(next_x);
-    raw_mouse_delta_y = static_cast<int>(next_y);
+    if (mouse.lLastX == 0 && mouse.lLastY == 0) {
+        return;
+    }
+
+    raw_mouse_accumulate_delta(mouse.lLastX, mouse.lLastY);
 }
 
-static HWND RawMouseResolveTargetHwnd(HWND hwnd_hint)
-{
-    if (raw_mouse_hwnd_target && IsWindow(raw_mouse_hwnd_target)) {
-        return raw_mouse_hwnd_target;
+void raw_mouse_poll() {
+#if SOFBUDDY_RAWINPUT_API_AVAILABLE
+    if (!raw_mouse_is_enabled()) return;
+
+    UINT cbSize = 0;
+    UINT result = GetRawInputBuffer(NULL, &cbSize, sizeof(RAWINPUTHEADER));
+    
+    if (result == (UINT)-1) {
+        return; 
+    }
+    
+    if (cbSize == 0) return;
+
+    // Ensure buffer is large enough
+    if (g_inputBuffer.size() < cbSize) {
+        g_inputBuffer.resize(cbSize * 2); 
     }
 
-    if (hwnd_hint && IsWindow(hwnd_hint)) {
-        return hwnd_hint;
+    // Read buffered events
+    UINT cbSizeT = static_cast<UINT>(g_inputBuffer.size());
+    UINT nInput = GetRawInputBuffer((PRAWINPUT)g_inputBuffer.data(), &cbSizeT, sizeof(RAWINPUTHEADER));
+
+    if (nInput == (UINT)-1 || nInput == 0) {
+        return;
     }
 
-    HWND hwnd = GetActiveWindow();
-    if (!hwnd) {
-        hwnd = GetForegroundWindow();
+    PRAWINPUT pRaw = (PRAWINPUT)g_inputBuffer.data();
+    for (UINT i = 0; i < nInput; ++i) {
+        RawMouseProcessStructure(pRaw);
+        pRaw = NEXTRAWINPUTBLOCK(pRaw);
     }
-    return hwnd;
+#endif
 }
 
-static bool RawMouseHasForeground(HWND hwnd)
-{
-    if (!hwnd) {
-        return false;
-    }
+static HWND RawMouseResolveTargetHwnd(HWND hwnd_hint) {
+  if (raw_mouse_hwnd_target && IsWindow(raw_mouse_hwnd_target)) {
+    return raw_mouse_hwnd_target;
+  }
 
-    HWND foreground = GetForegroundWindow();
-    if (!foreground) {
-        return false;
-    }
+  if (hwnd_hint && IsWindow(hwnd_hint)) {
+    return hwnd_hint;
+  }
+
+  HWND hwnd = GetActiveWindow();
+  if (!hwnd) {
+    hwnd = GetForegroundWindow();
+  }
+  return hwnd;
+}
+
+static bool RawMouseHasForeground(HWND hwnd) {
+  if (!hwnd) {
+    return false;
+  }
+
+  HWND foreground = GetForegroundWindow();
+  if (!foreground) {
+    return false;
+  }
 
 #if defined(GA_ROOT)
-    HWND root_target = GetAncestor(hwnd, GA_ROOT);
-    HWND root_foreground = GetAncestor(foreground, GA_ROOT);
-    if (!root_target) root_target = hwnd;
-    if (!root_foreground) root_foreground = foreground;
-    return root_target == root_foreground;
+  HWND root_target = GetAncestor(hwnd, GA_ROOT);
+  HWND root_foreground = GetAncestor(foreground, GA_ROOT);
+  if (!root_target)
+    root_target = hwnd;
+  if (!root_foreground)
+    root_foreground = foreground;
+  return root_target == root_foreground;
 #else
-    return hwnd == foreground;
+  return hwnd == foreground;
 #endif
 }
 
-void raw_mouse_release_cursor_clip()
-{
-    if (raw_mouse_cursor_clipped) {
-        ClipCursor(nullptr);
-    }
+void raw_mouse_release_cursor_clip() {
+  if (raw_mouse_cursor_clipped) {
+    ClipCursor(nullptr);
+  }
 
-    raw_mouse_cursor_clipped = false;
-    SetRectEmpty(&raw_mouse_clip_rect);
+  raw_mouse_cursor_clipped = false;
+  SetRectEmpty(&raw_mouse_clip_rect);
 }
 
-void raw_mouse_refresh_cursor_clip(HWND hwnd_hint)
-{
-    if (!raw_mouse_api_supported() || !raw_mouse_is_enabled()) {
-        raw_mouse_release_cursor_clip();
-        return;
-    }
+void raw_mouse_refresh_cursor_clip(HWND hwnd_hint) {
+  if (!raw_mouse_api_supported() || !raw_mouse_is_enabled()) {
+    raw_mouse_release_cursor_clip();
+    return;
+  }
 
-    HWND hwnd = RawMouseResolveTargetHwnd(hwnd_hint);
-    if (!hwnd || !RawMouseHasForeground(hwnd)) {
-        raw_mouse_release_cursor_clip();
-        return;
-    }
+  HWND hwnd = RawMouseResolveTargetHwnd(hwnd_hint);
+  if (!hwnd || !RawMouseHasForeground(hwnd)) {
+    raw_mouse_release_cursor_clip();
+    return;
+  }
 
-    RECT client_rect;
-    if (!GetClientRect(hwnd, &client_rect)) {
-        raw_mouse_release_cursor_clip();
-        return;
-    }
+  RECT client_rect;
+  if (!GetClientRect(hwnd, &client_rect)) {
+    raw_mouse_release_cursor_clip();
+    return;
+  }
 
-    POINT top_left = {client_rect.left, client_rect.top};
-    POINT bottom_right = {client_rect.right, client_rect.bottom};
-    if (!ClientToScreen(hwnd, &top_left) || !ClientToScreen(hwnd, &bottom_right)) {
-        raw_mouse_release_cursor_clip();
-        return;
-    }
+  POINT top_left = {client_rect.left, client_rect.top};
+  POINT bottom_right = {client_rect.right, client_rect.bottom};
+  if (!ClientToScreen(hwnd, &top_left) ||
+      !ClientToScreen(hwnd, &bottom_right)) {
+    raw_mouse_release_cursor_clip();
+    return;
+  }
 
-    RECT new_clip_rect = {top_left.x, top_left.y, bottom_right.x, bottom_right.y};
-    new_clip_rect.left += RAW_MOUSE_CLIP_INSET;
-    new_clip_rect.right -= RAW_MOUSE_CLIP_INSET;
-    new_clip_rect.top += RAW_MOUSE_CLIP_INSET;
-    new_clip_rect.bottom -= RAW_MOUSE_CLIP_INSET;
-    if (new_clip_rect.left >= new_clip_rect.right || new_clip_rect.top >= new_clip_rect.bottom) {
-        raw_mouse_release_cursor_clip();
-        return;
-    }
+  RECT new_clip_rect = {top_left.x, top_left.y, bottom_right.x, bottom_right.y};
+  new_clip_rect.left += RAW_MOUSE_CLIP_INSET;
+  new_clip_rect.right -= RAW_MOUSE_CLIP_INSET;
+  new_clip_rect.top += RAW_MOUSE_CLIP_INSET;
+  new_clip_rect.bottom -= RAW_MOUSE_CLIP_INSET;
+  if (new_clip_rect.left >= new_clip_rect.right ||
+      new_clip_rect.top >= new_clip_rect.bottom) {
+    raw_mouse_release_cursor_clip();
+    return;
+  }
 
-    POINT cur;
-    if (GetCursorPos(&cur) && oSetCursorPos) {
-        int cx = cur.x, cy = cur.y;
-        if (cx < new_clip_rect.left) cx = new_clip_rect.left;
-        else if (cx >= new_clip_rect.right) cx = new_clip_rect.right - 1;
-        if (cy < new_clip_rect.top) cy = new_clip_rect.top;
-        else if (cy >= new_clip_rect.bottom) cy = new_clip_rect.bottom - 1;
-        if (cx != cur.x || cy != cur.y)
-            oSetCursorPos(cx, cy);
-    }
+  if (raw_mouse_cursor_clipped &&
+      EqualRect(&raw_mouse_clip_rect, &new_clip_rect)) {
+    return;
+  }
 
-    if (raw_mouse_cursor_clipped && EqualRect(&raw_mouse_clip_rect, &new_clip_rect)) {
-        return;
-    }
+  if (!ClipCursor(&new_clip_rect)) {
+    raw_mouse_release_cursor_clip();
+    return;
+  }
 
-    if (!ClipCursor(&new_clip_rect)) {
-        raw_mouse_release_cursor_clip();
-        return;
-    }
-
-    raw_mouse_cursor_clipped = true;
-    raw_mouse_clip_rect = new_clip_rect;
+  raw_mouse_cursor_clipped = true;
+  raw_mouse_clip_rect = new_clip_rect;
 }
 
-bool raw_mouse_register_input(HWND hwnd, bool log_result)
-{
+bool raw_mouse_register_input(HWND hwnd, bool log_result) {
 #if !SOFBUDDY_RAWINPUT_API_AVAILABLE
+  if (log_result) {
+    PrintOut(PRINT_BAD,
+             "raw_mouse: Raw Input API is unavailable for this build target\n");
+  }
+  raw_mouse_registered = false;
+  raw_mouse_hwnd_target = nullptr;
+  raw_mouse_release_cursor_clip();
+  return false;
+#else
+  if (!hwnd) {
     if (log_result) {
-        PrintOut(PRINT_BAD, "raw_mouse: Raw Input API is unavailable for this build target\n");
+      PrintOut(PRINT_BAD, "raw_mouse: Could not get window handle\n");
     }
     raw_mouse_registered = false;
     raw_mouse_hwnd_target = nullptr;
     raw_mouse_release_cursor_clip();
     return false;
-#else
-    if (!hwnd) {
-        if (log_result) {
-            PrintOut(PRINT_BAD, "raw_mouse: Could not get window handle\n");
-        }
-        raw_mouse_registered = false;
-        raw_mouse_hwnd_target = nullptr;
-        raw_mouse_release_cursor_clip();
-        return false;
-    }
+  }
 
-    RAWINPUTDEVICE rid;
-    rid.usUsagePage = 0x01;
-    rid.usUsage = 0x02;
-    rid.dwFlags = 0;
-    rid.hwndTarget = hwnd;
+  RAWINPUTDEVICE rid;
+  rid.usUsagePage = 0x01;
+  rid.usUsage = 0x02;
+  rid.dwFlags = 0;
+  rid.hwndTarget = hwnd;
 
-    if (!RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE))) {
-        if (log_result) {
-            DWORD error = GetLastError();
-            PrintOut(PRINT_BAD, "raw_mouse: Failed to register raw input (error %d)\n", error);
-            PrintOut(PRINT_BAD, "raw_mouse: On X11/Wine, raw input may not be supported\n");
-        }
-        raw_mouse_registered = false;
-        raw_mouse_hwnd_target = nullptr;
-        raw_mouse_release_cursor_clip();
-        return false;
-    }
-
+  if (!RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE))) {
     if (log_result) {
-        PrintOut(PRINT_DEV, "raw_mouse: Successfully registered raw input device\n");
+      DWORD error = GetLastError();
+      PrintOut(PRINT_BAD,
+               "raw_mouse: Failed to register raw input (error %d)\n", error);
+      PrintOut(PRINT_BAD,
+               "raw_mouse: On X11/Wine, raw input may not be supported\n");
     }
+    raw_mouse_registered = false;
+    raw_mouse_hwnd_target = nullptr;
+    raw_mouse_release_cursor_clip();
+    return false;
+  }
 
-    raw_mouse_registered = true;
-    raw_mouse_hwnd_target = hwnd;
-    raw_mouse_refresh_cursor_clip(hwnd);
-    return true;
+  if (log_result) {
+    PrintOut(PRINT_DEV,
+             "raw_mouse: Successfully registered raw input device\n");
+  }
+
+  raw_mouse_registered = true;
+  raw_mouse_hwnd_target = hwnd;
+  raw_mouse_refresh_cursor_clip(hwnd);
+  return true;
 #endif
 }
 
-void raw_mouse_unregister_input(bool log_result)
-{
+void raw_mouse_unregister_input(bool log_result) {
 #if !SOFBUDDY_RAWINPUT_API_AVAILABLE
-    (void)log_result;
-    raw_mouse_registered = false;
-    raw_mouse_hwnd_target = nullptr;
-    raw_mouse_release_cursor_clip();
-    return;
+  (void)log_result;
+  raw_mouse_registered = false;
+  raw_mouse_hwnd_target = nullptr;
+  raw_mouse_release_cursor_clip();
+  return;
 #else
-    raw_mouse_release_cursor_clip();
+  raw_mouse_release_cursor_clip();
 
-    if (!raw_mouse_registered) {
-        raw_mouse_hwnd_target = nullptr;
-        return;
-    }
-
-    RAWINPUTDEVICE rid;
-    rid.usUsagePage = 0x01;
-    rid.usUsage = 0x02;
-    rid.dwFlags = RIDEV_REMOVE;
-    rid.hwndTarget = nullptr;
-
-    if (!RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE))) {
-        if (log_result) {
-            DWORD error = GetLastError();
-            PrintOut(PRINT_BAD, "raw_mouse: Failed to unregister raw input (error %d)\n", error);
-        }
-    }
-
-    raw_mouse_registered = false;
+  if (!raw_mouse_registered) {
     raw_mouse_hwnd_target = nullptr;
+    return;
+  }
+
+  RAWINPUTDEVICE rid;
+  rid.usUsagePage = 0x01;
+  rid.usUsage = 0x02;
+  rid.dwFlags = RIDEV_REMOVE;
+  rid.hwndTarget = nullptr;
+
+  if (!RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE))) {
+    if (log_result) {
+      DWORD error = GetLastError();
+      PrintOut(PRINT_BAD,
+               "raw_mouse: Failed to unregister raw input (error %d)\n", error);
+    }
+  }
+
+  raw_mouse_registered = false;
+  raw_mouse_hwnd_target = nullptr;
 #endif
 }
 

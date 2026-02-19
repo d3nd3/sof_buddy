@@ -12,6 +12,7 @@ void in_mousemove_callback(void* cmd)
         return;
     }
 
+    raw_mouse_poll();
     raw_mouse_consume_deltas();
 }
 
