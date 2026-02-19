@@ -5,6 +5,7 @@
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey.svg)]()
 
 ![HTTP map download — missing maps fetched on demand](http.png)
+![SoF Buddy in-game menu (F12)](menu.png)
 
 > **A modern enhancement suite for Soldier of Fortune 1 — scaling, fixes, and quality-of-life improvements for the best SoF experience.**
 
