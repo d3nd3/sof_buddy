@@ -1,5 +1,9 @@
 # Changelog
 
+## v4.7
+
+- Raw mouse: SetCursorPos hook now always calls the original so the OS cursor is warped when the game recenters, fixing dual-monitor focus loss (e.g. left edge on Wine/Kubuntu).
+
 ## v4.6
 
 - Raw mouse: message-pump–based flow. Replaced engine-frame hooks (IN_MouseMove, IN_MenuMouse, PeekMessageA, GetMessageA) with Sys_SendKeyEvents replacement and dedicated capped two-range pump so WM_INPUT is never peeked or delivered. One GetRawInputBuffer per frame in Sys_SendKeyEvents path; DispatchMessageA only handles window events (registration/clip). Virtual cursor via GetCursorPos/SetCursorPos. WOW64: buffer size×8 and RAWMOUSE at offset 24. Single cvar 0=off, non-zero=on. README updated.

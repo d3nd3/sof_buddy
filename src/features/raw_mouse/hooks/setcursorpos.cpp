@@ -16,7 +16,7 @@ BOOL __stdcall hkSetCursorPos(int X, int Y) {
   }
 
   raw_mouse_update_center(X, Y);
-  return TRUE;
+  return oSetCursorPos(X, Y);
 }
 
 #endif // FEATURE_RAW_MOUSE

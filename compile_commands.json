@@ -255,24 +255,14 @@
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/raw_mouse/hooks/getcursorpos.cpp"
     },
     {
-        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/raw_mouse/hooks/getmessagea.o src/features/raw_mouse/hooks/getmessagea.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
-        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
-        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/raw_mouse/hooks/getmessagea.cpp"
-    },
-    {
-        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/raw_mouse/hooks/in_menumouse.o src/features/raw_mouse/hooks/in_menumouse.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
-        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
-        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/raw_mouse/hooks/in_menumouse.cpp"
-    },
-    {
-        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/raw_mouse/hooks/in_mousemove.o src/features/raw_mouse/hooks/in_mousemove.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
-        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
-        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/raw_mouse/hooks/in_mousemove.cpp"
-    },
-    {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/raw_mouse/hooks/setcursorpos.o src/features/raw_mouse/hooks/setcursorpos.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/raw_mouse/hooks/setcursorpos.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/raw_mouse/hooks/sys_sendkeyevents.o src/features/raw_mouse/hooks/sys_sendkeyevents.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/raw_mouse/hooks/sys_sendkeyevents.cpp"
     },
     {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/raw_mouse/raw_cvars.o src/features/raw_mouse/raw_cvars.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
