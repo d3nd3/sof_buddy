@@ -2,11 +2,11 @@
 <include tints>
 <tint normaltext 0xffffffff>
 <tint hilitetext 0xffffffff>
-<key escape "sofbuddy_menu sof_buddy">
+<key escape "popmenu">
 <cursor 1>
 
 <defaults noborder tiptint black tipbtint white tipfont title>
 
 <frame root 640 0>
-<frame center_panel 640 0 cut root page sof_buddy/sb_http_content>
+<frame center_panel 640 0 cut root page sof_buddy/main_content>
 </stm>

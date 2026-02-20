@@ -106,7 +106,7 @@
 - **`F12`** (or **`bind <key> sofbuddy_menu sof_buddy`**) — **Open the SoF Buddy menu. Use this. It’s the main entry point for all settings, updater, and profiles.**
 - `sofbuddy_list_features` — Print compiled features (and whether they are on/off).
 - `sofbuddy_menu <name>` — Open an embedded internal menu page (examples: `loading`, `sof_buddy`).
-- `sofbuddy_menu <menu>/<page>` — Open a specific embedded page (e.g. `sofbuddy_menu sof_buddy/sb_perf`).
+- `sofbuddy_menu <menu>/<page>` — Open a specific embedded page (e.g. `sofbuddy_menu sof_buddy/cpu`).
 - `sofbuddy_apply_menu_hotkey` — Re-apply bind from `_sofbuddy_menu_hotkey` (default `F12`).
 - `sofbuddy_apply_profile_comp` — Apply competitive/low-visual profile preset.
 - `sofbuddy_apply_profile_visual` — Apply visual/high-fidelity profile preset.

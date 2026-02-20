@@ -165,6 +165,14 @@ namespace detour_DispatchMessageA {
     tDispatchMessageA oDispatchMessageA = nullptr;
 }
 
+namespace detour_PeekMessageA {
+    tPeekMessageA oPeekMessageA = nullptr;
+}
+
+namespace detour_GetMessageA {
+    tGetMessageA oGetMessageA = nullptr;
+}
+
 namespace detour_GL_BuildPolygonFromSurface {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
@@ -605,6 +613,28 @@ namespace detour_DispatchMessageA {
     }
 }
 
+namespace detour_PeekMessageA {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_GetMessageA {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
 namespace detour_GL_BuildPolygonFromSurface {
     void __cdecl hkGL_BuildPolygonFromSurface(void* msurface_s) {
         ManagerType& mgr = GetManager();
@@ -855,6 +885,18 @@ namespace detour_FS_LoadFile {
 namespace detour_GetCursorPos {
     BOOL __stdcall hkGetCursorPos(LPPOINT lpPoint) {
         return ::getcursorpos_override_callback(lpPoint, oGetCursorPos);
+    }
+}
+
+namespace detour_GetMessageA {
+    BOOL __stdcall hkGetMessageA(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax) {
+        return ::getmessagea_override_callback(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, oGetMessageA);
+    }
+}
+
+namespace detour_PeekMessageA {
+    BOOL __stdcall hkPeekMessageA(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg) {
+        return ::peekmessagea_override_callback(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, oPeekMessageA);
     }
 }
 

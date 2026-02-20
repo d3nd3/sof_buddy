@@ -8,5 +8,5 @@
 <defaults noborder tiptint black tipbtint white tipfont title>
 
 <frame root 640 0>
-<frame center_panel 640 0 cut root page sof_buddy/sb_texture_content>
+<frame center_panel 640 0 cut root page sof_buddy/cpu_content>
 </stm>

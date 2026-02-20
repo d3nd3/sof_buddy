@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.5
+
+- Raw mouse: `_sofbuddy_rawmouse` is now a mode switch (0=off, 1=4.4-style, 2=PH3-style). Mode 1 dispatches WM_INPUT and processes in DispatchMessageA; on Wine we skip raw_mouse_poll() there to avoid double-count. Mode 2 uses two-range PeekMessageA so the message loop does not run when only WM_INPUT is queued; on Windows we use GetRawInputBuffer only in IN_MouseMove/IN_MenuMouse PRE (PH3-style); on Wine we drain WM_INPUT in PRE then poll. PeekMessageA/GetMessageA override hooks and raw_mouse_drain_wm_input() added; README documents modes and relation to PH3.
+- Internal menus: SoF Buddy RMF assets renamed from sb_* to shorter names (e.g. sb_perf → cpu, sb_input → input, sb_http → network, sb_tweaks_perf → profiles, sb_scaling → ui_scale).
+- Docs: README menu.png hero image; raw_mouse and internal_menus README updates. Update-from-zip scripts (Windows/Linux) refinements.
+
 ## v4.4
 
 - Raw mouse: reworked raw input pipeline to buffer and drain high-Hz `WM_INPUT` via `GetRawInputBuffer`, skip zero-delta packets, and keep the game's original mouse cvars/flow intact while sourcing movement from hardware deltas instead of OS cursor position.

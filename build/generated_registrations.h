@@ -16,6 +16,7 @@ extern LRESULT dispatchmessagea_override_callback(const MSG* msg, detour_Dispatc
 extern void drawteamicons_pre_callback(float*& targetPlayerOrigin, char*& playerName, char*& imageNameTeamIcon, int& redOrBlue);
 extern void fs_initfilesystem_override_callback(detour_FS_InitFilesystem::tFS_InitFilesystem original);
 extern BOOL getcursorpos_override_callback(LPPOINT lpPoint, detour_GetCursorPos::tGetCursorPos original);
+extern BOOL getmessagea_override_callback(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, detour_GetMessageA::tGetMessageA original);
 extern void gl_buildpolygonfromsurface_pre_callback(void*& msurface_s);
 extern void* gl_findimage_post_callback(void* result, char* filename, int imagetype, char mimap, char allowPicmip);
 extern void hd_textures_RefDllLoaded(char const* name);
@@ -42,7 +43,9 @@ extern void http_maps_qcommon_frame_post_callback(int msec);
 extern void http_maps_qcommon_frame_pre_callback(int& msec);
 extern void http_maps_reconnect_f_pre_callback();
 extern void in_menumouse_callback(void* cvar1, void* cvar2);
+extern void in_menumouse_pre_callback(void*& cvar1, void*& cvar2);
 extern void in_mousemove_callback(void* cmd);
+extern void in_mousemove_pre_callback(void*& cmd);
 extern void internal_menus_EarlyStartup();
 extern void internal_menus_M_PushMenu_post(char const* menu_file, char const* parentFrame, bool lock_input);
 extern void internal_menus_M_PushMenu_pre(char const*& menu_file, char const*& parentFrame, bool& lock_input);
@@ -54,6 +57,7 @@ extern void lightblend_RefDllLoaded(char const* name);
 extern void mediaTimers_EarlyStartup();
 extern void mediaTimers_PostCvarInit();
 extern void new_system_bug_EarlyStartup();
+extern BOOL peekmessagea_override_callback(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg, detour_PeekMessageA::tPeekMessageA original);
 extern void r_blendlightmaps_post_callback();
 extern void r_blendlightmaps_pre_callback();
 extern void raw_mouse_EarlyStartup();
@@ -160,6 +164,10 @@ inline void RegisterAllFeatureHooks() {
             100);
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] R_BlendLightmaps post callbacks: %zu\n", mgr.GetPostCallbackCount());
     }
+    detour_IN_MouseMove::GetManager().RegisterPreCallback(
+        "raw_mouse", "in_mousemove_pre_callback",
+        [](void*& cmd) { in_mousemove_pre_callback(cmd); },
+        100);
     {
         auto& mgr = detour_IN_MouseMove::GetManager();
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] IN_MouseMove manager at 0x%p\n", &mgr);
@@ -169,6 +177,10 @@ inline void RegisterAllFeatureHooks() {
             100);
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] IN_MouseMove post callbacks: %zu\n", mgr.GetPostCallbackCount());
     }
+    detour_IN_MenuMouse::GetManager().RegisterPreCallback(
+        "raw_mouse", "in_menumouse_pre_callback",
+        [](void*& cvar1, void*& cvar2) { in_menumouse_pre_callback(cvar1, cvar2); },
+        100);
     {
         auto& mgr = detour_IN_MenuMouse::GetManager();
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] IN_MenuMouse manager at 0x%p\n", &mgr);

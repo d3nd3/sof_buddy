@@ -77,11 +77,15 @@ if /i "!EXTRACT_METHOD!"=="vbscript" (
     )
 )
 echo.
-echo Searching for old configuration to prune...
-for /r "%ROOT_DIR%" %%F in (sofbuddy.cfg) do (
-    if exist "%%F" (
-        echo   Removing: %%F
-        del /f /q "%%F" >nul 2>&1
+set "FRESH=Y"
+set /p "FRESH=Start with fresh settings? [Y/n]: "
+if /i not "!FRESH!"=="n" (
+    echo Searching for old configuration to prune...
+    for /r "%ROOT_DIR%" %%F in (sofbuddy.cfg) do (
+        if exist "%%F" (
+            echo   Removing: %%F
+            del /f /q "%%F" >nul 2>&1
+        )
     )
 )
 echo.

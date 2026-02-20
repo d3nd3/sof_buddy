@@ -1,24 +1,10 @@
 [
-  {
-    "function": "IN_MouseMove",
-    "callback": "in_mousemove_callback",
-    "phase": "Post",
-    "priority": 100
-  },
-  {
-    "function": "IN_MenuMouse",
-    "callback": "in_menumouse_callback",
-    "phase": "Post",
-    "priority": 100
-  },
-  {
-    "function": "GetCursorPos",
-    "callback": "getcursorpos_override_callback",
-    "override": true
-  },
-  {
-    "function": "DispatchMessageA",
-    "callback": "dispatchmessagea_override_callback",
-    "override": true
-  }
+  {"function": "IN_MouseMove", "callback": "in_mousemove_pre_callback", "phase": "Pre", "priority": 100},
+  {"function": "IN_MouseMove", "callback": "in_mousemove_callback", "phase": "Post", "priority": 100},
+  {"function": "IN_MenuMouse", "callback": "in_menumouse_pre_callback", "phase": "Pre", "priority": 100},
+  {"function": "IN_MenuMouse", "callback": "in_menumouse_callback", "phase": "Post", "priority": 100},
+  {"function": "GetCursorPos", "callback": "getcursorpos_override_callback", "override": true},
+  {"function": "DispatchMessageA", "callback": "dispatchmessagea_override_callback", "override": true},
+  {"function": "PeekMessageA", "callback": "peekmessagea_override_callback", "override": true},
+  {"function": "GetMessageA", "callback": "getmessagea_override_callback", "override": true}
 ]

@@ -1097,3 +1097,67 @@ namespace {
     static AutoDetour_DispatchMessageA g_AutoDetour_DispatchMessageA;
 }
 
+namespace detour_PeekMessageA {
+    using tPeekMessageA = BOOL(__stdcall*)(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg);
+    extern tPeekMessageA oPeekMessageA;
+    using ManagerType = TypedSharedHookManager<BOOL, LPMSG, HWND, UINT, UINT, UINT>;
+    ManagerType& GetManager();
+    
+    BOOL __stdcall hkPeekMessageA(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg);
+}
+
+namespace {
+    struct AutoDetour_PeekMessageA {
+        AutoDetour_PeekMessageA() {
+            using namespace detour_PeekMessageA;
+            if (!GetDetourSystem().IsDetourRegistered("PeekMessageA")) {
+                void* addr_PeekMessageA = nullptr;
+                {
+                    HMODULE hMod = GetModuleHandleA("user32.dll");
+                    if (hMod) addr_PeekMessageA = reinterpret_cast<void*>(GetProcAddress(hMod, "PeekMessageA"));
+                }
+                GetDetourSystem().RegisterDetour(
+                    addr_PeekMessageA,
+                    reinterpret_cast<void*>(detour_PeekMessageA::hkPeekMessageA),
+                    reinterpret_cast<void**>(&detour_PeekMessageA::oPeekMessageA),
+                    "PeekMessageA",
+                    DetourModule::Unknown,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_PeekMessageA g_AutoDetour_PeekMessageA;
+}
+
+namespace detour_GetMessageA {
+    using tGetMessageA = BOOL(__stdcall*)(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax);
+    extern tGetMessageA oGetMessageA;
+    using ManagerType = TypedSharedHookManager<BOOL, LPMSG, HWND, UINT, UINT>;
+    ManagerType& GetManager();
+    
+    BOOL __stdcall hkGetMessageA(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax);
+}
+
+namespace {
+    struct AutoDetour_GetMessageA {
+        AutoDetour_GetMessageA() {
+            using namespace detour_GetMessageA;
+            if (!GetDetourSystem().IsDetourRegistered("GetMessageA")) {
+                void* addr_GetMessageA = nullptr;
+                {
+                    HMODULE hMod = GetModuleHandleA("user32.dll");
+                    if (hMod) addr_GetMessageA = reinterpret_cast<void*>(GetProcAddress(hMod, "GetMessageA"));
+                }
+                GetDetourSystem().RegisterDetour(
+                    addr_GetMessageA,
+                    reinterpret_cast<void*>(detour_GetMessageA::hkGetMessageA),
+                    reinterpret_cast<void**>(&detour_GetMessageA::oGetMessageA),
+                    "GetMessageA",
+                    DetourModule::Unknown,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_GetMessageA g_AutoDetour_GetMessageA;
+}
+

@@ -21,12 +21,25 @@ bool raw_mouse_is_enabled() {
   return in_mouse_raw && in_mouse_raw->value != 0.0f;
 }
 
+int raw_mouse_mode() {
+  if (!in_mouse_raw) return 0;
+  int m = static_cast<int>(in_mouse_raw->value);
+  if (m < 0) return 0;
+  if (m > 2) return 2;
+  return m;
+}
+
 bool raw_mouse_api_supported() {
 #if SOFBUDDY_RAWINPUT_API_AVAILABLE
   return true;
 #else
   return false;
 #endif
+}
+
+bool raw_mouse_is_wine() {
+  HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+  return ntdll && GetProcAddress(ntdll, "wine_get_version");
 }
 
 void raw_mouse_reset_deltas() {
@@ -78,6 +91,34 @@ static void RawMouseProcessStructure(const RAWINPUT* raw) {
     }
 
     raw_mouse_accumulate_delta(mouse.lLastX, mouse.lLastY);
+}
+
+void raw_mouse_accumulate_from_handle(HRAWINPUT h) {
+#if SOFBUDDY_RAWINPUT_API_AVAILABLE
+  if (!h || !raw_mouse_is_enabled()) return;
+  UINT sz = 0;
+  if (GetRawInputData(h, RID_INPUT, NULL, &sz, sizeof(RAWINPUTHEADER)) == (UINT)-1 || sz < sizeof(RAWINPUTHEADER)) return;
+  if (g_inputBuffer.size() < sz) g_inputBuffer.resize(sz);
+  UINT got = GetRawInputData(h, RID_INPUT, g_inputBuffer.data(), &sz, sizeof(RAWINPUTHEADER));
+  if (got != sz) return;
+  RawMouseProcessStructure(reinterpret_cast<const RAWINPUT*>(g_inputBuffer.data()));
+#endif
+}
+
+using tPeekMessageA = BOOL(__stdcall*)(LPMSG, HWND, UINT, UINT, UINT);
+static tPeekMessageA g_peekmessage_original = nullptr;
+
+void raw_mouse_set_peekmessage_original(void* fn) {
+  g_peekmessage_original = reinterpret_cast<tPeekMessageA>(fn);
+}
+
+void raw_mouse_drain_wm_input() {
+#if SOFBUDDY_RAWINPUT_API_AVAILABLE
+  if (!g_peekmessage_original || !raw_mouse_is_enabled()) return;
+  MSG msg;
+  while (g_peekmessage_original(&msg, NULL, WM_INPUT, WM_INPUT, PM_REMOVE))
+    raw_mouse_accumulate_from_handle(reinterpret_cast<HRAWINPUT>(msg.lParam));
+#endif
 }
 
 void raw_mouse_poll() {

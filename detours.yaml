@@ -454,3 +454,37 @@ functions:
     params:
       - type: const MSG*
         name: msg
+
+  - name: PeekMessageA
+    module: Unknown
+    identifier: "PeekMessageA"
+    return_type: BOOL
+    calling_convention: __stdcall
+    detour_len: 0
+    params:
+      - type: LPMSG
+        name: lpMsg
+      - type: HWND
+        name: hWnd
+      - type: UINT
+        name: wMsgFilterMin
+      - type: UINT
+        name: wMsgFilterMax
+      - type: UINT
+        name: wRemoveMsg
+
+  - name: GetMessageA
+    module: Unknown
+    identifier: "GetMessageA"
+    return_type: BOOL
+    calling_convention: __stdcall
+    detour_len: 0
+    params:
+      - type: LPMSG
+        name: lpMsg
+      - type: HWND
+        name: hWnd
+      - type: UINT
+        name: wMsgFilterMin
+      - type: UINT
+        name: wMsgFilterMax

@@ -27,7 +27,7 @@ g_menu_internal_files[menu_name][filename]
 Internal menus can be opened without `sofbuddy_menu` (e.g. SCR_BeginLoadingPlaque or `loading_show_ui()` push `loading/loading` via `M_PushMenu`; the FS_LoadFile override serves them from memory either way). The `sofbuddy_menu` command is a convenience that adds behavior the engine's `menu` command does not provide:
 
 - **Layout cvars synced before open** — `update_layout_cvars(false)` so scaling and centering are correct for the current video mode.
-- **Validation and resolution** — Name is sanitized and resolved against the embedded menu set only (`g_menu_internal_files`); invalid or missing paths are rejected. Converts to `<menu>/<page_stem>` (e.g. `sof_buddy/sb_main`, `loading/loading`) with fallback to `sb_main.rmf` for menu roots.
+- **Validation and resolution** — Name is sanitized and resolved against the embedded menu set only (`g_menu_internal_files`); invalid or missing paths are rejected. Converts to `<menu>/<page_stem>` (e.g. `sof_buddy/main`, `loading/loading`) with fallback to `main.rmf` for menu roots.
 - **Replace top page for non-sofbuddy** — For targets other than `sof_buddy/*`, runs `killmenu` first so the new menu replaces the current one and ESC behavior is predictable.
 - **Loading lock** — For `loading/*`, uses `_sofbuddy_loading_lock_input` for lock behavior. The loading current map name (`_sofbuddy_loading_current`) is set to `"resolving..."` only in the loading reset state (http_maps `http_maps_clear_loading_cvars`), not here.
 
@@ -45,9 +45,9 @@ sofbuddy_menu <menu>/<page>
 ### 5) Loading and menu-disclaimer (start) hooks
 **SCR_BeginLoadingPlaque**: At EarlyStartup we NOP 5 bytes at exe 0x13AC7 (engine’s menu push) and 5 at 0x13ACE (SCR_UpdateScreen call), so the original does not show its own loading UI. **SCR_BeginLoadingPlaque** Post (`internal_menus_SCR_BeginLoadingPlaque_post`): when `!noPlaque`, we run killmenu, `oM_PushMenu("loading/loading", "", lock_input)`, then `SCR_UpdateScreen(true)` (exe 0x15FA0). Loading is only pushed by us (this hook and `loading_show_ui()` from http_maps). The `"resolving..."` label is set in the loading reset state (http_maps), not here.
 
-**M_PushMenu** Pre (`internal_menus_M_PushMenu_pre`): Normalizes menu name; only handles menu-disclaimer/update-prompt: when the engine pushes the menu disclaimer (root `start`) and the updater queued a startup prompt, rewrites to `sof_buddy/sb_update_prompt`. No loading-signal detection or rewrite.
+**M_PushMenu** Pre (`internal_menus_M_PushMenu_pre`): Normalizes menu name; only handles menu-disclaimer/update-prompt: when the engine pushes the menu disclaimer (root `start`) and the updater queued a startup prompt, rewrites to `sof_buddy/update_prompt`. No loading-signal detection or rewrite.
 
-**M_PushMenu** Post (`internal_menus_M_PushMenu_post`): Watches menu disclaimer (root `start`) pushes; if updater queued a startup update prompt, opens `sof_buddy/sb_update_prompt` on top once.
+**M_PushMenu** Post (`internal_menus_M_PushMenu_post`): Watches menu disclaimer (root `start`) pushes; if updater queued a startup update prompt, opens `sof_buddy/update_prompt` on top once.
 
 ### 6) Loading UI cvar updates
 Loading UI is fed by direct helpers:
@@ -70,7 +70,7 @@ When video size changes, `update_layout_cvars(true)` recomputes runtime layout c
 
 From `hooks/hooks.json`:
 - `FS_LoadFile` (override): serve embedded RMF from `g_menu_internal_files` when path matches menu_library; otherwise fall through to original.
-- `M_PushMenu` Pre: menu-disclaimer/update-prompt only (rewrite `start` to `sof_buddy/sb_update_prompt` when updater queued); no loading signals.
+- `M_PushMenu` Pre: menu-disclaimer/update-prompt only (rewrite `start` to `sof_buddy/update_prompt` when updater queued); no loading signals.
 - `M_PushMenu` Post: on menu disclaimer (`start`) push, consume queued startup-update prompt request and open prompt once.
 - `SCR_BeginLoadingPlaque` Post: when `!noPlaque`, push `loading/loading` and call `SCR_UpdateScreen(true)` (engine’s own push/update are NOP’d at 0x13AC7 / 0x13ACE).
 
@@ -86,8 +86,8 @@ Cross-feature integration:
 ```text
 sofbuddy_menu loading
 sofbuddy_menu sof_buddy
-sofbuddy_menu sof_buddy/sb_perf
-sofbuddy_menu sof_buddy/sb_http
+sofbuddy_menu sof_buddy/cpu
+sofbuddy_menu sof_buddy/network
 sofbuddy_apply_menu_hotkey
 ```
 
@@ -98,7 +98,7 @@ Menus under `menu_library/<name>/` are embedded and served directly from memory 
 | Menu | Purpose |
 |------|---------|
 | **loading** | Shown via SCR_BeginLoadingPlaque (engine loading plaque) and `loading_show_ui()` (e.g. http_maps). Pages `loading`, `loading_header`, `loading_files` kept slim: classic loading flow/progress, optional HTTP zip progress, and disconnect action. |
-| **sof_buddy** | Main SoF Buddy menu set with tabbed top navigation and per-page content files (`sb_*` + `sb_*_content`). Includes HTTP tab (`sb_http`) for loading-lock toggle, startup update-check toggle (`_sofbuddy_update_check_startup`), HTTP provider mode selection, and direct URL editing via RMF `<input>` fields for `_sofbuddy_http_maps_dl_*` / `_sofbuddy_http_maps_crc_*` plus updater feed URLs (`_sofbuddy_update_api_url`, `_sofbuddy_update_releases_url`); provider inputs can be collapsed via `_sofbuddy_http_show_providers`; includes startup update requester (`sb_update_prompt`) when a newer release is found; plus `sb_margin_backdrop.rmf` for margin/background composition. |
+| **sof_buddy** | Main SoF Buddy menu set with tabbed top navigation and per-page content files named by tab (e.g. `main`, `cpu`, `network`, `input`, `updates`, `social` + `*_content`). Network tab for loading-lock toggle, startup update-check toggle (`_sofbuddy_update_check_startup`), HTTP provider mode selection, and direct URL editing via RMF `<input>` fields for `_sofbuddy_http_maps_dl_*` / `_sofbuddy_http_maps_crc_*` plus updater feed URLs (`_sofbuddy_update_api_url`, `_sofbuddy_update_releases_url`); provider inputs can be collapsed via `_sofbuddy_http_show_providers`; includes startup update requester (`update_prompt`) when a newer release is found; plus `margin_backdrop.rmf` for margin/background composition. |
 
 ## Editing menus
 

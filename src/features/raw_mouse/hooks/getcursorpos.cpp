@@ -35,7 +35,6 @@ BOOL getcursorpos_override_callback(
   // Raw mouse enabled - return virtual cursor position
   lpPoint->x = window_center.x + raw_mouse_delta_x;
   lpPoint->y = window_center.y + raw_mouse_delta_y;
-
   return TRUE;
 }
 

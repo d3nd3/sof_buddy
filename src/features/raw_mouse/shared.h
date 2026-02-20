@@ -41,7 +41,9 @@ extern HWND raw_mouse_hwnd_target;
 void raw_mouse_on_change(cvar_t *cvar);
 void create_raw_mouse_cvars(void);
 bool raw_mouse_is_enabled();
+int raw_mouse_mode(); /* 0=off, 1=4.4 (dispatch WM_INPUT), 2=PH3 (filter WM_INPUT) */
 bool raw_mouse_api_supported();
+bool raw_mouse_is_wine();
 void raw_mouse_reset_deltas();
 void raw_mouse_consume_deltas();
 void raw_mouse_update_center(int x, int y);
@@ -51,6 +53,9 @@ void raw_mouse_release_cursor_clip();
 bool raw_mouse_register_input(HWND hwnd, bool log_result);
 void raw_mouse_unregister_input(bool log_result);
 void raw_mouse_poll();
+void raw_mouse_accumulate_from_handle(HRAWINPUT h);
+void raw_mouse_set_peekmessage_original(void* fn);
+void raw_mouse_drain_wm_input();
 BOOL __stdcall hkSetCursorPos(int X, int Y);
 
 #endif // FEATURE_RAW_MOUSE

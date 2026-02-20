@@ -53,9 +53,8 @@ static void ProcessRawInputMessage(LPARAM lParam) {
     if (mouse.lLastX != 0 || mouse.lLastY != 0) {
         raw_mouse_accumulate_delta(mouse.lLastX, mouse.lLastY);
     }
-
-    // Now drain any other pending input to prevent queue buildup and latency
-    raw_mouse_poll();
+    if (raw_mouse_mode() != 1 || !raw_mouse_is_wine())
+        raw_mouse_poll();
 }
 #else
 static void ProcessRawInputMessage(LPARAM lParam) { (void)lParam; }
@@ -118,9 +117,8 @@ LRESULT dispatchmessagea_override_callback(
       EnsureRawMouseRegistered(msg->hwnd);
       raw_mouse_refresh_cursor_clip(msg->hwnd);
     }
-    if (msg->message == WM_INPUT) {
+    if (msg->message == WM_INPUT && raw_mouse_mode() == 1)
       ProcessRawInputMessage(msg->lParam);
-    }
   }
   SOFBUDDY_ASSERT(original != nullptr);
   return original(msg);

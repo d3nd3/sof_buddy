@@ -341,10 +341,10 @@ void Cmd_SoFBuddy_Menu_f(void) {
                 exists = true;
                 menu_to_push = requested + "/" + stem_from_filename(default_file);
             } else {
-                auto sb_main_it = menu_it->second.find("sb_main.rmf");
-                if (sb_main_it != menu_it->second.end()) {
+                auto main_it = menu_it->second.find("main.rmf");
+                if (main_it != menu_it->second.end()) {
                     exists = true;
-                    menu_to_push = requested + "/sb_main";
+                    menu_to_push = requested + "/main";
                 }
             }
         }

@@ -23,17 +23,17 @@
 <font type title tint white atint white>
 <hbr>
 <text "Home" key mouse1 "sofbuddy_menu sof_buddy" border 8 1 cyan regular>
-<text "CPU" key mouse1 "sofbuddy_menu sof_buddy/sb_perf" border 8 1 cyan regular>
-<text "UI Scale" key mouse1 "sofbuddy_menu sof_buddy/sb_scaling" border 8 1 orange regular>
-<text "Input" key mouse1 "sofbuddy_menu sof_buddy/sb_input" border 8 1 cyan regular>
-<text "Network" key mouse1 "sofbuddy_menu sof_buddy/sb_http" border 8 1 cyan regular><hbr>
-<text "Texture" key mouse1 "sofbuddy_menu sof_buddy/sb_texture" border 8 1 cyan regular>
-<text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/sb_lighting" border 8 1 cyan regular>
-<text "Video" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_video" border 8 1 cyan regular>
-<text "Profiles" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_perf" border 8 1 cyan regular>
-<text "Misc" key mouse1 "sofbuddy_menu sof_buddy/sb_tweaks_other" border 8 1 cyan regular>
-<text "Updates" key mouse1 "sofbuddy_menu sof_buddy/sb_update_help" border 8 1 cyan regular>
-<text "Social" key mouse1 "sofbuddy_menu sof_buddy/sb_social" border 8 1 cyan regular><hbr>
+<text "CPU" key mouse1 "sofbuddy_menu sof_buddy/cpu" border 8 1 cyan regular>
+<text "UI Scale" key mouse1 "sofbuddy_menu sof_buddy/ui_scale" border 8 1 orange regular>
+<text "Input" key mouse1 "sofbuddy_menu sof_buddy/input" border 8 1 cyan regular>
+<text "Network" key mouse1 "sofbuddy_menu sof_buddy/network" border 8 1 cyan regular><hbr>
+<text "Texture" key mouse1 "sofbuddy_menu sof_buddy/texture" border 8 1 cyan regular>
+<text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/lighting" border 8 1 cyan regular>
+<text "Video" key mouse1 "sofbuddy_menu sof_buddy/video" border 8 1 cyan regular>
+<text "Profiles" key mouse1 "sofbuddy_menu sof_buddy/profiles" border 8 1 cyan regular>
+<text "Misc" key mouse1 "sofbuddy_menu sof_buddy/misc" border 8 1 cyan regular>
+<text "Updates" key mouse1 "sofbuddy_menu sof_buddy/updates" border 8 1 cyan regular>
+<text "Social" key mouse1 "sofbuddy_menu sof_buddy/social" border 8 1 cyan regular><hbr>
 
 <center>
 <font type title tint sb_accent atint sb_accent>
