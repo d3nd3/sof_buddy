@@ -61,33 +61,6 @@ namespace {
     static AutoDetour_R_BlendLightmaps g_AutoDetour_R_BlendLightmaps;
 }
 
-namespace detour_IN_MouseMove {
-    using tIN_MouseMove = void(__cdecl*)(void* cmd);
-    extern tIN_MouseMove oIN_MouseMove;
-    using ManagerType = TypedSharedHookManager<void, void*>;
-    ManagerType& GetManager();
-    
-    void __cdecl hkIN_MouseMove(void* cmd);
-}
-
-namespace {
-    struct AutoDetour_IN_MouseMove {
-        AutoDetour_IN_MouseMove() {
-            using namespace detour_IN_MouseMove;
-            if (!GetDetourSystem().IsDetourRegistered("IN_MouseMove")) {
-                GetDetourSystem().RegisterDetour(
-                    reinterpret_cast<void*>(0x0004A1F0),
-                    reinterpret_cast<void*>(detour_IN_MouseMove::hkIN_MouseMove),
-                    reinterpret_cast<void**>(&detour_IN_MouseMove::oIN_MouseMove),
-                    "IN_MouseMove",
-                    DetourModule::SofExe,
-                    static_cast<size_t>(0));
-            }
-        }
-    };
-    static AutoDetour_IN_MouseMove g_AutoDetour_IN_MouseMove;
-}
-
 namespace detour_VID_CheckChanges {
     using tVID_CheckChanges = void(__cdecl*)();
     extern tVID_CheckChanges oVID_CheckChanges;
@@ -1006,31 +979,31 @@ namespace {
     static AutoDetour_Sys_GetGameApi g_AutoDetour_Sys_GetGameApi;
 }
 
-namespace detour_IN_MenuMouse {
-    using tIN_MenuMouse = void(__cdecl*)(void* cvar1, void* cvar2);
-    extern tIN_MenuMouse oIN_MenuMouse;
-    using ManagerType = TypedSharedHookManager<void, void*, void*>;
+namespace detour_Sys_SendKeyEvents {
+    using tSys_SendKeyEvents = void(__cdecl*)();
+    extern tSys_SendKeyEvents oSys_SendKeyEvents;
+    using ManagerType = TypedSharedHookManager<void>;
     ManagerType& GetManager();
     
-    void __cdecl hkIN_MenuMouse(void* cvar1, void* cvar2);
+    void __cdecl hkSys_SendKeyEvents();
 }
 
 namespace {
-    struct AutoDetour_IN_MenuMouse {
-        AutoDetour_IN_MenuMouse() {
-            using namespace detour_IN_MenuMouse;
-            if (!GetDetourSystem().IsDetourRegistered("IN_MenuMouse")) {
+    struct AutoDetour_Sys_SendKeyEvents {
+        AutoDetour_Sys_SendKeyEvents() {
+            using namespace detour_Sys_SendKeyEvents;
+            if (!GetDetourSystem().IsDetourRegistered("Sys_SendKeyEvents")) {
                 GetDetourSystem().RegisterDetour(
-                    reinterpret_cast<void*>(0x0004A420),
-                    reinterpret_cast<void*>(detour_IN_MenuMouse::hkIN_MenuMouse),
-                    reinterpret_cast<void**>(&detour_IN_MenuMouse::oIN_MenuMouse),
-                    "IN_MenuMouse",
+                    reinterpret_cast<void*>(0x00065CF0),
+                    reinterpret_cast<void*>(detour_Sys_SendKeyEvents::hkSys_SendKeyEvents),
+                    reinterpret_cast<void**>(&detour_Sys_SendKeyEvents::oSys_SendKeyEvents),
+                    "Sys_SendKeyEvents",
                     DetourModule::SofExe,
-                    static_cast<size_t>(0));
+                    static_cast<size_t>(5));
             }
         }
     };
-    static AutoDetour_IN_MenuMouse g_AutoDetour_IN_MenuMouse;
+    static AutoDetour_Sys_SendKeyEvents g_AutoDetour_Sys_SendKeyEvents;
 }
 
 namespace detour_GetCursorPos {
@@ -1095,69 +1068,5 @@ namespace {
         }
     };
     static AutoDetour_DispatchMessageA g_AutoDetour_DispatchMessageA;
-}
-
-namespace detour_PeekMessageA {
-    using tPeekMessageA = BOOL(__stdcall*)(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg);
-    extern tPeekMessageA oPeekMessageA;
-    using ManagerType = TypedSharedHookManager<BOOL, LPMSG, HWND, UINT, UINT, UINT>;
-    ManagerType& GetManager();
-    
-    BOOL __stdcall hkPeekMessageA(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg);
-}
-
-namespace {
-    struct AutoDetour_PeekMessageA {
-        AutoDetour_PeekMessageA() {
-            using namespace detour_PeekMessageA;
-            if (!GetDetourSystem().IsDetourRegistered("PeekMessageA")) {
-                void* addr_PeekMessageA = nullptr;
-                {
-                    HMODULE hMod = GetModuleHandleA("user32.dll");
-                    if (hMod) addr_PeekMessageA = reinterpret_cast<void*>(GetProcAddress(hMod, "PeekMessageA"));
-                }
-                GetDetourSystem().RegisterDetour(
-                    addr_PeekMessageA,
-                    reinterpret_cast<void*>(detour_PeekMessageA::hkPeekMessageA),
-                    reinterpret_cast<void**>(&detour_PeekMessageA::oPeekMessageA),
-                    "PeekMessageA",
-                    DetourModule::Unknown,
-                    static_cast<size_t>(0));
-            }
-        }
-    };
-    static AutoDetour_PeekMessageA g_AutoDetour_PeekMessageA;
-}
-
-namespace detour_GetMessageA {
-    using tGetMessageA = BOOL(__stdcall*)(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax);
-    extern tGetMessageA oGetMessageA;
-    using ManagerType = TypedSharedHookManager<BOOL, LPMSG, HWND, UINT, UINT>;
-    ManagerType& GetManager();
-    
-    BOOL __stdcall hkGetMessageA(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax);
-}
-
-namespace {
-    struct AutoDetour_GetMessageA {
-        AutoDetour_GetMessageA() {
-            using namespace detour_GetMessageA;
-            if (!GetDetourSystem().IsDetourRegistered("GetMessageA")) {
-                void* addr_GetMessageA = nullptr;
-                {
-                    HMODULE hMod = GetModuleHandleA("user32.dll");
-                    if (hMod) addr_GetMessageA = reinterpret_cast<void*>(GetProcAddress(hMod, "GetMessageA"));
-                }
-                GetDetourSystem().RegisterDetour(
-                    addr_GetMessageA,
-                    reinterpret_cast<void*>(detour_GetMessageA::hkGetMessageA),
-                    reinterpret_cast<void**>(&detour_GetMessageA::oGetMessageA),
-                    "GetMessageA",
-                    DetourModule::Unknown,
-                    static_cast<size_t>(0));
-            }
-        }
-    };
-    static AutoDetour_GetMessageA g_AutoDetour_GetMessageA;
 }
 

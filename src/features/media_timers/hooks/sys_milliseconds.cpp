@@ -142,6 +142,16 @@ int my_Sys_Milliseconds(void)
 	return ret;
 }
 
+int my_TimeGetTime(void) {
+	const long long ticks_elapsed = qpc_timers(false);
+	if (!freq.QuadPart) {
+		return 0;
+	}
+	SOFBUDDY_ASSERT(freq.QuadPart > 0);
+	const int ret = static_cast<int>((ticks_elapsed * 1000LL) / freq.QuadPart);
+	return ret;
+}
+
 //an override hook because we do not call original
 int sys_milliseconds_override_callback(detour_Sys_Milliseconds::tSys_Milliseconds original) {
 	int result = my_Sys_Milliseconds();

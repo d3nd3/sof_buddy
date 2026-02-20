@@ -423,6 +423,14 @@ functions:
       - type: void*
         name: imports
 
+  - name: Sys_SendKeyEvents
+    module: SofExe
+    identifier: "0x00065CF0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 5
+    params: []
+
   - name: IN_MenuMouse
     module: SofExe
     identifier: "0x0004A420"

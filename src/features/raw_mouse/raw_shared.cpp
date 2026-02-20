@@ -5,28 +5,28 @@
 #include "shared.h"
 #include "util.h"
 #include <limits.h>
+#include <vector>
 
 int raw_mouse_delta_x = 0;
 int raw_mouse_delta_y = 0;
 POINT window_center = {0, 0};
-static std::vector<BYTE> g_inputBuffer;
 bool raw_mouse_center_valid = false;
 bool raw_mouse_registered = false;
 bool raw_mouse_cursor_clipped = false;
 HWND raw_mouse_hwnd_target = nullptr;
 static RECT raw_mouse_clip_rect = {0, 0, 0, 0};
 static const int RAW_MOUSE_CLIP_INSET = 64;
+bool raw_processed_this_frame = false;
+static std::vector<BYTE> raw_read_buf;
+#ifndef ERROR_INSUFFICIENT_BUFFER
+#define ERROR_INSUFFICIENT_BUFFER 122
+#endif
+#if !defined(_WIN64)
+#define RAWMOUSE_DATA_OFFSET_WOW64 24
+#endif
 
 bool raw_mouse_is_enabled() {
   return in_mouse_raw && in_mouse_raw->value != 0.0f;
-}
-
-int raw_mouse_mode() {
-  if (!in_mouse_raw) return 0;
-  int m = static_cast<int>(in_mouse_raw->value);
-  if (m < 0) return 0;
-  if (m > 2) return 2;
-  return m;
 }
 
 bool raw_mouse_api_supported() {
@@ -35,11 +35,6 @@ bool raw_mouse_api_supported() {
 #else
   return false;
 #endif
-}
-
-bool raw_mouse_is_wine() {
-  HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-  return ntdll && GetProcAddress(ntdll, "wine_get_version");
 }
 
 void raw_mouse_reset_deltas() {
@@ -74,84 +69,75 @@ void raw_mouse_accumulate_delta(LONG dx, LONG dy) {
   raw_mouse_delta_y = static_cast<int>(next_y);
 }
 
-// Helper to process a single RAWINPUT struct
-static void RawMouseProcessStructure(const RAWINPUT* raw) {
-    if (raw->header.dwType != RIM_TYPEMOUSE) {
-        return;
-    }
+static bool RawMouseHasForeground(HWND hwnd);
+void raw_mouse_ensure_registered(HWND hwnd_hint);
 
-    const RAWMOUSE &mouse = raw->data.mouse;
-    // We only care about relative movement
-    if ((mouse.usFlags & MOUSE_MOVE_ABSOLUTE) != 0) {
-        return;
-    }
+void raw_mouse_process_raw_mouse() {
+#if !SOFBUDDY_RAWINPUT_API_AVAILABLE
+  return;
+#else
+  if (!raw_mouse_is_enabled()) { return; }
+  if (raw_processed_this_frame) return;
+  raw_processed_this_frame = true;
 
-    if (mouse.lLastX == 0 && mouse.lLastY == 0) {
-        return;
-    }
+  if (!raw_mouse_registered) raw_mouse_ensure_registered(nullptr);
+  if (raw_mouse_hwnd_target && !RawMouseHasForeground(raw_mouse_hwnd_target)) return;
 
-    raw_mouse_accumulate_delta(mouse.lLastX, mouse.lLastY);
-}
-
-void raw_mouse_accumulate_from_handle(HRAWINPUT h) {
-#if SOFBUDDY_RAWINPUT_API_AVAILABLE
-  if (!h || !raw_mouse_is_enabled()) return;
-  UINT sz = 0;
-  if (GetRawInputData(h, RID_INPUT, NULL, &sz, sizeof(RAWINPUTHEADER)) == (UINT)-1 || sz < sizeof(RAWINPUTHEADER)) return;
-  if (g_inputBuffer.size() < sz) g_inputBuffer.resize(sz);
-  UINT got = GetRawInputData(h, RID_INPUT, g_inputBuffer.data(), &sz, sizeof(RAWINPUTHEADER));
-  if (got != sz) return;
-  RawMouseProcessStructure(reinterpret_cast<const RAWINPUT*>(g_inputBuffer.data()));
+  UINT size = 0;
+  if (GetRawInputBuffer(nullptr, &size, sizeof(RAWINPUTHEADER)) == (UINT)-1 || size == 0) { return; }
+#if !defined(_WIN64)
+  size *= 8;
 #endif
-}
+  size = (size + sizeof(RAWINPUTHEADER) - 1) & ~(sizeof(RAWINPUTHEADER) - 1);
+  if (raw_read_buf.size() < size)
+    raw_read_buf.resize(size);
 
-using tPeekMessageA = BOOL(__stdcall*)(LPMSG, HWND, UINT, UINT, UINT);
-static tPeekMessageA g_peekmessage_original = nullptr;
+  UINT readSize = size;
 
-void raw_mouse_set_peekmessage_original(void* fn) {
-  g_peekmessage_original = reinterpret_cast<tPeekMessageA>(fn);
-}
+  UINT count = GetRawInputBuffer(
+      reinterpret_cast<PRAWINPUT>(raw_read_buf.data()),
+      &readSize,
+      sizeof(RAWINPUTHEADER)
+  );
 
-void raw_mouse_drain_wm_input() {
-#if SOFBUDDY_RAWINPUT_API_AVAILABLE
-  if (!g_peekmessage_original || !raw_mouse_is_enabled()) return;
-  MSG msg;
-  while (g_peekmessage_original(&msg, NULL, WM_INPUT, WM_INPUT, PM_REMOVE))
-    raw_mouse_accumulate_from_handle(reinterpret_cast<HRAWINPUT>(msg.lParam));
+  for (int retries = 0; count == (UINT)-1 && retries < 4; ++retries) {
+    DWORD err = GetLastError();
+    if (err != ERROR_INSUFFICIENT_BUFFER) break;
+    UINT required = readSize > 0 ? readSize : static_cast<UINT>(raw_read_buf.size() * 2);
+#if !defined(_WIN64)
+    if (readSize > 0) required = readSize * 8;
 #endif
-}
+    required = (required + sizeof(RAWINPUTHEADER) - 1) & ~(sizeof(RAWINPUTHEADER) - 1);
+    const UINT cap = 256 * 1024;
+    if (required > cap) required = cap;
+    if (required <= raw_read_buf.size()) required = static_cast<UINT>(raw_read_buf.size()) + sizeof(RAWINPUTHEADER);
+    if (raw_read_buf.size() < required) raw_read_buf.resize(required);
+    readSize = static_cast<UINT>(raw_read_buf.size());
+    count = GetRawInputBuffer(
+        reinterpret_cast<PRAWINPUT>(raw_read_buf.data()),
+        &readSize,
+        sizeof(RAWINPUTHEADER)
+    );
+  }
 
-void raw_mouse_poll() {
-#if SOFBUDDY_RAWINPUT_API_AVAILABLE
-    if (!raw_mouse_is_enabled()) return;
+  if (count == (UINT)-1) {
+    return;
+  }
 
-    UINT cbSize = 0;
-    UINT result = GetRawInputBuffer(NULL, &cbSize, sizeof(RAWINPUTHEADER));
-    
-    if (result == (UINT)-1) {
-        return; 
+  PRAWINPUT current = reinterpret_cast<PRAWINPUT>(raw_read_buf.data());
+
+  for (UINT i = 0; i < count; ++i) {
+    if (current->header.dwType == RIM_TYPEMOUSE) {
+#if defined(RAWMOUSE_DATA_OFFSET_WOW64)
+      const RAWMOUSE* m = reinterpret_cast<const RAWMOUSE*>(reinterpret_cast<const char*>(current) + RAWMOUSE_DATA_OFFSET_WOW64);
+#else
+      const RAWMOUSE* m = &current->data.mouse;
+#endif
+      raw_mouse_accumulate_delta(m->lLastX, m->lLastY);
     }
-    
-    if (cbSize == 0) return;
 
-    // Ensure buffer is large enough
-    if (g_inputBuffer.size() < cbSize) {
-        g_inputBuffer.resize(cbSize * 2); 
-    }
-
-    // Read buffered events
-    UINT cbSizeT = static_cast<UINT>(g_inputBuffer.size());
-    UINT nInput = GetRawInputBuffer((PRAWINPUT)g_inputBuffer.data(), &cbSizeT, sizeof(RAWINPUTHEADER));
-
-    if (nInput == (UINT)-1 || nInput == 0) {
-        return;
-    }
-
-    PRAWINPUT pRaw = (PRAWINPUT)g_inputBuffer.data();
-    for (UINT i = 0; i < nInput; ++i) {
-        RawMouseProcessStructure(pRaw);
-        pRaw = NEXTRAWINPUTBLOCK(pRaw);
-    }
+    current = NEXTRAWINPUTBLOCK(current);
+  }
 #endif
 }
 
@@ -192,6 +178,31 @@ static bool RawMouseHasForeground(HWND hwnd) {
 #else
   return hwnd == foreground;
 #endif
+}
+
+static HWND RawMouseGetRoot(HWND hwnd) {
+#if defined(GA_ROOT)
+  HWND root = GetAncestor(hwnd, GA_ROOT);
+  return root ? root : hwnd;
+#else
+  return hwnd;
+#endif
+}
+
+void raw_mouse_ensure_registered(HWND hwnd_hint) {
+  if (!raw_mouse_is_enabled() || !raw_mouse_api_supported()) return;
+  if (raw_mouse_hwnd_target && !IsWindow(raw_mouse_hwnd_target)) {
+    raw_mouse_registered = false;
+    raw_mouse_hwnd_target = nullptr;
+  }
+  HWND hwnd = (hwnd_hint && IsWindow(hwnd_hint)) ? hwnd_hint : nullptr;
+  if (!hwnd && raw_mouse_hwnd_target) hwnd = raw_mouse_hwnd_target;
+  if (!hwnd) hwnd = GetActiveWindow();
+  if (!hwnd) hwnd = GetForegroundWindow();
+  if (!hwnd) return;
+  HWND root = RawMouseGetRoot(hwnd);
+  if (raw_mouse_registered && raw_mouse_hwnd_target && IsWindow(raw_mouse_hwnd_target) && RawMouseGetRoot(raw_mouse_hwnd_target) == root) return;
+  raw_mouse_register_input(root, false);
 }
 
 void raw_mouse_release_cursor_clip() {

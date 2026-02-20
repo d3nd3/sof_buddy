@@ -13,10 +13,6 @@ namespace detour_R_BlendLightmaps {
     tR_BlendLightmaps oR_BlendLightmaps = nullptr;
 }
 
-namespace detour_IN_MouseMove {
-    tIN_MouseMove oIN_MouseMove = nullptr;
-}
-
 namespace detour_VID_CheckChanges {
     tVID_CheckChanges oVID_CheckChanges = nullptr;
 }
@@ -153,8 +149,8 @@ namespace detour_Sys_GetGameApi {
     tSys_GetGameApi oSys_GetGameApi = nullptr;
 }
 
-namespace detour_IN_MenuMouse {
-    tIN_MenuMouse oIN_MenuMouse = nullptr;
+namespace detour_Sys_SendKeyEvents {
+    tSys_SendKeyEvents oSys_SendKeyEvents = nullptr;
 }
 
 namespace detour_GetCursorPos {
@@ -163,14 +159,6 @@ namespace detour_GetCursorPos {
 
 namespace detour_DispatchMessageA {
     tDispatchMessageA oDispatchMessageA = nullptr;
-}
-
-namespace detour_PeekMessageA {
-    tPeekMessageA oPeekMessageA = nullptr;
-}
-
-namespace detour_GetMessageA {
-    tGetMessageA oGetMessageA = nullptr;
 }
 
 namespace detour_GL_BuildPolygonFromSurface {
@@ -185,17 +173,6 @@ namespace detour_GL_BuildPolygonFromSurface {
 }
 
 namespace detour_R_BlendLightmaps {
-    ManagerType& GetManager() {
-        static ManagerType* instance = nullptr;
-        if (!instance) {
-            static char storage[sizeof(ManagerType)];
-            instance = new(storage) ManagerType();
-        }
-        return *instance;
-    }
-}
-
-namespace detour_IN_MouseMove {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
         if (!instance) {
@@ -580,7 +557,7 @@ namespace detour_Sys_GetGameApi {
     }
 }
 
-namespace detour_IN_MenuMouse {
+namespace detour_Sys_SendKeyEvents {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
         if (!instance) {
@@ -613,28 +590,6 @@ namespace detour_DispatchMessageA {
     }
 }
 
-namespace detour_PeekMessageA {
-    ManagerType& GetManager() {
-        static ManagerType* instance = nullptr;
-        if (!instance) {
-            static char storage[sizeof(ManagerType)];
-            instance = new(storage) ManagerType();
-        }
-        return *instance;
-    }
-}
-
-namespace detour_GetMessageA {
-    ManagerType& GetManager() {
-        static ManagerType* instance = nullptr;
-        if (!instance) {
-            static char storage[sizeof(ManagerType)];
-            instance = new(storage) ManagerType();
-        }
-        return *instance;
-    }
-}
-
 namespace detour_GL_BuildPolygonFromSurface {
     void __cdecl hkGL_BuildPolygonFromSurface(void* msurface_s) {
         ManagerType& mgr = GetManager();
@@ -654,17 +609,6 @@ namespace detour_R_BlendLightmaps {
             oR_BlendLightmaps();
         }
         if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost();
-    }
-}
-
-namespace detour_IN_MouseMove {
-    void __cdecl hkIN_MouseMove(void* cmd) {
-        ManagerType& mgr = GetManager();
-        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre(cmd);
-        if (oIN_MouseMove) {
-            oIN_MouseMove(cmd);
-        }
-        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost(cmd);
     }
 }
 
@@ -791,17 +735,6 @@ namespace detour_CinematicFreeze {
     }
 }
 
-namespace detour_IN_MenuMouse {
-    void __cdecl hkIN_MenuMouse(void* cvar1, void* cvar2) {
-        ManagerType& mgr = GetManager();
-        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre(cvar1, cvar2);
-        if (oIN_MenuMouse) {
-            oIN_MenuMouse(cvar1, cvar2);
-        }
-        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost(cvar1, cvar2);
-    }
-}
-
 // Override hooks (hooks.json override: true)
 // Note: Override hooks with custom_detour: true are manually installed at runtime and not generated here
 namespace detour_CL_Precache_f {
@@ -888,18 +821,6 @@ namespace detour_GetCursorPos {
     }
 }
 
-namespace detour_GetMessageA {
-    BOOL __stdcall hkGetMessageA(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax) {
-        return ::getmessagea_override_callback(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, oGetMessageA);
-    }
-}
-
-namespace detour_PeekMessageA {
-    BOOL __stdcall hkPeekMessageA(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax, UINT wRemoveMsg) {
-        return ::peekmessagea_override_callback(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax, wRemoveMsg, oPeekMessageA);
-    }
-}
-
 namespace detour_R_DrawFont {
     void __cdecl hkR_DrawFont(int screenX, int screenY, char* text, int colorPalette, char* font, bool rememberLastColor) {
         ::hkR_DrawFont(screenX, screenY, text, colorPalette, font, rememberLastColor, oR_DrawFont);
@@ -933,6 +854,12 @@ namespace detour_Sys_GetGameApi {
 namespace detour_Sys_Milliseconds {
     int __cdecl hkSys_Milliseconds() {
         return ::sys_milliseconds_override_callback(oSys_Milliseconds);
+    }
+}
+
+namespace detour_Sys_SendKeyEvents {
+    void __cdecl hkSys_SendKeyEvents() {
+        ::sys_sendkeyevents_override_callback(oSys_SendKeyEvents);
     }
 }
 

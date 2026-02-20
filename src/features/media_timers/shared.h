@@ -36,6 +36,7 @@ inline void resetTimers(int val)
 
 int winmain_loop(void);
 int my_Sys_Milliseconds(void);
+int my_TimeGetTime(void);
 long long qpc_timers(bool force);
 void create_mediatimers_cvars(void);
 void mediaTimers_EarlyStartup(void);

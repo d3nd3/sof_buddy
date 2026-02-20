@@ -27,8 +27,8 @@ void mediaTimers_EarlyStartup(void) {
     //skip the rest of the loop, so we implement most ourself
 	WriteE9Jmp(rvaToAbsExe((void*)0x00066417), rvaToAbsExe((void*)0x0006643C));
 	
-    //Sys_sendkeyevents @call    Sys_Milliseconds
-	WriteE8Call(rvaToAbsExe((void*)0x00065D5E), (void*)&my_Sys_Milliseconds);
+    //Sys_sendkeyevents @call    Sys_Milliseconds instead of TimeGetTime
+	WriteE8Call(rvaToAbsExe((void*)0x00065D5E), (void*)&my_TimeGetTime);
 	WriteByte(rvaToAbsExe((void*)0x00065D63), 0x90);
 
 	

@@ -1,8 +1,13 @@
 # Changelog
 
+## v4.6
+
+- Raw mouse: message-pump–based flow. Replaced engine-frame hooks (IN_MouseMove, IN_MenuMouse, PeekMessageA, GetMessageA) with Sys_SendKeyEvents replacement and dedicated capped two-range pump so WM_INPUT is never peeked or delivered. One GetRawInputBuffer per frame in Sys_SendKeyEvents path; DispatchMessageA only handles window events (registration/clip). Virtual cursor via GetCursorPos/SetCursorPos. WOW64: buffer size×8 and RAWMOUSE at offset 24. Single cvar 0=off, non-zero=on. README updated.
+- Media timers: Sys_SendKeyEvents call site (exe 0x65D5E) now uses my_TimeGetTime (QPC) instead of my_Sys_Milliseconds for consistent frame timing.
+
 ## v4.5
 
-- Raw mouse: `_sofbuddy_rawmouse` is now a mode switch (0=off, 1=4.4-style, 2=PH3-style). Mode 1 dispatches WM_INPUT and processes in DispatchMessageA; on Wine we skip raw_mouse_poll() there to avoid double-count. Mode 2 uses two-range PeekMessageA so the message loop does not run when only WM_INPUT is queued; on Windows we use GetRawInputBuffer only in IN_MouseMove/IN_MenuMouse PRE (PH3-style); on Wine we drain WM_INPUT in PRE then poll. PeekMessageA/GetMessageA override hooks and raw_mouse_drain_wm_input() added; README documents modes and relation to PH3.
+- Raw mouse: reimplemented with single setting (0=off, non-zero=on). PH3-style only: two-range PeekMessageA so WM_INPUT is never seen; GetMessageA swallows WM_INPUT (no GetRawInputData); one GetRawInputBuffer per frame in IN_MouseMove/IN_MenuMouse Pre; DispatchMessageA returns 0 for WM_INPUT. No per-message processing or drain-from-handle.
 - Internal menus: SoF Buddy RMF assets renamed from sb_* to shorter names (e.g. sb_perf → cpu, sb_input → input, sb_http → network, sb_tweaks_perf → profiles, sb_scaling → ui_scale).
 - Docs: README menu.png hero image; raw_mouse and internal_menus README updates. Update-from-zip scripts (Windows/Linux) refinements.
 
