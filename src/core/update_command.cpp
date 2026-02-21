@@ -15,7 +15,6 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdint>
-#include <limits>
 #include <string>
 #include <vector>
 
@@ -84,7 +83,15 @@ bool is_regular_file(const char* path) {
 
 bool is_running_under_wine() {
     HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-    return ntdll && GetProcAddress(ntdll, "wine_get_version");
+    if (!ntdll) return false;
+    typedef const char* (*wine_get_version_fn)(void);
+    auto fn = reinterpret_cast<wine_get_version_fn>(GetProcAddress(ntdll, "wine_get_version"));
+    if (!fn) return false;
+    const char* ver = fn();
+    if (!ver || !ver[0]) return false;
+    for (const char* p = ver; *p; ++p)
+        if (std::isdigit(static_cast<unsigned char>(*p))) return true;
+    return false;
 }
 
 bool prefer_linux_wine_release_zip() {
@@ -594,80 +601,44 @@ std::string zip_asset_name_from_url(const std::string& url) {
     return to_lower_ascii(asset_name_from_url(url));
 }
 
-int score_release_zip_candidate(const std::string& url) {
-    const std::string name = zip_asset_name_from_url(url);
-    if (name.size() < 4 || name.compare(name.size() - 4, 4, ".zip") != 0)
-        return std::numeric_limits<int>::min();
-
-    const bool is_debug = (name.find("debug") != std::string::npos);
-    const bool is_release = (name.find("release") != std::string::npos);
-    const bool has_sofbuddy = (name.find("sof_buddy") != std::string::npos) ||
-                              (name.find("sofbuddy") != std::string::npos);
-    const bool is_windows = (name.find("windows") != std::string::npos);
-    const bool is_linux_wine = (name.find("linux") != std::string::npos) ||
-                               (name.find("wine") != std::string::npos);
-    const bool is_xp = (name.find("xp") != std::string::npos);
-    const bool prefer_linux_wine = prefer_linux_wine_release_zip();
-
-    int score = 0;
-    if (is_release) score += 400;
-    if (has_sofbuddy) score += 120;
-    if (is_windows) score += 30;
-    if (is_linux_wine) score += 20;
-    if (is_xp) score -= 40;
-    if (is_debug) score -= 500;
-
-    if (name == "release_windows.zip") score += 200;
-    else if (name == "release_linux_wine.zip") score += 180;
-    else if (name == "release_windows_xp.zip") score += 100;
-    else if (name == "debug_windows.zip") score -= 100;
-    else if (name == "debug_windows_xp.zip") score -= 150;
-
+void preferred_release_zip_names(std::vector<std::string>& out) {
+    out.clear();
 #if defined(SOFBUDDY_XP_BUILD)
-    if (is_windows && is_xp) score += 1200;
-    if (is_windows && !is_xp) score -= 400;
-    if (is_linux_wine) score -= 700;
+    out.push_back("release_windows_xp.zip");
 #else
-    if (prefer_linux_wine) {
-        if (is_linux_wine) score += 1200;
-        if (is_windows && !is_xp) score -= 150;
-        if (is_windows && is_xp) score -= 700;
-    } else {
-        if (is_windows && !is_xp) score += 1200;
-        if (is_windows && is_xp) score -= 700;
-        if (is_linux_wine) score -= 150;
+    if (prefer_linux_wine_release_zip())
+        out.push_back("release_linux_wine.zip");
+    else {
+        out.push_back("release_windows.zip");
+        out.push_back("release_windows_xp.zip");
     }
 #endif
+}
 
-    return score;
+bool is_preferred_release_zip(const std::string& name) {
+    if (name.empty() || name.size() < 4 || name.compare(name.size() - 4, 4, ".zip") != 0)
+        return false;
+    if (name.find("debug") != std::string::npos) return false;
+    std::vector<std::string> preferred;
+    preferred_release_zip_names(preferred);
+    for (const auto& p : preferred)
+        if (name == p) return true;
+    return false;
+}
+
+std::string pick_best_zip_url(const std::vector<std::string>& candidates) {
+    std::vector<std::string> preferred;
+    preferred_release_zip_names(preferred);
+    for (const auto& name : preferred) {
+        for (const auto& url : candidates) {
+            if (zip_asset_name_from_url(url) == name) return url;
+        }
+    }
+    return std::string();
 }
 
 bool zip_matches_build_preference(const std::string& url) {
-    const std::string name = zip_asset_name_from_url(url);
-    if (name.empty()) return false;
-    if (name.size() < 4 || name.compare(name.size() - 4, 4, ".zip") != 0) return false;
-    if (name.find("debug") != std::string::npos) return false;
-
-    const bool is_windows = (name.find("windows") != std::string::npos);
-    const bool is_linux_wine = (name.find("linux") != std::string::npos) ||
-                               (name.find("wine") != std::string::npos);
-    const bool is_xp = (name.find("xp") != std::string::npos);
-    const bool prefer_linux_wine = prefer_linux_wine_release_zip();
-
-#if defined(SOFBUDDY_XP_BUILD)
-    if (is_windows && is_xp) return true;
-    if (is_windows && !is_xp) return false;
-    if (is_linux_wine) return false;
-#else
-    if (prefer_linux_wine) {
-        if (is_linux_wine) return true;
-        if (is_windows && !is_xp) return false;
-        if (is_windows && is_xp) return false;
-    }
-    if (is_windows && !is_xp) return true;
-    if (is_windows && is_xp) return false;
-#endif
-    return true;
+    return is_preferred_release_zip(zip_asset_name_from_url(url));
 }
 
 std::vector<int> parse_version_parts(const std::string& version_text) {
@@ -788,15 +759,12 @@ bool fetch_latest_release(ReleaseInfo& out, std::string& error) {
     }
 
     out.zip_url.clear();
-    int best_score = std::numeric_limits<int>::min();
+    std::vector<std::string> candidates;
     size_t search = 0;
     std::string candidate;
-    while (json_find_string_field(body, "browser_download_url", search, candidate, &search)) {
-        const int score = score_release_zip_candidate(candidate);
-        if (score <= best_score) continue;
-        best_score = score;
-        out.zip_url = candidate;
-    }
+    while (json_find_string_field(body, "browser_download_url", search, candidate, &search))
+        candidates.push_back(candidate);
+    out.zip_url = pick_best_zip_url(candidates);
     if (out.zip_url.empty()) {
         std::string fallback_zip_url;
         if (json_find_string_field(body, "zip_url", 0, fallback_zip_url, nullptr) ||

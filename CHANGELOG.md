@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.8
+
+- Updater: refactored zip selection to strict priority order (`preferred_release_zip_names`, `pick_best_zip_url`) instead of scoring; native Windows prefers `release_windows.zip` then `release_windows_xp.zip` when the main zip is missing (fixes Windows 7 receiving wine_linux build). Wine detection hardened (validate `wine_get_version` return).
+- Update scripts: clarified prompts in `update_from_zip.sh` and `update_from_zip.cmd` for user input options when applying fresh settings.
+
 ## v4.7
 
 - Raw mouse: SetCursorPos hook now always calls the original so the OS cursor is warped when the game recenters, fixing dual-monitor focus loss (e.g. left edge on Wine/Kubuntu).

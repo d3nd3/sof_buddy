@@ -51,8 +51,8 @@ else
     echo "Warning: could not delete ${ZIP_PATH}"
 fi
 echo
-read -r -p "Start with fresh settings? [Y/n]: " ans
-if [[ ! "${ans,,}" =~ ^n(o)?$ ]]; then
+read -r -p "Start with fresh settings? [y/N]: " ans
+if [[ "${ans,,}" =~ ^y(es)?$ ]]; then
     echo "Searching for old configuration to prune..."
     find "${ROOT_DIR}" -type f -name "sofbuddy.cfg" -print -delete 2>/dev/null || true
 fi
