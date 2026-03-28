@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <stdlib.h>
+#include <cctype>
 
 #include "sof_compat.h"
 #include "util.h"
@@ -425,5 +426,23 @@ void* rvaToAbsSoFPlus(void* rva) {
     return nullptr;
 #else
     return nullptr;
+#endif
+}
+
+bool is_running_under_wine() {
+#ifdef _WIN32
+  HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+  if (!ntdll) return false;
+  typedef const char* (*wine_get_version_fn)(void);
+  auto fn = reinterpret_cast<wine_get_version_fn>(
+      GetProcAddress(ntdll, "wine_get_version"));
+  if (!fn) return false;
+  const char* ver = fn();
+  if (!ver || !ver[0]) return false;
+  for (const char* p = ver; *p; ++p)
+    if (std::isdigit(static_cast<unsigned char>(*p))) return true;
+  return false;
+#else
+  return false;
 #endif
 }

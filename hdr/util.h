@@ -136,4 +136,7 @@ size_t strlen_custom(const char *str);
 
 const char* get_nth_entry(const char* str, int n);
 
+/** True when running under Wine/Proton (ntdll wine_get_version). */
+bool is_running_under_wine();
+
 #endif // SOF_BUDDY_UTIL_H

@@ -22,12 +22,12 @@ void raw_mouse_on_change(cvar_t *cvar)
             PrintOut(PRINT_BAD, "raw_mouse: Raw Input API not available; keeping legacy cursor mode\n");
             return;
         }
-        HWND hwnd = GetActiveWindow();
-        if (!hwnd) hwnd = GetForegroundWindow();
-        if (raw_mouse_register_input(hwnd, true)) {
+        raw_mouse_ensure_registered(nullptr, true);
+        if (raw_mouse_registered) {
             PrintOut(PRINT_DEV, "raw_mouse: Raw input is now ENABLED\n");
         } else {
-            PrintOut(PRINT_BAD, "raw_mouse: Raw input was requested but registration failed\n");
+            PrintOut(PRINT_BAD,
+                     "raw_mouse: Raw input was requested but registration failed\n");
         }
     } else {
         raw_mouse_unregister_input(true);

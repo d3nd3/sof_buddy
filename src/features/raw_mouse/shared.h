@@ -47,7 +47,8 @@ void raw_mouse_reset_deltas();
 void raw_mouse_consume_deltas();
 void raw_mouse_update_center(int x, int y);
 void raw_mouse_accumulate_delta(LONG dx, LONG dy);
-void raw_mouse_ensure_registered(HWND hwnd_hint);
+void raw_mouse_ensure_registered(HWND hwnd_hint,
+                                 bool log_register_attempts = false);
 void raw_mouse_refresh_cursor_clip(HWND hwnd_hint);
 void raw_mouse_release_cursor_clip();
 bool raw_mouse_register_input(HWND hwnd, bool log_result);

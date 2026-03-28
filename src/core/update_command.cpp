@@ -81,19 +81,6 @@ bool is_regular_file(const char* path) {
     return attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY) == 0;
 }
 
-bool is_running_under_wine() {
-    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-    if (!ntdll) return false;
-    typedef const char* (*wine_get_version_fn)(void);
-    auto fn = reinterpret_cast<wine_get_version_fn>(GetProcAddress(ntdll, "wine_get_version"));
-    if (!fn) return false;
-    const char* ver = fn();
-    if (!ver || !ver[0]) return false;
-    for (const char* p = ver; *p; ++p)
-        if (std::isdigit(static_cast<unsigned char>(*p))) return true;
-    return false;
-}
-
 bool prefer_linux_wine_release_zip() {
 #if defined(SOFBUDDY_XP_BUILD)
     return false;

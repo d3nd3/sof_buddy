@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.9
+
+- Raw mouse: register raw input only with HWNDs owned by the game process (`GetWindowThreadProcessId` vs `GetCurrentProcessId`). Resolve the window via `GetGUIThreadInfo`, then `GetActiveWindow` / `GetForegroundWindow` only when they are local, plus `EnumThreadWindows` fallback—fixes `RegisterRawInputDevices` failing with error 87 (`ERROR_INVALID_PARAMETER`) when foreground belonged to another app or at startup. Cvar enable uses the same `raw_mouse_ensure_registered` path as the message pump; clearer log lines for invalid HWND and for error 87.
+- Raw mouse: the “Wine/X11 raw input” hint is shown only when actually running under Wine/Proton (`is_running_under_wine()`), not on native Windows failures.
+- Core: `is_running_under_wine()` implementation moved to `src/utils/util.cpp` with declaration in `hdr/util.h` (shared helper for updater and raw mouse).
+
 ## v4.8
 
 - Updater: refactored zip selection to strict priority order (`preferred_release_zip_names`, `pick_best_zip_url`) instead of scoring; native Windows prefers `release_windows.zip` then `release_windows_xp.zip` when the main zip is missing (fixes Windows 7 receiving wine_linux build). Wine detection hardened (validate `wine_get_version` return).

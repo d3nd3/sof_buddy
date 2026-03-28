@@ -70,7 +70,7 @@ void raw_mouse_accumulate_delta(LONG dx, LONG dy) {
 }
 
 static bool RawMouseHasForeground(HWND hwnd);
-void raw_mouse_ensure_registered(HWND hwnd_hint);
+void raw_mouse_ensure_registered(HWND hwnd_hint, bool log_register_attempts);
 
 void raw_mouse_process_raw_mouse() {
 #if !SOFBUDDY_RAWINPUT_API_AVAILABLE
@@ -80,7 +80,7 @@ void raw_mouse_process_raw_mouse() {
   if (raw_processed_this_frame) return;
   raw_processed_this_frame = true;
 
-  if (!raw_mouse_registered) raw_mouse_ensure_registered(nullptr);
+  if (!raw_mouse_registered) raw_mouse_ensure_registered(nullptr, false);
   if (raw_mouse_hwnd_target && !RawMouseHasForeground(raw_mouse_hwnd_target)) return;
 
   UINT size = 0;
@@ -141,20 +141,61 @@ void raw_mouse_process_raw_mouse() {
 #endif
 }
 
-static HWND RawMouseResolveTargetHwnd(HWND hwnd_hint) {
-  if (raw_mouse_hwnd_target && IsWindow(raw_mouse_hwnd_target)) {
+static bool RawMouseHwndIsOurProcess(HWND hwnd) {
+  if (!hwnd || !IsWindow(hwnd)) return false;
+  DWORD pid = 0;
+  GetWindowThreadProcessId(hwnd, &pid);
+  return pid == GetCurrentProcessId();
+}
+
+static BOOL CALLBACK RawMouseEnumThreadTopLevelProc(HWND hwnd, LPARAM lp) {
+  auto* out = reinterpret_cast<HWND*>(lp);
+  if (!IsWindowVisible(hwnd)) return TRUE;
+  if (GetParent(hwnd) != nullptr) return TRUE;
+  *out = hwnd;
+  return FALSE;
+}
+
+static HWND RawMouseFirstVisibleTopLevelOnCurrentThread() {
+  HWND found = nullptr;
+  EnumThreadWindows(GetCurrentThreadId(), RawMouseEnumThreadTopLevelProc,
+                    reinterpret_cast<LPARAM>(&found));
+  return found;
+}
+
+static HWND RawMouseResolveLocalWindow(HWND hwnd_hint) {
+  if (raw_mouse_hwnd_target && IsWindow(raw_mouse_hwnd_target) &&
+      RawMouseHwndIsOurProcess(raw_mouse_hwnd_target)) {
     return raw_mouse_hwnd_target;
   }
-
-  if (hwnd_hint && IsWindow(hwnd_hint)) {
+  if (hwnd_hint && IsWindow(hwnd_hint) && RawMouseHwndIsOurProcess(hwnd_hint)) {
     return hwnd_hint;
   }
 
-  HWND hwnd = GetActiveWindow();
-  if (!hwnd) {
-    hwnd = GetForegroundWindow();
+  GUITHREADINFO gti = {};
+  gti.cbSize = sizeof(GUITHREADINFO);
+  if (GetGUIThreadInfo(GetCurrentThreadId(), &gti)) {
+    HWND h = gti.hwndActive;
+    if (!h) h = gti.hwndFocus;
+    if (h && IsWindow(h) && RawMouseHwndIsOurProcess(h)) {
+      return h;
+    }
   }
-  return hwnd;
+
+  HWND aw = GetActiveWindow();
+  if (aw && RawMouseHwndIsOurProcess(aw)) return aw;
+
+  HWND fg = GetForegroundWindow();
+  if (fg && RawMouseHwndIsOurProcess(fg)) return fg;
+
+  HWND eth = RawMouseFirstVisibleTopLevelOnCurrentThread();
+  if (eth && RawMouseHwndIsOurProcess(eth)) return eth;
+
+  return nullptr;
+}
+
+static HWND RawMouseResolveTargetHwnd(HWND hwnd_hint) {
+  return RawMouseResolveLocalWindow(hwnd_hint);
 }
 
 static bool RawMouseHasForeground(HWND hwnd) {
@@ -189,20 +230,25 @@ static HWND RawMouseGetRoot(HWND hwnd) {
 #endif
 }
 
-void raw_mouse_ensure_registered(HWND hwnd_hint) {
+void raw_mouse_ensure_registered(HWND hwnd_hint, bool log_register_attempts) {
   if (!raw_mouse_is_enabled() || !raw_mouse_api_supported()) return;
   if (raw_mouse_hwnd_target && !IsWindow(raw_mouse_hwnd_target)) {
     raw_mouse_registered = false;
     raw_mouse_hwnd_target = nullptr;
   }
-  HWND hwnd = (hwnd_hint && IsWindow(hwnd_hint)) ? hwnd_hint : nullptr;
-  if (!hwnd && raw_mouse_hwnd_target) hwnd = raw_mouse_hwnd_target;
-  if (!hwnd) hwnd = GetActiveWindow();
-  if (!hwnd) hwnd = GetForegroundWindow();
-  if (!hwnd) return;
+  HWND hwnd = RawMouseResolveLocalWindow(
+      (hwnd_hint && IsWindow(hwnd_hint)) ? hwnd_hint : nullptr);
+  if (!hwnd) {
+    if (log_register_attempts) {
+      PrintOut(PRINT_BAD,
+               "raw_mouse: No game window for raw input (focus the game window "
+               "and try again)\n");
+    }
+    return;
+  }
   HWND root = RawMouseGetRoot(hwnd);
   if (raw_mouse_registered && raw_mouse_hwnd_target && IsWindow(raw_mouse_hwnd_target) && RawMouseGetRoot(raw_mouse_hwnd_target) == root) return;
-  raw_mouse_register_input(root, false);
+  raw_mouse_register_input(root, log_register_attempts);
 }
 
 void raw_mouse_release_cursor_clip() {
@@ -285,6 +331,17 @@ bool raw_mouse_register_input(HWND hwnd, bool log_result) {
     raw_mouse_release_cursor_clip();
     return false;
   }
+  if (!RawMouseHwndIsOurProcess(hwnd)) {
+    if (log_result) {
+      PrintOut(PRINT_BAD,
+               "raw_mouse: Window is not owned by this process (cannot "
+               "register raw input)\n");
+    }
+    raw_mouse_registered = false;
+    raw_mouse_hwnd_target = nullptr;
+    raw_mouse_release_cursor_clip();
+    return false;
+  }
 
   RAWINPUTDEVICE rid;
   rid.usUsagePage = 0x01;
@@ -297,18 +354,20 @@ bool raw_mouse_register_input(HWND hwnd, bool log_result) {
       DWORD error = GetLastError();
       PrintOut(PRINT_BAD,
                "raw_mouse: Failed to register raw input (error %d)\n", error);
-      PrintOut(PRINT_BAD,
-               "raw_mouse: On X11/Wine, raw input may not be supported\n");
+      if (error == ERROR_INVALID_PARAMETER) {
+        PrintOut(PRINT_BAD,
+                 "raw_mouse: Usually an invalid HWND or wrong thread vs window "
+                 "owner; focus the game and retry\n");
+      } else if (is_running_under_wine()) {
+        PrintOut(PRINT_BAD,
+                 "raw_mouse: Under Wine/X11, raw input may be limited; try a "
+                 "newer Proton or native Windows if problems persist\n");
+      }
     }
     raw_mouse_registered = false;
     raw_mouse_hwnd_target = nullptr;
     raw_mouse_release_cursor_clip();
     return false;
-  }
-
-  if (log_result) {
-    PrintOut(PRINT_DEV,
-             "raw_mouse: Successfully registered raw input device\n");
   }
 
   raw_mouse_registered = true;
