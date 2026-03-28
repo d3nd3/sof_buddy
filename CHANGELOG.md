@@ -1,5 +1,11 @@
 # Changelog
 
+## v5.0
+
+- Raw mouse: message pump no longer removes `WM_INPUT` from the queue (avoids high-frequency peel cost on high-poll mice). Uses filtered `PeekMessage` bands around `WM_INPUT` when it blocks the head; otherwise `GetMessage` for strict FIFO. When both low-ID and high-ID candidates exist, orders by `MSG.time` with high-band tie-break for mouse/client messages. Raises per-pump cap to 10 dispatched messages; updates `sys_msg_time` and centralizes quit/dispatch in `DispatchOneMsg`.
+- Raw mouse: fix enabling `_sofbuddy_rawmouse` when the engine runs the cvar change callback before `Cvar_Get` returns — set `in_mouse_raw = cvar` at the start of `raw_mouse_on_change`; drop redundant second `raw_mouse_on_change` after registration (avoids false “not enabled” / “registration failed” pairs and duplicate “ENABLED” logs).
+- Raw mouse: optional dev logging when `raw_mouse_ensure_registered` is asked to log — “not enabled or API not supported”, “already registered for this window”; `raw_mouse_register_input` logs “Raw input registration succeeded” when registration completes.
+
 ## v4.9
 
 - Raw mouse: register raw input only with HWNDs owned by the game process (`GetWindowThreadProcessId` vs `GetCurrentProcessId`). Resolve the window via `GetGUIThreadInfo`, then `GetActiveWindow` / `GetForegroundWindow` only when they are local, plus `EnumThreadWindows` fallback—fixes `RegisterRawInputDevices` failing with error 87 (`ERROR_INVALID_PARAMETER`) when foreground belonged to another app or at startup. Cvar enable uses the same `raw_mouse_ensure_registered` path as the message pump; clearer log lines for invalid HWND and for error 87.

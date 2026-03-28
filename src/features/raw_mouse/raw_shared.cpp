@@ -231,7 +231,12 @@ static HWND RawMouseGetRoot(HWND hwnd) {
 }
 
 void raw_mouse_ensure_registered(HWND hwnd_hint, bool log_register_attempts) {
-  if (!raw_mouse_is_enabled() || !raw_mouse_api_supported()) return;
+  if (!raw_mouse_is_enabled() || !raw_mouse_api_supported()){
+    if (log_register_attempts) {
+      PrintOut(PRINT_BAD, "raw_mouse: Raw input is not enabled or API is not supported\n");
+    }
+    return;
+  } 
   if (raw_mouse_hwnd_target && !IsWindow(raw_mouse_hwnd_target)) {
     raw_mouse_registered = false;
     raw_mouse_hwnd_target = nullptr;
@@ -247,7 +252,12 @@ void raw_mouse_ensure_registered(HWND hwnd_hint, bool log_register_attempts) {
     return;
   }
   HWND root = RawMouseGetRoot(hwnd);
-  if (raw_mouse_registered && raw_mouse_hwnd_target && IsWindow(raw_mouse_hwnd_target) && RawMouseGetRoot(raw_mouse_hwnd_target) == root) return;
+  if (raw_mouse_registered && raw_mouse_hwnd_target && IsWindow(raw_mouse_hwnd_target) && RawMouseGetRoot(raw_mouse_hwnd_target) == root) {
+    if (log_register_attempts) {
+      PrintOut(PRINT_DEV, "raw_mouse: Raw input is already registered for this window\n");
+    }
+    return;
+  }
   raw_mouse_register_input(root, log_register_attempts);
 }
 
@@ -373,6 +383,9 @@ bool raw_mouse_register_input(HWND hwnd, bool log_result) {
   raw_mouse_registered = true;
   raw_mouse_hwnd_target = hwnd;
   raw_mouse_refresh_cursor_clip(hwnd);
+  if (log_result) {
+    PrintOut(PRINT_DEV, "raw_mouse: Raw input registration succeeded\n");
+  }
   return true;
 #endif
 }

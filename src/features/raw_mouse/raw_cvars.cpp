@@ -13,6 +13,9 @@ cvar_t * in_mouse_raw = NULL;
 void raw_mouse_on_change(cvar_t *cvar)
 {
     if (!cvar) return;
+    /* Cvar_Get may invoke this callback before returning; in_mouse_raw is not
+     * assigned yet, so raw_mouse_is_enabled() would read a null pointer. */
+    in_mouse_raw = cvar;
 
     raw_mouse_reset_deltas();
     raw_mouse_center_valid = false;
@@ -37,11 +40,6 @@ void raw_mouse_on_change(cvar_t *cvar)
 
 void create_raw_mouse_cvars(void) {
     in_mouse_raw = orig_Cvar_Get("_sofbuddy_rawmouse", "0", CVAR_SOFBUDDY_ARCHIVE, &raw_mouse_on_change);
-
-    // Apply archived state immediately in case callback is not triggered on load.
-    if (in_mouse_raw && in_mouse_raw->value != 0.0f) {
-        raw_mouse_on_change(in_mouse_raw);
-    }
 
     PrintOut(PRINT_DEV, "raw_mouse: Registered _sofbuddy_rawmouse cvar with change callback\n");
 }

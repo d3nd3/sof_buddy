@@ -13,30 +13,83 @@
 #ifndef WM_INPUT
 #define WM_INPUT 0x00FF
 #endif
-#ifndef WM_QUIT
-#define WM_QUIT 0x0012
-#endif
 
-static const int MAX_MSG_PER_FRAME = 5;
+static const int MAX_MSG_PER_FRAME = 10;
 
 static void QuitPath();
 static void SV_Shutdown(char*, int);
+static unsigned* SysMsgTimePtr();
+
+
+static void DispatchOneMsg(MSG* m, bool from_winmain) {
+  if (m->message == WM_QUIT) {
+    if (from_winmain) {
+      SV_Shutdown(nullptr, 0);
+    }
+    QuitPath();
+  }
+  *SysMsgTimePtr() = static_cast<unsigned>(m->time);
+  TranslateMessage(m);
+  DispatchMessageA(m);
+}
 
 void PumpWindowMessagesCapped(bool from_winmain) {
   MSG msg;
+  MSG low_msg;
+  MSG high_msg;
   int processed = 0;
+  /* WM_INPUT is never removed (avoids high-frequency peel cost). When it sits at
+   * the queue head, PeekMessage with ID bands skips it and removes the next matching
+   * message. When the head is not WM_INPUT, GetMessage preserves strict FIFO.
+   * If both bands have a candidate (WM_INPUT at head, or interleaved), msg.time
+   * picks the earlier; tie-break prefers high band (mouse / client-area messages). */
   while (processed < MAX_MSG_PER_FRAME &&
-         PeekMessageA(&msg, nullptr, 0, WM_INPUT - 1, PM_REMOVE)) {
-    if (msg.message == WM_QUIT) { if (from_winmain) SV_Shutdown(nullptr, 0); QuitPath(); }
-    TranslateMessage(&msg);
-    DispatchMessageA(&msg);
-    ++processed;
-  }
-  while (processed < MAX_MSG_PER_FRAME &&
-         PeekMessageA(&msg, nullptr, WM_INPUT + 1, 0xFFFFFFFF, PM_REMOVE)) {
-    if (msg.message == WM_QUIT) { if (from_winmain) SV_Shutdown(nullptr, 0); QuitPath(); }
-    TranslateMessage(&msg);
-    DispatchMessageA(&msg);
+         PeekMessageA(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
+    if (msg.message != WM_INPUT) {
+      if (!GetMessageA(&msg, nullptr, 0, 0)) {
+        if (from_winmain) {
+          SV_Shutdown(nullptr, 0);
+        }
+        QuitPath();
+      }
+      DispatchOneMsg(&msg, from_winmain);
+      ++processed;
+      continue;
+    }
+
+    const BOOL has_low =
+        PeekMessageA(&low_msg, nullptr, 0, WM_INPUT - 1, PM_NOREMOVE);
+    const BOOL has_high = PeekMessageA(&high_msg, nullptr, WM_INPUT + 1, 0xFFFFFFFF,
+                                        PM_NOREMOVE);
+    if (!has_low && !has_high) {
+      break;
+    }
+    if (has_low && !has_high) {
+      if (!PeekMessageA(&msg, nullptr, 0, WM_INPUT - 1, PM_REMOVE)) {
+        break;
+      }
+    } else if (!has_low && has_high) {
+      if (!PeekMessageA(&msg, nullptr, WM_INPUT + 1, 0xFFFFFFFF, PM_REMOVE)) {
+        break;
+      }
+    } else {
+      const DWORD t_low = low_msg.time;
+      const DWORD t_high = high_msg.time;
+      if (t_low < t_high) {
+        if (!PeekMessageA(&msg, nullptr, 0, WM_INPUT - 1, PM_REMOVE)) {
+          break;
+        }
+      } else if (t_high < t_low) {
+        if (!PeekMessageA(&msg, nullptr, WM_INPUT + 1, 0xFFFFFFFF, PM_REMOVE)) {
+          break;
+        }
+      } else {
+        if (!PeekMessageA(&msg, nullptr, WM_INPUT + 1, 0xFFFFFFFF, PM_REMOVE)) {
+          break;
+        }
+      }
+    }
+    DispatchOneMsg(&msg, from_winmain);
     ++processed;
   }
 }
