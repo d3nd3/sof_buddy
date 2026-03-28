@@ -1,5 +1,17 @@
 [
   {
+    "function": "IN_MenuMouse",
+    "callback": "raw_mouse_in_menumouse_pre",
+    "phase": "Pre",
+    "priority": 0
+  },
+  {
+    "function": "IN_MenuMouse",
+    "callback": "raw_mouse_in_menumouse_post",
+    "phase": "Post",
+    "priority": 0
+  },
+  {
     "function": "GetCursorPos",
     "callback": "getcursorpos_override_callback",
     "override": true

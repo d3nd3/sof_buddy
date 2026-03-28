@@ -1006,6 +1006,33 @@ namespace {
     static AutoDetour_Sys_SendKeyEvents g_AutoDetour_Sys_SendKeyEvents;
 }
 
+namespace detour_IN_MenuMouse {
+    using tIN_MenuMouse = void(__cdecl*)(cvar_t* cvar1, cvar_t* cvar2);
+    extern tIN_MenuMouse oIN_MenuMouse;
+    using ManagerType = TypedSharedHookManager<void, cvar_t*, cvar_t*>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkIN_MenuMouse(cvar_t* cvar1, cvar_t* cvar2);
+}
+
+namespace {
+    struct AutoDetour_IN_MenuMouse {
+        AutoDetour_IN_MenuMouse() {
+            using namespace detour_IN_MenuMouse;
+            if (!GetDetourSystem().IsDetourRegistered("IN_MenuMouse")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x0004A420),
+                    reinterpret_cast<void*>(detour_IN_MenuMouse::hkIN_MenuMouse),
+                    reinterpret_cast<void**>(&detour_IN_MenuMouse::oIN_MenuMouse),
+                    "IN_MenuMouse",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_IN_MenuMouse g_AutoDetour_IN_MenuMouse;
+}
+
 namespace detour_GetCursorPos {
     using tGetCursorPos = BOOL(__stdcall*)(LPPOINT lpPoint);
     extern tGetCursorPos oGetCursorPos;

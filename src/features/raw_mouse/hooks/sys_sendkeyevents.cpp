@@ -9,10 +9,9 @@ using detour_Sys_SendKeyEvents::tSys_SendKeyEvents;
 
 void sys_sendkeyevents_override_callback(tSys_SendKeyEvents original) {
   (void)original;
-  raw_mouse_on_peek_returned_no_message();
+  // Raw queue is drained only in getcursorpos_override_callback
+  // (raw_mouse_drain_pending_raw_for_cursor). Per-frame delta reset here.
   raw_mouse_consume_deltas();
-
-  raw_mouse_process_raw_mouse();
   Sys_SendKeyEvents_Replacement();
 }
 

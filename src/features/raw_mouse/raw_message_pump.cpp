@@ -14,6 +14,10 @@
 #define WM_INPUT 0x00FF
 #endif
 
+/* Vanilla Q2-style pumps drain the whole queue each Sys_SendKeyEvents; we cap
+ * so WM_MOUSEMOVE storms cannot eat the frame (see e.g. PeekMessage cost with
+ * high-frequency mouse messages). There is no official number—5 is very safe,
+ * 10–15 is a common middle ground for modern poll rates + resize/activate bursts. */
 static const int MAX_MSG_PER_FRAME = 10;
 
 static void QuitPath();

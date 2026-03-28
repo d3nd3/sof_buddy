@@ -16,6 +16,13 @@ BOOL getcursorpos_override_callback(
     return original(lpPoint);
   }
 
+  if (raw_mouse_in_menumouse_scope()) {
+    SOFBUDDY_ASSERT(original != nullptr);
+    return original(lpPoint);
+  }
+
+  raw_mouse_drain_pending_raw_for_cursor();
+
   if (!lpPoint) {
     SetLastError(ERROR_INVALID_PARAMETER);
     return FALSE;

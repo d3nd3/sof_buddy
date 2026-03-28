@@ -438,9 +438,9 @@ functions:
     calling_convention: __cdecl
     detour_len: 0
     params:
-      - type: void*
+      - type: cvar_t*
         name: cvar1
-      - type: void*
+      - type: cvar_t*
         name: cvar2
 
   - name: GetCursorPos

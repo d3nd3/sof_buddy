@@ -16,7 +16,6 @@ bool raw_mouse_cursor_clipped = false;
 HWND raw_mouse_hwnd_target = nullptr;
 static RECT raw_mouse_clip_rect = {0, 0, 0, 0};
 static const int RAW_MOUSE_CLIP_INSET = 64;
-bool raw_processed_this_frame = false;
 static std::vector<BYTE> raw_read_buf;
 #ifndef ERROR_INSUFFICIENT_BUFFER
 #define ERROR_INSUFFICIENT_BUFFER 122
@@ -72,73 +71,82 @@ void raw_mouse_accumulate_delta(LONG dx, LONG dy) {
 static bool RawMouseHasForeground(HWND hwnd);
 void raw_mouse_ensure_registered(HWND hwnd_hint, bool log_register_attempts);
 
-void raw_mouse_process_raw_mouse() {
-#if !SOFBUDDY_RAWINPUT_API_AVAILABLE
-  return;
-#else
-  if (!raw_mouse_is_enabled()) { return; }
-  if (raw_processed_this_frame) return;
-  raw_processed_this_frame = true;
-
-  if (!raw_mouse_registered) raw_mouse_ensure_registered(nullptr, false);
-  if (raw_mouse_hwnd_target && !RawMouseHasForeground(raw_mouse_hwnd_target)) return;
-
-  UINT size = 0;
-  if (GetRawInputBuffer(nullptr, &size, sizeof(RAWINPUTHEADER)) == (UINT)-1 || size == 0) { return; }
+#if SOFBUDDY_RAWINPUT_API_AVAILABLE
+static void RawMouseDrainInputBufferToDeltas() {
+  for (int batch = 0; batch < 32; ++batch) {
+    UINT size = 0;
+    if (GetRawInputBuffer(nullptr, &size, sizeof(RAWINPUTHEADER)) == (UINT)-1 || size == 0)
+      return;
 #if !defined(_WIN64)
-  size *= 8;
+    size *= 8;
 #endif
-  size = (size + sizeof(RAWINPUTHEADER) - 1) & ~(sizeof(RAWINPUTHEADER) - 1);
-  if (raw_read_buf.size() < size)
-    raw_read_buf.resize(size);
+    size = (size + sizeof(RAWINPUTHEADER) - 1) & ~(sizeof(RAWINPUTHEADER) - 1);
+    if (raw_read_buf.size() < size)
+      raw_read_buf.resize(size);
 
-  UINT readSize = size;
+    UINT readSize = size;
 
-  UINT count = GetRawInputBuffer(
-      reinterpret_cast<PRAWINPUT>(raw_read_buf.data()),
-      &readSize,
-      sizeof(RAWINPUTHEADER)
-  );
-
-  for (int retries = 0; count == (UINT)-1 && retries < 4; ++retries) {
-    DWORD err = GetLastError();
-    if (err != ERROR_INSUFFICIENT_BUFFER) break;
-    UINT required = readSize > 0 ? readSize : static_cast<UINT>(raw_read_buf.size() * 2);
-#if !defined(_WIN64)
-    if (readSize > 0) required = readSize * 8;
-#endif
-    required = (required + sizeof(RAWINPUTHEADER) - 1) & ~(sizeof(RAWINPUTHEADER) - 1);
-    const UINT cap = 256 * 1024;
-    if (required > cap) required = cap;
-    if (required <= raw_read_buf.size()) required = static_cast<UINT>(raw_read_buf.size()) + sizeof(RAWINPUTHEADER);
-    if (raw_read_buf.size() < required) raw_read_buf.resize(required);
-    readSize = static_cast<UINT>(raw_read_buf.size());
-    count = GetRawInputBuffer(
+    UINT count = GetRawInputBuffer(
         reinterpret_cast<PRAWINPUT>(raw_read_buf.data()),
         &readSize,
         sizeof(RAWINPUTHEADER)
     );
-  }
 
-  if (count == (UINT)-1) {
-    return;
-  }
-
-  PRAWINPUT current = reinterpret_cast<PRAWINPUT>(raw_read_buf.data());
-
-  for (UINT i = 0; i < count; ++i) {
-    if (current->header.dwType == RIM_TYPEMOUSE) {
-#if defined(RAWMOUSE_DATA_OFFSET_WOW64)
-      const RAWMOUSE* m = reinterpret_cast<const RAWMOUSE*>(reinterpret_cast<const char*>(current) + RAWMOUSE_DATA_OFFSET_WOW64);
-#else
-      const RAWMOUSE* m = &current->data.mouse;
+    for (int retries = 0; count == (UINT)-1 && retries < 4; ++retries) {
+      DWORD err = GetLastError();
+      if (err != ERROR_INSUFFICIENT_BUFFER) break;
+      UINT required = readSize > 0 ? readSize : static_cast<UINT>(raw_read_buf.size() * 2);
+#if !defined(_WIN64)
+      if (readSize > 0) required = readSize * 8;
 #endif
-      raw_mouse_accumulate_delta(m->lLastX, m->lLastY);
+      required = (required + sizeof(RAWINPUTHEADER) - 1) & ~(sizeof(RAWINPUTHEADER) - 1);
+      const UINT cap = 256 * 1024;
+      if (required > cap) required = cap;
+      if (required <= raw_read_buf.size()) required = static_cast<UINT>(raw_read_buf.size()) + sizeof(RAWINPUTHEADER);
+      if (raw_read_buf.size() < required) raw_read_buf.resize(required);
+      readSize = static_cast<UINT>(raw_read_buf.size());
+      count = GetRawInputBuffer(
+          reinterpret_cast<PRAWINPUT>(raw_read_buf.data()),
+          &readSize,
+          sizeof(RAWINPUTHEADER)
+      );
     }
 
-    current = NEXTRAWINPUTBLOCK(current);
-  }
+    if (count == (UINT)-1) {
+      return;
+    }
+
+    PRAWINPUT current = reinterpret_cast<PRAWINPUT>(raw_read_buf.data());
+
+    for (UINT i = 0; i < count; ++i) {
+      if (current->header.dwType == RIM_TYPEMOUSE) {
+#if defined(RAWMOUSE_DATA_OFFSET_WOW64)
+        const RAWMOUSE* m = reinterpret_cast<const RAWMOUSE*>(reinterpret_cast<const char*>(current) + RAWMOUSE_DATA_OFFSET_WOW64);
+#else
+        const RAWMOUSE* m = &current->data.mouse;
 #endif
+        raw_mouse_accumulate_delta(m->lLastX, m->lLastY);
+      }
+
+      current = NEXTRAWINPUTBLOCK(current);
+    }
+  }
+}
+#endif
+
+void raw_mouse_drain_pending_raw_for_cursor() {
+#if !SOFBUDDY_RAWINPUT_API_AVAILABLE
+  return;
+#else
+  if (!raw_mouse_is_enabled()) return;
+  if (!raw_mouse_registered) raw_mouse_ensure_registered(nullptr, false);
+  if (raw_mouse_hwnd_target && !RawMouseHasForeground(raw_mouse_hwnd_target)) return;
+  RawMouseDrainInputBufferToDeltas();
+#endif
+}
+
+void raw_mouse_process_raw_mouse() {
+  raw_mouse_drain_pending_raw_for_cursor();
 }
 
 static bool RawMouseHwndIsOurProcess(HWND hwnd) {
@@ -230,17 +238,88 @@ static HWND RawMouseGetRoot(HWND hwnd) {
 #endif
 }
 
-void raw_mouse_ensure_registered(HWND hwnd_hint, bool log_register_attempts) {
-  if (!raw_mouse_is_enabled() || !raw_mouse_api_supported()){
-    if (log_register_attempts) {
-      PrintOut(PRINT_BAD, "raw_mouse: Raw input is not enabled or API is not supported\n");
+static void RawMouseDropRegistration() {
+  raw_mouse_registered = false;
+  raw_mouse_hwnd_target = nullptr;
+  raw_mouse_release_cursor_clip();
+}
+
+#if SOFBUDDY_RAWINPUT_API_AVAILABLE
+static bool RawMouseCommitRawInputRegistration(HWND hwnd, bool log_result) {
+  if (!hwnd) {
+    if (log_result) {
+      PrintOut(PRINT_BAD, "raw_mouse: Could not get window handle\n");
     }
-    return;
-  } 
-  if (raw_mouse_hwnd_target && !IsWindow(raw_mouse_hwnd_target)) {
-    raw_mouse_registered = false;
-    raw_mouse_hwnd_target = nullptr;
+    RawMouseDropRegistration();
+    return false;
   }
+  if (!RawMouseHwndIsOurProcess(hwnd)) {
+    if (log_result) {
+      PrintOut(PRINT_BAD,
+               "raw_mouse: Window is not owned by this process (cannot "
+               "register raw input)\n");
+    }
+    RawMouseDropRegistration();
+    return false;
+  }
+
+  RAWINPUTDEVICE rid = {};
+  rid.usUsagePage = 0x01;
+  rid.usUsage = 0x02;
+  rid.dwFlags = 0;
+  rid.hwndTarget = hwnd;
+
+  if (!RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE))) {
+    if (log_result) {
+      DWORD error = GetLastError();
+      PrintOut(PRINT_BAD,
+               "raw_mouse: Failed to register raw input (error %d)\n", error);
+      if (error == ERROR_INVALID_PARAMETER) {
+        PrintOut(PRINT_BAD,
+                 "raw_mouse: Usually an invalid HWND or wrong thread vs window "
+                 "owner; focus the game and retry\n");
+      } else if (is_running_under_wine()) {
+        PrintOut(PRINT_BAD,
+                 "raw_mouse: Under Wine/X11, raw input may be limited; try a "
+                 "newer Proton or native Windows if problems persist\n");
+      }
+    }
+    RawMouseDropRegistration();
+    return false;
+  }
+
+  raw_mouse_registered = true;
+  raw_mouse_hwnd_target = hwnd;
+  raw_mouse_refresh_cursor_clip(hwnd);
+  if (log_result) {
+    PrintOut(PRINT_DEV, "raw_mouse: Raw input registration succeeded\n");
+  }
+  return true;
+}
+#endif
+
+void raw_mouse_ensure_registered(HWND hwnd_hint, bool log_register_attempts) {
+  if (!raw_mouse_is_enabled() || !raw_mouse_api_supported()) return;
+
+  if (raw_mouse_hwnd_target && !IsWindow(raw_mouse_hwnd_target)) {
+    RawMouseDropRegistration();
+  }
+
+  /* Cheap path: skip GetGUIThreadInfo / EnumThreadWindows when still valid and
+   * the hint (if any) is the same top-level as our registration target. */
+  if (raw_mouse_registered && raw_mouse_hwnd_target && IsWindow(raw_mouse_hwnd_target)) {
+    if (!hwnd_hint || !IsWindow(hwnd_hint)) {
+      if (log_register_attempts) {
+        PrintOut(PRINT_DEV,
+                 "raw_mouse: Raw input is already registered for this window\n");
+      }
+      return;
+    }
+    if (RawMouseGetRoot(hwnd_hint) == RawMouseGetRoot(raw_mouse_hwnd_target)) {
+      return;
+    }
+  }
+
   HWND hwnd = RawMouseResolveLocalWindow(
       (hwnd_hint && IsWindow(hwnd_hint)) ? hwnd_hint : nullptr);
   if (!hwnd) {
@@ -252,13 +331,16 @@ void raw_mouse_ensure_registered(HWND hwnd_hint, bool log_register_attempts) {
     return;
   }
   HWND root = RawMouseGetRoot(hwnd);
-  if (raw_mouse_registered && raw_mouse_hwnd_target && IsWindow(raw_mouse_hwnd_target) && RawMouseGetRoot(raw_mouse_hwnd_target) == root) {
+  if (raw_mouse_registered && raw_mouse_hwnd_target && IsWindow(raw_mouse_hwnd_target) &&
+      RawMouseGetRoot(raw_mouse_hwnd_target) == root) {
     if (log_register_attempts) {
       PrintOut(PRINT_DEV, "raw_mouse: Raw input is already registered for this window\n");
     }
     return;
   }
-  raw_mouse_register_input(root, log_register_attempts);
+#if SOFBUDDY_RAWINPUT_API_AVAILABLE
+  RawMouseCommitRawInputRegistration(root, log_register_attempts);
+#endif
 }
 
 void raw_mouse_release_cursor_clip() {
@@ -321,81 +403,10 @@ void raw_mouse_refresh_cursor_clip(HWND hwnd_hint) {
   raw_mouse_clip_rect = new_clip_rect;
 }
 
-bool raw_mouse_register_input(HWND hwnd, bool log_result) {
-#if !SOFBUDDY_RAWINPUT_API_AVAILABLE
-  if (log_result) {
-    PrintOut(PRINT_BAD,
-             "raw_mouse: Raw Input API is unavailable for this build target\n");
-  }
-  raw_mouse_registered = false;
-  raw_mouse_hwnd_target = nullptr;
-  raw_mouse_release_cursor_clip();
-  return false;
-#else
-  if (!hwnd) {
-    if (log_result) {
-      PrintOut(PRINT_BAD, "raw_mouse: Could not get window handle\n");
-    }
-    raw_mouse_registered = false;
-    raw_mouse_hwnd_target = nullptr;
-    raw_mouse_release_cursor_clip();
-    return false;
-  }
-  if (!RawMouseHwndIsOurProcess(hwnd)) {
-    if (log_result) {
-      PrintOut(PRINT_BAD,
-               "raw_mouse: Window is not owned by this process (cannot "
-               "register raw input)\n");
-    }
-    raw_mouse_registered = false;
-    raw_mouse_hwnd_target = nullptr;
-    raw_mouse_release_cursor_clip();
-    return false;
-  }
-
-  RAWINPUTDEVICE rid;
-  rid.usUsagePage = 0x01;
-  rid.usUsage = 0x02;
-  rid.dwFlags = 0;
-  rid.hwndTarget = hwnd;
-
-  if (!RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE))) {
-    if (log_result) {
-      DWORD error = GetLastError();
-      PrintOut(PRINT_BAD,
-               "raw_mouse: Failed to register raw input (error %d)\n", error);
-      if (error == ERROR_INVALID_PARAMETER) {
-        PrintOut(PRINT_BAD,
-                 "raw_mouse: Usually an invalid HWND or wrong thread vs window "
-                 "owner; focus the game and retry\n");
-      } else if (is_running_under_wine()) {
-        PrintOut(PRINT_BAD,
-                 "raw_mouse: Under Wine/X11, raw input may be limited; try a "
-                 "newer Proton or native Windows if problems persist\n");
-      }
-    }
-    raw_mouse_registered = false;
-    raw_mouse_hwnd_target = nullptr;
-    raw_mouse_release_cursor_clip();
-    return false;
-  }
-
-  raw_mouse_registered = true;
-  raw_mouse_hwnd_target = hwnd;
-  raw_mouse_refresh_cursor_clip(hwnd);
-  if (log_result) {
-    PrintOut(PRINT_DEV, "raw_mouse: Raw input registration succeeded\n");
-  }
-  return true;
-#endif
-}
-
 void raw_mouse_unregister_input(bool log_result) {
 #if !SOFBUDDY_RAWINPUT_API_AVAILABLE
   (void)log_result;
-  raw_mouse_registered = false;
-  raw_mouse_hwnd_target = nullptr;
-  raw_mouse_release_cursor_clip();
+  RawMouseDropRegistration();
   return;
 #else
   raw_mouse_release_cursor_clip();
@@ -405,7 +416,7 @@ void raw_mouse_unregister_input(bool log_result) {
     return;
   }
 
-  RAWINPUTDEVICE rid;
+  RAWINPUTDEVICE rid = {};
   rid.usUsagePage = 0x01;
   rid.usUsage = 0x02;
   rid.dwFlags = RIDEV_REMOVE;

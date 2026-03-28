@@ -36,9 +36,7 @@ extern bool raw_mouse_center_valid;
 extern bool raw_mouse_registered;
 extern bool raw_mouse_cursor_clipped;
 extern HWND raw_mouse_hwnd_target;
-extern bool raw_processed_this_frame;
 
-inline void raw_mouse_on_peek_returned_no_message() { raw_processed_this_frame = false; }
 void raw_mouse_on_change(cvar_t *cvar);
 void create_raw_mouse_cvars(void);
 bool raw_mouse_is_enabled();
@@ -51,12 +49,13 @@ void raw_mouse_ensure_registered(HWND hwnd_hint,
                                  bool log_register_attempts = false);
 void raw_mouse_refresh_cursor_clip(HWND hwnd_hint);
 void raw_mouse_release_cursor_clip();
-bool raw_mouse_register_input(HWND hwnd, bool log_result);
 void raw_mouse_unregister_input(bool log_result);
 void raw_mouse_process_raw_mouse();
+void raw_mouse_drain_pending_raw_for_cursor();
 void PumpWindowMessagesCapped(bool from_winmain);
 void Sys_SendKeyEvents_Replacement();
 void raw_mouse_install_winmain_peek_detour();
 BOOL __stdcall hkSetCursorPos(int X, int Y);
+bool raw_mouse_in_menumouse_scope();
 
 #endif // FEATURE_RAW_MOUSE

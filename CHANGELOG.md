@@ -1,5 +1,13 @@
 # Changelog
 
+## v5.1
+
+- Raw mouse: hook `IN_MenuMouse` (SofExe `0x4A420`) with Pre/Post callbacks; while inside it, `GetCursorPos` uses the real API so menu cursor motion matches the OS (avoids synthetic cursor lag on connect / low FPS). `detours.yaml` uses `cvar_t*` parameters; `hooks.json` registers Pre/Post; new `in_menumouse.cpp` tracks scope with a depth counter.
+- Raw mouse: fold pending mickeys at read time — `GetCursorPos` calls `raw_mouse_drain_pending_raw_for_cursor()` (shared `GetRawInputBuffer` drain with bounded multi-batch emptying) so the virtual cursor stays fresh without waiting on the next pump boundary.
+- Raw mouse: `Sys_SendKeyEvents` only resets deltas (`consume_deltas`); raw queue draining is no longer done there — only the `GetCursorPos` path drains (plus lazy registration when not yet registered). Removed `raw_processed_this_frame` / `raw_mouse_on_peek_returned_no_message`; `raw_mouse_process_raw_mouse()` forwards to the same drain helper.
+- Raw mouse: registration cleanup — `RawMouseDropRegistration()`, single `RawMouseCommitRawInputRegistration()` for Win32 register + validation; `raw_mouse_ensure_registered` fast-paths when already registered for the same root (skips heavy window resolution on common `DispatchMessageA` calls). Dropped public `raw_mouse_register_input` (only `ensure_registered` needed it).
+- Raw mouse: message pump default `MAX_MSG_PER_FRAME` set to **10** with a short comment on the vanilla full-drain vs capped tradeoff.
+
 ## v5.0
 
 - Raw mouse: message pump no longer removes `WM_INPUT` from the queue (avoids high-frequency peel cost on high-poll mice). Uses filtered `PeekMessage` bands around `WM_INPUT` when it blocks the head; otherwise `GetMessage` for strict FIFO. When both low-ID and high-ID candidates exist, orders by `MSG.time` with high-band tie-break for mouse/client messages. Raises per-pump cap to 10 dispatched messages; updates `sys_msg_time` and centralizes quit/dispatch in `DispatchOneMsg`.
