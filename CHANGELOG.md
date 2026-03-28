@@ -1,5 +1,11 @@
 # Changelog
 
+## v5.2
+
+- Raw mouse: stop binding normal foreground raw input registration to a specific HWND. `RegisterRawInputDevices` now uses focus-following mode (`hwndTarget = NULL`), while window resolution is kept only for cursor clip/focus decisions. This avoids `ERROR_INVALID_PARAMETER` 87 from bad or overlay-polluted HWNDs and lets registration succeed earlier in startup.
+- Raw mouse: prefer the engine’s real `cl_hwnd` (RVA `0x403564`) as the game window, with `ActiveApp` (RVA `0x40351C`) as another guard before draining raw input. Heuristic fallback still exists, but same-process helper/tool windows now score much lower and class `"Quake 2"` scores higher.
+- Raw mouse: add richer registration diagnostics, including candidate window dumps and `GetRegisteredRawInputDevices` state, to make injected-overlay conflicts (for example ShadowPlay) much easier to spot.
+
 ## v5.1
 
 - Raw mouse: hook `IN_MenuMouse` (SofExe `0x4A420`) with Pre/Post callbacks; while inside it, `GetCursorPos` uses the real API so menu cursor motion matches the OS (avoids synthetic cursor lag on connect / low FPS). `detours.yaml` uses `cvar_t*` parameters; `hooks.json` registers Pre/Post; new `in_menumouse.cpp` tracks scope with a depth counter.
@@ -157,4 +163,3 @@
 - raw_mouse: keep engine cursor centering to avoid edge-of-screen issues.
 - cbuf overflow bypass; internal_menus/http_maps/cbuf_limit_increase docs.
 - SoF Buddy side-frame backfill centering fix; lighting blend null checks.
-

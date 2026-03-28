@@ -5,6 +5,7 @@
 #include "shared.h"
 #include "util.h"
 #include <limits.h>
+#include <stddef.h>
 #include <vector>
 
 int raw_mouse_delta_x = 0;
@@ -17,6 +18,8 @@ HWND raw_mouse_hwnd_target = nullptr;
 static RECT raw_mouse_clip_rect = {0, 0, 0, 0};
 static const int RAW_MOUSE_CLIP_INSET = 64;
 static std::vector<BYTE> raw_read_buf;
+static const uintptr_t RVA_ACTIVE_APP = 0x40351C;
+static const uintptr_t RVA_CL_HWND = 0x403564;
 #ifndef ERROR_INSUFFICIENT_BUFFER
 #define ERROR_INSUFFICIENT_BUFFER 122
 #endif
@@ -70,6 +73,26 @@ void raw_mouse_accumulate_delta(LONG dx, LONG dy) {
 
 static bool RawMouseHasForeground(HWND hwnd);
 void raw_mouse_ensure_registered(HWND hwnd_hint, bool log_register_attempts);
+
+static int* RawMouseActiveAppPtr() {
+  return reinterpret_cast<int*>(
+      rvaToAbsExe(reinterpret_cast<void*>(RVA_ACTIVE_APP)));
+}
+
+static HWND* RawMouseClHwndPtr() {
+  return reinterpret_cast<HWND*>(
+      rvaToAbsExe(reinterpret_cast<void*>(RVA_CL_HWND)));
+}
+
+static bool RawMouseGameAppIsActive() {
+  const int* active = RawMouseActiveAppPtr();
+  return !active || *active != 0;
+}
+
+static HWND RawMouseGameWindowHwnd() {
+  const HWND* hwnd = RawMouseClHwndPtr();
+  return hwnd ? *hwnd : nullptr;
+}
 
 #if SOFBUDDY_RAWINPUT_API_AVAILABLE
 static void RawMouseDrainInputBufferToDeltas() {
@@ -140,6 +163,7 @@ void raw_mouse_drain_pending_raw_for_cursor() {
 #else
   if (!raw_mouse_is_enabled()) return;
   if (!raw_mouse_registered) raw_mouse_ensure_registered(nullptr, false);
+  if (!RawMouseGameAppIsActive()) return;
   if (raw_mouse_hwnd_target && !RawMouseHasForeground(raw_mouse_hwnd_target)) return;
   RawMouseDrainInputBufferToDeltas();
 #endif
@@ -156,50 +180,216 @@ static bool RawMouseHwndIsOurProcess(HWND hwnd) {
   return pid == GetCurrentProcessId();
 }
 
+static HWND RawMouseGetRoot(HWND hwnd) {
+#if defined(GA_ROOT)
+  HWND root = GetAncestor(hwnd, GA_ROOT);
+  return root ? root : hwnd;
+#else
+  return hwnd;
+#endif
+}
+
+static bool RawMouseWindowClassEquals(HWND hwnd, const char* class_name) {
+  if (!hwnd || !class_name) return false;
+  char actual[128] = {};
+  const int len = GetClassNameA(hwnd, actual, sizeof(actual));
+  return len > 0 && lstrcmpiA(actual, class_name) == 0;
+}
+
+static HWND RawMouseNormalizeCandidateHwnd(HWND hwnd) {
+  if (!hwnd || !IsWindow(hwnd)) return nullptr;
+  HWND root = RawMouseGetRoot(hwnd);
+  if (!root || !IsWindow(root)) return nullptr;
+  if (!RawMouseHwndIsOurProcess(root)) return nullptr;
+
+  const LONG_PTR style = GetWindowLongPtrA(root, GWL_STYLE);
+  if ((style & WS_CHILD) != 0) return nullptr;
+
+  return root;
+}
+
+static int RawMouseWindowCandidateScore(HWND hwnd) {
+  hwnd = RawMouseNormalizeCandidateHwnd(hwnd);
+  if (!hwnd) return INT_MIN;
+
+  int score = 0;
+  const HWND game_hwnd = RawMouseNormalizeCandidateHwnd(RawMouseGameWindowHwnd());
+  if (IsWindowVisible(hwnd)) score += 32;
+  if (GetWindow(hwnd, GW_OWNER) == nullptr) score += 16;
+  if ((GetWindowLongPtrA(hwnd, GWL_EXSTYLE) & WS_EX_TOOLWINDOW) == 0) score += 8;
+  if (RawMouseWindowClassEquals(hwnd, "Quake 2")) score += 64;
+  if (game_hwnd && hwnd == game_hwnd) score += 256;
+
+  const HWND active = RawMouseNormalizeCandidateHwnd(GetActiveWindow());
+  if (hwnd == active) score += 24;
+
+  const HWND foreground = RawMouseNormalizeCandidateHwnd(GetForegroundWindow());
+  if (hwnd == foreground) score += 24;
+
+  return score;
+}
+
+static void RawMouseConsiderCandidate(HWND candidate, HWND* best,
+                                      int* best_score) {
+  const int score = RawMouseWindowCandidateScore(candidate);
+  if (score == INT_MIN) return;
+  candidate = RawMouseNormalizeCandidateHwnd(candidate);
+  if (!candidate) return;
+  if (!*best || score > *best_score) {
+    *best = candidate;
+    *best_score = score;
+  }
+}
+
+struct RawMouseThreadEnumState {
+  HWND best;
+  int best_score;
+};
+
 static BOOL CALLBACK RawMouseEnumThreadTopLevelProc(HWND hwnd, LPARAM lp) {
-  auto* out = reinterpret_cast<HWND*>(lp);
-  if (!IsWindowVisible(hwnd)) return TRUE;
-  if (GetParent(hwnd) != nullptr) return TRUE;
-  *out = hwnd;
-  return FALSE;
+  auto* state = reinterpret_cast<RawMouseThreadEnumState*>(lp);
+  if (!state) return FALSE;
+  RawMouseConsiderCandidate(hwnd, &state->best, &state->best_score);
+  return TRUE;
 }
 
-static HWND RawMouseFirstVisibleTopLevelOnCurrentThread() {
-  HWND found = nullptr;
+static HWND RawMouseBestTopLevelOnCurrentThread() {
+  RawMouseThreadEnumState state = {};
+  state.best_score = INT_MIN;
   EnumThreadWindows(GetCurrentThreadId(), RawMouseEnumThreadTopLevelProc,
-                    reinterpret_cast<LPARAM>(&found));
-  return found;
+                    reinterpret_cast<LPARAM>(&state));
+  return state.best;
 }
 
-static HWND RawMouseResolveLocalWindow(HWND hwnd_hint) {
-  if (raw_mouse_hwnd_target && IsWindow(raw_mouse_hwnd_target) &&
-      RawMouseHwndIsOurProcess(raw_mouse_hwnd_target)) {
-    return raw_mouse_hwnd_target;
+static void RawMouseLogWindowDetails(const char* label, HWND hwnd, int mode) {
+  if (!label) return;
+  if (!hwnd) {
+    PrintOut(mode, "raw_mouse: %s: (null)\n", label);
+    return;
   }
-  if (hwnd_hint && IsWindow(hwnd_hint) && RawMouseHwndIsOurProcess(hwnd_hint)) {
-    return hwnd_hint;
+
+  const bool is_window = IsWindow(hwnd) != FALSE;
+  DWORD pid = 0;
+  DWORD tid = 0;
+  if (is_window) {
+    tid = GetWindowThreadProcessId(hwnd, &pid);
   }
+
+  HWND root = is_window ? RawMouseGetRoot(hwnd) : nullptr;
+  HWND owner = is_window ? GetWindow(hwnd, GW_OWNER) : nullptr;
+  const LONG_PTR style = is_window ? GetWindowLongPtrA(hwnd, GWL_STYLE) : 0;
+  const LONG_PTR exstyle = is_window ? GetWindowLongPtrA(hwnd, GWL_EXSTYLE) : 0;
+  char class_name[128] = {};
+  if (is_window) {
+    GetClassNameA(hwnd, class_name, sizeof(class_name));
+  }
+
+  PrintOut(mode,
+           "raw_mouse: %s: hwnd=%p valid=%d pid=%lu tid=%lu class=%s "
+           "visible=%d owner=%p root=%p style=0x%08lx exstyle=0x%08lx\n",
+           label, reinterpret_cast<void*>(hwnd), is_window ? 1 : 0,
+           static_cast<unsigned long>(pid), static_cast<unsigned long>(tid),
+           class_name[0] ? class_name : "<unknown>",
+           is_window ? (IsWindowVisible(hwnd) ? 1 : 0) : 0,
+           reinterpret_cast<void*>(owner), reinterpret_cast<void*>(root),
+           static_cast<unsigned long>(style),
+           static_cast<unsigned long>(exstyle));
+}
+
+#if SOFBUDDY_RAWINPUT_API_AVAILABLE
+static void RawMouseLogRegisteredMouseDevice(int mode) {
+  UINT count = 0;
+  if (GetRegisteredRawInputDevices(nullptr, &count,
+                                   sizeof(RAWINPUTDEVICE)) == (UINT)-1) {
+    PrintOut(mode,
+             "raw_mouse: GetRegisteredRawInputDevices failed (error %lu)\n",
+             static_cast<unsigned long>(GetLastError()));
+    return;
+  }
+
+  if (count == 0) {
+    PrintOut(mode,
+             "raw_mouse: No raw input device classes are registered in this "
+             "process\n");
+    return;
+  }
+
+  std::vector<RAWINPUTDEVICE> devices(count);
+  UINT read =
+      GetRegisteredRawInputDevices(devices.data(), &count,
+                                   sizeof(RAWINPUTDEVICE));
+  if (read == (UINT)-1) {
+    PrintOut(mode,
+             "raw_mouse: Failed to read registered raw input devices "
+             "(error %lu)\n",
+             static_cast<unsigned long>(GetLastError()));
+    return;
+  }
+
+  bool found_mouse = false;
+  for (UINT i = 0; i < read; ++i) {
+    const RAWINPUTDEVICE& rid = devices[i];
+    if (rid.usUsagePage != 0x01 || rid.usUsage != 0x02) continue;
+    found_mouse = true;
+    PrintOut(mode,
+             "raw_mouse: Registered mouse raw input flags=0x%08lx "
+             "hwndTarget=%p\n",
+             static_cast<unsigned long>(rid.dwFlags),
+             reinterpret_cast<void*>(rid.hwndTarget));
+    RawMouseLogWindowDetails("registered mouse target", rid.hwndTarget, mode);
+  }
+
+  if (!found_mouse) {
+    PrintOut(mode,
+             "raw_mouse: No mouse raw input registration is currently present "
+             "in this process\n");
+  }
+}
+#endif
+
+static void RawMouseLogResolutionState(HWND hwnd_hint, int mode) {
+  PrintOut(mode, "raw_mouse: ActiveApp=%d\n", RawMouseGameAppIsActive() ? 1 : 0);
+  RawMouseLogWindowDetails("cl_hwnd", RawMouseGameWindowHwnd(), mode);
+  RawMouseLogWindowDetails("cached target", raw_mouse_hwnd_target, mode);
+  RawMouseLogWindowDetails("hwnd hint", hwnd_hint, mode);
 
   GUITHREADINFO gti = {};
   gti.cbSize = sizeof(GUITHREADINFO);
   if (GetGUIThreadInfo(GetCurrentThreadId(), &gti)) {
-    HWND h = gti.hwndActive;
-    if (!h) h = gti.hwndFocus;
-    if (h && IsWindow(h) && RawMouseHwndIsOurProcess(h)) {
-      return h;
-    }
+    RawMouseLogWindowDetails("GUI thread active", gti.hwndActive, mode);
+    RawMouseLogWindowDetails("GUI thread focus", gti.hwndFocus, mode);
+  } else {
+    PrintOut(mode, "raw_mouse: GetGUIThreadInfo failed (error %lu)\n",
+             static_cast<unsigned long>(GetLastError()));
   }
 
-  HWND aw = GetActiveWindow();
-  if (aw && RawMouseHwndIsOurProcess(aw)) return aw;
+  RawMouseLogWindowDetails("GetActiveWindow", GetActiveWindow(), mode);
+  RawMouseLogWindowDetails("GetForegroundWindow", GetForegroundWindow(), mode);
+  RawMouseLogWindowDetails("best thread top-level",
+                           RawMouseBestTopLevelOnCurrentThread(), mode);
+}
 
-  HWND fg = GetForegroundWindow();
-  if (fg && RawMouseHwndIsOurProcess(fg)) return fg;
+static HWND RawMouseResolveLocalWindow(HWND hwnd_hint) {
+  HWND best = nullptr;
+  int best_score = INT_MIN;
 
-  HWND eth = RawMouseFirstVisibleTopLevelOnCurrentThread();
-  if (eth && RawMouseHwndIsOurProcess(eth)) return eth;
+  RawMouseConsiderCandidate(RawMouseGameWindowHwnd(), &best, &best_score);
+  RawMouseConsiderCandidate(raw_mouse_hwnd_target, &best, &best_score);
+  RawMouseConsiderCandidate(hwnd_hint, &best, &best_score);
 
-  return nullptr;
+  GUITHREADINFO gti = {};
+  gti.cbSize = sizeof(GUITHREADINFO);
+  if (GetGUIThreadInfo(GetCurrentThreadId(), &gti)) {
+    RawMouseConsiderCandidate(gti.hwndActive, &best, &best_score);
+    RawMouseConsiderCandidate(gti.hwndFocus, &best, &best_score);
+  }
+
+  RawMouseConsiderCandidate(GetActiveWindow(), &best, &best_score);
+  RawMouseConsiderCandidate(GetForegroundWindow(), &best, &best_score);
+  RawMouseConsiderCandidate(RawMouseBestTopLevelOnCurrentThread(), &best,
+                            &best_score);
+
+  return best;
 }
 
 static HWND RawMouseResolveTargetHwnd(HWND hwnd_hint) {
@@ -229,15 +419,6 @@ static bool RawMouseHasForeground(HWND hwnd) {
 #endif
 }
 
-static HWND RawMouseGetRoot(HWND hwnd) {
-#if defined(GA_ROOT)
-  HWND root = GetAncestor(hwnd, GA_ROOT);
-  return root ? root : hwnd;
-#else
-  return hwnd;
-#endif
-}
-
 static void RawMouseDropRegistration() {
   raw_mouse_registered = false;
   raw_mouse_hwnd_target = nullptr;
@@ -245,29 +426,12 @@ static void RawMouseDropRegistration() {
 }
 
 #if SOFBUDDY_RAWINPUT_API_AVAILABLE
-static bool RawMouseCommitRawInputRegistration(HWND hwnd, bool log_result) {
-  if (!hwnd) {
-    if (log_result) {
-      PrintOut(PRINT_BAD, "raw_mouse: Could not get window handle\n");
-    }
-    RawMouseDropRegistration();
-    return false;
-  }
-  if (!RawMouseHwndIsOurProcess(hwnd)) {
-    if (log_result) {
-      PrintOut(PRINT_BAD,
-               "raw_mouse: Window is not owned by this process (cannot "
-               "register raw input)\n");
-    }
-    RawMouseDropRegistration();
-    return false;
-  }
-
+static bool RawMouseCommitRawInputRegistration(bool log_result) {
   RAWINPUTDEVICE rid = {};
   rid.usUsagePage = 0x01;
   rid.usUsage = 0x02;
   rid.dwFlags = 0;
-  rid.hwndTarget = hwnd;
+  rid.hwndTarget = nullptr;
 
   if (!RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE))) {
     if (log_result) {
@@ -276,8 +440,10 @@ static bool RawMouseCommitRawInputRegistration(HWND hwnd, bool log_result) {
                "raw_mouse: Failed to register raw input (error %d)\n", error);
       if (error == ERROR_INVALID_PARAMETER) {
         PrintOut(PRINT_BAD,
-                 "raw_mouse: Usually an invalid HWND or wrong thread vs window "
-                 "owner; focus the game and retry\n");
+                 "raw_mouse: Parameter validation failed even with "
+                 "focus-following registration (hwndTarget=NULL)\n");
+        RawMouseLogResolutionState(nullptr, PRINT_BAD);
+        RawMouseLogRegisteredMouseDevice(PRINT_BAD);
       } else if (is_running_under_wine()) {
         PrintOut(PRINT_BAD,
                  "raw_mouse: Under Wine/X11, raw input may be limited; try a "
@@ -289,10 +455,11 @@ static bool RawMouseCommitRawInputRegistration(HWND hwnd, bool log_result) {
   }
 
   raw_mouse_registered = true;
-  raw_mouse_hwnd_target = hwnd;
-  raw_mouse_refresh_cursor_clip(hwnd);
   if (log_result) {
-    PrintOut(PRINT_DEV, "raw_mouse: Raw input registration succeeded\n");
+    PrintOut(PRINT_DEV,
+             "raw_mouse: Raw input registration succeeded "
+             "(focus-following mode, hwndTarget=NULL)\n");
+    RawMouseLogRegisteredMouseDevice(PRINT_DEV);
   }
   return true;
 }
@@ -302,45 +469,39 @@ void raw_mouse_ensure_registered(HWND hwnd_hint, bool log_register_attempts) {
   if (!raw_mouse_is_enabled() || !raw_mouse_api_supported()) return;
 
   if (raw_mouse_hwnd_target && !IsWindow(raw_mouse_hwnd_target)) {
-    RawMouseDropRegistration();
-  }
-
-  /* Cheap path: skip GetGUIThreadInfo / EnumThreadWindows when still valid and
-   * the hint (if any) is the same top-level as our registration target. */
-  if (raw_mouse_registered && raw_mouse_hwnd_target && IsWindow(raw_mouse_hwnd_target)) {
-    if (!hwnd_hint || !IsWindow(hwnd_hint)) {
-      if (log_register_attempts) {
-        PrintOut(PRINT_DEV,
-                 "raw_mouse: Raw input is already registered for this window\n");
-      }
-      return;
-    }
-    if (RawMouseGetRoot(hwnd_hint) == RawMouseGetRoot(raw_mouse_hwnd_target)) {
-      return;
-    }
+    raw_mouse_hwnd_target = nullptr;
+    raw_mouse_release_cursor_clip();
   }
 
   HWND hwnd = RawMouseResolveLocalWindow(
       (hwnd_hint && IsWindow(hwnd_hint)) ? hwnd_hint : nullptr);
-  if (!hwnd) {
-    if (log_register_attempts) {
-      PrintOut(PRINT_BAD,
-               "raw_mouse: No game window for raw input (focus the game window "
-               "and try again)\n");
-    }
-    return;
+  if (hwnd && (!raw_mouse_hwnd_target || !IsWindow(raw_mouse_hwnd_target) ||
+               RawMouseGetRoot(raw_mouse_hwnd_target) != hwnd)) {
+    raw_mouse_hwnd_target = hwnd;
+    raw_mouse_refresh_cursor_clip(hwnd);
   }
-  HWND root = RawMouseGetRoot(hwnd);
-  if (raw_mouse_registered && raw_mouse_hwnd_target && IsWindow(raw_mouse_hwnd_target) &&
-      RawMouseGetRoot(raw_mouse_hwnd_target) == root) {
-    if (log_register_attempts) {
-      PrintOut(PRINT_DEV, "raw_mouse: Raw input is already registered for this window\n");
+
+  if (raw_mouse_registered) {
+    if (!raw_mouse_hwnd_target && log_register_attempts) {
+      PrintOut(PRINT_DEV,
+               "raw_mouse: Raw input is already registered; waiting for a "
+               "usable game window for cursor clip/focus tracking\n");
+      RawMouseLogResolutionState(hwnd_hint, PRINT_DEV);
     }
     return;
   }
 #if SOFBUDDY_RAWINPUT_API_AVAILABLE
-  RawMouseCommitRawInputRegistration(root, log_register_attempts);
+  if (!RawMouseCommitRawInputRegistration(log_register_attempts)) return;
 #endif
+
+  if (raw_mouse_hwnd_target) {
+    raw_mouse_refresh_cursor_clip(raw_mouse_hwnd_target);
+  } else if (log_register_attempts) {
+    PrintOut(PRINT_DEV,
+             "raw_mouse: Raw input registered before the game window was "
+             "resolved; clip will arm on later window events\n");
+    RawMouseLogResolutionState(hwnd_hint, PRINT_DEV);
+  }
 }
 
 void raw_mouse_release_cursor_clip() {
