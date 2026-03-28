@@ -34,6 +34,11 @@ static bool msg_affects_cursor_clip(UINT msg) {
 LRESULT dispatchmessagea_override_callback(
     const MSG *msg, detour_DispatchMessageA::tDispatchMessageA original) {
   if (msg && raw_mouse_is_enabled() && raw_mouse_api_supported()) {
+    /* Finish registration on the GUI thread after deferred attempts from
+     * other threads (and before clip-only events). */
+    if (!raw_mouse_registered) {
+      raw_mouse_ensure_registered(msg->hwnd, false);
+    }
     if (msg_affects_cursor_clip(msg->message)) {
       raw_mouse_ensure_registered(msg->hwnd);
       raw_mouse_refresh_cursor_clip(msg->hwnd);

@@ -1,5 +1,11 @@
 # Changelog
 
+## v5.3
+
+- Raw mouse: if `RegisterRawInputDevices` returns `ERROR_INVALID_PARAMETER` (87) for focus-following registration (`hwndTarget=NULL`), retry once with an explicit top-level HWND resolved from the game window and foreground heuristics.
+- Raw mouse: call `RegisterRawInputDevices` only on the thread that owns `cl_hwnd`; other threads defer. `DispatchMessageA` retries registration while raw mouse is enabled and not yet registered so deferred work completes on the game message thread.
+- Raw mouse: when enable is deferred, the `_sofbuddy_rawmouse` cvar path logs that registration is pending instead of reporting a hard failure.
+
 ## v5.2
 
 - Raw mouse: stop binding normal foreground raw input registration to a specific HWND. `RegisterRawInputDevices` now uses focus-following mode (`hwndTarget = NULL`), while window resolution is kept only for cursor clip/focus decisions. This avoids `ERROR_INVALID_PARAMETER` 87 from bad or overlay-polluted HWNDs and lets registration succeed earlier in startup.

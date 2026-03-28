@@ -13,6 +13,7 @@ int raw_mouse_delta_y = 0;
 POINT window_center = {0, 0};
 bool raw_mouse_center_valid = false;
 bool raw_mouse_registered = false;
+bool raw_mouse_reg_deferred_to_gui_thread = false;
 bool raw_mouse_cursor_clipped = false;
 HWND raw_mouse_hwnd_target = nullptr;
 static RECT raw_mouse_clip_rect = {0, 0, 0, 0};
@@ -426,7 +427,42 @@ static void RawMouseDropRegistration() {
 }
 
 #if SOFBUDDY_RAWINPUT_API_AVAILABLE
-static bool RawMouseCommitRawInputRegistration(bool log_result) {
+enum class RawMouseRegResult { Ok, Failed, Deferred };
+
+/* RegisterRawInputDevices is only reliable from the thread that owns the game's
+ * message queue. Other threads (e.g. GetCursorPos hook) must defer. */
+static bool RawMouseOnGameGuiThread() {
+  HWND gw = RawMouseGameWindowHwnd();
+  if (!gw || !IsWindow(gw)) {
+    return true;
+  }
+  DWORD tid = 0;
+  GetWindowThreadProcessId(gw, &tid);
+  return GetCurrentThreadId() == tid;
+}
+
+static HWND RawMouseFallbackRegistrationHwnd() {
+  HWND w = RawMouseResolveLocalWindow(nullptr);
+  if (w) {
+    return w;
+  }
+  HWND fg = GetForegroundWindow();
+  if (fg && RawMouseHwndIsOurProcess(fg)) {
+    return RawMouseNormalizeCandidateHwnd(fg);
+  }
+  return nullptr;
+}
+
+static RawMouseRegResult RawMouseCommitRawInputRegistration(bool log_result) {
+  if (!RawMouseOnGameGuiThread()) {
+    if (log_result) {
+      PrintOut(PRINT_DEV,
+               "raw_mouse: Deferring raw input registration to the game GUI "
+               "thread (RegisterRawInputDevices is not reliable off-thread)\n");
+    }
+    return RawMouseRegResult::Deferred;
+  }
+
   RAWINPUTDEVICE rid = {};
   rid.usUsagePage = 0x01;
   rid.usUsage = 0x02;
@@ -434,14 +470,39 @@ static bool RawMouseCommitRawInputRegistration(bool log_result) {
   rid.hwndTarget = nullptr;
 
   if (!RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE))) {
+    const DWORD err_null = GetLastError();
+    bool tried_fallback = false;
+    if (err_null == ERROR_INVALID_PARAMETER) {
+      HWND fallback = RawMouseFallbackRegistrationHwnd();
+      if (fallback) {
+        tried_fallback = true;
+        rid.hwndTarget = fallback;
+        if (RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE))) {
+          raw_mouse_registered = true;
+          if (log_result) {
+            PrintOut(PRINT_DEV,
+                     "raw_mouse: Raw input registration succeeded using "
+                     "explicit top-level hwnd (focus-following NULL was "
+                     "rejected with error %lu)\n",
+                     static_cast<unsigned long>(err_null));
+            RawMouseLogWindowDetails("registration hwndTarget", fallback,
+                                     PRINT_DEV);
+            RawMouseLogRegisteredMouseDevice(PRINT_DEV);
+          }
+          return RawMouseRegResult::Ok;
+        }
+      }
+    }
+    const DWORD err_report = tried_fallback ? GetLastError() : err_null;
     if (log_result) {
-      DWORD error = GetLastError();
       PrintOut(PRINT_BAD,
-               "raw_mouse: Failed to register raw input (error %d)\n", error);
-      if (error == ERROR_INVALID_PARAMETER) {
+               "raw_mouse: Failed to register raw input (error %lu)\n",
+               static_cast<unsigned long>(err_report));
+      if (err_report == ERROR_INVALID_PARAMETER) {
         PrintOut(PRINT_BAD,
-                 "raw_mouse: Parameter validation failed even with "
-                 "focus-following registration (hwndTarget=NULL)\n");
+                 "raw_mouse: Parameter validation failed for focus-following "
+                 "(NULL)%s\n",
+                 tried_fallback ? " and explicit-hwnd fallback" : "");
         RawMouseLogResolutionState(nullptr, PRINT_BAD);
         RawMouseLogRegisteredMouseDevice(PRINT_BAD);
       } else if (is_running_under_wine()) {
@@ -451,7 +512,7 @@ static bool RawMouseCommitRawInputRegistration(bool log_result) {
       }
     }
     RawMouseDropRegistration();
-    return false;
+    return RawMouseRegResult::Failed;
   }
 
   raw_mouse_registered = true;
@@ -461,7 +522,7 @@ static bool RawMouseCommitRawInputRegistration(bool log_result) {
              "(focus-following mode, hwndTarget=NULL)\n");
     RawMouseLogRegisteredMouseDevice(PRINT_DEV);
   }
-  return true;
+  return RawMouseRegResult::Ok;
 }
 #endif
 
@@ -491,7 +552,17 @@ void raw_mouse_ensure_registered(HWND hwnd_hint, bool log_register_attempts) {
     return;
   }
 #if SOFBUDDY_RAWINPUT_API_AVAILABLE
-  if (!RawMouseCommitRawInputRegistration(log_register_attempts)) return;
+  switch (RawMouseCommitRawInputRegistration(log_register_attempts)) {
+  case RawMouseRegResult::Ok:
+    raw_mouse_reg_deferred_to_gui_thread = false;
+    break;
+  case RawMouseRegResult::Deferred:
+    raw_mouse_reg_deferred_to_gui_thread = true;
+    return;
+  case RawMouseRegResult::Failed:
+    raw_mouse_reg_deferred_to_gui_thread = false;
+    return;
+  }
 #endif
 
   if (raw_mouse_hwnd_target) {

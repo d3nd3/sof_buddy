@@ -28,6 +28,10 @@ void raw_mouse_on_change(cvar_t *cvar)
         raw_mouse_ensure_registered(nullptr, true);
         if (raw_mouse_registered) {
             PrintOut(PRINT_DEV, "raw_mouse: Raw input is now ENABLED\n");
+        } else if (raw_mouse_reg_deferred_to_gui_thread) {
+            PrintOut(PRINT_LOG,
+                     "raw_mouse: Raw input enable pending (registration will "
+                     "complete on the game message thread)\n");
         } else {
             PrintOut(PRINT_BAD,
                      "raw_mouse: Raw input was requested but registration failed\n");
