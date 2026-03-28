@@ -39,7 +39,7 @@ References: MSDN [GetRawInputBuffer](https://learn.microsoft.com/en-us/windows/w
 - **Sys_SendKeyEvents** – Replaced entirely: `raw_mouse_consume_deltas()`, then `Sys_SendKeyEvents_Replacement()` (capped pump + frame time). Raw-buffer draining now lives in the `GetCursorPos` path.
 
 ## Custom detours
-- **SetCursorPos** (patch + GetProcAddress) – When enabled: treat as recenter; set `window_center`, return TRUE without moving OS cursor. Patched at IN_Frame, IN_MouseMove, IN_MenuMouse. When disabled: real SetCursorPos.
+- **SetCursorPos** (patch + GetProcAddress) – When enabled: treat as recenter; set `window_center`, return TRUE without moving OS cursor. Patched at IN_Frame, IN_MouseMove. When disabled: real SetCursorPos.
 
 ## Technical details
 - **Registration:** `raw_mouse_ensure_registered()` clears stale cached targets, resolves a usable game HWND for clip/focus tracking, and separately ensures the process-level raw mouse registration exists. The Win32 registration path always uses `hwndTarget = NULL` for the normal focused-app case, which removes the usual “bad HWND” source of error 87.

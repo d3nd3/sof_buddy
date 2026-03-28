@@ -56,8 +56,6 @@ extern void r_blendlightmaps_post_callback();
 extern void r_blendlightmaps_pre_callback();
 extern void raw_mouse_EarlyStartup();
 extern void raw_mouse_RefDllLoaded(char const* name);
-extern void raw_mouse_in_menumouse_post(cvar_t* cvar1, cvar_t* cvar2);
-extern void raw_mouse_in_menumouse_pre(cvar_t*& cvar1, cvar_t*& cvar2);
 extern void scaledCon_EarlyStartup();
 extern void scaledHud_RefDllLoaded(char const* name);
 extern void scaledUIBase_RefDllLoaded(char const* name);
@@ -160,19 +158,6 @@ inline void RegisterAllFeatureHooks() {
             []() { r_blendlightmaps_post_callback(); },
             100);
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] R_BlendLightmaps post callbacks: %zu\n", mgr.GetPostCallbackCount());
-    }
-    detour_IN_MenuMouse::GetManager().RegisterPreCallback(
-        "raw_mouse", "raw_mouse_in_menumouse_pre",
-        [](cvar_t*& cvar1, cvar_t*& cvar2) { raw_mouse_in_menumouse_pre(cvar1, cvar2); },
-        0);
-    {
-        auto& mgr = detour_IN_MenuMouse::GetManager();
-        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] IN_MenuMouse manager at 0x%p\n", &mgr);
-        mgr.RegisterPostCallback(
-            "raw_mouse", "raw_mouse_in_menumouse_post",
-            [](cvar_t* cvar1, cvar_t* cvar2) { raw_mouse_in_menumouse_post(cvar1, cvar2); },
-            0);
-        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] IN_MenuMouse post callbacks: %zu\n", mgr.GetPostCallbackCount());
     }
     detour_GL_FindImage::GetManager().RegisterPostCallback(
         "scaled_ui_base", "gl_findimage_post_callback",

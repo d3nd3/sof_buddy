@@ -153,10 +153,6 @@ namespace detour_Sys_SendKeyEvents {
     tSys_SendKeyEvents oSys_SendKeyEvents = nullptr;
 }
 
-namespace detour_IN_MenuMouse {
-    tIN_MenuMouse oIN_MenuMouse = nullptr;
-}
-
 namespace detour_GetCursorPos {
     tGetCursorPos oGetCursorPos = nullptr;
 }
@@ -572,17 +568,6 @@ namespace detour_Sys_SendKeyEvents {
     }
 }
 
-namespace detour_IN_MenuMouse {
-    ManagerType& GetManager() {
-        static ManagerType* instance = nullptr;
-        if (!instance) {
-            static char storage[sizeof(ManagerType)];
-            instance = new(storage) ManagerType();
-        }
-        return *instance;
-    }
-}
-
 namespace detour_GetCursorPos {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
@@ -747,17 +732,6 @@ namespace detour_CinematicFreeze {
             oCinematicFreeze(bEnable);
         }
         if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost(bEnable);
-    }
-}
-
-namespace detour_IN_MenuMouse {
-    void __cdecl hkIN_MenuMouse(cvar_t* cvar1, cvar_t* cvar2) {
-        ManagerType& mgr = GetManager();
-        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre(cvar1, cvar2);
-        if (oIN_MenuMouse) {
-            oIN_MenuMouse(cvar1, cvar2);
-        }
-        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost(cvar1, cvar2);
     }
 }
 

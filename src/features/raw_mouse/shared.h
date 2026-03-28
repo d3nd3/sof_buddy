@@ -56,6 +56,5 @@ void PumpWindowMessagesCapped(bool from_winmain);
 void Sys_SendKeyEvents_Replacement();
 void raw_mouse_install_winmain_peek_detour();
 BOOL __stdcall hkSetCursorPos(int X, int Y);
-bool raw_mouse_in_menumouse_scope();
 
 #endif // FEATURE_RAW_MOUSE

@@ -1,5 +1,9 @@
 # Changelog
 
+## v5.4
+
+- Raw mouse: removed the `IN_MenuMouse` engine hook (SofExe `0x4A420`), Pre/Post callbacks, and `in_menumouse.cpp`. `GetCursorPos` no longer takes a special “real API” path while menu-mouse runs; with raw mouse enabled it always drains pending mickeys and reports the synthetic cursor position like other code paths.
+
 ## v5.3
 
 - Raw mouse: if `RegisterRawInputDevices` returns `ERROR_INVALID_PARAMETER` (87) for focus-following registration (`hwndTarget=NULL`), retry once with an explicit same-process top-level HWND (resolved via `cl_hwnd`, window heuristics, or foreground when it belongs to the game process). Non-null `hwndTarget` must be owned by the calling process; comments in `raw_shared.cpp` document that Win32 rule.
