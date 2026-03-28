@@ -34,8 +34,6 @@ extern int raw_mouse_delta_y;
 extern POINT window_center;
 extern bool raw_mouse_center_valid;
 extern bool raw_mouse_registered;
-/** True when RegisterRawInputDevices was skipped because we are not on the game GUI thread. */
-extern bool raw_mouse_reg_deferred_to_gui_thread;
 extern bool raw_mouse_cursor_clipped;
 extern HWND raw_mouse_hwnd_target;
 

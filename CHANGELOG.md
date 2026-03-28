@@ -2,9 +2,9 @@
 
 ## v5.3
 
-- Raw mouse: if `RegisterRawInputDevices` returns `ERROR_INVALID_PARAMETER` (87) for focus-following registration (`hwndTarget=NULL`), retry once with an explicit top-level HWND resolved from the game window and foreground heuristics.
-- Raw mouse: call `RegisterRawInputDevices` only on the thread that owns `cl_hwnd`; other threads defer. `DispatchMessageA` retries registration while raw mouse is enabled and not yet registered so deferred work completes on the game message thread.
-- Raw mouse: when enable is deferred, the `_sofbuddy_rawmouse` cvar path logs that registration is pending instead of reporting a hard failure.
+- Raw mouse: if `RegisterRawInputDevices` returns `ERROR_INVALID_PARAMETER` (87) for focus-following registration (`hwndTarget=NULL`), retry once with an explicit same-process top-level HWND (resolved via `cl_hwnd`, window heuristics, or foreground when it belongs to the game process). Non-null `hwndTarget` must be owned by the calling process; comments in `raw_shared.cpp` document that Win32 rule.
+- Raw mouse: `DispatchMessageA` calls `raw_mouse_ensure_registered` while `_sofbuddy_rawmouse` is on and registration is not complete yet, so enable still settles if the first attempt runs before the pump has ticked.
+- Raw mouse: `RegisterRawInputDevices` may still be invoked from the cvar path or other threads (same as v5.2); raw input registration is per-process and must not be restricted to the window thread only.
 
 ## v5.2
 
