@@ -34,21 +34,21 @@ std::string stem_from_filename(const std::string& filename) {
 }
 
 void create_loading_cvars() {
-    if (!orig_Cvar_Get) return;
+    if (!detour_Cvar_Get::oCvar_Get) return;
 
     // Runtime loading UI state cvars.
     constexpr int kLoadingCvarFlags = 0;
 
-	orig_Cvar_Get("_sofbuddy_loading_progress", "", kLoadingCvarFlags, nullptr);
-	orig_Cvar_Get("_sofbuddy_loading_current", "", kLoadingCvarFlags, nullptr);
-	orig_Cvar_Get("_sofbuddy_loading_status", "CHECKING", kLoadingCvarFlags, nullptr);
-	orig_Cvar_Get("_sofbuddy_tab", "0", 0, nullptr);
+	detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_progress", "", kLoadingCvarFlags, nullptr);
+	detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_current", "", kLoadingCvarFlags, nullptr);
+	detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_status", "CHECKING", kLoadingCvarFlags, nullptr);
+	detour_Cvar_Get::oCvar_Get("_sofbuddy_tab", "0", 0, nullptr);
     // User preference: keep loading menu input locked (default), or allow interaction.
-    orig_Cvar_Get("_sofbuddy_loading_lock_input", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_lock_input", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     // User preference: key used to open SoF Buddy menu.
-    orig_Cvar_Get("_sofbuddy_menu_hotkey", "F12", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_hotkey", "F12", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     // Performance profile selector used by Perf Tweaks page.
-    orig_Cvar_Get("_sofbuddy_perf_profile", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_perf_profile", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
 
 }
 
@@ -63,40 +63,40 @@ cvar_t* _sofbuddy_sb_tabs_row1_bias_px = nullptr;
 cvar_t* _sofbuddy_sb_tabs_row2_bias_px = nullptr;
 
 void create_layout_cvars() {
-    if (!orig_Cvar_Get) return;
+    if (!detour_Cvar_Get::oCvar_Get) return;
 
     constexpr int kLayoutCvarFlags = 0;
-    orig_Cvar_Get("_sofbuddy_menu_vid_w", "640", kLayoutCvarFlags, nullptr);
-    orig_Cvar_Get("_sofbuddy_menu_vid_h", "480", kLayoutCvarFlags, nullptr);
-    orig_Cvar_Get("_sofbuddy_sb_center_panel_px", "640", kLayoutCvarFlags, nullptr);
-    orig_Cvar_Get("_sofbuddy_sb_tabs_row1_prefix_px", "96", kLayoutCvarFlags, nullptr);
-    orig_Cvar_Get("_sofbuddy_sb_tabs_row2_prefix_px", "36", kLayoutCvarFlags, nullptr);
-    orig_Cvar_Get("_sofbuddy_sb_tabs_row1_prefix_rmf", "<blank 96 1>", kLayoutCvarFlags, nullptr);
-    orig_Cvar_Get("_sofbuddy_sb_tabs_row2_prefix_rmf", "<blank 36 1>", kLayoutCvarFlags, nullptr);
-    orig_Cvar_Get("_sofbuddy_sb_tabs_row1_suffix_rmf", "<blank 96 1>", kLayoutCvarFlags, nullptr);
-    orig_Cvar_Get("_sofbuddy_sb_tabs_row2_suffix_rmf", "<blank 36 1>", kLayoutCvarFlags, nullptr);
-    _sofbuddy_sb_tabs_row1_content_px = orig_Cvar_Get("_sofbuddy_sb_tabs_row1_content_px", "400", kLayoutCvarFlags, nullptr);
-    _sofbuddy_sb_tabs_row2_content_px = orig_Cvar_Get("_sofbuddy_sb_tabs_row2_content_px", "520", kLayoutCvarFlags, nullptr);
-    _sofbuddy_sb_tabs_center_bias_px = orig_Cvar_Get("_sofbuddy_sb_tabs_center_bias_px", "0", kLayoutCvarFlags, nullptr);
-    _sofbuddy_sb_tabs_row1_bias_px = orig_Cvar_Get("_sofbuddy_sb_tabs_row1_bias_px", "0", kLayoutCvarFlags, nullptr);
-    _sofbuddy_sb_tabs_row2_bias_px = orig_Cvar_Get("_sofbuddy_sb_tabs_row2_bias_px", "0", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_vid_w", "640", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_vid_h", "480", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_center_panel_px", "640", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row1_prefix_px", "96", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row2_prefix_px", "36", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row1_prefix_rmf", "<blank 96 1>", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row2_prefix_rmf", "<blank 36 1>", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row1_suffix_rmf", "<blank 96 1>", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row2_suffix_rmf", "<blank 36 1>", kLayoutCvarFlags, nullptr);
+    _sofbuddy_sb_tabs_row1_content_px = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row1_content_px", "400", kLayoutCvarFlags, nullptr);
+    _sofbuddy_sb_tabs_row2_content_px = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row2_content_px", "520", kLayoutCvarFlags, nullptr);
+    _sofbuddy_sb_tabs_center_bias_px = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_center_bias_px", "0", kLayoutCvarFlags, nullptr);
+    _sofbuddy_sb_tabs_row1_bias_px = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row1_bias_px", "0", kLayoutCvarFlags, nullptr);
+    _sofbuddy_sb_tabs_row2_bias_px = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row2_bias_px", "0", kLayoutCvarFlags, nullptr);
 
     // SoF default for tip_duration is 2500ms; bump to 5000ms if untouched.
-    cvar_t* tip_duration = orig_Cvar_Get("tip_duration", "2500", 0, nullptr);
-    if (tip_duration && tip_duration->string && std::strcmp(tip_duration->string, "2500") == 0 && orig_Cvar_Set2)
-        orig_Cvar_Set2(const_cast<char*>("tip_duration"), const_cast<char*>("5000"), true);
+    cvar_t* tip_duration = detour_Cvar_Get::oCvar_Get("tip_duration", "2500", 0, nullptr);
+    if (tip_duration && tip_duration->string && std::strcmp(tip_duration->string, "2500") == 0 && detour_Cvar_Set2::oCvar_Set2)
+        detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("tip_duration"), const_cast<char*>("5000"), true);
 }
 
 void set_runtime_cvar_int(const char* name, int value) {
-    if (!orig_Cvar_Set2 || !name) return;
+    if (!detour_Cvar_Set2::oCvar_Set2 || !name) return;
     char buf[32];
     std::snprintf(buf, sizeof(buf), "%d", value);
-    orig_Cvar_Set2(const_cast<char*>(name), buf, true);
+    detour_Cvar_Set2::oCvar_Set2(const_cast<char*>(name), buf, true);
 }
 
 void set_runtime_cvar_str(const char* name, const char* value) {
-    if (!orig_Cvar_Set2 || !name || !value) return;
-    orig_Cvar_Set2(const_cast<char*>(name), const_cast<char*>(value), true);
+    if (!detour_Cvar_Set2::oCvar_Set2 || !name || !value) return;
+    detour_Cvar_Set2::oCvar_Set2(const_cast<char*>(name), const_cast<char*>(value), true);
 }
 
 std::string sanitize_menu_hotkey_token(const char* raw) {
@@ -123,17 +123,17 @@ std::string sanitize_menu_hotkey_token(const char* raw) {
 }
 
 void apply_menu_hotkey_binding() {
-    if (!orig_Cvar_Get || !orig_Cmd_ExecuteString) return;
+    if (!detour_Cvar_Get::oCvar_Get || !detour_Cmd_ExecuteString::oCmd_ExecuteString) return;
 
-    cvar_t* key_cvar = orig_Cvar_Get("_sofbuddy_menu_hotkey", "F12", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    cvar_t* key_cvar = detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_hotkey", "F12", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     const std::string key = sanitize_menu_hotkey_token((key_cvar && key_cvar->string) ? key_cvar->string : "F12");
 
-    if (orig_Cvar_Set2 && key_cvar && key_cvar->string && key != key_cvar->string)
-        orig_Cvar_Set2(const_cast<char*>("_sofbuddy_menu_hotkey"), const_cast<char*>(key.c_str()), true);
+    if (detour_Cvar_Set2::oCvar_Set2 && key_cvar && key_cvar->string && key != key_cvar->string)
+        detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_menu_hotkey"), const_cast<char*>(key.c_str()), true);
 
     char cmd[128];
     std::snprintf(cmd, sizeof(cmd), "bind %s \"sofbuddy_menu sof_buddy\"", key.c_str());
-    orig_Cmd_ExecuteString(cmd);
+    detour_Cmd_ExecuteString::oCmd_ExecuteString(cmd);
     PrintOut(PRINT_DEV, "Internal menus: bound %s to sofbuddy_menu sof_buddy\n", key.c_str());
 }
 
@@ -169,8 +169,8 @@ void apply_sofbuddy_perf_profile_common(const char* profile_value,
     set_runtime_cvar_str("ghl_mip", ghl_mip);
     set_runtime_cvar_str("gl_pictip", gl_pictip);
     set_runtime_cvar_str("gl_picmip", gl_picmip);
-    if (orig_Cmd_ExecuteString)
-        orig_Cmd_ExecuteString("refresh");
+    if (detour_Cmd_ExecuteString::oCmd_ExecuteString)
+        detour_Cmd_ExecuteString::oCmd_ExecuteString("refresh");
 }
 
 void Cmd_SoFBuddy_Apply_Profile_Comp_f() {
@@ -182,7 +182,7 @@ void Cmd_SoFBuddy_Apply_Profile_Visual_f() {
 }
 
 void update_layout_cvars(bool trigger_reloadall_if_changed) {
-    if (!orig_Cvar_Get || !orig_Cvar_Set2) return;
+    if (!detour_Cvar_Get::oCvar_Get || !detour_Cvar_Set2::oCvar_Set2) return;
 
     int vid_w = (current_vid_w > 0) ? current_vid_w : 0;
     int vid_h = (current_vid_h > 0) ? current_vid_h : 0;
@@ -235,8 +235,8 @@ void update_layout_cvars(bool trigger_reloadall_if_changed) {
 
 static int internal_menus_content_inset_px(void) {
     int inner_frame_px = 0;
-    if (orig_Cvar_Get) {
-        cvar_t* c = orig_Cvar_Get("_sofbuddy_sb_center_panel_px", "640", 0, nullptr);
+    if (detour_Cvar_Get::oCvar_Get) {
+        cvar_t* c = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_center_panel_px", "640", 0, nullptr);
         if (c && c->value > 0) inner_frame_px = static_cast<int>(c->value + 0.5f);
     }
     if (inner_frame_px <= 0) {
@@ -260,34 +260,39 @@ const char* internal_menus_get_content_inset_tall_rmf(void) {
 }
 
 bool internal_menus_should_lock_loading_input(void) {
-    if (!orig_Cvar_Get) return true;
-    cvar_t* c = orig_Cvar_Get("_sofbuddy_loading_lock_input", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    if (!detour_Cvar_Get::oCvar_Get) return true;
+    cvar_t* c = detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_lock_input", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     if (!c) return true;
     return c->value != 0.0f;
 }
 
-void loading_set_current(const char* map_name) {
-    if (!map_name || !orig_Cvar_Set2) return;
-    orig_Cvar_Set2(const_cast<char*>("_sofbuddy_loading_current"), const_cast<char*>(map_name), true);
+const char* internal_menus_loading_menu_name(void) {
+    // Unlocked input is for console preview during connect. The full loading stack includes
+    // loading_files (disconnect, legacy download bar, etc.); with lock off, focus/console
+    // routing can still hit those actions. Use a header-only + blank shell with no bindings.
+    return internal_menus_should_lock_loading_input() ? "loading/loading" : "loading/loading_safe";
 }
 
-namespace {
-    void (*g_SCR_UpdateScreen)(bool) = nullptr;
+void loading_set_current(const char* map_name) {
+    if (!map_name || !detour_Cvar_Set2::oCvar_Set2) return;
+    detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_current"), const_cast<char*>(map_name), true);
 }
+
 void internal_menus_call_SCR_UpdateScreen(bool force) {
-    if (g_SCR_UpdateScreen) g_SCR_UpdateScreen(force);
+    if (detour_SCR_UpdateScreen::oSCR_UpdateScreen) {
+        detour_SCR_UpdateScreen::oSCR_UpdateScreen(force);
+    }
 }
 void internal_menus_EarlyStartup(void) {
     internal_menus_load_library();
     materialize_embedded_menus_to_disk();
-    g_SCR_UpdateScreen = reinterpret_cast<void (*)(bool)>(rvaToAbsExe(reinterpret_cast<void*>(0x15FA0)));
     WriteNops(rvaToAbsExe(reinterpret_cast<void*>(0x13AAA)), 2);
     WriteNops(rvaToAbsExe(reinterpret_cast<void*>(0x13AC7)), 5);
     WriteNops(rvaToAbsExe(reinterpret_cast<void*>(0x13ACE)), 5);
 }
 
 void internal_menus_PostCvarInit(void) {
-    if (!orig_Cvar_Get) {
+    if (!detour_Cvar_Get::oCvar_Get) {
         PrintOut(PRINT_BAD, "Internal menus: missing Cvar_Get in PostCvarInit\n");
         return;
     }
@@ -296,30 +301,30 @@ void internal_menus_PostCvarInit(void) {
     create_layout_cvars();
     update_layout_cvars(false);
 
-    if (!orig_Cmd_AddCommand) {
+    if (!detour_Cmd_AddCommand::oCmd_AddCommand) {
         PrintOut(PRINT_BAD, "Internal menus: missing Cmd_AddCommand, cannot register sofbuddy_menu\n");
         return;
     }
 
-    orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_menu"), Cmd_SoFBuddy_Menu_f);
-    orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_apply_menu_hotkey"), Cmd_SoFBuddy_Apply_Menu_Hotkey_f);
-    orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_apply_profile_comp"), Cmd_SoFBuddy_Apply_Profile_Comp_f);
-    orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_apply_profile_visual"), Cmd_SoFBuddy_Apply_Profile_Visual_f);
+    detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_menu"), Cmd_SoFBuddy_Menu_f);
+    detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_apply_menu_hotkey"), Cmd_SoFBuddy_Apply_Menu_Hotkey_f);
+    detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_apply_profile_comp"), Cmd_SoFBuddy_Apply_Profile_Comp_f);
+    detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_apply_profile_visual"), Cmd_SoFBuddy_Apply_Profile_Visual_f);
 
     apply_menu_hotkey_binding();
 
-    if (orig_Cmd_ExecuteString)
-        orig_Cmd_ExecuteString("set rate 20000");
+    if (detour_Cmd_ExecuteString::oCmd_ExecuteString)
+        detour_Cmd_ExecuteString::oCmd_ExecuteString("set rate 20000");
 }
 
 void Cmd_SoFBuddy_Menu_f(void) {
-    if (!orig_Cmd_Argv || !orig_Cmd_Argc || !detour_M_PushMenu::oM_PushMenu) return;
-    if (orig_Cmd_Argc() < 2) return;
+    if (!detour_Cmd_Argv::oCmd_Argv || !detour_Cmd_Argc::oCmd_Argc || !detour_M_PushMenu::oM_PushMenu) return;
+    if (detour_Cmd_Argc::oCmd_Argc() < 2) return;
 
     // Keep injected RMF prefixes in sync with the current video mode before opening.
     update_layout_cvars(false);
 
-    const char* name = orig_Cmd_Argv(1);
+    const char* name = detour_Cmd_Argv::oCmd_Argv(1);
     if (!name || !name[0]) return;
 
     std::string requested(name);
@@ -368,10 +373,14 @@ void Cmd_SoFBuddy_Menu_f(void) {
 
     // SoF Buddy wrappers use <stm nopush>, so we do not need to force a killmenu
     // when switching tabs/pages there. Keep legacy replace behavior for other menus.
-    if (!is_sofbuddy_menu && orig_Cmd_ExecuteString)
-        orig_Cmd_ExecuteString("killmenu");
+    if (!is_sofbuddy_menu && detour_Cmd_ExecuteString::oCmd_ExecuteString)
+        detour_Cmd_ExecuteString::oCmd_ExecuteString("killmenu");
+
+    if (menu_to_push == "loading/loading")
+        menu_to_push = internal_menus_loading_menu_name();
 
     const bool is_loading_menu = (menu_to_push == "loading/loading") ||
+                                 (menu_to_push == "loading/loading_safe") ||
                                  (menu_to_push.rfind("loading/", 0) == 0);
     const bool lock_input = is_loading_menu ? internal_menus_should_lock_loading_input() : false;
 
@@ -385,7 +394,7 @@ void internal_menus_OnVidChanged(void) {
 void loading_show_ui(void) {
     if (detour_M_PushMenu::oM_PushMenu) {
         const bool lock_input = internal_menus_should_lock_loading_input();
-        detour_M_PushMenu::oM_PushMenu("loading/loading", "", lock_input);
+        detour_M_PushMenu::oM_PushMenu(internal_menus_loading_menu_name(), "", lock_input);
     }
 }
 

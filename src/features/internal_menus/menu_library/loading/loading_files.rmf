@@ -3,7 +3,6 @@
 <include tints>
 <defaults noborder tipfont title>
 <backdrop bgcolor black>
-<key enter "disconnect;menuoff">
 
 <font type title>
 <center>
