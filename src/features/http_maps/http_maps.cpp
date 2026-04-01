@@ -1017,7 +1017,7 @@ static bool partial_http_blobs(const char* url, std::vector<FileData>* zip_conte
 	PrintOut(PRINT_DEV, "http_maps: zip index fetch %s\n", url);
 	int file_size = http_maps_get_remote_file_size(urlw.c_str(), url);
 	if (file_size <= 0) {
-		PrintOut(PRINT_BAD, "http_maps: remote zip size unavailable (HTTPS). %s\n", url);
+		PrintOut(PRINT_DEV, "http_maps: remote zip size unavailable (HTTPS). %s\n", url);
 		return false;
 	}
 	PrintOut(PRINT_DEV, "http_maps: zip index %d bytes, tail scan step 100 %s\n", file_size, url);
@@ -1127,8 +1127,10 @@ static void http_maps_apply_progress_cvar(float p)
 {
 #if FEATURE_INTERNAL_MENUS
 	if (!detour_Cvar_Set2::oCvar_Set2) return;
+	const float clamped = http_maps_clamp_progress(p);
 	char val[32];
-	snprintf(val, sizeof(val), "%.2f", http_maps_clamp_progress(p));
+	snprintf(val, sizeof(val), "%.2f", clamped);
+	PrintOut(PRINT_DEV, "http_maps: UI _sofbuddy_loading_progress %s\n", val);
 	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_progress"), val, true);
 #endif
 }
@@ -1136,8 +1138,15 @@ static void http_maps_apply_progress_cvar(float p)
 #if FEATURE_INTERNAL_MENUS
 static void http_maps_set_loading_status(const char* status)
 {
-	PrintOut(PRINT_DEV, "http_maps: UI status %s\n", status);
+	PrintOut(PRINT_DEV, "http_maps: UI _sofbuddy_loading_status %s\n", status);
 	if (detour_Cvar_Set2::oCvar_Set2) detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_status"), const_cast<char*>(status), true);
+}
+
+static void http_maps_loading_ui_show_map(const char* map_bsp_path)
+{
+	PrintOut(PRINT_DEV, "http_maps: UI loading_show_ui; _sofbuddy_loading_current %s\n", map_bsp_path && map_bsp_path[0] ? map_bsp_path : "?");
+	loading_show_ui();
+	loading_set_current(map_bsp_path);
 }
 #endif
 
@@ -1146,7 +1155,9 @@ static void http_maps_clear_loading_cvars(bool reset_status = true)
 	http_maps_clear_pending_ui_updates();
 	if (!detour_Cvar_Set2::oCvar_Set2) return;
 #if FEATURE_INTERNAL_MENUS
+	PrintOut(PRINT_DEV, "http_maps: UI _sofbuddy_loading_progress (clear)\n");
 	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_progress"), const_cast<char*>(""), true);
+	PrintOut(PRINT_DEV, "http_maps: UI _sofbuddy_loading_current resolving...\n");
 	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_current"), const_cast<char*>("resolving..."), true);
 	if (reset_status) http_maps_set_loading_status("CHECKING");
 #endif
@@ -1383,16 +1394,22 @@ static void http_maps_download_worker(std::string map_bsp_path, std::string zip_
 			if (!http_maps_job_is_active(job_id)) break;
 			std::string full_path = userdir + "/" + fd.filename;
 			if (!http_maps_file_exists(full_path)) {
+				PrintOut(PRINT_DEV, "http_maps: CRC compare %s remote=%08X local=(missing) path=%s\n",
+					fd.filename.c_str(), fd.crc, full_path.c_str());
 				PrintOut(PRINT_LOG, "http_maps: Local file missing: %s\n", full_path.c_str());
 				do_download = true;
 				break;
 			}
 			uint32_t disk_crc = 0;
 			if (!http_maps_calculate_file_crc32(full_path, disk_crc)) {
+				PrintOut(PRINT_DEV, "http_maps: CRC compare %s remote=%08X local=(read failed) path=%s\n",
+					fd.filename.c_str(), fd.crc, full_path.c_str());
 				PrintOut(PRINT_LOG, "http_maps: Failed to calculate local CRC for %s\n", full_path.c_str());
 				do_download = true;
 				break;
 			}
+			PrintOut(PRINT_DEV, "http_maps: CRC compare %s remote=%08X local=%08X %s\n",
+				fd.filename.c_str(), fd.crc, disk_crc, disk_crc == fd.crc ? "match" : "mismatch");
 			if (disk_crc != fd.crc) {
 				PrintOut(PRINT_LOG, "http_maps: CRC mismatch for %s (local: %08X, remote: %08X)\n", full_path.c_str(), disk_crc, fd.crc);
 				do_download = true;
@@ -1414,8 +1431,13 @@ static void http_maps_download_worker(std::string map_bsp_path, std::string zip_
 			const std::string dl_url = provider.dl_base + "/" + zip_rel_path;
 		PrintOut(PRINT_DEV, "http_maps: worker GET %s\n", dl_url.c_str());
 		http_maps_queue_status(job_id, "Downloading map zip...");
+#if FEATURE_INTERNAL_MENUS
+		http_maps_set_loading_status("HTTP Downloading...");
+#else
+		PrintOut(PRINT_DEV, "http_maps: UI _sofbuddy_loading_status HTTP Downloading...\n");
 		if (detour_Cvar_Set2::oCvar_Set2)
 			detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_status"), const_cast<char*>("HTTP Downloading..."), true);
+#endif
 		if (http_maps_download_zip_winhttp(dl_url, temp_zip_path, job_id)) {
 			http_maps_queue_status(job_id, "Extracting zip to user/...");
 			PrintOut(PRINT_DEV, "http_maps: extract %s\n", map_bsp_path.c_str());
@@ -1501,14 +1523,14 @@ static void http_maps_start_worker(const std::string& map_bsp_path, detour_CL_Pr
 	http_maps_clear_pending_ui_updates();
 #if FEATURE_INTERNAL_MENUS
 	http_maps_apply_progress_cvar(0.0f);
-	loading_show_ui();
-	loading_set_current(map_bsp_path.c_str());
+	http_maps_loading_ui_show_map(map_bsp_path.c_str());
 #endif
 	try {
 		std::thread(http_maps_download_worker, map_bsp_path, zip_rel_path, job_id).detach();
 	} catch (...) {
 		PrintOut(PRINT_BAD, "http_maps: worker thread failed %s\n", map_bsp_path.c_str());
 #if FEATURE_INTERNAL_MENUS
+		PrintOut(PRINT_DEV, "http_maps: UI _sofbuddy_loading_zip_indicator loading/loading_zip_red\n");
 		if (detour_Cvar_Set2::oCvar_Set2)
 			detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_zip_indicator"), const_cast<char*>("loading/loading_zip_red"), true);
 #endif
@@ -1572,14 +1594,33 @@ void http_maps_on_parse_configstring_post(void)
 	std::string map_bsp_path;
 	if (!http_maps_read_map_from_memory(map_bsp_path, false, false)) return;
 	if (!http_maps_normalize_map_path(map_bsp_path)) return;
+	// After CL_Precache completes, http_maps sets completed_map_bsp. The server often sends a second
+	// full configstring wave right before/during spawn (after Serverdata). That must not call
+	// loading_show_ui again or restart the early worker — it looks like the loading screen returns
+	// and can disrupt the connection.
+	if (!g_http_maps_state.completed_map_bsp.empty() &&
+	    g_http_maps_state.completed_map_bsp == map_bsp_path) {
+		return;
+	}
 	if (g_http_maps_state.cached_map_bsp == map_bsp_path) return;
 	PrintOut(PRINT_LOG, "http_maps: ParseConfigString post: map %s (early)\n", map_bsp_path.c_str());
 	g_http_maps_state.cached_map_bsp = map_bsp_path;
 #if FEATURE_INTERNAL_MENUS
-	loading_show_ui();
-	loading_set_current(map_bsp_path.c_str());
+	http_maps_loading_ui_show_map(map_bsp_path.c_str());
 #endif
 	http_maps_try_start_worker_early(map_bsp_path);
+}
+
+bool http_maps_should_skip_loading_plaque_menu(void)
+{
+	if (!http_maps_is_enabled()) return false;
+	std::string map_bsp_path;
+	if (!http_maps_read_map_from_memory(map_bsp_path, false, false)) return false;
+	if (!http_maps_normalize_map_path(map_bsp_path)) return false;
+	// After precache, a second SCR_BeginLoadingPlaque often runs; killmenu+push flashes the loading
+	// UI and can destabilize the client right before spawn.
+	return !g_http_maps_state.completed_map_bsp.empty() &&
+	       g_http_maps_state.completed_map_bsp == map_bsp_path;
 }
 
 void http_maps_try_begin_precache(detour_CL_Precache_f::tCL_Precache_f original)
@@ -1614,10 +1655,6 @@ void http_maps_try_begin_precache(detour_CL_Precache_f::tCL_Precache_f original)
 		g_http_maps_state.continue_callback = original;
 		g_http_maps_state.loading_ui_active = true;
 		g_http_maps_state.loading_ui_map = map_bsp_path;
-#if FEATURE_INTERNAL_MENUS
-		loading_show_ui();
-		loading_set_current(map_bsp_path.c_str());
-#endif
 		// deferred_continue_reason is only set in http_maps_pump() when the worker has finished.
 		// If the worker completed before this CL_Precache_f hook ran, run_deferred_continue_if_pending()
 		// alone would no-op forever; pump consumes worker_result and then continues precache.
@@ -1629,15 +1666,25 @@ void http_maps_try_begin_precache(detour_CL_Precache_f::tCL_Precache_f original)
 	http_maps_start_worker(map_bsp_path, original);
 }
 
-static int s_last_cls_state = -1;
+// cls.state can glitch to ca_disconnected for a single frame during map load / configstring churn.
+// Resetting http_maps there clears cached_map_bsp / completed_map_bsp while still connected, which
+// retriggers early worker + loading UI and looks like a stuck reconnect loop.
+// Require two consecutive observations of ca_disconnected (call from one site per frame only).
+static int s_prev_cls_state_for_http_maps = -1;
+static bool s_http_maps_reset_done_while_disconnected = false;
 
 void http_maps_on_frame_cls_state(int state)
 {
-	if (state == (int)ca_disconnected) {
-		if (s_last_cls_state != (int)ca_disconnected)
+	const int disc = static_cast<int>(ca_disconnected);
+	if (state == disc) {
+		if (s_prev_cls_state_for_http_maps == disc && !s_http_maps_reset_done_while_disconnected) {
 			http_maps_reset_state();
+			s_http_maps_reset_done_while_disconnected = true;
+		}
+	} else {
+		s_http_maps_reset_done_while_disconnected = false;
 	}
-	s_last_cls_state = state;
+	s_prev_cls_state_for_http_maps = state;
 }
 
 bool http_maps_frame_work_pending(void)
@@ -1657,7 +1704,10 @@ void http_maps_pump(void)
 	if (!g_http_maps_state.waiting) return;
 	if (g_http_maps_state.waiting_started_ms != 0) {
 		const DWORD elapsed = GetTickCount() - g_http_maps_state.waiting_started_ms;
-		if (elapsed >= kHttpMapsContinueWatchdogMs && !g_http_maps_state.deferred_continue_reason) {
+		// Watchdog only applies once CL_Precache_f has registered continue_callback. Early worker
+		// (ParseConfigString before precache) can finish with callback still null — do not force continue.
+		if (elapsed >= kHttpMapsContinueWatchdogMs && !g_http_maps_state.deferred_continue_reason &&
+			g_http_maps_state.continue_callback) {
 			PrintOut(PRINT_BAD, "http_maps: wait timeout %lu ms, continuing precache\n", static_cast<unsigned long>(elapsed));
 			g_http_maps_state.deferred_continue_reason = "http wait watchdog timeout";
 		}
@@ -1668,9 +1718,34 @@ void http_maps_pump(void)
 		return;
 	}
 
+	// ParseConfigString may start the download worker with continue_callback == nullptr. If the worker
+	// finishes before CL_Precache_f runs, keep worker_result until the callback exists or we never
+	// run the real precache (and mark the map complete without loading), which breaks the client and
+	// can look like a connect/reconnect loop — especially when loading UI timing differs (e.g. unlocked input).
+	if (!g_http_maps_state.continue_callback) {
+		const int wr = g_http_maps_state.worker_result.load(std::memory_order_acquire);
+		if (wr != static_cast<int>(HttpMapsWorkerResult::None)) {
+			// Worker may have already concluded "assume local/PAK" (e.g. CRC list unavailable).
+			// Even while we defer continue until CL_Precache_f registers callback, keep UI status
+			// truthful by checking engine FS now on the main thread.
+#if FEATURE_INTERNAL_MENUS
+			if (detour_Cvar_Set2::oCvar_Set2 && !g_http_maps_state.pending_map_bsp.empty()) {
+				const bool map_present = http_maps_map_exists_via_engine(g_http_maps_state.pending_map_bsp);
+				http_maps_set_loading_status(map_present ? "MAP PRESENT" : "UDP Downloading...");
+			}
+#endif
+			http_maps_run_deferred_continue_if_pending();
+			return;
+		}
+	}
+
 	const HttpMapsWorkerResult result = static_cast<HttpMapsWorkerResult>(
 		g_http_maps_state.worker_result.exchange(static_cast<int>(HttpMapsWorkerResult::None), std::memory_order_acq_rel)
 	);
+	if (result == HttpMapsWorkerResult::None) {
+		http_maps_run_deferred_continue_if_pending();
+		return;
+	}
 #if FEATURE_INTERNAL_MENUS
 	if (detour_Cvar_Set2::oCvar_Set2) {
 		// Clear worker flags (used for logging / future UI); final label is always derived from engine FS.
@@ -1705,6 +1780,11 @@ static void http_maps_continue_precache(const char* reason)
 {
 	(void)reason;
 	detour_CL_Precache_f::tCL_Precache_f callback = g_http_maps_state.continue_callback;
+	if (!callback) {
+		// Defensive: should not clear state without running the engine precache path.
+		g_http_maps_state.deferred_continue_reason = reason;
+		return;
+	}
 	std::string map_name = g_http_maps_state.pending_map_bsp;
 	g_http_maps_state.completed_map_bsp = map_name; // Mark this map as fully processed.
 	g_http_maps_state.waiting = false;
