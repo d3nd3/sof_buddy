@@ -11,6 +11,7 @@
 #include "crc32.h"
 #include "util.h"
 #include "shared.h"
+#include "generated_detours.h"
 #if FEATURE_INTERNAL_MENUS
 #include "features/internal_menus/shared.h"
 #endif
@@ -18,8 +19,31 @@
 #include <windows.h>
 #include <winhttp.h>
 
+// Older SDKs may omit TLS 1.2 flags used by WinHttpSetOption(SECURE_PROTOCOLS).
+#ifndef WINHTTP_OPTION_SECURE_PROTOCOLS
+#define WINHTTP_OPTION_SECURE_PROTOCOLS 84
+#endif
+#ifndef WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2
+#define WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 0x00000800
+#endif
+#ifndef WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1
+#define WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 0x00000200
+#endif
+#ifndef WINHTTP_FLAG_SECURE_PROTOCOL_TLS1
+#define WINHTTP_FLAG_SECURE_PROTOCOL_TLS1 0x00000080
+#endif
+// Schannel "soft" failures (offline CRL, EKU mismatch) often surface as 12157 unless ignored.
+#ifndef SECURITY_FLAG_IGNORE_CERT_WRONG_USAGE
+#define SECURITY_FLAG_IGNORE_CERT_WRONG_USAGE 0x00000200
+#endif
+#ifndef SECURITY_FLAG_IGNORE_REVOCATION
+#define SECURITY_FLAG_IGNORE_REVOCATION 0x00000080
+#endif
+
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <cwchar>
 #include <string>
 #include <algorithm>
 #include <cctype>
@@ -338,7 +362,7 @@ static bool http_maps_calculate_file_crc32(const std::string& path, uint32_t& ou
 {
 	FILE* fp = std::fopen(path.c_str(), "rb");
 	if (!fp) {
-		PrintOut(PRINT_BAD, "http_maps: Failed to open file for CRC: %s\n", path.c_str());
+		PrintOut(PRINT_BAD, "http_maps: CRC open failed %s\n", path.c_str());
 		return false;
 	}
 	uint32_t crc = 0;
@@ -348,7 +372,7 @@ static bool http_maps_calculate_file_crc32(const std::string& path, uint32_t& ou
 	const bool ok = std::ferror(fp) == 0;
 	std::fclose(fp);
 	if (!ok) {
-		PrintOut(PRINT_BAD, "http_maps: Error reading file while computing CRC: %s\n", path.c_str());
+		PrintOut(PRINT_BAD, "http_maps: CRC read failed %s\n", path.c_str());
 		return false;
 	}
 	out_crc = crc;
@@ -378,13 +402,13 @@ static bool http_maps_try_get_zip_map_crc(const std::string& zip_path, const std
 {
 	std::ifstream zip(zip_path, std::ios::binary);
 	if (!zip.is_open()) {
-		PrintOut(PRINT_BAD, "http_maps: Failed to open zip for CRC lookup: %s\n", zip_path.c_str());
+		PrintOut(PRINT_BAD, "http_maps: zip open failed %s\n", zip_path.c_str());
 		return false;
 	}
 	zip.seekg(0, std::ios::end);
 	std::streamoff file_size_stream = zip.tellg();
 	if (file_size_stream < 22) {
-		PrintOut(PRINT_BAD, "http_maps: Zip is too small/corrupt: %s\n", zip_path.c_str());
+		PrintOut(PRINT_BAD, "http_maps: zip too small %s\n", zip_path.c_str());
 		return false;
 	}
 	const uint64_t file_size = static_cast<uint64_t>(file_size_stream);
@@ -396,7 +420,7 @@ static bool http_maps_try_get_zip_map_crc(const std::string& zip_path, const std
 	zip.seekg(static_cast<std::streamoff>(tail_offset_u64), std::ios::beg);
 	zip.read(reinterpret_cast<char*>(tail.data()), static_cast<std::streamsize>(tail_size));
 	if (!zip || static_cast<size_t>(zip.gcount()) != tail_size) {
-		PrintOut(PRINT_BAD, "http_maps: Failed reading zip tail for EOCD: %s\n", zip_path.c_str());
+		PrintOut(PRINT_BAD, "http_maps: zip tail read failed %s\n", zip_path.c_str());
 		return false;
 	}
 	size_t eocd_pos = 0;
@@ -413,7 +437,7 @@ static bool http_maps_try_get_zip_map_crc(const std::string& zip_path, const std
 		if (i == 0) break;
 	}
 	if (!found_eocd) {
-		PrintOut(PRINT_BAD, "http_maps: EOCD not found in zip: %s\n", zip_path.c_str());
+		PrintOut(PRINT_BAD, "http_maps: zip EOCD missing %s\n", zip_path.c_str());
 		return false;
 	}
 	const unsigned char* eocd = &tail[eocd_pos];
@@ -421,19 +445,19 @@ static bool http_maps_try_get_zip_map_crc(const std::string& zip_path, const std
 	const uint32_t central_dir_offset = http_maps_read_le32(&eocd[16]);
 	const uint64_t central_dir_end = static_cast<uint64_t>(central_dir_offset) + static_cast<uint64_t>(central_dir_size);
 	if (central_dir_end > file_size) {
-		PrintOut(PRINT_BAD, "http_maps: Zip central directory exceeds file bounds: %s\n", zip_path.c_str());
+		PrintOut(PRINT_BAD, "http_maps: zip CD out of bounds %s\n", zip_path.c_str());
 		return false;
 	}
 	std::vector<unsigned char> central_dir(static_cast<size_t>(central_dir_size));
 	zip.clear();
 	zip.seekg(static_cast<std::streamoff>(central_dir_offset), std::ios::beg);
 	if (central_dir.empty()) {
-		PrintOut(PRINT_BAD, "http_maps: Zip central directory is empty: %s\n", zip_path.c_str());
+		PrintOut(PRINT_BAD, "http_maps: zip CD empty %s\n", zip_path.c_str());
 		return false;
 	}
 	zip.read(reinterpret_cast<char*>(central_dir.data()), static_cast<std::streamsize>(central_dir.size()));
 	if (!zip || static_cast<size_t>(zip.gcount()) != central_dir.size()) {
-		PrintOut(PRINT_BAD, "http_maps: Failed reading central directory from zip: %s\n", zip_path.c_str());
+		PrintOut(PRINT_BAD, "http_maps: zip CD read failed %s\n", zip_path.c_str());
 		return false;
 	}
 	const std::string wanted = http_maps_normalize_path_for_compare(expected_map_bsp);
@@ -452,7 +476,7 @@ static bool http_maps_try_get_zip_map_crc(const std::string& zip_path, const std
 		const uint16_t comment_len = http_maps_read_le16(&central_dir[pos + 32]);
 		const size_t entry_size = 46u + static_cast<size_t>(name_len) + static_cast<size_t>(extra_len) + static_cast<size_t>(comment_len);
 		if (pos + entry_size > central_dir.size()) {
-			PrintOut(PRINT_BAD, "http_maps: Corrupt central directory entry in zip: %s\n", zip_path.c_str());
+			PrintOut(PRINT_BAD, "http_maps: zip CD corrupt %s\n", zip_path.c_str());
 			return false;
 		}
 		std::string entry_name(reinterpret_cast<const char*>(&central_dir[pos + 46]), name_len);
@@ -473,7 +497,7 @@ static bool http_maps_try_get_zip_map_crc(const std::string& zip_path, const std
 		out_crc = first_bsp_crc;
 		return true;
 	}
-	PrintOut(PRINT_BAD, "http_maps: Could not find expected map BSP CRC in zip: %s\n", zip_path.c_str());
+	PrintOut(PRINT_BAD, "http_maps: map BSP not in zip %s\n", zip_path.c_str());
 	return false;
 }
 
@@ -527,7 +551,254 @@ static void extractCentralDirectory(const unsigned char* central_dir, int cd_siz
 	}
 }
 
-static int partial_header_content_length(const wchar_t* urlw)
+static void http_maps_winhttp_apply_session_options(HINTERNET hSession)
+{
+	DWORD to_ms = kHttpMapsRequestTimeoutMs;
+	WinHttpSetOption(hSession, WINHTTP_OPTION_CONNECT_TIMEOUT, &to_ms, sizeof(to_ms));
+	WinHttpSetOption(hSession, WINHTTP_OPTION_SEND_TIMEOUT, &to_ms, sizeof(to_ms));
+	WinHttpSetOption(hSession, WINHTTP_OPTION_RECEIVE_TIMEOUT, &to_ms, sizeof(to_ms));
+	DWORD redirect_policy = WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS;
+	WinHttpSetOption(hSession, WINHTTP_OPTION_REDIRECT_POLICY, &redirect_policy, sizeof(redirect_policy));
+	// Modern HTTPS (e.g. GitHub Pages) requires TLS 1.2+; default WinHTTP on older Windows may negotiate SSL3/TLS1.0 only.
+	DWORD secure_protocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1;
+	WinHttpSetOption(hSession, WINHTTP_OPTION_SECURE_PROTOCOLS, &secure_protocols, sizeof(secure_protocols));
+}
+
+// Per-request TLS + cert flags. 12157 (SECURE_CHANNEL_ERROR) on WinHttpSendRequest: repeat TLS bitmask on
+// the request (some builds only honor it here) and relax Schannel checks (CRL/EKU) that still fail with IGNORE_UNKNOWN_CA alone.
+static void http_maps_winhttp_apply_https_request_options(HINTERNET hRequest)
+{
+	DWORD secure_protocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1;
+	(void)WinHttpSetOption(hRequest, WINHTTP_OPTION_SECURE_PROTOCOLS, &secure_protocols, sizeof(secure_protocols));
+	DWORD sec_flags = SECURITY_FLAG_IGNORE_UNKNOWN_CA | SECURITY_FLAG_IGNORE_CERT_CN_INVALID |
+		SECURITY_FLAG_IGNORE_CERT_DATE_INVALID | SECURITY_FLAG_IGNORE_CERT_WRONG_USAGE | SECURITY_FLAG_IGNORE_REVOCATION;
+	(void)WinHttpSetOption(hRequest, WINHTTP_OPTION_SECURITY_FLAGS, &sec_flags, sizeof(sec_flags));
+}
+
+static void http_maps_discard_response_body(HINTERNET hRequest)
+{
+	DWORD avail = 0;
+	unsigned char buf[16384];
+	while (WinHttpQueryDataAvailable(hRequest, &avail) && avail > 0) {
+		DWORD read = 0;
+		if (!WinHttpReadData(hRequest, buf, (avail > sizeof(buf)) ? sizeof(buf) : avail, &read) || read == 0) break;
+	}
+}
+
+static void http_maps_dev_err(const char* stage, DWORD err, const char* url)
+{
+	PrintOut(PRINT_DEV, "http_maps: %s err=%lu %s\n", stage, static_cast<unsigned long>(err), url && url[0] ? url : "");
+}
+
+static void http_maps_dev_err_rng(int range_lo, int range_hi, const char* what, DWORD err, const char* url)
+{
+	char stage[112];
+	std::snprintf(stage, sizeof(stage), "range[%d-%d] %s", range_lo, range_hi, what);
+	http_maps_dev_err(stage, err, url);
+}
+
+// Parses "bytes 0-0/1317119" or "bytes 0-99/1317119" (value from Content-Range header).
+static int http_maps_parse_content_range_total_w(const wchar_t* cr)
+{
+	if (!cr || !*cr) return 0;
+	const wchar_t* slash = nullptr;
+	for (const wchar_t* p = cr; *p; ++p)
+		if (*p == L'/') slash = p;
+	if (!slash || !slash[1]) return 0;
+	if (slash[1] == L'*') return 0;
+	const long long n = std::wcstoll(slash + 1, nullptr, 10);
+	if (n <= 0 || n > static_cast<long long>(INT_MAX)) return 0;
+	return static_cast<int>(n);
+}
+
+// GET with Range: bytes=0-0 — works when HEAD fails (proxies, WinHTTP quirks) or omits Content-Length.
+static int http_maps_probe_file_size_via_get_range(const wchar_t* urlw, const char* log_url)
+{
+	URL_COMPONENTS uc = {};
+	uc.dwStructSize = sizeof(uc);
+	wchar_t host[256] = {}, path[2048] = {};
+	uc.lpszHostName = host;
+	uc.dwHostNameLength = 256;
+	uc.lpszUrlPath = path;
+	uc.dwUrlPathLength = 2048;
+
+	if (!WinHttpCrackUrl(urlw, 0, 0, &uc)) {
+		http_maps_dev_err("size[Range] CrackUrl", GetLastError(), log_url);
+		return 0;
+	}
+
+	HINTERNET hSession = WinHttpOpen(L"SoFBuddy/1.0", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+	if (!hSession) {
+		http_maps_dev_err("size[Range] WinHttpOpen", GetLastError(), log_url);
+		return 0;
+	}
+	http_maps_winhttp_apply_session_options(hSession);
+
+	HINTERNET hConnect = WinHttpConnect(hSession, uc.lpszHostName, uc.nPort, 0);
+	if (!hConnect) {
+		http_maps_dev_err("size[Range] Connect", GetLastError(), log_url);
+		WinHttpCloseHandle(hSession);
+		return 0;
+	}
+
+	HINTERNET hRequest = WinHttpOpenRequest(hConnect, L"GET", uc.lpszUrlPath, nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, (uc.nScheme == INTERNET_SCHEME_HTTPS) ? WINHTTP_FLAG_SECURE : 0);
+	if (!hRequest) {
+		http_maps_dev_err("size[Range] OpenRequest", GetLastError(), log_url);
+		WinHttpCloseHandle(hConnect);
+		WinHttpCloseHandle(hSession);
+		return 0;
+	}
+
+	if (uc.nScheme == INTERNET_SCHEME_HTTPS)
+		http_maps_winhttp_apply_https_request_options(hRequest);
+
+	if (!WinHttpAddRequestHeaders(hRequest, L"Range: bytes=0-0", -1, WINHTTP_ADDREQ_FLAG_ADD)) {
+		http_maps_dev_err("size[Range] Add Range hdr", GetLastError(), log_url);
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		WinHttpCloseHandle(hSession);
+		return 0;
+	}
+
+	if (!WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0)) {
+		http_maps_dev_err("size[Range] SendRequest", GetLastError(), log_url);
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		WinHttpCloseHandle(hSession);
+		return 0;
+	}
+
+	if (!WinHttpReceiveResponse(hRequest, nullptr)) {
+		http_maps_dev_err("size[Range] ReceiveResponse", GetLastError(), log_url);
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		WinHttpCloseHandle(hSession);
+		return 0;
+	}
+
+	DWORD status = 0;
+	DWORD statusLen = sizeof(status);
+	if (!WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX, &status, &statusLen, WINHTTP_NO_HEADER_INDEX)) {
+		http_maps_dev_err("size[Range] QueryStatus", GetLastError(), log_url);
+		http_maps_discard_response_body(hRequest);
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		WinHttpCloseHandle(hSession);
+		return 0;
+	}
+
+	int file_size = 0;
+	if (status == 206) {
+		wchar_t crBuf[512];
+		DWORD crLen = sizeof(crBuf);
+		if (WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_CUSTOM, L"Content-Range", crBuf, &crLen, WINHTTP_NO_HEADER_INDEX))
+			file_size = http_maps_parse_content_range_total_w(crBuf);
+		if (file_size <= 0)
+			PrintOut(PRINT_DEV, "http_maps: size[Range] HTTP 206, no Content-Range %s\n", log_url && log_url[0] ? log_url : "");
+	} else if (status == 200) {
+		wchar_t lenBuf[64];
+		DWORD lenLen = sizeof(lenBuf);
+		if (WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_CONTENT_LENGTH, WINHTTP_HEADER_NAME_BY_INDEX, lenBuf, &lenLen, WINHTTP_NO_HEADER_INDEX))
+			file_size = _wtoi(lenBuf);
+	} else {
+		PrintOut(PRINT_DEV, "http_maps: size[Range] HTTP %lu (need 206 or 200) %s\n", static_cast<unsigned long>(status), log_url && log_url[0] ? log_url : "");
+	}
+
+	http_maps_discard_response_body(hRequest);
+	WinHttpCloseHandle(hRequest);
+	WinHttpCloseHandle(hConnect);
+	WinHttpCloseHandle(hSession);
+	return file_size;
+}
+
+// GET without Range: read Content-Length from a 200 response, then discard the body (HEAD/Range sometimes fail on proxies or old stacks).
+static int http_maps_probe_file_size_via_full_get(const wchar_t* urlw, const char* log_url)
+{
+	URL_COMPONENTS uc = {};
+	uc.dwStructSize = sizeof(uc);
+	wchar_t host[256] = {}, path[2048] = {};
+	uc.lpszHostName = host;
+	uc.dwHostNameLength = 256;
+	uc.lpszUrlPath = path;
+	uc.dwUrlPathLength = 2048;
+
+	if (!WinHttpCrackUrl(urlw, 0, 0, &uc)) {
+		http_maps_dev_err("size[GET] CrackUrl", GetLastError(), log_url);
+		return 0;
+	}
+
+	HINTERNET hSession = WinHttpOpen(L"SoFBuddy/1.0", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+	if (!hSession) {
+		http_maps_dev_err("size[GET] WinHttpOpen", GetLastError(), log_url);
+		return 0;
+	}
+	http_maps_winhttp_apply_session_options(hSession);
+
+	HINTERNET hConnect = WinHttpConnect(hSession, uc.lpszHostName, uc.nPort, 0);
+	if (!hConnect) {
+		http_maps_dev_err("size[GET] Connect", GetLastError(), log_url);
+		WinHttpCloseHandle(hSession);
+		return 0;
+	}
+
+	HINTERNET hRequest = WinHttpOpenRequest(hConnect, L"GET", uc.lpszUrlPath, nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, (uc.nScheme == INTERNET_SCHEME_HTTPS) ? WINHTTP_FLAG_SECURE : 0);
+	if (!hRequest) {
+		http_maps_dev_err("size[GET] OpenRequest", GetLastError(), log_url);
+		WinHttpCloseHandle(hConnect);
+		WinHttpCloseHandle(hSession);
+		return 0;
+	}
+
+	if (uc.nScheme == INTERNET_SCHEME_HTTPS)
+		http_maps_winhttp_apply_https_request_options(hRequest);
+
+	if (!WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0)) {
+		http_maps_dev_err("size[GET] SendRequest", GetLastError(), log_url);
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		WinHttpCloseHandle(hSession);
+		return 0;
+	}
+
+	if (!WinHttpReceiveResponse(hRequest, nullptr)) {
+		http_maps_dev_err("size[GET] ReceiveResponse", GetLastError(), log_url);
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		WinHttpCloseHandle(hSession);
+		return 0;
+	}
+
+	DWORD status = 0;
+	DWORD statusLen = sizeof(status);
+	if (!WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX, &status, &statusLen, WINHTTP_NO_HEADER_INDEX)) {
+		http_maps_dev_err("size[GET] QueryStatus", GetLastError(), log_url);
+		http_maps_discard_response_body(hRequest);
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		WinHttpCloseHandle(hSession);
+		return 0;
+	}
+
+	int file_size = 0;
+	if (status == 200) {
+		wchar_t lenBuf[64];
+		DWORD lenLen = sizeof(lenBuf);
+		if (WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_CONTENT_LENGTH, WINHTTP_HEADER_NAME_BY_INDEX, lenBuf, &lenLen, WINHTTP_NO_HEADER_INDEX))
+			file_size = _wtoi(lenBuf);
+		if (file_size <= 0)
+			PrintOut(PRINT_DEV, "http_maps: size[GET] HTTP 200, no Content-Length %s\n", log_url && log_url[0] ? log_url : "");
+	} else {
+		PrintOut(PRINT_DEV, "http_maps: size[GET] HTTP %lu (need 200) %s\n", static_cast<unsigned long>(status), log_url && log_url[0] ? log_url : "");
+	}
+
+	http_maps_discard_response_body(hRequest);
+	WinHttpCloseHandle(hRequest);
+	WinHttpCloseHandle(hConnect);
+	WinHttpCloseHandle(hSession);
+	return file_size;
+}
+
+static int http_maps_head_content_length(const wchar_t* urlw, const char* log_url)
 {
 	int file_size = 0;
 	URL_COMPONENTS uc = {};
@@ -538,34 +809,38 @@ static int partial_header_content_length(const wchar_t* urlw)
 	uc.lpszUrlPath = path;
 	uc.dwUrlPathLength = 2048;
 
-	if (!WinHttpCrackUrl(urlw, 0, 0, &uc)) return 0;
+	if (!WinHttpCrackUrl(urlw, 0, 0, &uc)) {
+		http_maps_dev_err("HEAD CrackUrl", GetLastError(), log_url);
+		return 0;
+	}
 
-	HINTERNET hSession = WinHttpOpen(L"SoFBuddy", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
-	if (!hSession) return 0;
-	DWORD to_ms = kHttpMapsRequestTimeoutMs;
-	WinHttpSetOption(hSession, WINHTTP_OPTION_CONNECT_TIMEOUT, &to_ms, sizeof(to_ms));
-	WinHttpSetOption(hSession, WINHTTP_OPTION_SEND_TIMEOUT, &to_ms, sizeof(to_ms));
-	WinHttpSetOption(hSession, WINHTTP_OPTION_RECEIVE_TIMEOUT, &to_ms, sizeof(to_ms));
+	HINTERNET hSession = WinHttpOpen(L"SoFBuddy/1.0", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+	if (!hSession) {
+		http_maps_dev_err("HEAD WinHttpOpen", GetLastError(), log_url);
+		return 0;
+	}
+	http_maps_winhttp_apply_session_options(hSession);
 
 	HINTERNET hConnect = WinHttpConnect(hSession, uc.lpszHostName, uc.nPort, 0);
 	if (!hConnect) {
+		http_maps_dev_err("HEAD Connect", GetLastError(), log_url);
 		WinHttpCloseHandle(hSession);
 		return 0;
 	}
 
 	HINTERNET hRequest = WinHttpOpenRequest(hConnect, L"HEAD", uc.lpszUrlPath, nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, (uc.nScheme == INTERNET_SCHEME_HTTPS) ? WINHTTP_FLAG_SECURE : 0);
 	if (!hRequest) {
+		http_maps_dev_err("HEAD OpenRequest", GetLastError(), log_url);
 		WinHttpCloseHandle(hConnect);
 		WinHttpCloseHandle(hSession);
 		return 0;
 	}
 
-	if (uc.nScheme == INTERNET_SCHEME_HTTPS) {
-		DWORD flags = SECURITY_FLAG_IGNORE_UNKNOWN_CA | SECURITY_FLAG_IGNORE_CERT_CN_INVALID | SECURITY_FLAG_IGNORE_CERT_DATE_INVALID;
-		WinHttpSetOption(hRequest, WINHTTP_OPTION_SECURITY_FLAGS, &flags, sizeof(flags));
-	}
+	if (uc.nScheme == INTERNET_SCHEME_HTTPS)
+		http_maps_winhttp_apply_https_request_options(hRequest);
 
 	if (!WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0)) {
+		http_maps_dev_err("HEAD SendRequest", GetLastError(), log_url);
 		WinHttpCloseHandle(hRequest);
 		WinHttpCloseHandle(hConnect);
 		WinHttpCloseHandle(hSession);
@@ -573,6 +848,7 @@ static int partial_header_content_length(const wchar_t* urlw)
 	}
 
 	if (!WinHttpReceiveResponse(hRequest, nullptr)) {
+		http_maps_dev_err("HEAD ReceiveResponse", GetLastError(), log_url);
 		WinHttpCloseHandle(hRequest);
 		WinHttpCloseHandle(hConnect);
 		WinHttpCloseHandle(hSession);
@@ -581,11 +857,18 @@ static int partial_header_content_length(const wchar_t* urlw)
 
 	DWORD status = 0;
 	DWORD statusLen = sizeof(status);
-	if (WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX, &status, &statusLen, WINHTTP_NO_HEADER_INDEX) && status == 200) {
+	const bool got_status = WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX, &status, &statusLen, WINHTTP_NO_HEADER_INDEX);
+	if (got_status && status == 200) {
 		wchar_t buf[64];
 		DWORD bufLen = sizeof(buf);
 		if (WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_CONTENT_LENGTH, WINHTTP_HEADER_NAME_BY_INDEX, buf, &bufLen, WINHTTP_NO_HEADER_INDEX))
 			file_size = _wtoi(buf);
+		if (file_size <= 0)
+			PrintOut(PRINT_DEV, "http_maps: HEAD HTTP 200, no Content-Length %s\n", log_url && log_url[0] ? log_url : "");
+	} else if (got_status) {
+		PrintOut(PRINT_DEV, "http_maps: HEAD HTTP %lu %s\n", static_cast<unsigned long>(status), log_url && log_url[0] ? log_url : "");
+	} else {
+		http_maps_dev_err("HEAD QueryStatus", GetLastError(), log_url);
 	}
 
 	WinHttpCloseHandle(hRequest);
@@ -594,7 +877,25 @@ static int partial_header_content_length(const wchar_t* urlw)
 	return file_size;
 }
 
-static bool partial_http_range(const wchar_t* urlw, int range_start, int range_end, std::vector<unsigned char>* out)
+static int http_maps_get_remote_file_size(const wchar_t* urlw, const char* log_url)
+{
+	int n = http_maps_head_content_length(urlw, log_url);
+	if (n > 0) {
+		PrintOut(PRINT_DEV, "http_maps: zip size %d (HEAD) %s\n", n, log_url && log_url[0] ? log_url : "");
+		return n;
+	}
+	n = http_maps_probe_file_size_via_get_range(urlw, log_url);
+	if (n > 0) {
+		PrintOut(PRINT_DEV, "http_maps: zip size %d (Range 0-0) %s\n", n, log_url && log_url[0] ? log_url : "");
+		return n;
+	}
+	n = http_maps_probe_file_size_via_full_get(urlw, log_url);
+	if (n > 0)
+		PrintOut(PRINT_DEV, "http_maps: zip size %d (GET+discard) %s\n", n, log_url && log_url[0] ? log_url : "");
+	return n;
+}
+
+static bool partial_http_range(const wchar_t* urlw, int range_start, int range_end, std::vector<unsigned char>* out, const char* log_url)
 {
 	URL_COMPONENTS uc = {};
 	uc.dwStructSize = sizeof(uc);
@@ -604,36 +905,40 @@ static bool partial_http_range(const wchar_t* urlw, int range_start, int range_e
 	uc.lpszUrlPath = path;
 	uc.dwUrlPathLength = 2048;
 
-	if (!WinHttpCrackUrl(urlw, 0, 0, &uc)) return false;
+	if (!WinHttpCrackUrl(urlw, 0, 0, &uc)) {
+		http_maps_dev_err_rng(range_start, range_end, "CrackUrl", GetLastError(), log_url);
+		return false;
+	}
 
-	HINTERNET hSession = WinHttpOpen(L"SoFBuddy", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
-	if (!hSession) return false;
-	DWORD to_ms = kHttpMapsRequestTimeoutMs;
-	WinHttpSetOption(hSession, WINHTTP_OPTION_CONNECT_TIMEOUT, &to_ms, sizeof(to_ms));
-	WinHttpSetOption(hSession, WINHTTP_OPTION_SEND_TIMEOUT, &to_ms, sizeof(to_ms));
-	WinHttpSetOption(hSession, WINHTTP_OPTION_RECEIVE_TIMEOUT, &to_ms, sizeof(to_ms));
+	HINTERNET hSession = WinHttpOpen(L"SoFBuddy/1.0", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+	if (!hSession) {
+		http_maps_dev_err_rng(range_start, range_end, "WinHttpOpen", GetLastError(), log_url);
+		return false;
+	}
+	http_maps_winhttp_apply_session_options(hSession);
 
 	HINTERNET hConnect = WinHttpConnect(hSession, uc.lpszHostName, uc.nPort, 0);
 	if (!hConnect) {
+		http_maps_dev_err_rng(range_start, range_end, "Connect", GetLastError(), log_url);
 		WinHttpCloseHandle(hSession);
 		return false;
 	}
 
 	HINTERNET hRequest = WinHttpOpenRequest(hConnect, L"GET", uc.lpszUrlPath, nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, (uc.nScheme == INTERNET_SCHEME_HTTPS) ? WINHTTP_FLAG_SECURE : 0);
 	if (!hRequest) {
+		http_maps_dev_err_rng(range_start, range_end, "OpenRequest", GetLastError(), log_url);
 		WinHttpCloseHandle(hConnect);
 		WinHttpCloseHandle(hSession);
 		return false;
 	}
 
-	if (uc.nScheme == INTERNET_SCHEME_HTTPS) {
-		DWORD flags = SECURITY_FLAG_IGNORE_UNKNOWN_CA | SECURITY_FLAG_IGNORE_CERT_CN_INVALID | SECURITY_FLAG_IGNORE_CERT_DATE_INVALID;
-		WinHttpSetOption(hRequest, WINHTTP_OPTION_SECURITY_FLAGS, &flags, sizeof(flags));
-	}
+	if (uc.nScheme == INTERNET_SCHEME_HTTPS)
+		http_maps_winhttp_apply_https_request_options(hRequest);
 
 	wchar_t rangeHdr[64];
 	swprintf(rangeHdr, 64, L"Range: bytes=%d-%d", range_start, range_end);
 	if (!WinHttpAddRequestHeaders(hRequest, rangeHdr, -1, WINHTTP_ADDREQ_FLAG_ADD)) {
+		http_maps_dev_err_rng(range_start, range_end, "Add Range hdr", GetLastError(), log_url);
 		WinHttpCloseHandle(hRequest);
 		WinHttpCloseHandle(hConnect);
 		WinHttpCloseHandle(hSession);
@@ -641,6 +946,7 @@ static bool partial_http_range(const wchar_t* urlw, int range_start, int range_e
 	}
 
 	if (!WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0)) {
+		http_maps_dev_err_rng(range_start, range_end, "SendRequest", GetLastError(), log_url);
 		WinHttpCloseHandle(hRequest);
 		WinHttpCloseHandle(hConnect);
 		WinHttpCloseHandle(hSession);
@@ -648,6 +954,7 @@ static bool partial_http_range(const wchar_t* urlw, int range_start, int range_e
 	}
 
 	if (!WinHttpReceiveResponse(hRequest, nullptr)) {
+		http_maps_dev_err_rng(range_start, range_end, "ReceiveResponse", GetLastError(), log_url);
 		WinHttpCloseHandle(hRequest);
 		WinHttpCloseHandle(hConnect);
 		WinHttpCloseHandle(hSession);
@@ -656,7 +963,15 @@ static bool partial_http_range(const wchar_t* urlw, int range_start, int range_e
 
 	DWORD status = 0;
 	DWORD statusLen = sizeof(status);
-	if (!WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX, &status, &statusLen, WINHTTP_NO_HEADER_INDEX) || (status != 206 && status != 200)) {
+	if (!WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX, &status, &statusLen, WINHTTP_NO_HEADER_INDEX)) {
+		http_maps_dev_err_rng(range_start, range_end, "QueryStatus", GetLastError(), log_url);
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		WinHttpCloseHandle(hSession);
+		return false;
+	}
+	if (status != 206 && status != 200) {
+		PrintOut(PRINT_DEV, "http_maps: range[%d-%d] HTTP %lu (need 206/200) %s\n", range_start, range_end, static_cast<unsigned long>(status), log_url && log_url[0] ? log_url : "");
 		WinHttpCloseHandle(hRequest);
 		WinHttpCloseHandle(hConnect);
 		WinHttpCloseHandle(hSession);
@@ -666,11 +981,16 @@ static bool partial_http_range(const wchar_t* urlw, int range_start, int range_e
 	out->clear();
 	DWORD avail = 0;
 	unsigned char buf[4096];
+	size_t total_chunk = 0;
 	while (WinHttpQueryDataAvailable(hRequest, &avail) && avail > 0) {
 		DWORD read = 0;
 		if (!WinHttpReadData(hRequest, buf, (avail > sizeof(buf)) ? sizeof(buf) : avail, &read) || read == 0) break;
 		out->insert(out->end(), buf, buf + read);
+		total_chunk += read;
 	}
+	const int span = range_end - range_start + 1;
+	if (span > 400)
+		PrintOut(PRINT_DEV, "http_maps: range[%d-%d] ok %zu B HTTP %lu %s\n", range_start, range_end, total_chunk, static_cast<unsigned long>(status), log_url && log_url[0] ? log_url : "");
 
 	WinHttpCloseHandle(hRequest);
 	WinHttpCloseHandle(hConnect);
@@ -694,11 +1014,13 @@ static bool partial_http_blobs(const char* url, std::vector<FileData>* zip_conte
 	std::wstring urlw = http_maps_utf8_to_wide(url);
 	if (urlw.empty()) return false;
 
-	int file_size = partial_header_content_length(urlw.c_str());
+	PrintOut(PRINT_DEV, "http_maps: zip index fetch %s\n", url);
+	int file_size = http_maps_get_remote_file_size(urlw.c_str(), url);
 	if (file_size <= 0) {
-		PrintOut(PRINT_BAD, "http_maps: Map not found for url: %s\n", url);
+		PrintOut(PRINT_BAD, "http_maps: remote zip size unavailable (HTTPS). %s\n", url);
 		return false;
 	}
+	PrintOut(PRINT_DEV, "http_maps: zip index %d bytes, tail scan step 100 %s\n", file_size, url);
 	const int CHUNK = 100;
 	int upper = file_size;
 	bool forced_range = false;
@@ -712,17 +1034,17 @@ static bool partial_http_blobs(const char* url, std::vector<FileData>* zip_conte
 		if (forced_range) {
 			range_start = forced_lower;
 			range_end = forced_upper;
-			PrintOut(PRINT_DEV, "http_maps: Fetching forced range %d-%d\n", range_start, range_end);
+			PrintOut(PRINT_DEV, "http_maps: zip index range %d-%d (cd)\n", range_start, range_end);
 		} else {
 			range_start = upper - CHUNK;
 			range_end = upper;
-			PrintOut(PRINT_DEV, "http_maps: Fetching chunk %d-%d\n", range_start, range_end);
+			PrintOut(PRINT_DEV, "http_maps: zip index tail %d-%d\n", range_start, range_end);
 			upper = range_start - 1;
 		}
 
 		std::vector<unsigned char> chunk;
-		if (!partial_http_range(urlw.c_str(), range_start, range_end, &chunk)) {
-			PrintOut(PRINT_BAD, "http_maps: Partial download failed\n");
+		if (!partial_http_range(urlw.c_str(), range_start, range_end, &chunk, url)) {
+			PrintOut(PRINT_BAD, "http_maps: zip index range request failed %s\n", url);
 			return false;
 		}
 
@@ -730,6 +1052,7 @@ static bool partial_http_blobs(const char* url, std::vector<FileData>* zip_conte
 
 		if (forced_range) {
 			extractCentralDirectory(blob.data(), static_cast<int>(blob.size()), zip_content);
+			PrintOut(PRINT_DEV, "http_maps: zip index %zu entries %s\n", zip_content->size(), url);
 			return true;
 		}
 
@@ -737,11 +1060,12 @@ static bool partial_http_blobs(const char* url, std::vector<FileData>* zip_conte
 		cd_size = getCentralDirectoryOffset(blob.data(), static_cast<int>(blob.size()), found_offset, abs_dir_offset);
 		if (cd_size > 0) {
 			if (found_offset > 0) {
-				PrintOut(PRINT_DEV, "http_maps: Central Directory found in current chunk at offset %d (size %d)\n", found_offset, cd_size);
+				PrintOut(PRINT_DEV, "http_maps: zip index CD at +%d (%d B)\n", found_offset, cd_size);
 				extractCentralDirectory(blob.data() + found_offset, cd_size, zip_content);
+				PrintOut(PRINT_DEV, "http_maps: zip index %zu entries %s\n", zip_content->size(), url);
 				return true;
 			}
-			PrintOut(PRINT_DEV, "http_maps: Central Directory signature found, but data is outside chunk. Requesting absolute range: %d-%d (size %d)\n", abs_dir_offset, abs_dir_offset + cd_size, cd_size);
+			PrintOut(PRINT_DEV, "http_maps: zip index CD split, fetch %d-%d (%d B)\n", abs_dir_offset, abs_dir_offset + cd_size, cd_size);
 			forced_range = true;
 			forced_lower = abs_dir_offset;
 			forced_upper = abs_dir_offset + cd_size;
@@ -751,7 +1075,7 @@ static bool partial_http_blobs(const char* url, std::vector<FileData>* zip_conte
 		if (upper < CHUNK) break;
 	}
 
-	PrintOut(PRINT_BAD, "http_maps: Cannot find Central Directory in HTTP blob\n");
+	PrintOut(PRINT_BAD, "http_maps: zip index: central directory not found %s\n", url);
 	return false;
 }
 
@@ -796,34 +1120,34 @@ static void http_maps_console_progress(float p, const char* map_bsp)
 	for (int i = 1; i <= bar_len; ++i) bar[i] = (i <= filled) ? '=' : ' ';
 	bar[bar_len + 1] = ']';
 	bar[bar_len + 2] = '\0';
-	PrintOut(PRINT_DEV, "http_maps: %s %s %d%%\n", map_bsp && map_bsp[0] ? map_bsp : "download", bar, pct);
+	PrintOut(PRINT_DEV, "http_maps: dl %s %s %d%%\n", map_bsp && map_bsp[0] ? map_bsp : "?", bar, pct);
 }
 
 static void http_maps_apply_progress_cvar(float p)
 {
 #if FEATURE_INTERNAL_MENUS
-	if (!orig_Cvar_Set2) return;
+	if (!detour_Cvar_Set2::oCvar_Set2) return;
 	char val[32];
 	snprintf(val, sizeof(val), "%.2f", http_maps_clamp_progress(p));
-	orig_Cvar_Set2(const_cast<char*>("_sofbuddy_loading_progress"), val, true);
+	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_progress"), val, true);
 #endif
 }
 
 #if FEATURE_INTERNAL_MENUS
 static void http_maps_set_loading_status(const char* status)
 {
-	PrintOut(PRINT_LOG, "http_maps: status -> %s\n", status);
-	if (orig_Cvar_Set2) orig_Cvar_Set2(const_cast<char*>("_sofbuddy_loading_status"), const_cast<char*>(status), true);
+	PrintOut(PRINT_DEV, "http_maps: UI status %s\n", status);
+	if (detour_Cvar_Set2::oCvar_Set2) detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_status"), const_cast<char*>(status), true);
 }
 #endif
 
 static void http_maps_clear_loading_cvars(bool reset_status = true)
 {
 	http_maps_clear_pending_ui_updates();
-	if (!orig_Cvar_Set2) return;
+	if (!detour_Cvar_Set2::oCvar_Set2) return;
 #if FEATURE_INTERNAL_MENUS
-	orig_Cvar_Set2(const_cast<char*>("_sofbuddy_loading_progress"), const_cast<char*>(""), true);
-	orig_Cvar_Set2(const_cast<char*>("_sofbuddy_loading_current"), const_cast<char*>("resolving..."), true);
+	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_progress"), const_cast<char*>(""), true);
+	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_current"), const_cast<char*>("resolving..."), true);
 	if (reset_status) http_maps_set_loading_status("CHECKING");
 #endif
 }
@@ -833,7 +1157,7 @@ static bool http_maps_download_zip_winhttp(const std::string& remote_url, const 
 	if (!http_maps_job_is_active(job_id)) return false;
 	http_maps_ensure_parent_dirs(local_zip_path);
 	DeleteFileA(local_zip_path.c_str());
-	PrintOut(PRINT_DEV, "http_maps: Downloading %s\n", remote_url.c_str());
+	PrintOut(PRINT_DEV, "http_maps: download %s\n", remote_url.c_str());
 	http_maps_set_progress(job_id, 0);
 
 	std::wstring urlw = http_maps_utf8_to_wide(remote_url);
@@ -847,34 +1171,38 @@ static bool http_maps_download_zip_winhttp(const std::string& remote_url, const 
 	uc.lpszUrlPath = path;
 	uc.dwUrlPathLength = 2048;
 
-	if (!WinHttpCrackUrl(urlw.c_str(), 0, 0, &uc)) return false;
+	if (!WinHttpCrackUrl(urlw.c_str(), 0, 0, &uc)) {
+		http_maps_dev_err("dl CrackUrl", GetLastError(), remote_url.c_str());
+		return false;
+	}
 
-	HINTERNET hSession = WinHttpOpen(L"SoFBuddy", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
-	if (!hSession) return false;
-	DWORD req_timeout_ms = kHttpMapsRequestTimeoutMs;
-	WinHttpSetOption(hSession, WINHTTP_OPTION_CONNECT_TIMEOUT, &req_timeout_ms, sizeof(req_timeout_ms));
-	WinHttpSetOption(hSession, WINHTTP_OPTION_SEND_TIMEOUT, &req_timeout_ms, sizeof(req_timeout_ms));
-	WinHttpSetOption(hSession, WINHTTP_OPTION_RECEIVE_TIMEOUT, &req_timeout_ms, sizeof(req_timeout_ms));
+	HINTERNET hSession = WinHttpOpen(L"SoFBuddy/1.0", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+	if (!hSession) {
+		http_maps_dev_err("dl WinHttpOpen", GetLastError(), remote_url.c_str());
+		return false;
+	}
+	http_maps_winhttp_apply_session_options(hSession);
 
 	HINTERNET hConnect = WinHttpConnect(hSession, uc.lpszHostName, uc.nPort, 0);
 	if (!hConnect) {
+		http_maps_dev_err("dl Connect", GetLastError(), remote_url.c_str());
 		WinHttpCloseHandle(hSession);
 		return false;
 	}
 
 	HINTERNET hRequest = WinHttpOpenRequest(hConnect, L"GET", uc.lpszUrlPath, nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, (uc.nScheme == INTERNET_SCHEME_HTTPS) ? WINHTTP_FLAG_SECURE : 0);
 	if (!hRequest) {
+		http_maps_dev_err("dl OpenRequest", GetLastError(), remote_url.c_str());
 		WinHttpCloseHandle(hConnect);
 		WinHttpCloseHandle(hSession);
 		return false;
 	}
 
-	if (uc.nScheme == INTERNET_SCHEME_HTTPS) {
-		DWORD flags = SECURITY_FLAG_IGNORE_UNKNOWN_CA | SECURITY_FLAG_IGNORE_CERT_CN_INVALID | SECURITY_FLAG_IGNORE_CERT_DATE_INVALID;
-		WinHttpSetOption(hRequest, WINHTTP_OPTION_SECURITY_FLAGS, &flags, sizeof(flags));
-	}
+	if (uc.nScheme == INTERNET_SCHEME_HTTPS)
+		http_maps_winhttp_apply_https_request_options(hRequest);
 
 	if (!WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0)) {
+		http_maps_dev_err("dl SendRequest", GetLastError(), remote_url.c_str());
 		WinHttpCloseHandle(hRequest);
 		WinHttpCloseHandle(hConnect);
 		WinHttpCloseHandle(hSession);
@@ -882,6 +1210,7 @@ static bool http_maps_download_zip_winhttp(const std::string& remote_url, const 
 	}
 
 	if (!WinHttpReceiveResponse(hRequest, nullptr)) {
+		http_maps_dev_err("dl ReceiveResponse", GetLastError(), remote_url.c_str());
 		WinHttpCloseHandle(hRequest);
 		WinHttpCloseHandle(hConnect);
 		WinHttpCloseHandle(hSession);
@@ -890,7 +1219,15 @@ static bool http_maps_download_zip_winhttp(const std::string& remote_url, const 
 
 	DWORD status = 0;
 	DWORD statusLen = sizeof(status);
-	if (!WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX, &status, &statusLen, WINHTTP_NO_HEADER_INDEX) || status != 200) {
+	if (!WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX, &status, &statusLen, WINHTTP_NO_HEADER_INDEX)) {
+		http_maps_dev_err("dl QueryStatus", GetLastError(), remote_url.c_str());
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		WinHttpCloseHandle(hSession);
+		return false;
+	}
+	if (status != 200) {
+		PrintOut(PRINT_DEV, "http_maps: dl HTTP %lu %s\n", static_cast<unsigned long>(status), remote_url.c_str());
 		WinHttpCloseHandle(hRequest);
 		WinHttpCloseHandle(hConnect);
 		WinHttpCloseHandle(hSession);
@@ -902,9 +1239,11 @@ static bool http_maps_download_zip_winhttp(const std::string& remote_url, const 
 	DWORD cl_len = sizeof(cl_buf);
 	if (WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_CONTENT_LENGTH, WINHTTP_HEADER_NAME_BY_INDEX, cl_buf, &cl_len, WINHTTP_NO_HEADER_INDEX))
 		content_len = _wtoi(cl_buf);
+	PrintOut(PRINT_DEV, "http_maps: dl HTTP 200, %lu B -> %s\n", static_cast<unsigned long>(content_len), local_zip_path.c_str());
 
 	FILE* fp = fopen(local_zip_path.c_str(), "wb");
 	if (!fp) {
+		PrintOut(PRINT_DEV, "http_maps: dl fopen %s\n", local_zip_path.c_str());
 		WinHttpCloseHandle(hRequest);
 		WinHttpCloseHandle(hConnect);
 		WinHttpCloseHandle(hSession);
@@ -916,6 +1255,7 @@ static bool http_maps_download_zip_winhttp(const std::string& remote_url, const 
 	DWORD total_read = 0;
 	while (WinHttpQueryDataAvailable(hRequest, &avail) && avail > 0) {
 		if (!http_maps_job_is_active(job_id)) {
+			PrintOut(PRINT_DEV, "http_maps: dl cancelled at %lu B %s\n", static_cast<unsigned long>(total_read), remote_url.c_str());
 			fclose(fp);
 			DeleteFileA(local_zip_path.c_str());
 			WinHttpCloseHandle(hRequest);
@@ -936,8 +1276,10 @@ static bool http_maps_download_zip_winhttp(const std::string& remote_url, const 
 	WinHttpCloseHandle(hConnect);
 	WinHttpCloseHandle(hSession);
 
+	PrintOut(PRINT_DEV, "http_maps: dl done %lu B %s\n", static_cast<unsigned long>(total_read), local_zip_path.c_str());
+
 	if (!http_maps_file_exists(local_zip_path)) {
-		PrintOut(PRINT_BAD, "http_maps: Download reported success but zip missing: %s\n", local_zip_path.c_str());
+		PrintOut(PRINT_BAD, "http_maps: download ok but file missing: %s\n", local_zip_path.c_str());
 		return false;
 	}
 	return true;
@@ -948,7 +1290,7 @@ static bool http_maps_extract_zip_miniz(const std::string& zip_path, const std::
 	mz_zip_archive za;
 	memset(&za, 0, sizeof(za));
 	if (!mz_zip_reader_init_file(&za, zip_path.c_str(), 0)) {
-		PrintOut(PRINT_BAD, "http_maps: miniz failed to open zip: %s\n", zip_path.c_str());
+		PrintOut(PRINT_BAD, "http_maps: zip unreadable %s\n", zip_path.c_str());
 		return false;
 	}
 	bool ok = true;
@@ -965,7 +1307,7 @@ static bool http_maps_extract_zip_miniz(const std::string& zip_path, const std::
 		PrintOut(PRINT_LOG, "http_maps: extract zip entry \"%s\" -> %s\n", stat.m_filename, out_path.c_str());
 		http_maps_ensure_parent_dirs(out_path);
 		if (!mz_zip_reader_extract_to_file(&za, i, out_path.c_str(), 0)) {
-			PrintOut(PRINT_BAD, "http_maps: miniz extract failed: %s\n", stat.m_filename);
+			PrintOut(PRINT_BAD, "http_maps: extract entry failed %s\n", stat.m_filename);
 			ok = false;
 		}
 	}
@@ -976,12 +1318,12 @@ static bool http_maps_extract_zip_miniz(const std::string& zip_path, const std::
 static bool http_maps_extract_and_validate_zip(const std::string& zip_path, const std::string& map_bsp_path, uint32_t job_id)
 {
 	if (!http_maps_extract_zip_miniz(zip_path, "user", job_id)) {
-		PrintOut(PRINT_BAD, "http_maps: Extraction failed for %s\n", zip_path.c_str());
+		PrintOut(PRINT_BAD, "http_maps: extract failed %s\n", zip_path.c_str());
 		return false;
 	}
 	if (!http_maps_job_is_active(job_id)) return false;
 	if (!http_maps_validate_extracted_map_crc(zip_path, map_bsp_path)) {
-		PrintOut(PRINT_BAD, "http_maps: CRC validation failed for %s\n", zip_path.c_str());
+		PrintOut(PRINT_BAD, "http_maps: CRC check failed %s\n", zip_path.c_str());
 		return false;
 	}
 	return true;
@@ -1010,7 +1352,7 @@ static void http_maps_download_worker(std::string map_bsp_path, std::string zip_
 		}
 		HttpMapsProviderSelection provider;
 		if (!http_maps_select_provider(provider)) {
-			PrintOut(PRINT_BAD, "http_maps: Mode off or no valid provider URLs\n");
+			PrintOut(PRINT_BAD, "http_maps: no HTTP provider URL configured\n");
 			http_maps_queue_status(job_id, "HTTP URLs are not configured.");
 			break;
 		}
@@ -1021,6 +1363,7 @@ static void http_maps_download_worker(std::string map_bsp_path, std::string zip_
 
 		const std::string crc_url = provider.crc_base + "/" + zip_rel_path;
 		const std::string temp_zip_path = http_maps_temp_zip_path(map_bsp_path);
+		PrintOut(PRINT_DEV, "http_maps: worker %s zip=%s (%s)\n", map_bsp_path.c_str(), zip_rel_path.c_str(), http_maps_mode_label(provider.mode));
 
 		std::vector<FileData> zip_content;
 		if (!partial_http_blobs(crc_url.c_str(), &zip_content, job_id)) {
@@ -1069,27 +1412,27 @@ static void http_maps_download_worker(std::string map_bsp_path, std::string zip_
 
 			DeleteFileA(temp_zip_path.c_str());
 			const std::string dl_url = provider.dl_base + "/" + zip_rel_path;
+		PrintOut(PRINT_DEV, "http_maps: worker GET %s\n", dl_url.c_str());
 		http_maps_queue_status(job_id, "Downloading map zip...");
-		if (orig_Cvar_Set2) {
-			PrintOut(PRINT_LOG, "http_maps: status -> HTTP Downloading...\n");
-			orig_Cvar_Set2(const_cast<char*>("_sofbuddy_loading_status"), const_cast<char*>("HTTP Downloading..."), true);
-		}
+		if (detour_Cvar_Set2::oCvar_Set2)
+			detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_status"), const_cast<char*>("HTTP Downloading..."), true);
 		if (http_maps_download_zip_winhttp(dl_url, temp_zip_path, job_id)) {
 			http_maps_queue_status(job_id, "Extracting zip to user/...");
+			PrintOut(PRINT_DEV, "http_maps: extract %s\n", map_bsp_path.c_str());
 			if (http_maps_extract_and_validate_zip(temp_zip_path, map_bsp_path, job_id)) {
 				DeleteFileA(temp_zip_path.c_str());
-				PrintOut(PRINT_DEV, "http_maps: Downloaded and extracted %s\n", map_bsp_path.c_str());
+				PrintOut(PRINT_DEV, "http_maps: ok %s\n", map_bsp_path.c_str());
 				http_maps_queue_status(job_id, "HTTP map ready.");
 				g_http_maps_state.worker_did_download.store(true, std::memory_order_release);
 				success = true;
 			} else {
 				DeleteFileA(temp_zip_path.c_str());
-				PrintOut(PRINT_BAD, "http_maps: Extraction failed for %s\n", map_bsp_path.c_str());
+				PrintOut(PRINT_BAD, "http_maps: extract failed %s\n", map_bsp_path.c_str());
 				http_maps_queue_status(job_id, "Zip extraction or CRC validation failed.");
 			}
 		} else {
 			DeleteFileA(temp_zip_path.c_str());
-			PrintOut(PRINT_BAD, "http_maps: Download failed for %s\n", map_bsp_path.c_str());
+			PrintOut(PRINT_BAD, "http_maps: download failed %s\n", map_bsp_path.c_str());
 			http_maps_queue_status(job_id, "HTTP download failed.");
 		}
 	} while (false);
@@ -1107,14 +1450,14 @@ static void http_maps_download_worker(std::string map_bsp_path, std::string zip_
 
 void create_http_maps_cvars(void)
 {
-	_sofbuddy_http_maps = orig_Cvar_Get("_sofbuddy_http_maps", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
-	_sofbuddy_http_maps_dl_1 = orig_Cvar_Get("_sofbuddy_http_maps_dl_1", kHttpMapsDefaultRepo, CVAR_SOFBUDDY_ARCHIVE, nullptr);
-	_sofbuddy_http_maps_dl_2 = orig_Cvar_Get("_sofbuddy_http_maps_dl_2", kHttpMapsSecondaryRepo, CVAR_SOFBUDDY_ARCHIVE, nullptr);
-	_sofbuddy_http_maps_dl_3 = orig_Cvar_Get("_sofbuddy_http_maps_dl_3", "", CVAR_SOFBUDDY_ARCHIVE, nullptr);
-	_sofbuddy_http_maps_crc_1 = orig_Cvar_Get("_sofbuddy_http_maps_crc_1", kHttpMapsDefaultRepo, CVAR_SOFBUDDY_ARCHIVE, nullptr);
-	_sofbuddy_http_maps_crc_2 = orig_Cvar_Get("_sofbuddy_http_maps_crc_2", kHttpMapsSecondaryRepo, CVAR_SOFBUDDY_ARCHIVE, nullptr);
-	_sofbuddy_http_maps_crc_3 = orig_Cvar_Get("_sofbuddy_http_maps_crc_3", "", CVAR_SOFBUDDY_ARCHIVE, nullptr);
-	orig_Cvar_Get("_sofbuddy_http_show_providers", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+	_sofbuddy_http_maps = detour_Cvar_Get::oCvar_Get("_sofbuddy_http_maps", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+	_sofbuddy_http_maps_dl_1 = detour_Cvar_Get::oCvar_Get("_sofbuddy_http_maps_dl_1", kHttpMapsDefaultRepo, CVAR_SOFBUDDY_ARCHIVE, nullptr);
+	_sofbuddy_http_maps_dl_2 = detour_Cvar_Get::oCvar_Get("_sofbuddy_http_maps_dl_2", kHttpMapsSecondaryRepo, CVAR_SOFBUDDY_ARCHIVE, nullptr);
+	_sofbuddy_http_maps_dl_3 = detour_Cvar_Get::oCvar_Get("_sofbuddy_http_maps_dl_3", "", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+	_sofbuddy_http_maps_crc_1 = detour_Cvar_Get::oCvar_Get("_sofbuddy_http_maps_crc_1", kHttpMapsDefaultRepo, CVAR_SOFBUDDY_ARCHIVE, nullptr);
+	_sofbuddy_http_maps_crc_2 = detour_Cvar_Get::oCvar_Get("_sofbuddy_http_maps_crc_2", kHttpMapsSecondaryRepo, CVAR_SOFBUDDY_ARCHIVE, nullptr);
+	_sofbuddy_http_maps_crc_3 = detour_Cvar_Get::oCvar_Get("_sofbuddy_http_maps_crc_3", "", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+	detour_Cvar_Get::oCvar_Get("_sofbuddy_http_show_providers", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
 	http_maps_reset_state();
 }
 
@@ -1164,10 +1507,10 @@ static void http_maps_start_worker(const std::string& map_bsp_path, detour_CL_Pr
 	try {
 		std::thread(http_maps_download_worker, map_bsp_path, zip_rel_path, job_id).detach();
 	} catch (...) {
-		PrintOut(PRINT_BAD, "http_maps: Failed to start worker thread for %s\n", map_bsp_path.c_str());
+		PrintOut(PRINT_BAD, "http_maps: worker thread failed %s\n", map_bsp_path.c_str());
 #if FEATURE_INTERNAL_MENUS
-		if (orig_Cvar_Set2)
-			orig_Cvar_Set2(const_cast<char*>("_sofbuddy_loading_zip_indicator"), const_cast<char*>("loading/loading_zip_red"), true);
+		if (detour_Cvar_Set2::oCvar_Set2)
+			detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_zip_indicator"), const_cast<char*>("loading/loading_zip_red"), true);
 #endif
 		if (g_http_maps_state.active_job_id.load(std::memory_order_acquire) == job_id)
 			g_http_maps_state.active_job_id.store(0, std::memory_order_release);
@@ -1275,7 +1618,10 @@ void http_maps_try_begin_precache(detour_CL_Precache_f::tCL_Precache_f original)
 		loading_show_ui();
 		loading_set_current(map_bsp_path.c_str());
 #endif
-		http_maps_run_deferred_continue_if_pending();
+		// deferred_continue_reason is only set in http_maps_pump() when the worker has finished.
+		// If the worker completed before this CL_Precache_f hook ran, run_deferred_continue_if_pending()
+		// alone would no-op forever; pump consumes worker_result and then continues precache.
+		http_maps_pump();
 		return;
 	}
 
@@ -1312,8 +1658,7 @@ void http_maps_pump(void)
 	if (g_http_maps_state.waiting_started_ms != 0) {
 		const DWORD elapsed = GetTickCount() - g_http_maps_state.waiting_started_ms;
 		if (elapsed >= kHttpMapsContinueWatchdogMs && !g_http_maps_state.deferred_continue_reason) {
-			PrintOut(PRINT_BAD, "http_maps: Wait timed out after %lu ms, forcing engine precache continue\n",
-				static_cast<unsigned long>(elapsed));
+			PrintOut(PRINT_BAD, "http_maps: wait timeout %lu ms, continuing precache\n", static_cast<unsigned long>(elapsed));
 			g_http_maps_state.deferred_continue_reason = "http wait watchdog timeout";
 		}
 	}
@@ -1327,20 +1672,21 @@ void http_maps_pump(void)
 		g_http_maps_state.worker_result.exchange(static_cast<int>(HttpMapsWorkerResult::None), std::memory_order_acq_rel)
 	);
 #if FEATURE_INTERNAL_MENUS
-	if (orig_Cvar_Set2) {
-		if (result == HttpMapsWorkerResult::Failure)
-			http_maps_set_loading_status("UDP Downloading...");
-		else if (result == HttpMapsWorkerResult::Success) {
-			g_http_maps_state.worker_success_no_crc_list.exchange(false, std::memory_order_acq_rel);
-			const bool did_download = g_http_maps_state.worker_did_download.exchange(false, std::memory_order_acq_rel);
-			if (!did_download) {
-				http_maps_set_loading_status(http_maps_map_exists_via_engine(g_http_maps_state.pending_map_bsp) ? "MAP PRESENT" : "UDP Downloading...");
-			}
-		}
-		else if (result != HttpMapsWorkerResult::Success) {
+	if (detour_Cvar_Set2::oCvar_Set2) {
+		// Clear worker flags (used for logging / future UI); final label is always derived from engine FS.
+		(void)g_http_maps_state.worker_success_no_crc_list.exchange(false, std::memory_order_acq_rel);
+		(void)g_http_maps_state.worker_did_download.exchange(false, std::memory_order_acq_rel);
+		const bool map_present = http_maps_map_exists_via_engine(g_http_maps_state.pending_map_bsp);
+		const char* end_status = map_present ? "MAP PRESENT" : "UDP Downloading...";
+		if (result == HttpMapsWorkerResult::Success || result == HttpMapsWorkerResult::Failure) {
+			// Success: CRC skip, no-CRC-list fallback, or finished HTTP download+extract — show MAP PRESENT if FS sees the map.
+			// Failure: HTTP path failed — still show MAP PRESENT if map is already in a pak / on disk.
+			// Bug fix: previously we skipped updating status when did_download was true, leaving "HTTP Downloading..." stuck.
+			http_maps_set_loading_status(end_status);
+		} else {
 			cvar_t* cur = findCvar(const_cast<char*>("_sofbuddy_loading_status"));
 			if (cur && cur->string && strcmp(cur->string, "CHECKING") == 0)
-				http_maps_set_loading_status("UDP Downloading...");
+				http_maps_set_loading_status(end_status);
 		}
 	}
 #endif
