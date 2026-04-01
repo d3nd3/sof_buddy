@@ -47,6 +47,7 @@ CATEGORIES = {
 DEFAULT_DISABLED = {
     "scaled_menu": "Experimental menu scaling (requires UI_MENU)",
     "cbuf_limit_increase": "Deprecated: sofbuddy.cfg persistence replaced config.cfg Cbuf workaround",
+    "entity_visualizer": "Experimental; enable locally by uncommenting in FEATURES.txt",
 }
 
 def find_feature_directories(features_dir):

@@ -32,3 +32,6 @@ cl_maxfps_singleplayer
 
 # Input Features
 raw_mouse
+
+# Uncategorized Features
+# entity_visualizer  # Experimental; enable locally by uncommenting in FEATURES.txt

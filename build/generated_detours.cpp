@@ -25,8 +25,68 @@ namespace detour_FS_LoadFile {
     tFS_LoadFile oFS_LoadFile = nullptr;
 }
 
+namespace detour_FS_FreeFile {
+    tFS_FreeFile oFS_FreeFile = nullptr;
+}
+
+namespace detour_Z_Malloc {
+    tZ_Malloc oZ_Malloc = nullptr;
+}
+
+namespace detour_SCR_UpdateScreen {
+    tSCR_UpdateScreen oSCR_UpdateScreen = nullptr;
+}
+
 namespace detour_Cbuf_AddLateCommands {
     tCbuf_AddLateCommands oCbuf_AddLateCommands = nullptr;
+}
+
+namespace detour_Cmd_ExecuteString {
+    tCmd_ExecuteString oCmd_ExecuteString = nullptr;
+}
+
+namespace detour_Cvar_Get {
+    tCvar_Get oCvar_Get = nullptr;
+}
+
+namespace detour_Cvar_Set2 {
+    tCvar_Set2 oCvar_Set2 = nullptr;
+}
+
+namespace detour_Cvar_SetInternal {
+    tCvar_SetInternal oCvar_SetInternal = nullptr;
+}
+
+namespace detour_Com_Printf {
+    tCom_Printf oCom_Printf = nullptr;
+}
+
+namespace detour_Com_DPrintf {
+    tCom_DPrintf oCom_DPrintf = nullptr;
+}
+
+namespace detour_Qcommon_Init {
+    tQcommon_Init oQcommon_Init = nullptr;
+}
+
+namespace detour_Cmd_AddCommand {
+    tCmd_AddCommand oCmd_AddCommand = nullptr;
+}
+
+namespace detour_Cmd_Argc {
+    tCmd_Argc oCmd_Argc = nullptr;
+}
+
+namespace detour_Cmd_Argv {
+    tCmd_Argv oCmd_Argv = nullptr;
+}
+
+namespace detour_Z_Free {
+    tZ_Free oZ_Free = nullptr;
+}
+
+namespace detour_CopyString {
+    tCopyString oCopyString = nullptr;
 }
 
 namespace detour_Qcommon_Frame {
@@ -151,6 +211,38 @@ namespace detour_Sys_GetGameApi {
 
 namespace detour_Sys_SendKeyEvents {
     tSys_SendKeyEvents oSys_SendKeyEvents = nullptr;
+}
+
+namespace detour_AdjustTexCoords {
+    tAdjustTexCoords oAdjustTexCoords = nullptr;
+}
+
+namespace detour_glTexParameterf {
+    tglTexParameterf oglTexParameterf = nullptr;
+}
+
+namespace detour_glBlendFunc {
+    tglBlendFunc oglBlendFunc = nullptr;
+}
+
+namespace detour_glTexCoord2f {
+    tglTexCoord2f oglTexCoord2f = nullptr;
+}
+
+namespace detour_glVertex3f {
+    tglVertex3f oglVertex3f = nullptr;
+}
+
+namespace detour_glBegin {
+    tglBegin oglBegin = nullptr;
+}
+
+namespace detour_glEnd {
+    tglEnd oglEnd = nullptr;
+}
+
+namespace detour_glColor3f {
+    tglColor3f oglColor3f = nullptr;
 }
 
 namespace detour_GetCursorPos {
@@ -891,5 +983,162 @@ namespace detour_cInventory2_And_cGunAmmo2_Draw {
     void __thiscall hkcInventory2_And_cGunAmmo2_Draw(void* self) {
         ::hkcInventory2_And_cGunAmmo2_Draw(self, ocInventory2_And_cGunAmmo2_Draw);
     }
+}
+
+// Pointer-only symbols (detours.yaml + pointers.json)
+void RegisterPointerOnlyFunctions_SofExe() {
+        using namespace detour_Cmd_AddCommand;
+        void* addr_Cmd_AddCommand = GetDetourSystem().ResolveFunctionAddress(
+            reinterpret_cast<void*>(0x20019130), DetourModule::SofExe);
+        oCmd_AddCommand = reinterpret_cast<tCmd_AddCommand>(addr_Cmd_AddCommand);
+        using namespace detour_Cmd_Argc;
+        void* addr_Cmd_Argc = GetDetourSystem().ResolveFunctionAddress(
+            reinterpret_cast<void*>(0x20018D20), DetourModule::SofExe);
+        oCmd_Argc = reinterpret_cast<tCmd_Argc>(addr_Cmd_Argc);
+        using namespace detour_Cmd_Argv;
+        void* addr_Cmd_Argv = GetDetourSystem().ResolveFunctionAddress(
+            reinterpret_cast<void*>(0x20018D30), DetourModule::SofExe);
+        oCmd_Argv = reinterpret_cast<tCmd_Argv>(addr_Cmd_Argv);
+        using namespace detour_Cmd_ExecuteString;
+        void* addr_Cmd_ExecuteString = GetDetourSystem().ResolveFunctionAddress(
+            reinterpret_cast<void*>(0x194F0), DetourModule::SofExe);
+        oCmd_ExecuteString = reinterpret_cast<tCmd_ExecuteString>(addr_Cmd_ExecuteString);
+        using namespace detour_Com_DPrintf;
+        void* addr_Com_DPrintf = GetDetourSystem().ResolveFunctionAddress(
+            reinterpret_cast<void*>(0x2001C8E0), DetourModule::SofExe);
+        oCom_DPrintf = reinterpret_cast<tCom_DPrintf>(addr_Com_DPrintf);
+        using namespace detour_Com_Printf;
+        void* addr_Com_Printf = GetDetourSystem().ResolveFunctionAddress(
+            reinterpret_cast<void*>(0x2001C6E0), DetourModule::SofExe);
+        oCom_Printf = reinterpret_cast<tCom_Printf>(addr_Com_Printf);
+        using namespace detour_CopyString;
+        void* addr_CopyString = GetDetourSystem().ResolveFunctionAddress(
+            reinterpret_cast<void*>(0x0001EA90), DetourModule::SofExe);
+        oCopyString = reinterpret_cast<tCopyString>(addr_CopyString);
+        using namespace detour_Cvar_Get;
+        void* addr_Cvar_Get = GetDetourSystem().ResolveFunctionAddress(
+            reinterpret_cast<void*>(0x20021AE0), DetourModule::SofExe);
+        oCvar_Get = reinterpret_cast<tCvar_Get>(addr_Cvar_Get);
+        using namespace detour_Cvar_Set2;
+        void* addr_Cvar_Set2 = GetDetourSystem().ResolveFunctionAddress(
+            reinterpret_cast<void*>(0x20021D70), DetourModule::SofExe);
+        oCvar_Set2 = reinterpret_cast<tCvar_Set2>(addr_Cvar_Set2);
+        using namespace detour_Cvar_SetInternal;
+        void* addr_Cvar_SetInternal = GetDetourSystem().ResolveFunctionAddress(
+            reinterpret_cast<void*>(0x200216C0), DetourModule::SofExe);
+        oCvar_SetInternal = reinterpret_cast<tCvar_SetInternal>(addr_Cvar_SetInternal);
+        using namespace detour_FS_FreeFile;
+        void* addr_FS_FreeFile = GetDetourSystem().ResolveFunctionAddress(
+            reinterpret_cast<void*>(0x25420), DetourModule::SofExe);
+        oFS_FreeFile = reinterpret_cast<tFS_FreeFile>(addr_FS_FreeFile);
+        using namespace detour_Qcommon_Init;
+        void* addr_Qcommon_Init = GetDetourSystem().ResolveFunctionAddress(
+            reinterpret_cast<void*>(0x2001F390), DetourModule::SofExe);
+        oQcommon_Init = reinterpret_cast<tQcommon_Init>(addr_Qcommon_Init);
+        using namespace detour_SCR_UpdateScreen;
+        void* addr_SCR_UpdateScreen = GetDetourSystem().ResolveFunctionAddress(
+            reinterpret_cast<void*>(0x15FA0), DetourModule::SofExe);
+        oSCR_UpdateScreen = reinterpret_cast<tSCR_UpdateScreen>(addr_SCR_UpdateScreen);
+        using namespace detour_Z_Free;
+        void* addr_Z_Free = GetDetourSystem().ResolveFunctionAddress(
+            reinterpret_cast<void*>(0x0001EB00), DetourModule::SofExe);
+        oZ_Free = reinterpret_cast<tZ_Free>(addr_Z_Free);
+        using namespace detour_Z_Malloc;
+        void* addr_Z_Malloc = GetDetourSystem().ResolveFunctionAddress(
+            reinterpret_cast<void*>(0x1F120), DetourModule::SofExe);
+        oZ_Malloc = reinterpret_cast<tZ_Malloc>(addr_Z_Malloc);
+}
+
+void RegisterPointerOnlyFunctions_RefDll() {
+        using namespace detour_AdjustTexCoords;
+        void* addr_AdjustTexCoords = GetDetourSystem().ResolveFunctionAddress(
+            reinterpret_cast<void*>(0x00014C30), DetourModule::RefDll);
+        oAdjustTexCoords = reinterpret_cast<tAdjustTexCoords>(addr_AdjustTexCoords);
+}
+
+void RegisterPointerOnlyFunctions_GameDll() {
+}
+
+void RegisterPointerOnlyFunctions_PlayerDll() {
+}
+
+void RegisterPointerOnlyFunctions_Unknown() {
+        using namespace detour_glBegin;
+        void* addr_glBegin = nullptr;
+        {
+            HMODULE hMod = GetModuleHandleA("user32.dll");
+            if (hMod) addr_glBegin = reinterpret_cast<void*>(GetProcAddress(hMod, "glBegin"));
+        }
+        if (!addr_glBegin) {
+            HMODULE hGl = GetModuleHandleA("opengl32.dll");
+            if (hGl) addr_glBegin = reinterpret_cast<void*>(GetProcAddress(hGl, "glBegin"));
+        }
+        oglBegin = reinterpret_cast<tglBegin>(addr_glBegin);
+        using namespace detour_glBlendFunc;
+        void* addr_glBlendFunc = nullptr;
+        {
+            HMODULE hMod = GetModuleHandleA("user32.dll");
+            if (hMod) addr_glBlendFunc = reinterpret_cast<void*>(GetProcAddress(hMod, "glBlendFunc"));
+        }
+        if (!addr_glBlendFunc) {
+            HMODULE hGl = GetModuleHandleA("opengl32.dll");
+            if (hGl) addr_glBlendFunc = reinterpret_cast<void*>(GetProcAddress(hGl, "glBlendFunc"));
+        }
+        oglBlendFunc = reinterpret_cast<tglBlendFunc>(addr_glBlendFunc);
+        using namespace detour_glColor3f;
+        void* addr_glColor3f = nullptr;
+        {
+            HMODULE hMod = GetModuleHandleA("user32.dll");
+            if (hMod) addr_glColor3f = reinterpret_cast<void*>(GetProcAddress(hMod, "glColor3f"));
+        }
+        if (!addr_glColor3f) {
+            HMODULE hGl = GetModuleHandleA("opengl32.dll");
+            if (hGl) addr_glColor3f = reinterpret_cast<void*>(GetProcAddress(hGl, "glColor3f"));
+        }
+        oglColor3f = reinterpret_cast<tglColor3f>(addr_glColor3f);
+        using namespace detour_glEnd;
+        void* addr_glEnd = nullptr;
+        {
+            HMODULE hMod = GetModuleHandleA("user32.dll");
+            if (hMod) addr_glEnd = reinterpret_cast<void*>(GetProcAddress(hMod, "glEnd"));
+        }
+        if (!addr_glEnd) {
+            HMODULE hGl = GetModuleHandleA("opengl32.dll");
+            if (hGl) addr_glEnd = reinterpret_cast<void*>(GetProcAddress(hGl, "glEnd"));
+        }
+        oglEnd = reinterpret_cast<tglEnd>(addr_glEnd);
+        using namespace detour_glTexCoord2f;
+        void* addr_glTexCoord2f = nullptr;
+        {
+            HMODULE hMod = GetModuleHandleA("user32.dll");
+            if (hMod) addr_glTexCoord2f = reinterpret_cast<void*>(GetProcAddress(hMod, "glTexCoord2f"));
+        }
+        if (!addr_glTexCoord2f) {
+            HMODULE hGl = GetModuleHandleA("opengl32.dll");
+            if (hGl) addr_glTexCoord2f = reinterpret_cast<void*>(GetProcAddress(hGl, "glTexCoord2f"));
+        }
+        oglTexCoord2f = reinterpret_cast<tglTexCoord2f>(addr_glTexCoord2f);
+        using namespace detour_glTexParameterf;
+        void* addr_glTexParameterf = nullptr;
+        {
+            HMODULE hMod = GetModuleHandleA("user32.dll");
+            if (hMod) addr_glTexParameterf = reinterpret_cast<void*>(GetProcAddress(hMod, "glTexParameterf"));
+        }
+        if (!addr_glTexParameterf) {
+            HMODULE hGl = GetModuleHandleA("opengl32.dll");
+            if (hGl) addr_glTexParameterf = reinterpret_cast<void*>(GetProcAddress(hGl, "glTexParameterf"));
+        }
+        oglTexParameterf = reinterpret_cast<tglTexParameterf>(addr_glTexParameterf);
+        using namespace detour_glVertex3f;
+        void* addr_glVertex3f = nullptr;
+        {
+            HMODULE hMod = GetModuleHandleA("user32.dll");
+            if (hMod) addr_glVertex3f = reinterpret_cast<void*>(GetProcAddress(hMod, "glVertex3f"));
+        }
+        if (!addr_glVertex3f) {
+            HMODULE hGl = GetModuleHandleA("opengl32.dll");
+            if (hGl) addr_glVertex3f = reinterpret_cast<void*>(GetProcAddress(hGl, "glVertex3f"));
+        }
+        oglVertex3f = reinterpret_cast<tglVertex3f>(addr_glVertex3f);
 }
 

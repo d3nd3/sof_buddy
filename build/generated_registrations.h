@@ -111,7 +111,7 @@ inline void RegisterAllFeatureHooks() {
         std::function<void(char const*)>([](char const* name) { scaledHud_RefDllLoaded(name); }), 60, SharedHookPhase::Post);
     SharedHookManager::Instance().RegisterCallback<char const*>(
         "RefDllLoaded", "scaled_ui_base", "scaledUIBase_RefDllLoaded",
-        std::function<void(char const*)>([](char const* name) { scaledUIBase_RefDllLoaded(name); }), 50, SharedHookPhase::Post);
+        std::function<void(char const*)>([](char const* name) { scaledUIBase_RefDllLoaded(name); }), 65, SharedHookPhase::Post);
     SharedHookManager::Instance().RegisterCallback<char const*>(
         "RefDllLoaded", "teamicons_offset", "teamicons_offset_RefDllLoaded",
         std::function<void(char const*)>([](char const* name) { teamicons_offset_RefDllLoaded(name); }), 70, SharedHookPhase::Post);

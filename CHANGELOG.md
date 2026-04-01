@@ -1,5 +1,11 @@
 # Changelog
 
+## v5.5
+
+- Build defaults: `entity_visualizer` is commented out in auto-generated `features/FEATURES.txt` (experimental). CI and `make` run `tools/generate_features_txt.py`, which now treats it as default-disabled alongside `scaled_menu` and `cbuf_limit_increase`; enable locally by uncommenting the feature line.
+- HTTP maps: stabilize deferred precache and loading-status flow; harden HTTPS, size fallbacks, loading status, and logging (`http_maps.cpp`, README).
+- Internal menus: restore early loading UI with a pak-aware fast path; harden loading menu behavior in unlock mode; loading safe RMF updates; `SCR_BeginLoadingPlaque` post-hook adjustments.
+
 ## v5.4
 
 - Raw mouse: removed the `IN_MenuMouse` engine hook (SofExe `0x4A420`), Pre/Post callbacks, and `in_menumouse.cpp`. `GetCursorPos` no longer takes a special “real API” path while menu-mouse runs; with raw mouse enabled it always drains pending mickeys and reports the synthetic cursor position like other code paths.
