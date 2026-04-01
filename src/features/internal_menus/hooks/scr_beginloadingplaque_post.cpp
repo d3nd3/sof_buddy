@@ -16,10 +16,8 @@ void internal_menus_SCR_BeginLoadingPlaque_post(qboolean noPlaque) {
 #endif
     if (!detour_M_PushMenu::oM_PushMenu) return;
     const bool lock_input = internal_menus_should_lock_loading_input();
-    // Unlock mode is for console preview during connect; plaque can fire multiple times
-    // and repeated killmenu+push here causes the loading menu to pop back in.
-    if (!lock_input) return;
-    if (detour_Cmd_ExecuteString::oCmd_ExecuteString)
+    // In unlock mode, still show loading UI but avoid killmenu churn.
+    if (lock_input && detour_Cmd_ExecuteString::oCmd_ExecuteString)
         detour_Cmd_ExecuteString::oCmd_ExecuteString("killmenu");
     detour_M_PushMenu::oM_PushMenu(internal_menus_loading_menu_name(), "", lock_input);
     internal_menus_call_SCR_UpdateScreen(true);

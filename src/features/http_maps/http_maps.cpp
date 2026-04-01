@@ -1380,6 +1380,15 @@ static void http_maps_download_worker(std::string map_bsp_path, std::string zip_
 		if (!partial_http_blobs(crc_url.c_str(), &zip_content, job_id)) {
 			http_maps_queue_status(job_id, "Failed to fetch zip CRC list.");
 			PrintOut(PRINT_LOG, "http_maps: Could not get remote CRC list, assuming PAK/Base\n");
+			// Worker thread cannot safely use engine FS probe. However, a positive local-file hit is
+			// trustworthy and lets us show MAP PRESENT much earlier. For misses, stay on CHECKING and
+			// let main-thread pump resolve MAP PRESENT vs UDP Downloading via engine FS.
+#if FEATURE_INTERNAL_MENUS
+			if (detour_Cvar_Set2::oCvar_Set2) {
+				const bool map_present_local = http_maps_map_exists_locally(map_bsp_path);
+				http_maps_set_loading_status(map_present_local ? "MAP PRESENT" : "CHECKING");
+			}
+#endif
 			if (g_http_maps_state.active_job_id.load(std::memory_order_acquire) == job_id)
 				g_http_maps_state.worker_success_no_crc_list.store(true, std::memory_order_release);
 			success = true;
@@ -1605,9 +1614,16 @@ void http_maps_on_parse_configstring_post(void)
 	if (g_http_maps_state.cached_map_bsp == map_bsp_path) return;
 	PrintOut(PRINT_LOG, "http_maps: ParseConfigString post: map %s (early)\n", map_bsp_path.c_str());
 	g_http_maps_state.cached_map_bsp = map_bsp_path;
+	// Dream fast-path: if engine FS already resolves the BSP (including pak/base), mark as present
+	// immediately and skip early HTTP worker altogether.
+	if (http_maps_map_exists_via_engine(map_bsp_path)) {
 #if FEATURE_INTERNAL_MENUS
-	http_maps_loading_ui_show_map(map_bsp_path.c_str());
+		http_maps_loading_ui_show_map(map_bsp_path.c_str());
+		http_maps_set_loading_status("MAP PRESENT");
 #endif
+		g_http_maps_state.completed_map_bsp = map_bsp_path;
+		return;
+	}
 	http_maps_try_start_worker_early(map_bsp_path);
 }
 
@@ -1641,6 +1657,17 @@ void http_maps_try_begin_precache(detour_CL_Precache_f::tCL_Precache_f original)
 	}
 	PrintOut(PRINT_LOG, "http_maps: CL_Precache_f: map %s\n", map_bsp_path.c_str());
 	if (g_http_maps_state.completed_map_bsp == map_bsp_path) {
+		original();
+		return;
+	}
+	// If we get here without early completion, still short-circuit on engine FS availability.
+	if (!(g_http_maps_state.waiting && g_http_maps_state.pending_map_bsp == map_bsp_path) &&
+		http_maps_map_exists_via_engine(map_bsp_path)) {
+#if FEATURE_INTERNAL_MENUS
+		http_maps_loading_ui_show_map(map_bsp_path.c_str());
+		http_maps_set_loading_status("MAP PRESENT");
+#endif
+		g_http_maps_state.completed_map_bsp = map_bsp_path;
 		original();
 		return;
 	}
