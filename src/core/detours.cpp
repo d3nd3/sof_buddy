@@ -1,11 +1,58 @@
 #include <windows.h>
+#include <array>
+#include <cstring>
 #include <string>
+#include <unordered_map>
 #include "detours.h"
 #include "DetourXS/detourxs.h"
 #include "util.h"
 
 #define DETOUR_TYPE_JMP 0
 #define DETOUR_LEN_AUTO 0
+
+namespace {
+
+// SCR_BeginLoadingPlaque: prologue is E8 (call rel32) to M_ForceMenuOff_f. The trampoline
+// copies those bytes verbatim; rel32 is PC-relative, so it must be re-encoded for the
+// trampoline address. DetourRemove memcpy's the trampoline prefix back to the exe, so
+// we keep the original 5 bytes and restore them before DetourRemove.
+std::unordered_map<void*, std::array<uint8_t, 5>> g_scr_begin_saved_trampoline_prefix;
+constexpr uintptr_t kM_ForceMenuOff_f_VA = 0x200C7380u;
+
+void RestoreScrBeginTrampolinePrefixIfSaved(void* map_key, void* trampoline)
+{
+    if (!map_key || !trampoline) {
+        return;
+    }
+    auto it = g_scr_begin_saved_trampoline_prefix.find(map_key);
+    if (it == g_scr_begin_saved_trampoline_prefix.end()) {
+        return;
+    }
+    memcpy(trampoline, it->second.data(), 5);
+    g_scr_begin_saved_trampoline_prefix.erase(it);
+}
+
+void MaybeFixScrBeginLoadingPlaqueTrampoline(const char* name, void* map_key, void* trampoline)
+{
+    if (!name || std::strcmp(name, "SCR_BeginLoadingPlaque") != 0 || !map_key || !trampoline) {
+        return;
+    }
+    auto* p = reinterpret_cast<unsigned char*>(trampoline);
+    if (p[0] != 0xE8) {
+        PrintOut(PRINT_BAD,
+                 "SCR_BeginLoadingPlaque: expected E8 (call rel) at trampoline %p, got 0x%02X\n",
+                 trampoline, (unsigned)p[0]);
+        return;
+    }
+    std::array<uint8_t, 5> saved{};
+    memcpy(saved.data(), trampoline, 5);
+    g_scr_begin_saved_trampoline_prefix[map_key] = saved;
+    DetourFixupTrampolineRel32Call(trampoline, reinterpret_cast<void*>(kM_ForceMenuOff_f_VA));
+    PrintOut(PRINT_LOG, "SCR_BeginLoadingPlaque: trampoline call retargeted to M_ForceMenuOff_f 0x%p\n",
+             reinterpret_cast<void*>(kM_ForceMenuOff_f_VA));
+}
+
+} // namespace
 
 DetourSystem& DetourSystem::Instance() {
     static DetourSystem instance;
@@ -32,6 +79,10 @@ DetourModule DetourSystem::DetermineModule(void* address) const {
     }
     
     return DetourModule::Unknown;
+}
+
+void* DetourSystem::ResolveFunctionAddress(void* address_or_rva, DetourModule module) const {
+    return ResolveAddress(address_or_rva, module, true);
 }
 
 void* DetourSystem::ResolveAddress(void* address, DetourModule module, bool suppress_errors) const {
@@ -166,6 +217,7 @@ bool DetourSystem::ApplyDetourAtAddress(void* address, void* detour_func, void**
     void* trampoline = DetourCreate(address, detour_func, DETOUR_TYPE_JMP, effective_len);
     
     if (trampoline) {
+        MaybeFixScrBeginLoadingPlaqueTrampoline(name, address, trampoline);
         if (original_storage) {
             *original_storage = trampoline;
         }
@@ -191,6 +243,7 @@ bool DetourSystem::RemoveDetourAtAddress(void* address) {
     void* trampoline = it->second;
     if (trampoline && !IsBadReadPtr(trampoline, 1)) {
         if (!IsBadReadPtr(address, 1)) {
+            RestoreScrBeginTrampolinePrefixIfSaved(address, trampoline);
             DetourRemove(&trampoline);
         }
         applied_detours.erase(it);
@@ -270,6 +323,7 @@ void DetourSystem::ApplyModuleDetours(DetourModule target_module, const char* mo
         void* trampoline = DetourCreate(absolute_addr, detour.detour_func, DETOUR_TYPE_JMP, effective_len);
         
         if (trampoline) {
+            MaybeFixScrBeginLoadingPlaqueTrampoline(detour.name, absolute_addr, trampoline);
             if (detour.original_storage) {
                 *detour.original_storage = trampoline;
             } else {
@@ -304,6 +358,7 @@ void DetourSystem::RemoveModuleDetours(DetourModule target_module, const char* m
             void* trampoline = applied_detours[absolute_addr];
             if (trampoline && !IsBadReadPtr(trampoline, 1)) {
                 if (!IsBadReadPtr(absolute_addr, 1)) {
+                    RestoreScrBeginTrampolinePrefixIfSaved(absolute_addr, trampoline);
                     DetourRemove(&trampoline);
                 }
                 if (detour.original_storage && !IsBadWritePtr(detour.original_storage, sizeof(void*))) {
@@ -366,6 +421,7 @@ void DetourSystem::RemoveAllDetours() {
         if (applied_detours.count(absolute_addr)) {
             void* trampoline = applied_detours[absolute_addr];
             if (trampoline) {
+                RestoreScrBeginTrampolinePrefixIfSaved(absolute_addr, trampoline);
                 DetourRemove(&trampoline);
                 if (detour.original_storage) {
                     *detour.original_storage = nullptr;

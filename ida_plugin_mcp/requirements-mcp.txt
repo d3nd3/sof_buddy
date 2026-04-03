@@ -1,0 +1,2 @@
+# For cursor_mcp_server.py only (host machine / Cursor), not inside IDA.
+mcp>=1.2.0

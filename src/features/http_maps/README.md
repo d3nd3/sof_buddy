@@ -33,12 +33,45 @@ Client-side assist for map availability during connect. It checks map zip metada
 - Configstring post is hard-gated to index `36`.
 - Worker jobs are keyed; stale jobs cannot overwrite active job state.
 - State resets on init, `Reconnect_f`, and stable disconnected transitions.
-- Status labels: `CHECKING`, `MAP PRESENT`, `HTTP Downloading...`, `UDP Downloading...`.
+- Status labels: `CHECKING`, `NOT NEEDED`, `HTTP Downloading...`, `UDP Downloading...`.
 - If HTTP path cannot provide map content, engine fallback remains the source of truth.
 
 ## CVars
 
-- `_sofbuddy_http_maps`: `0` off, `1` primary provider, `2` random provider, `3` rotate provider.
-- `_sofbuddy_http_maps_dl_1/2/3`: zip download base URLs.
-- `_sofbuddy_http_maps_crc_1/2/3`: CRC-list base URLs.
-- `_sofbuddy_http_show_providers`: toggles provider UI inputs.
+Each block is: **name**, **default**, short description. Lines are kept short so the file reads without sideways scrolling.
+
+**`_sofbuddy_http_maps`**  
+Default: `1`  
+`0` off · `1` primary provider · `2` random provider · `3` rotate provider.
+
+**`_sofbuddy_http_maps_dl_1`**  
+Default: `https://sofvault.org/sof1maps`  
+Zip download base URL (provider slot 1).
+
+**`_sofbuddy_http_maps_dl_2`**  
+Default (one URL; wrapped for layout):  
+`https://raw.githubusercontent.com/`  
+`plowsof/sof1maps/main`  
+Zip download base URL (provider slot 2).
+
+**`_sofbuddy_http_maps_dl_3`**  
+Default: *(empty)*  
+Zip download base URL (provider slot 3).
+
+**`_sofbuddy_http_maps_crc_1`**  
+Default: `https://sofvault.org/sof1maps`  
+CRC lookup base URL (index 1). HTTP Range fetch of the zip central directory.
+
+**`_sofbuddy_http_maps_crc_2`**  
+Default (one URL; wrapped for layout):  
+`https://raw.githubusercontent.com/`  
+`plowsof/sof1maps/main`  
+CRC lookup base URL (index 2). Same Range/CRC-list behavior as slot 1.
+
+**`_sofbuddy_http_maps_crc_3`**  
+Default: *(empty)*  
+CRC lookup base URL (index 3).
+
+**`_sofbuddy_http_show_providers`**  
+Default: `0`  
+Toggles provider UI inputs.

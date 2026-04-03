@@ -17,6 +17,7 @@ lighting_blend
 
 # Game Features
 teamicons_offset
+# entity_visualizer  # Map entity tools / wireframes; enable for map study builds
 
 # Network Features
 http_maps
@@ -32,6 +33,3 @@ cl_maxfps_singleplayer
 
 # Input Features
 raw_mouse
-
-# Uncategorized Features
-# entity_visualizer  # Experimental; enable locally by uncommenting in FEATURES.txt

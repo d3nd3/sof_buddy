@@ -147,7 +147,7 @@ void r_blendlightmaps_post_callback(void);
 */
 void lighting_overbright_change(cvar_t * cvar) {
 	if (gl_ext_multitexture && gl_ext_multitexture->value != 0.0f) {
-		orig_Cvar_Set2(const_cast<char*>("gl_ext_multitexture"), const_cast<char*>("0"), true);
+		detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("gl_ext_multitexture"), const_cast<char*>("0"), true);
 		cvar_t * vid_ref = findCvar(const_cast<char*>("vid_ref"));
 		if (vid_ref) vid_ref->modified = true;
 		PrintOut(PRINT_DEV, "lighting_blend: Set gl_ext_multitexture to 0 and flagged vid_ref for restart.\n");
@@ -183,12 +183,12 @@ void water_size_change(cvar_t * cvar) {
 	if (water_size_double_target && water_size_float_target) {
 		if (cvar->value == 0.0f) {
 			PrintOut(PRINT_BAD, "lighting_blend: water_size cannot be 0 (division by zero)\n");
-			orig_Cvar_Set2(const_cast<char*>("_sofbuddy_water_size"), const_cast<char*>("16"), true);
+			detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_water_size"), const_cast<char*>("16"), true);
 			return;
 		}
 		if (cvar->value < 16.0f) {
 			PrintOut(PRINT_BAD, "lighting_blend: water_size must be at least 16 (got %f)\n", cvar->value);
-			orig_Cvar_Set2(const_cast<char*>("_sofbuddy_water_size"), const_cast<char*>("16"), true);
+			detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_water_size"), const_cast<char*>("16"), true);
 			return;
 		}
 		writeDoubleAt(water_size_double_target, (double)cvar->value);
@@ -228,7 +228,7 @@ void shiny_spherical_change(cvar_t * cvar) {
 */
 void lightblend_change(cvar_t * cvar) {
 	if (gl_ext_multitexture && gl_ext_multitexture->value != 0.0f) {
-		orig_Cvar_Set2(const_cast<char*>("gl_ext_multitexture"), const_cast<char*>("0"), true);
+		detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("gl_ext_multitexture"), const_cast<char*>("0"), true);
 		cvar_t * vid_ref = findCvar(const_cast<char*>("vid_ref"));
 		if (vid_ref) vid_ref->modified = true;
 		PrintOut(PRINT_DEV, "lighting_blend: Set gl_ext_multitexture to 0 and flagged vid_ref for restart.\n");

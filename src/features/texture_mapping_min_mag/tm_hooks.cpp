@@ -131,27 +131,27 @@ glTexParameterf_t orig_glTexParameterf = NULL;
 */
 
 void __stdcall orig_glTexParameterf_min_mipped(int target_tex, int param_name, float value) {
-	orig_glTexParameterf(target_tex,param_name,(float)minfilter_mipped);
+	if (orig_glTexParameterf) orig_glTexParameterf(target_tex,param_name,(float)minfilter_mipped);
 }
 
 void __stdcall orig_glTexParameterf_mag_mipped(int target_tex, int param_name, float value) {
-	orig_glTexParameterf(target_tex,param_name,(float)magfilter_mipped);
+	if (orig_glTexParameterf) orig_glTexParameterf(target_tex,param_name,(float)magfilter_mipped);
 }
 
 void __stdcall orig_glTexParameterf_min_unmipped(int target_tex, int param_name, float value) {
-	orig_glTexParameterf(target_tex,param_name,(float)minfilter_unmipped);
+	if (orig_glTexParameterf) orig_glTexParameterf(target_tex,param_name,(float)minfilter_unmipped);
 }
 
 void __stdcall orig_glTexParameterf_mag_unmipped(int target_tex, int param_name, float value) {
-	orig_glTexParameterf(target_tex,param_name,(float)magfilter_unmipped);
+	if (orig_glTexParameterf) orig_glTexParameterf(target_tex,param_name,(float)magfilter_unmipped);
 }
 
 void __stdcall orig_glTexParameterf_min_ui(int target_tex, int param_name, float value) {
-	orig_glTexParameterf(target_tex,param_name,(float)minfilter_ui);
+	if (orig_glTexParameterf) orig_glTexParameterf(target_tex,param_name,(float)minfilter_ui);
 }
 
 void __stdcall orig_glTexParameterf_mag_ui(int target_tex, int param_name, float value) {
-	orig_glTexParameterf(target_tex,param_name,(float)magfilter_ui);
+	if (orig_glTexParameterf) orig_glTexParameterf(target_tex,param_name,(float)magfilter_ui);
 }
 
 /*

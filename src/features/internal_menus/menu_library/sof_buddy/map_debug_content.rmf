@@ -1,0 +1,72 @@
+<stm>
+<include tints>
+<tint normaltext 0xfff3f7ff>
+<tint hilitetext 0xff05070b>
+<tint sb_bg 0xff050913>
+<tint sb_panel 0xff101b2b>
+<tint sb_accent 0xff43ffd0>
+<tint sb_subtle 0xff2b3b55>
+<key escape "sofbuddy_menu sof_buddy">
+<cursor 1>
+
+<vbar tint sb_accent>
+
+<defaults noborder tiptint normaltext tipbtint sb_panel tipfont title>
+<backdrop bgcolor sb_bg>
+
+<left>
+{content_inset_tall}
+<right>
+{content_inset_tall}
+<normal>
+
+<font type title tint white atint white>
+<hbr>
+<text "Home" key mouse1 "sofbuddy_menu sof_buddy/main" border 8 1 cyan regular>
+<text "CPU" key mouse1 "sofbuddy_menu sof_buddy/cpu" border 8 1 cyan regular>
+<text "UI Scale" key mouse1 "sofbuddy_menu sof_buddy/ui_scale" border 8 1 cyan regular>
+<text "Input" key mouse1 "sofbuddy_menu sof_buddy/input" border 8 1 cyan regular>
+<text "Network" key mouse1 "sofbuddy_menu sof_buddy/network" border 8 1 cyan regular><hbr>
+<text "Texture" key mouse1 "sofbuddy_menu sof_buddy/texture" border 8 1 cyan regular>
+<text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/lighting" border 8 1 cyan regular>
+<text "Video" key mouse1 "sofbuddy_menu sof_buddy/video" border 8 1 cyan regular>
+<text "Profiles" key mouse1 "sofbuddy_menu sof_buddy/profiles" border 8 1 cyan regular>
+<text "Misc" key mouse1 "sofbuddy_menu sof_buddy/misc" border 8 1 cyan regular>
+<text "Map study" key mouse1 "sofbuddy_menu sof_buddy/map_debug" border 8 1 orange regular>
+<text "Updates" key mouse1 "sofbuddy_menu sof_buddy/updates" border 8 1 cyan regular>
+<text "Social" key mouse1 "sofbuddy_menu sof_buddy/social" border 8 1 cyan regular><hbr>
+
+<center>
+<font type title tint sb_accent atint sb_accent>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<text "MAP / ENTITY STUDY">
+<center>
+<font type title tint cyan atint cyan>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<list "None,Std,Assn,Ars,CTF,Real" match "0,1,2,3,4,5" cvar _sofbuddy_map_study_deathmatch atext "deathmatch : " noshade tip "games_t: sets engine deathmatch before map (default CTF=4)."><hbr>
+<font type title tint sb_subtle atint sb_subtle>
+"Map stem (no .bsp)"
+<hbr>
+<font type title tint white atint white>
+<input width 400 cvar _sofbuddy_map_debug_map border 8 1 gray maxchars 64 tip "e.g. moscow"><hbr>
+<font type title tint sb_subtle atint sb_subtle>
+"Load closes this menu first."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<text "Enable + load map" tip "killmenu then map" key mouse1 "killmenu;sofbuddy_map_study_load" border 14 1 cyan regular>
+<text "Draw wireframes" tip "killmenu then sofbuddy_entities_draw" key mouse1 "killmenu;sofbuddy_map_study_wireframes" border 14 1 cyan regular><hbr>
+
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<text "Close" key mouse1 "popmenu" border 14 1 cyan regular>
+</stm>

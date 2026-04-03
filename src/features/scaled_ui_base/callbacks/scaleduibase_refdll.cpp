@@ -19,6 +19,7 @@ extern void __stdcall my_glVertex2f_DrawFont_3(float x, float y);
 extern void __stdcall my_glVertex2f_DrawFont_4(float x, float y);
 #endif
 
+// RefDllLoaded priority must stay above scaled_hud (60): HUD uses orig_glVertex2f from this callback.
 void scaledUIBase_RefDllLoaded(char const* name)
 {
     SOFBUDDY_ASSERT(name != nullptr);

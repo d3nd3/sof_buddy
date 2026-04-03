@@ -94,6 +94,7 @@ DEPS = $(OBJECTS:.o=.d) $(ODIR)/generated_detours.d
 # Find all hooks.json files
 HOOKS_JSON = $(shell find $(SDIR)/features $(SDIR)/core -name "hooks.json" 2>/dev/null || true)
 CALLBACKS_JSON = $(shell find $(SDIR)/features $(SDIR)/core -name "callbacks.json" 2>/dev/null || true)
+POINTERS_JSON = $(shell find $(SDIR)/features $(SDIR)/core -name "pointers.json" 2>/dev/null || true)
 
 # Default target
 all: $(MENU_DATA_CPP) $(FEATURES_TXT) $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(VERSION_H) $(GENERATED_DETOURS_H) $(GENERATED_DETOURS_CPP) $(GENERATED_REGISTRATIONS_H) $(OUT)
@@ -185,7 +186,7 @@ $(VERSION_H): $(VERSION_FILE)
 	@echo "Generated version header with version: $$(cat $(VERSION_FILE) | tr -d '\r\n')"
 
 # Generate hook headers from detours.yaml, FEATURES.txt, and hooks.json files
-$(GENERATED_DETOURS_H): $(DETOURS_YAML) $(FEATURES_TXT) $(GENERATE_HOOKS_PY) $(HOOKS_JSON) $(CALLBACKS_JSON) | $(BDIR_GEN)
+$(GENERATED_DETOURS_H): $(DETOURS_YAML) $(FEATURES_TXT) $(GENERATE_HOOKS_PY) $(HOOKS_JSON) $(CALLBACKS_JSON) $(POINTERS_JSON) | $(BDIR_GEN)
 	@echo "Generating hook headers from $(DETOURS_YAML)..."
 	@python3 $(GENERATE_HOOKS_PY)
 	@cp -f build/generated_detours.h $(GENERATED_DETOURS_H)

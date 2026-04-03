@@ -33,6 +33,7 @@ static bool msg_affects_cursor_clip(UINT msg) {
 
 LRESULT dispatchmessagea_override_callback(
     const MSG *msg, detour_DispatchMessageA::tDispatchMessageA original) {
+      // return original(msg);
   if (msg && raw_mouse_is_enabled() && raw_mouse_api_supported()) {
     /* Retry registration if enable ran before the pump ticked (cheap no-op once
      * registered). */

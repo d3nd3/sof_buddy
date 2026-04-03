@@ -12,12 +12,18 @@
 extern int* viddef_width;
 extern int* viddef_height;
 
-void vid_checkchanges_post(void) {
+void scaled_ui_refresh_vid_dimensions_from_engine(void) {
     if (!viddef_width) viddef_width = (int*)rvaToAbsExe((void*)0x0040365C);
     if (!viddef_height) viddef_height = (int*)rvaToAbsExe((void*)0x00403660);
-    current_vid_w = *viddef_width;
-    current_vid_h = *viddef_height;
-    screen_y_scale = (float)current_vid_h / 480.0f;
+    if (viddef_width && viddef_height) {
+        current_vid_w = *viddef_width;
+        current_vid_h = *viddef_height;
+        screen_y_scale = (float)current_vid_h / 480.0f;
+    }
+}
+
+void vid_checkchanges_post(void) {
+    scaled_ui_refresh_vid_dimensions_from_engine();
 #if FEATURE_INTERNAL_MENUS
     internal_menus_OnVidChanged();
 #endif

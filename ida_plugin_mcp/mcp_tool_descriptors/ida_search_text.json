@@ -1,0 +1,13 @@
+{
+  "name": "ida_search_text",
+  "description": "Search disassembly listing text for a substring (not regex). max_hits capped at 500.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "substring": { "type": "string", "title": "Substring" },
+      "max_hits": { "type": "integer", "default": 40, "title": "Max Hits" }
+    },
+    "required": ["substring"],
+    "title": "ida_search_textArguments"
+  }
+}

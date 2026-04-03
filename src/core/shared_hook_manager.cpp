@@ -44,6 +44,11 @@ void SharedHookManager::RegisterCallback(const std::string& hook_name, const std
 void SharedHookManager::DispatchHook(const std::string& hook_name, SharedHookPhase phase) {
     auto it = hook_callbacks.find(hook_name);
     if (it == hook_callbacks.end()) {
+        // RefDllLoaded / GameDllLoaded etc. register only under hook_callbacks_with_args; the
+        // templated DispatchHook still chains here. Don't log "no callbacks" in that case.
+        if (hook_callbacks_with_args.find(hook_name) != hook_callbacks_with_args.end()) {
+            return;
+        }
         PrintOut(PRINT_LOG, "[DispatchHook] No callbacks registered for hook '%s' (phase %s)\n", 
                  hook_name.c_str(), phase == SharedHookPhase::Pre ? "Pre" : "Post");
         return;
@@ -94,7 +99,13 @@ std::vector<SharedHookCallback>& SharedHookManager::GetCallbacks(const std::stri
 
 void SharedHookManager::PrintHookInfo(const std::string& hook_name) {
     auto it = hook_callbacks.find(hook_name);
+    auto it_args = hook_callbacks_with_args.find(hook_name);
     if (it == hook_callbacks.end()) {
+        if (it_args != hook_callbacks_with_args.end()) {
+            PrintOut(PRINT_LOG, "Hook '%s' has %zu parameterized callback(s) (no no-arg callbacks)\n",
+                     hook_name.c_str(), it_args->second.size());
+            return;
+        }
         PrintOut(PRINT_LOG, "No callbacks registered for hook: %s\n", hook_name.c_str());
         return;
     }

@@ -8,9 +8,12 @@
 using detour_Sys_SendKeyEvents::tSys_SendKeyEvents;
 
 void sys_sendkeyevents_override_callback(tSys_SendKeyEvents original) {
-  (void)original;
-  // Raw queue is drained only in getcursorpos_override_callback
-  // (raw_mouse_drain_pending_raw_for_cursor). Per-frame delta reset here.
+  // return original();
+  /* Raw off: run the real Sys_SendKeyEvents (PeekMessage/GetMessage/Translate/
+   * Dispatch until empty, then timeGetTime -> sys_frame_time per stock). That
+   * is not redundant with WinMain — Q2-style code pumps in both places.
+   * Raw on: replace that function with capped pump + same frame-time update. */
+
   raw_mouse_consume_deltas();
   Sys_SendKeyEvents_Replacement();
 }

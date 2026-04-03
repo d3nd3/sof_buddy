@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <map>
 #include <string>
@@ -20,17 +21,84 @@
 
 std::map<std::string, std::map<std::string, std::vector<uint8_t>>> g_menu_internal_files;
 
+static std::string stem_from_filename(const std::string& filename) {
+    const size_t dot = filename.find('.');
+    return (dot == std::string::npos) ? filename : filename.substr(0, dot);
+}
+
+static std::string normalize_menu_file_path(const char* menu_file) {
+    if (!menu_file || !menu_file[0]) {
+        return "";
+    }
+    std::string name(menu_file);
+    std::replace(name.begin(), name.end(), '\\', '/');
+    std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
+    while (name.rfind("./", 0) == 0) {
+        name.erase(0, 2);
+    }
+    while (!name.empty() && name[0] == '/') {
+        name.erase(0, 1);
+    }
+    if (name.rfind("menus/", 0) == 0) {
+        name.erase(0, 6);
+    }
+    if (name.rfind("menu/", 0) == 0) {
+        name.erase(0, 5);
+    }
+    if (name.size() > 4 && name.compare(name.size() - 4, 4, ".rmf") == 0) {
+        name.erase(name.size() - 4);
+    }
+    return name;
+}
+
+static bool try_resolve_stored_last_page(std::string& menu_to_push) {
+    if (!detour_Cvar_Get::oCvar_Get) {
+        return false;
+    }
+    cvar_t* cv = detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_last_page", "", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    if (!cv || !cv->string || !cv->string[0]) {
+        return false;
+    }
+    std::string candidate(cv->string);
+    std::replace(candidate.begin(), candidate.end(), '\\', '/');
+    if (candidate.find("..") != std::string::npos) {
+        return false;
+    }
+    std::transform(candidate.begin(), candidate.end(), candidate.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
+    if (candidate.rfind("sof_buddy/", 0) != 0) {
+        return false;
+    }
+    const size_t slash = candidate.find('/');
+    if (slash == std::string::npos) {
+        return false;
+    }
+    const std::string menu_name = candidate.substr(0, slash);
+    const std::string stem = candidate.substr(slash + 1);
+    if (stem.empty()) {
+        return false;
+    }
+    const std::string file_name = stem + ".rmf";
+    auto menu_it = g_menu_internal_files.find(menu_name);
+    if (menu_it == g_menu_internal_files.end()) {
+        return false;
+    }
+    if (menu_it->second.find(file_name) == menu_it->second.end()) {
+        return false;
+    }
+    menu_to_push = menu_name + "/" + stem_from_filename(file_name);
+    return true;
+}
+
 namespace {
 
 constexpr const char* kInternalMenusDiskRoot = "user/menus";
 
 void materialize_embedded_menus_to_disk() {
     // No longer materializing to disk.
-}
-
-std::string stem_from_filename(const std::string& filename) {
-    const size_t dot = filename.find('.');
-    return (dot == std::string::npos) ? filename : filename.substr(0, dot);
 }
 
 void create_loading_cvars() {
@@ -47,6 +115,8 @@ void create_loading_cvars() {
     detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_lock_input", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     // User preference: key used to open SoF Buddy menu.
     detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_hotkey", "F12", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    // Last SoF Buddy tab/page (e.g. sof_buddy/map_debug) restored when opening via F12 (sofbuddy_menu sof_buddy).
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_last_page", "", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     // Performance profile selector used by Perf Tweaks page.
     detour_Cvar_Get::oCvar_Get("_sofbuddy_perf_profile", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
 
@@ -233,6 +303,35 @@ void update_layout_cvars(bool trigger_reloadall_if_changed) {
 
 } // namespace
 
+void internal_menus_remember_menu_page(const char* menu_file) {
+    if (!menu_file || !detour_Cvar_Set2::oCvar_Set2) {
+        return;
+    }
+    std::string n = normalize_menu_file_path(menu_file);
+    if (n.empty()) {
+        return;
+    }
+    // M_PushMenu sometimes passes only the leaf (e.g. "cpu") with no sof_buddy/ prefix; map to embedded name.
+    if (n.rfind("sof_buddy/", 0) != 0) {
+        if (n.find('/') == std::string::npos) {
+            auto it = g_menu_internal_files.find("sof_buddy");
+            if (it != g_menu_internal_files.end()) {
+                const std::string rmf = n + ".rmf";
+                if (it->second.find(rmf) != it->second.end()) {
+                    n = "sof_buddy/" + n;
+                }
+            }
+        }
+        if (n.rfind("sof_buddy/", 0) != 0) {
+            return;
+        }
+    }
+    if (n == "sof_buddy/update_prompt") {
+        return;
+    }
+    set_runtime_cvar_str("_sofbuddy_menu_last_page", n.c_str());
+}
+
 static int internal_menus_content_inset_px(void) {
     int inner_frame_px = 0;
     if (detour_Cvar_Get::oCvar_Get) {
@@ -267,15 +366,18 @@ bool internal_menus_should_lock_loading_input(void) {
 }
 
 const char* internal_menus_loading_menu_name(void) {
-    // Unlocked input is for console preview during connect. The full loading stack includes
-    // loading_files (disconnect, legacy download bar, etc.); with lock off, focus/console
-    // routing can still hit those actions. Use a header-only + blank shell with no bindings.
+    // Unlocked input is for console preview during connect while keeping the same loading
+    // pages (including loading_files / Disconnect) as the standard loading menu.
     return internal_menus_should_lock_loading_input() ? "loading/loading" : "loading/loading_safe";
 }
 
 void loading_set_current(const char* map_name) {
     if (!map_name || !detour_Cvar_Set2::oCvar_Set2) return;
     detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_current"), const_cast<char*>(map_name), true);
+}
+
+void loading_reset_current_map_unknown(void) {
+    loading_set_current("-");
 }
 
 void internal_menus_call_SCR_UpdateScreen(bool force) {
@@ -338,18 +440,24 @@ void Cmd_SoFBuddy_Menu_f(void) {
     if (slash == std::string::npos) {
         auto menu_it = g_menu_internal_files.find(requested);
         if (menu_it != g_menu_internal_files.end()) {
-            std::string default_file = requested;
-            if (default_file.find('.') == std::string::npos) default_file += ".rmf";
-
-            auto default_it = menu_it->second.find(default_file);
-            if (default_it != menu_it->second.end()) {
+            exists = false;
+            if (requested == "sof_buddy" && try_resolve_stored_last_page(menu_to_push)) {
                 exists = true;
-                menu_to_push = requested + "/" + stem_from_filename(default_file);
-            } else {
-                auto main_it = menu_it->second.find("main.rmf");
-                if (main_it != menu_it->second.end()) {
+            }
+            if (!exists) {
+                std::string default_file = requested;
+                if (default_file.find('.') == std::string::npos) default_file += ".rmf";
+
+                auto default_it = menu_it->second.find(default_file);
+                if (default_it != menu_it->second.end()) {
                     exists = true;
-                    menu_to_push = requested + "/main";
+                    menu_to_push = requested + "/" + stem_from_filename(default_file);
+                } else {
+                    auto main_it = menu_it->second.find("main.rmf");
+                    if (main_it != menu_it->second.end()) {
+                        exists = true;
+                        menu_to_push = requested + "/main";
+                    }
                 }
             }
         }
@@ -384,6 +492,14 @@ void Cmd_SoFBuddy_Menu_f(void) {
                                  (menu_to_push.rfind("loading/", 0) == 0);
     const bool lock_input = is_loading_menu ? internal_menus_should_lock_loading_input() : false;
 
+    // Persist last tab here (full sof_buddy/... path). Post-hook sometimes sees a leaf-only path and skipped save.
+    if (menu_to_push.rfind("sof_buddy/", 0) == 0) {
+        internal_menus_remember_menu_page(menu_to_push.c_str());
+    }
+
+    if (is_loading_menu)
+        loading_reset_current_map_unknown();
+
     detour_M_PushMenu::oM_PushMenu(menu_to_push.c_str(), "", lock_input);
 }
 
@@ -393,6 +509,7 @@ void internal_menus_OnVidChanged(void) {
 
 void loading_show_ui(void) {
     if (detour_M_PushMenu::oM_PushMenu) {
+        loading_reset_current_map_unknown();
         const bool lock_input = internal_menus_should_lock_loading_input();
         detour_M_PushMenu::oM_PushMenu(internal_menus_loading_menu_name(), "", lock_input);
     }

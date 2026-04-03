@@ -1,0 +1,27 @@
+{
+  "name": "ida_ping",
+  "description": "Check IDA bridge. Returns markdown: optional Warning if plugin is legacy, then a json fenced block. JSON is enriched by the stdio MCP: bridge_capabilities, stdio_mcp_enrichment; when legacy plugin_version: null and supported_ops: []. include_paths=false redacts idb/input_file for shared logs. Raw IDA HTTP GET /health matches POST ping only (no MCP enrichment).",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "include_paths": {
+        "default": true,
+        "title": "Include Paths",
+        "type": "boolean",
+        "description": "If false, idb and input_file are shown as <redacted> in the JSON block."
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "title": "Result",
+        "type": "string",
+        "description": "Markdown string. Inner JSON includes ok, idb, input_file; plugin v2+ adds plugin_version (string), supported_ops (string[]). MCP adds bridge_capabilities, stdio_mcp_enrichment; legacy plugins show null and [] for version/ops."
+      }
+    },
+    "required": ["result"],
+    "title": "ida_pingOutput"
+  }
+}

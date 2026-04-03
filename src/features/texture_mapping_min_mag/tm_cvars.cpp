@@ -12,6 +12,7 @@
 #include "sof_compat.h"
 #include "util.h"
 #include "shared.h"
+#include "generated_detours.h"
 
 // CVar declarations
 cvar_t * _sofbuddy_minfilter_unmipped = NULL;
@@ -28,20 +29,20 @@ cvar_t * _gl_texturemode = NULL;
 	Create and register all texture_mapping_min_mag cvars
 */
 void create_texturemapping_cvars(void) {
-	SOFBUDDY_ASSERT(orig_Cvar_Get != nullptr);
+	SOFBUDDY_ASSERT(detour_Cvar_Get::oCvar_Get != nullptr);
 	
 	// Sky detailtextures (unmipped)
-	_sofbuddy_minfilter_unmipped = orig_Cvar_Get("_sofbuddy_minfilter_unmipped","GL_LINEAR",CVAR_SOFBUDDY_ARCHIVE,minfilter_change);
-	_sofbuddy_magfilter_unmipped = orig_Cvar_Get("_sofbuddy_magfilter_unmipped","GL_LINEAR",CVAR_SOFBUDDY_ARCHIVE,magfilter_change);
+	_sofbuddy_minfilter_unmipped = detour_Cvar_Get::oCvar_Get("_sofbuddy_minfilter_unmipped","GL_LINEAR",CVAR_SOFBUDDY_ARCHIVE,minfilter_change);
+	_sofbuddy_magfilter_unmipped = detour_Cvar_Get::oCvar_Get("_sofbuddy_magfilter_unmipped","GL_LINEAR",CVAR_SOFBUDDY_ARCHIVE,magfilter_change);
 	
 	// Mipped textures
 	// Important ones - obtain a value from both mipmaps and take the weighted average between the 2 values - sample each mipmap by using 4 neighbours of each.
-	_sofbuddy_minfilter_mipped = orig_Cvar_Get("_sofbuddy_minfilter_mipped","GL_LINEAR_MIPMAP_LINEAR",CVAR_SOFBUDDY_ARCHIVE,minfilter_change);
-	_sofbuddy_magfilter_mipped = orig_Cvar_Get("_sofbuddy_magfilter_mipped","GL_LINEAR",CVAR_SOFBUDDY_ARCHIVE,magfilter_change);
+	_sofbuddy_minfilter_mipped = detour_Cvar_Get::oCvar_Get("_sofbuddy_minfilter_mipped","GL_LINEAR_MIPMAP_LINEAR",CVAR_SOFBUDDY_ARCHIVE,minfilter_change);
+	_sofbuddy_magfilter_mipped = detour_Cvar_Get::oCvar_Get("_sofbuddy_magfilter_mipped","GL_LINEAR",CVAR_SOFBUDDY_ARCHIVE,magfilter_change);
 	
 	// UI - left magfilter_ui at GL_NEAREST for now because fonts look really bad with LINEAR, even tho others might be better at 4k
-	_sofbuddy_minfilter_ui = orig_Cvar_Get("_sofbuddy_minfilter_ui","GL_NEAREST",CVAR_SOFBUDDY_ARCHIVE,minfilter_change);
-	_sofbuddy_magfilter_ui = orig_Cvar_Get("_sofbuddy_magfilter_ui","GL_NEAREST",CVAR_SOFBUDDY_ARCHIVE,magfilter_change);
+	_sofbuddy_minfilter_ui = detour_Cvar_Get::oCvar_Get("_sofbuddy_minfilter_ui","GL_NEAREST",CVAR_SOFBUDDY_ARCHIVE,minfilter_change);
+	_sofbuddy_magfilter_ui = detour_Cvar_Get::oCvar_Get("_sofbuddy_magfilter_ui","GL_NEAREST",CVAR_SOFBUDDY_ARCHIVE,magfilter_change);
 	
 	SOFBUDDY_ASSERT(_sofbuddy_minfilter_unmipped != nullptr);
 	SOFBUDDY_ASSERT(_sofbuddy_magfilter_unmipped != nullptr);

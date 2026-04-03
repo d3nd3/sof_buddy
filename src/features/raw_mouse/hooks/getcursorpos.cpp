@@ -11,6 +11,7 @@ using detour_GetCursorPos::tGetCursorPos;
 
 BOOL getcursorpos_override_callback(
     LPPOINT lpPoint, detour_GetCursorPos::tGetCursorPos original) {
+      // return original(lpPoint);
   if (!in_mouse_raw || in_mouse_raw->value == 0.0f) {
     SOFBUDDY_ASSERT(original != nullptr);
     return original(lpPoint);
@@ -35,6 +36,7 @@ BOOL getcursorpos_override_callback(
   lpPoint->x = window_center.x + raw_mouse_delta_x;
   lpPoint->y = window_center.y + raw_mouse_delta_y;
   
+  raw_mouse_consume_deltas();
   return TRUE;
 }
 

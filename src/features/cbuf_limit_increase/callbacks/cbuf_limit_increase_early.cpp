@@ -12,6 +12,7 @@
 #include <string>
 
 #include "detours.h"
+#include "generated_detours.h"
 #include "util.h"
 
 namespace {
@@ -28,14 +29,11 @@ Cmd_Exec_f_t orig_Cmd_Exec_f = nullptr;
 using Com_Printf_t = void(__cdecl*)(const char* fmt, ...);
 Com_Printf_t orig_Com_Printf_trampoline = nullptr;
 
-// Set these from IDA for your SoF.exe build.
+// RVAs for manual detours (not in detours.yaml / pointers.json).
 constexpr uintptr_t kCbufAddTextRva = 0x00018180;
 constexpr uintptr_t kCbufInsertTextRva = 0x000181D0;
 constexpr uintptr_t kCmdExecfRva = 0x00018930;
-constexpr uintptr_t kCmdExecuteStringRva = 0x000194F0;
 constexpr uintptr_t kComPrintfRva = 0x0001C6E0;
-constexpr uintptr_t kFsLoadFileRva = 0x00025370; // FS_LoadFile(char*, void**, bool)
-constexpr uintptr_t kFsFreeFileRva = 0x00025420; // FS_FreeFile(void*)
 
 // Recursion depth while inside Cmd_Exec_f. Some builds may feed exec'd content to the
 // command buffer in smaller pieces, so we treat anything inserted during exec as
@@ -44,10 +42,10 @@ static int s_exec_depth = 0;
 static bool s_virtual_draining = false;
 static std::string s_virtual_cmd_text;
 
-using FS_LoadFile_t = int(__cdecl*)(char* path, void** buffer, bool override_pak);
+using FS_LoadFile_t = detour_FS_LoadFile::tFS_LoadFile;
 FS_LoadFile_t orig_FS_LoadFile = nullptr;
 
-using FS_FreeFile_t = void(__cdecl*)(void* buffer);
+using FS_FreeFile_t = detour_FS_FreeFile::tFS_FreeFile;
 FS_FreeFile_t orig_FS_FreeFile = nullptr;
 
 static bool ascii_ieq(const char* a, const char* b) {
@@ -106,7 +104,7 @@ bool is_script_context() {
 }
 
 void drain_virtual_cbuf(bool flush_trailing_command) {
-    if (!orig_Cmd_ExecuteString) return;
+    if (!detour_Cmd_ExecuteString::oCmd_ExecuteString) return;
     if (s_virtual_draining) return;
 
     s_virtual_draining = true;
@@ -143,7 +141,7 @@ void drain_virtual_cbuf(bool flush_trailing_command) {
 
         if (stop > begin) {
             std::string cmd = line.substr(begin, stop - begin);
-            orig_Cmd_ExecuteString(cmd.c_str());
+            detour_Cmd_ExecuteString::oCmd_ExecuteString(cmd.c_str());
         }
 
         if (++executed > 50000) {
@@ -165,7 +163,7 @@ void __cdecl hk_Cbuf_AddText(const char* text) {
         PrintOut(PRINT_DEV, "cbuf_limit_increase: Cbuf_AddText hook is active\n");
     }
 
-    if (!text || !orig_Cmd_ExecuteString) {
+    if (!text || !detour_Cmd_ExecuteString::oCmd_ExecuteString) {
         orig_Cbuf_AddText(text);
         return;
     }
@@ -188,7 +186,7 @@ void __cdecl hk_Cbuf_InsertText(const char* text) {
         PrintOut(PRINT_DEV, "cbuf_limit_increase: Cbuf_InsertText hook is active\n");
     }
 
-    if (!text || !orig_Cmd_ExecuteString) {
+    if (!text || !detour_Cmd_ExecuteString::oCmd_ExecuteString) {
         orig_Cbuf_InsertText(text);
         return;
     }
@@ -212,16 +210,16 @@ void __cdecl hk_Cmd_Exec_f(void) {
         PrintOut(PRINT_DEV, "cbuf_limit_increase: Cmd_Exec_f hook is active\n");
     }
 
-    if (!orig_Cmd_Argc || !orig_Cmd_Argv || !orig_Cmd_ExecuteString) {
+    if (!detour_Cmd_Argc::oCmd_Argc || !detour_Cmd_Argv::oCmd_Argv || !detour_Cmd_ExecuteString::oCmd_ExecuteString) {
         orig_Cmd_Exec_f();
         return;
     }
 
-    const bool is_config_exec = (orig_Cmd_Argc() == 2) && is_config_cfg_path(orig_Cmd_Argv(1));
+    const bool is_config_exec = (detour_Cmd_Argc::oCmd_Argc() == 2) && is_config_cfg_path(detour_Cmd_Argv::oCmd_Argv(1));
 
     // Keep risk minimal: only bypass/stabilize exec for config.cfg.
     if (is_config_exec) {
-        const char* fname = orig_Cmd_Argv(1);
+        const char* fname = detour_Cmd_Argv::oCmd_Argv(1);
 
         // If we can load config.cfg through the engine filesystem, bypass the fixed
         // command buffer entirely and execute via the virtual buffer.
@@ -231,8 +229,8 @@ void __cdecl hk_Cmd_Exec_f(void) {
                      fname,
                      static_cast<unsigned int>(script.size()));
 
-            if (orig_Com_Printf) {
-                orig_Com_Printf("execing %s\n", fname);
+            if (detour_Com_Printf::oCom_Printf) {
+                detour_Com_Printf::oCom_Printf("execing %s\n", fname);
             }
 
             ++s_exec_depth;
@@ -302,29 +300,24 @@ void __cdecl hk_Com_Printf(const char* fmt, ...) {
 } // namespace
 
 void cbuf_limit_increase_EarlyStartup(void) {
-    if (kCmdExecuteStringRva == 0) {
-        PrintOut(PRINT_BAD, "cbuf_limit_increase: kCmdExecuteStringRva is not set\n");
+    if (!detour_Cmd_ExecuteString::oCmd_ExecuteString) {
+        PrintOut(PRINT_BAD, "cbuf_limit_increase: Cmd_ExecuteString not resolved (core pointers.json)\n");
         return;
     }
 
-    if (!orig_Cmd_ExecuteString) {
-        orig_Cmd_ExecuteString = reinterpret_cast<void(*)(const char*)>(
-            rvaToAbsExe(reinterpret_cast<void*>(kCmdExecuteStringRva)));
+    if (!orig_FS_LoadFile) {
+        orig_FS_LoadFile = detour_FS_LoadFile::oFS_LoadFile;
+        if (orig_FS_LoadFile) {
+            PrintOut(PRINT_DEV, "cbuf_limit_increase: using FS_LoadFile original at %p\n",
+                     reinterpret_cast<void*>(orig_FS_LoadFile));
+        }
     }
-    if (!orig_Cmd_ExecuteString) {
-        PrintOut(PRINT_BAD, "cbuf_limit_increase: failed to resolve Cmd_ExecuteString\n");
-        return;
-    }
-
-    if (kFsLoadFileRva != 0 && !orig_FS_LoadFile) {
-        void* fs_load_addr = rvaToAbsExe(reinterpret_cast<void*>(kFsLoadFileRva));
-        orig_FS_LoadFile = reinterpret_cast<FS_LoadFile_t>(fs_load_addr);
-        PrintOut(PRINT_DEV, "cbuf_limit_increase: resolved FS_LoadFile at %p\n", fs_load_addr);
-    }
-    if (kFsFreeFileRva != 0 && !orig_FS_FreeFile) {
-        void* fs_free_addr = rvaToAbsExe(reinterpret_cast<void*>(kFsFreeFileRva));
-        orig_FS_FreeFile = reinterpret_cast<FS_FreeFile_t>(fs_free_addr);
-        PrintOut(PRINT_DEV, "cbuf_limit_increase: resolved FS_FreeFile at %p\n", fs_free_addr);
+    if (!orig_FS_FreeFile) {
+        orig_FS_FreeFile = detour_FS_FreeFile::oFS_FreeFile;
+        if (orig_FS_FreeFile) {
+            PrintOut(PRINT_DEV, "cbuf_limit_increase: using FS_FreeFile original at %p\n",
+                     reinterpret_cast<void*>(orig_FS_FreeFile));
+        }
     }
 
 #ifndef NDEBUG

@@ -1,0 +1,14 @@
+{
+  "name": "ida_get_disasm_linear",
+  "description": "Linear disassembly from an arbitrary EA (not function entry). Optional ea_end; default span is segment-bound (clipped). Requires plugin op disasm_linear.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "ea_start": { "type": "string", "title": "Ea Start" },
+      "ea_end": { "type": ["string", "null"], "default": null, "title": "Ea End" },
+      "max_lines": { "type": "integer", "default": 400, "title": "Max Lines" }
+    },
+    "required": ["ea_start"],
+    "title": "ida_get_disasm_linearArguments"
+  }
+}

@@ -10,6 +10,7 @@ typedef int					qboolean;
 
 typedef struct cvar_s cvar_t;
 typedef void (*cvarcommand_t) (cvar_t *cvar);
+typedef void (*xcommand_t)(void);
 
 typedef struct cvar_s
 {
@@ -57,9 +58,10 @@ typedef enum {
 	ca_active					// 8-Spawned into the map *ca_active*
 } connstate_t;
 
-extern cvar_t *(*orig_Cvar_Get)(const char * name, const char * value, int flags, cvarcommand_t command);
-extern cvar_t *(*orig_Cvar_Set2) (char *var_name, char *value, qboolean force);
-extern void (*orig_Cvar_SetInternal)(bool active); 
+// Preferred style: use generated detour pointers directly (detour_*::o*).
+namespace detour_Cvar_Get { extern cvar_t* (__cdecl *oCvar_Get)(const char*, const char*, int, cvarcommand_t); }
+namespace detour_Cvar_Set2 { extern cvar_t* (__cdecl *oCvar_Set2)(char*, char*, qboolean); }
+namespace detour_Cvar_SetInternal { extern void (__cdecl *oCvar_SetInternal)(bool); }
 
 #define  CVAR_ARCHIVE   0x00000001  // set to cause it to be saved to config.cfg
 
@@ -93,10 +95,10 @@ extern void (*orig_Cvar_SetInternal)(bool active);
 #define CVAR_SOFBUDDY_ARCHIVE 0x40000000
 
 
-extern void ( *orig_Com_Printf)(const char * msg, ...);
-extern void (*orig_Qcommon_Frame) (int msec);
-extern void (*orig_Qcommon_Init) (int argc, char **argv);
-extern void (*orig_Com_DPrintf)(const char *fmt, ...);
+namespace detour_Com_Printf { extern void (__cdecl *oCom_Printf)(const char*, ...); }
+namespace detour_Qcommon_Frame { extern void (__cdecl *oQcommon_Frame)(int); }
+namespace detour_Qcommon_Init { extern void (__cdecl *oQcommon_Init)(int, char**); }
+namespace detour_Com_DPrintf { extern void (__cdecl *oCom_DPrintf)(const char*, ...); }
 extern qboolean (*orig_Cbuf_AddLateCommands)(void);
 
 //vid_ref access
@@ -106,10 +108,12 @@ extern int (*orig_R_Init)( void *hinstance, void *hWnd, void * unknown );
 extern void (*orig_drawTeamIcons)(void * param1,void * param2,void * param3,void * param4);
 
 //util access
-extern void (*orig_Cmd_ExecuteString)(const char * string);
-extern void (*orig_Cmd_AddCommand)(char *cmd_name, void (*function)(void));
-extern int (*orig_Cmd_Argc)(void);
-extern char* (*orig_Cmd_Argv)(int i);
+namespace detour_Cmd_ExecuteString { extern void (__cdecl *oCmd_ExecuteString)(const char*); }
+namespace detour_Z_Free { extern void (__cdecl *oZ_Free)(void*); }
+namespace detour_CopyString { extern char* (__cdecl *oCopyString)(char*); }
+namespace detour_Cmd_AddCommand { extern void (__cdecl *oCmd_AddCommand)(char*, xcommand_t); }
+namespace detour_Cmd_Argc { extern int (__cdecl *oCmd_Argc)(); }
+namespace detour_Cmd_Argv { extern char* (__cdecl *oCmd_Argv)(int); }
 
 // Renderer CVars (for texture filtering features)
 extern cvar_t* _gl_texturemode;  // OpenGL texture mode cvar

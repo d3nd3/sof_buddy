@@ -90,6 +90,66 @@
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/console_protection/cp_hooks.cpp"
     },
     {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/entity_visualizer/callbacks/ev_postcvar.o src/features/entity_visualizer/callbacks/ev_postcvar.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/entity_visualizer/callbacks/ev_postcvar.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/entity_visualizer/ev_cvars.o src/features/entity_visualizer/ev_cvars.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/entity_visualizer/ev_cvars.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/entity_visualizer/ev_draw.o src/features/entity_visualizer/ev_draw.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/entity_visualizer/ev_draw.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/entity_visualizer/ev_gamedll_loaded.o src/features/entity_visualizer/ev_gamedll_loaded.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/entity_visualizer/ev_gamedll_loaded.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/entity_visualizer/ev_hooks.o src/features/entity_visualizer/ev_hooks.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/entity_visualizer/ev_hooks.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/entity_visualizer/ev_intersect.o src/features/entity_visualizer/ev_intersect.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/entity_visualizer/ev_intersect.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/entity_visualizer/ev_map_study_cmds.o src/features/entity_visualizer/ev_map_study_cmds.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/entity_visualizer/ev_map_study_cmds.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/entity_visualizer/ev_spawn_entities.o src/features/entity_visualizer/ev_spawn_entities.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/entity_visualizer/ev_spawn_entities.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/entity_visualizer/ev_state.o src/features/entity_visualizer/ev_state.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/entity_visualizer/ev_state.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/entity_visualizer/hooks/qcommon_frame_post.o src/features/entity_visualizer/hooks/qcommon_frame_post.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/entity_visualizer/hooks/qcommon_frame_post.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/entity_visualizer/hooks/scr_beginloadingplaque_post.o src/features/entity_visualizer/hooks/scr_beginloadingplaque_post.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/entity_visualizer/hooks/scr_beginloadingplaque_post.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/entity_visualizer/hooks/scr_beginloadingplaque_pre.o src/features/entity_visualizer/hooks/scr_beginloadingplaque_pre.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/entity_visualizer/hooks/scr_beginloadingplaque_pre.cpp"
+    },
+    {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/hd_textures/callbacks/hd_refdll.o src/features/hd_textures/callbacks/hd_refdll.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/hd_textures/callbacks/hd_refdll.cpp"
@@ -253,11 +313,6 @@
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/raw_mouse/hooks/getcursorpos.o src/features/raw_mouse/hooks/getcursorpos.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/raw_mouse/hooks/getcursorpos.cpp"
-    },
-    {
-        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/raw_mouse/hooks/in_menumouse.o src/features/raw_mouse/hooks/in_menumouse.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
-        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
-        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/raw_mouse/hooks/in_menumouse.cpp"
     },
     {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/raw_mouse/hooks/setcursorpos.o src/features/raw_mouse/hooks/setcursorpos.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",

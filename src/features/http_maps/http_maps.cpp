@@ -2,6 +2,8 @@
 
 #if FEATURE_HTTP_MAPS
 
+#include "generated_detours.h"
+
 #define MINIZ_IMPL
 #define MINIZ_NO_ZLIB_COMPATIBLE_NAMES
 #define MINIZ_NO_ARCHIVE_WRITING_APIS
@@ -11,7 +13,6 @@
 #include "crc32.h"
 #include "util.h"
 #include "shared.h"
-#include "generated_detours.h"
 #if FEATURE_INTERNAL_MENUS
 #include "features/internal_menus/shared.h"
 #endif
@@ -1157,8 +1158,8 @@ static void http_maps_clear_loading_cvars(bool reset_status = true)
 #if FEATURE_INTERNAL_MENUS
 	PrintOut(PRINT_DEV, "http_maps: UI _sofbuddy_loading_progress (clear)\n");
 	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_progress"), const_cast<char*>(""), true);
-	PrintOut(PRINT_DEV, "http_maps: UI _sofbuddy_loading_current resolving...\n");
-	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_current"), const_cast<char*>("resolving..."), true);
+	PrintOut(PRINT_DEV, "http_maps: UI _sofbuddy_loading_current (unknown)\n");
+	loading_reset_current_map_unknown();
 	if (reset_status) http_maps_set_loading_status("CHECKING");
 #endif
 }
@@ -1381,12 +1382,12 @@ static void http_maps_download_worker(std::string map_bsp_path, std::string zip_
 			http_maps_queue_status(job_id, "Failed to fetch zip CRC list.");
 			PrintOut(PRINT_LOG, "http_maps: Could not get remote CRC list, assuming PAK/Base\n");
 			// Worker thread cannot safely use engine FS probe. However, a positive local-file hit is
-			// trustworthy and lets us show MAP PRESENT much earlier. For misses, stay on CHECKING and
-			// let main-thread pump resolve MAP PRESENT vs UDP Downloading via engine FS.
+			// trustworthy and lets us show NOT NEEDED much earlier. For misses, stay on CHECKING and
+			// let main-thread pump resolve NOT NEEDED vs UDP Downloading via engine FS.
 #if FEATURE_INTERNAL_MENUS
 			if (detour_Cvar_Set2::oCvar_Set2) {
 				const bool map_present_local = http_maps_map_exists_locally(map_bsp_path);
-				http_maps_set_loading_status(map_present_local ? "MAP PRESENT" : "CHECKING");
+				http_maps_set_loading_status(map_present_local ? "NOT NEEDED" : "CHECKING");
 			}
 #endif
 			if (g_http_maps_state.active_job_id.load(std::memory_order_acquire) == job_id)
@@ -1619,7 +1620,7 @@ void http_maps_on_parse_configstring_post(void)
 	if (http_maps_map_exists_via_engine(map_bsp_path)) {
 #if FEATURE_INTERNAL_MENUS
 		http_maps_loading_ui_show_map(map_bsp_path.c_str());
-		http_maps_set_loading_status("MAP PRESENT");
+		http_maps_set_loading_status("NOT NEEDED");
 #endif
 		g_http_maps_state.completed_map_bsp = map_bsp_path;
 		return;
@@ -1665,7 +1666,7 @@ void http_maps_try_begin_precache(detour_CL_Precache_f::tCL_Precache_f original)
 		http_maps_map_exists_via_engine(map_bsp_path)) {
 #if FEATURE_INTERNAL_MENUS
 		http_maps_loading_ui_show_map(map_bsp_path.c_str());
-		http_maps_set_loading_status("MAP PRESENT");
+		http_maps_set_loading_status("NOT NEEDED");
 #endif
 		g_http_maps_state.completed_map_bsp = map_bsp_path;
 		original();
@@ -1758,7 +1759,10 @@ void http_maps_pump(void)
 #if FEATURE_INTERNAL_MENUS
 			if (detour_Cvar_Set2::oCvar_Set2 && !g_http_maps_state.pending_map_bsp.empty()) {
 				const bool map_present = http_maps_map_exists_via_engine(g_http_maps_state.pending_map_bsp);
-				http_maps_set_loading_status(map_present ? "MAP PRESENT" : "UDP Downloading...");
+				const bool did_http_dl = g_http_maps_state.worker_did_download.load(std::memory_order_acquire);
+				if (map_present && did_http_dl) http_maps_set_loading_status("DOWNLOADED");
+				else if (map_present) http_maps_set_loading_status("NOT NEEDED");
+				else http_maps_set_loading_status("UDP Downloading...");
 			}
 #endif
 			http_maps_run_deferred_continue_if_pending();
@@ -1775,15 +1779,15 @@ void http_maps_pump(void)
 	}
 #if FEATURE_INTERNAL_MENUS
 	if (detour_Cvar_Set2::oCvar_Set2) {
-		// Clear worker flags (used for logging / future UI); final label is always derived from engine FS.
+		// Clear worker flags; map-present vs HTTP-downloaded disambiguates NOT NEEDED vs DOWNLOADED.
 		(void)g_http_maps_state.worker_success_no_crc_list.exchange(false, std::memory_order_acq_rel);
-		(void)g_http_maps_state.worker_did_download.exchange(false, std::memory_order_acq_rel);
+		const bool did_http_download = g_http_maps_state.worker_did_download.exchange(false, std::memory_order_acq_rel);
 		const bool map_present = http_maps_map_exists_via_engine(g_http_maps_state.pending_map_bsp);
-		const char* end_status = map_present ? "MAP PRESENT" : "UDP Downloading...";
+		const char* end_status =
+			(map_present && did_http_download) ? "DOWNLOADED" : (map_present ? "NOT NEEDED" : "UDP Downloading...");
 		if (result == HttpMapsWorkerResult::Success || result == HttpMapsWorkerResult::Failure) {
-			// Success: CRC skip, no-CRC-list fallback, or finished HTTP download+extract — show MAP PRESENT if FS sees the map.
-			// Failure: HTTP path failed — still show MAP PRESENT if map is already in a pak / on disk.
-			// Bug fix: previously we skipped updating status when did_download was true, leaving "HTTP Downloading..." stuck.
+			// Success: CRC skip / no-CRC-list fallback → NOT NEEDED if FS sees map; HTTP download+extract → DOWNLOADED.
+			// Failure: HTTP path failed — still show NOT NEEDED if map is already in a pak / on disk.
 			http_maps_set_loading_status(end_status);
 		} else {
 			cvar_t* cur = findCvar(const_cast<char*>("_sofbuddy_loading_status"));

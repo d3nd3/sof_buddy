@@ -18,6 +18,7 @@ void console_protection_EarlyStartup(void)
 	WriteE8Call(rvaToAbsExe((void*)0x0004BB63), (void*)&hkSys_GetClipboardData);
 	WriteE9Jmp(rvaToAbsExe((void*)0x0004BB6C), rvaToAbsExe((void*)0x0004BBFE));
 
+	//Actually Con_DrawInput() within Con_DrawConsole()
 	WriteE9Jmp(rvaToAbsExe((void*)0x0002111D), (void*)&my_Con_Draw_Console);
 	WriteE9Jmp(rvaToAbsExe((void*)0x00020C90), rvaToAbsExe((void*)0x00020D6C));
 

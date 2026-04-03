@@ -51,6 +51,13 @@ detours.yaml    hooks.json files    callbacks.json files    generate_hooks.py
 - Supports override hooks with `"override": true` for full control over function behavior
 - **TLDR: `hooks.json` targets function signatures** (from `detours.yaml`)
 
+**`pointers.json`** (optional) - Names from `detours.yaml` that only need the original pointer (`oName`), **no** detour or `TypedSharedHookManager`
+- Place next to `hooks.json`: `src/features/<feature>/hooks/pointers.json`
+- JSON array of strings, or objects `{"function": "Name"}` (same style as listing hook names)
+- Codegen emits typedef + `extern o*` only; `RegisterPointerOnlyFunctions_<Module>()` resolves addresses with `DetourSystem::ResolveFunctionAddress` (same rules as `RegisterDetour`)
+- If the same function name appears in **`hooks.json` and `pointers.json`**, **`hooks.json` wins** (full detour); the duplicate pointer entry is ignored (build prints an info line)
+- Call sites: `RegisterPointerOnlyFunctions_Unknown` after `ApplySystemDetours`; `RegisterPointerOnlyFunctions_SofExe` after `ApplyExeDetours`; `RegisterPointerOnlyFunctions_RefDll` after ref detours apply; `RegisterPointerOnlyFunctions_GameDll` / `RegisterPointerOnlyFunctions_PlayerDll` after game DLL detours apply (see `simple_init.cpp` and `module_loaders.cpp`)
+
 **`callbacks.json`** - Feature-specific shared hook callback declarations
 - Each feature folder can have a `callbacks.json`
 - Lists which shared lifecycle hooks the feature wants to register callbacks for
@@ -62,10 +69,11 @@ detours.yaml    hooks.json files    callbacks.json files    generate_hooks.py
 ### Code Generation
 
 **`tools/generate_hooks.py`** - Build-time code generator
-- Reads `detours.yaml`, all `hooks/hooks.json` files, and all `callbacks/callbacks.json` files
+- Reads `detours.yaml`, all `hooks/hooks.json` files, optional `hooks/pointers.json` files, and all `callbacks/callbacks.json` files
 - **Only generates code for detours that are actually used** (not all from `detours.yaml`)
 - Detects usage by:
   - Scanning `hooks/hooks.json` files for referenced functions
+  - Scanning `hooks/pointers.json` files for pointer-only symbols (subset: no `GetManager` / no installed detour)
   - Scanning source files for `namespace detour_*` overrides
   - Scanning source files for `o*` function pointer references (e.g., `oDraw_StretchPic`)
 - Generates `build/generated_detours.h` - Type-safe hook managers and detour functions (subset of `detours.yaml`)

@@ -1,0 +1,9 @@
+[
+  "AngleVectors",
+  "Cbuf_AddText",
+  "Cvar_Get",
+  "FX_AllocNewQuad",
+  "FX_ClearQuads",
+  "FX_SetQuadAsLine",
+  "FX_SetQuadLineGenericInfo"
+]

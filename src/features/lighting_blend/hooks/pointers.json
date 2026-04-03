@@ -1,0 +1,11 @@
+[
+  "AdjustTexCoords",
+  "Cvar_Get",
+  "Cvar_Set2",
+  "glBegin",
+  "glBlendFunc",
+  "glColor3f",
+  "glEnd",
+  "glTexCoord2f",
+  "glVertex3f"
+]

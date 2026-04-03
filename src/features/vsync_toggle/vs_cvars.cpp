@@ -12,6 +12,7 @@
 #include "sof_compat.h"
 #include "util.h"
 #include "shared.h"
+#include "generated_detours.h"
 
 // Engine CVars resolved when the renderer is loaded
 cvar_t *vid_ref = NULL;
@@ -22,10 +23,10 @@ cvar_t *gl_swapinterval = NULL;
 	Called after ref.dll is loaded to ensure engine CVars are available
 */
 void create_vsync_cvars(void) {
-	SOFBUDDY_ASSERT(orig_Cvar_Get != nullptr);
+	SOFBUDDY_ASSERT(detour_Cvar_Get::oCvar_Get != nullptr);
 	
-	gl_swapinterval = orig_Cvar_Get("gl_swapinterval", "0", 0, NULL);
-	vid_ref = orig_Cvar_Get("vid_ref", "gl", 0, NULL);
+	gl_swapinterval = detour_Cvar_Get::oCvar_Get("gl_swapinterval", "0", 0, NULL);
+	vid_ref = detour_Cvar_Get::oCvar_Get("vid_ref", "gl", 0, NULL);
 	SOFBUDDY_ASSERT(gl_swapinterval != nullptr);
 	SOFBUDDY_ASSERT(vid_ref != nullptr);
 }

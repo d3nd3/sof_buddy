@@ -1,8 +1,19 @@
 # Changelog
 
+## v5.6
+
+- **Detours / codegen:** Expanded `detours.yaml` and `tools/generate_hooks.py` for pointer-backed hook targets; `rsrc/funcmaps/SoF.exe.json` and per-feature `hooks/pointers.json` (plus `src/core/pointers.json`); `docs/DETOUR_SYSTEM.md` and `hdr/detours.h` updates; `DetourXS` and core detour registration (`detours.cpp`, `shared_hook_manager.cpp`) aligned with the new flow.
+- **Core:** Init and loader path work (`simple_init.cpp`, `module_loaders.cpp`, `wsock_entry.cpp`, `update_command.cpp`, `sofbuddy_cfg.cpp`) so startup and update behavior match the hook system changes.
+- **entity_visualizer (new, optional):** Map-study tooling (spawn/draw, cvars, QCommon frame and loading hooks). Still **off by default** in `features/FEATURES.txt` alongside other experimental toggles; enable by uncommenting the feature line for local builds.
+- **Internal menus:** Map debug RMF assets (`map_debug.rmf`, `map_debug_content.rmf`); tab content and loading/menu hook follow-ups; `hooks/pointers.json` for internal menu hooks.
+- **Graphics / ref-DLL features:** `lighting_blend`, `scaled_ui_base`, `scaled_menu`, `texture_mapping_min_mag`, `vsync_toggle` — cvar/refdll and hook wiring updates where pointers apply; feature README tweaks where noted.
+- **Other features:** `http_maps`, `media_timers`, `new_system_bug` — small hook/cvar/README adjustments; `raw_mouse` message-pump and hook touch-ups.
+- **Cbuf / config:** `cbuf_limit_increase` README and early callback updates; `FEATURES.txt` comment clarifies deprecation in favor of `sofbuddy.cfg` persistence.
+- **Tooling / docs:** IDA MCP plugin (`ida_plugin_mcp/`), `ida_dump_main.py`, and Cursor MCP/command helpers for IDA workflows; `README.md` and several feature READMEs refreshed.
+
 ## v5.5
 
-- Build defaults: `entity_visualizer` is commented out in auto-generated `features/FEATURES.txt` (experimental). CI and `make` run `tools/generate_features_txt.py`, which now treats it as default-disabled alongside `scaled_menu` and `cbuf_limit_increase`; enable locally by uncommenting the feature line.
+- Build defaults: `entity_visualizer` remains under Game Features but is **commented out by default** in auto-generated `features/FEATURES.txt` (`tools/generate_features_txt.py`). Default-disabled features are `scaled_menu`, `cbuf_limit_increase`, and `entity_visualizer` (map entity / wireframe tools).
 - HTTP maps: stabilize deferred precache and loading-status flow; harden HTTPS, size fallbacks, loading status, and logging (`http_maps.cpp`, README).
 - Internal menus: restore early loading UI with a pak-aware fast path; harden loading menu behavior in unlock mode; loading safe RMF updates; `SCR_BeginLoadingPlaque` post-hook adjustments.
 

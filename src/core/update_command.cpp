@@ -4,6 +4,7 @@
 #include "sof_compat.h"
 #include "util.h"
 #include "version.h"
+#include "generated_detours.h"
 
 #include <windows.h>
 #include <winhttp.h>
@@ -141,9 +142,9 @@ bool is_tls_secure_failure_error(DWORD code) {
 
 std::string get_update_cvar_or_default(const char* name, const char* fallback) {
     if (!fallback) fallback = "";
-    if (!name || !name[0] || !orig_Cvar_Get) return std::string(fallback);
+    if (!name || !name[0] || !detour_Cvar_Get::oCvar_Get) return std::string(fallback);
 
-    cvar_t* c = orig_Cvar_Get(name, fallback, CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    cvar_t* c = detour_Cvar_Get::oCvar_Get(name, fallback, CVAR_SOFBUDDY_ARCHIVE, nullptr);
     if (!c || !c->string || !c->string[0]) return std::string(fallback);
     return std::string(c->string);
 }
@@ -208,8 +209,8 @@ std::string current_utc_timestamp() {
 }
 
 void set_update_cvar(const char* name, const std::string& value) {
-    if (!name || !orig_Cvar_Set2) return;
-    orig_Cvar_Set2(const_cast<char*>(name), const_cast<char*>(value.c_str()), true);
+    if (!name || !detour_Cvar_Set2::oCvar_Set2) return;
+    detour_Cvar_Set2::oCvar_Set2(const_cast<char*>(name), const_cast<char*>(value.c_str()), true);
 }
 
 void set_update_status(const std::string& status) {
@@ -934,28 +935,28 @@ static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool
 }
 
 void sofbuddy_update_init(void) {
-    if (!orig_Cvar_Get) return;
-    orig_Cvar_Get(kCvarUpdateStatus, "idle", 0, nullptr);
-    orig_Cvar_Get(kCvarUpdateLatest, "", 0, nullptr);
-    orig_Cvar_Get(kCvarUpdateDownloadPath, "", 0, nullptr);
-    orig_Cvar_Get(kCvarUpdateDownloadedAsset, "", 0, nullptr);
-    orig_Cvar_Get(kCvarUpdateCheckedUtc, "", 0, nullptr);
-    orig_Cvar_Get(kCvarUpdateCheckStartup, "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
-    cvar_t* api_url_cvar = orig_Cvar_Get(kCvarUpdateApiUrl, kUpdateApiUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
-    cvar_t* releases_url_cvar = orig_Cvar_Get(kCvarUpdateReleasesUrl, kUpdateReleasesUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    if (!detour_Cvar_Get::oCvar_Get) return;
+    detour_Cvar_Get::oCvar_Get(kCvarUpdateStatus, "idle", 0, nullptr);
+    detour_Cvar_Get::oCvar_Get(kCvarUpdateLatest, "", 0, nullptr);
+    detour_Cvar_Get::oCvar_Get(kCvarUpdateDownloadPath, "", 0, nullptr);
+    detour_Cvar_Get::oCvar_Get(kCvarUpdateDownloadedAsset, "", 0, nullptr);
+    detour_Cvar_Get::oCvar_Get(kCvarUpdateCheckedUtc, "", 0, nullptr);
+    detour_Cvar_Get::oCvar_Get(kCvarUpdateCheckStartup, "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    cvar_t* api_url_cvar = detour_Cvar_Get::oCvar_Get(kCvarUpdateApiUrl, kUpdateApiUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    cvar_t* releases_url_cvar = detour_Cvar_Get::oCvar_Get(kCvarUpdateReleasesUrl, kUpdateReleasesUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
 
 #if defined(SOFBUDDY_XP_BUILD)
     // XP builds should default to the sofvault mirror. Preserve explicit user customizations.
-    if (orig_Cvar_Set2) {
+    if (detour_Cvar_Set2::oCvar_Set2) {
         if (cvar_is_empty_or_value(api_url_cvar, kUpdateApiUrlGitHub))
-            orig_Cvar_Set2(const_cast<char*>(kCvarUpdateApiUrl), const_cast<char*>(kUpdateApiUrlSofVault), true);
+            detour_Cvar_Set2::oCvar_Set2(const_cast<char*>(kCvarUpdateApiUrl), const_cast<char*>(kUpdateApiUrlSofVault), true);
         if (cvar_is_empty_or_value(releases_url_cvar, kUpdateReleasesUrlGitHub))
-            orig_Cvar_Set2(const_cast<char*>(kCvarUpdateReleasesUrl), const_cast<char*>(kUpdateReleasesUrlSofVault), true);
+            detour_Cvar_Set2::oCvar_Set2(const_cast<char*>(kCvarUpdateReleasesUrl), const_cast<char*>(kUpdateReleasesUrlSofVault), true);
     }
 #endif
 
-    orig_Cvar_Get(kCvarOpenUrlStatus, "idle", 0, nullptr);
-    orig_Cvar_Get(kCvarOpenUrlLast, "", 0, nullptr);
+    detour_Cvar_Get::oCvar_Get(kCvarOpenUrlStatus, "idle", 0, nullptr);
+    detour_Cvar_Get::oCvar_Get(kCvarOpenUrlLast, "", 0, nullptr);
 }
 
 void sofbuddy_update_maybe_check_startup(void) {
@@ -963,8 +964,8 @@ void sofbuddy_update_maybe_check_startup(void) {
     if (s_checked_startup) return;
     s_checked_startup = true;
 
-    if (!orig_Cvar_Get) return;
-    cvar_t* startup_check = orig_Cvar_Get(kCvarUpdateCheckStartup, "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    if (!detour_Cvar_Get::oCvar_Get) return;
+    cvar_t* startup_check = detour_Cvar_Get::oCvar_Get(kCvarUpdateCheckStartup, "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     if (!startup_check || startup_check->value == 0.0f) return;
 
     PrintOut(PRINT_DEV, "sofbuddy_update: startup check is enabled.\n");
@@ -983,14 +984,14 @@ bool sofbuddy_update_consume_startup_prompt_request(void) {
 }
 
 void Cmd_SoFBuddy_Update_f(void) {
-    if (!orig_Cmd_Argc || !orig_Cmd_Argv) return;
+    if (!detour_Cmd_Argc::oCmd_Argc || !detour_Cmd_Argv::oCmd_Argv) return;
 
     bool do_download = false;
     bool force_download = false;
 
-    int argc = orig_Cmd_Argc();
+    int argc = detour_Cmd_Argc::oCmd_Argc();
     for (int i = 1; i < argc; ++i) {
-        const char* arg = orig_Cmd_Argv(i);
+        const char* arg = detour_Cmd_Argv::oCmd_Argv(i);
         if (!arg || !arg[0]) continue;
         if (!std::strcmp(arg, "download") || !std::strcmp(arg, "install")) {
             do_download = true;
@@ -1010,7 +1011,7 @@ void Cmd_SoFBuddy_Update_f(void) {
 }
 
 void Cmd_SoFBuddy_UpdateInstall_f(void) {
-    if (!orig_Cmd_ExecuteString) return;
+    if (!detour_Cmd_ExecuteString::oCmd_ExecuteString) return;
     const bool wine = is_running_under_wine();
     const char* script = wine ? kUpdateInstallScriptWine : kUpdateInstallScriptWindows;
     if (!is_regular_file(script)) {
@@ -1039,7 +1040,7 @@ void Cmd_SoFBuddy_UpdateInstall_f(void) {
     }
 
     set_update_status("launching installer and exiting");
-    orig_Cmd_ExecuteString("quit");
+    detour_Cmd_ExecuteString::oCmd_ExecuteString("quit");
 }
 
 static bool open_url(const std::string& url, std::string& error) {
@@ -1058,14 +1059,14 @@ static bool open_url(const std::string& url, std::string& error) {
 }
 
 void Cmd_SoFBuddy_OpenUrl_f(void) {
-    if (!orig_Cmd_Argc || !orig_Cmd_Argv) return;
-    if (orig_Cmd_Argc() < 2) {
+    if (!detour_Cmd_Argc::oCmd_Argc || !detour_Cmd_Argv::oCmd_Argv) return;
+    if (detour_Cmd_Argc::oCmd_Argc() < 2) {
         PrintOut(PRINT_DEV, "Usage: sofbuddy_openurl <url>\n");
         PrintOut(PRINT_DEV, "Note: only trusted https social links are allowed.\n");
         return;
     }
 
-    const char* raw_url = orig_Cmd_Argv(1);
+    const char* raw_url = detour_Cmd_Argv::oCmd_Argv(1);
     if (!raw_url || !raw_url[0]) {
         set_openurl_status("invalid url");
         PrintOut(PRINT_BAD, "sofbuddy_openurl: invalid url\n");

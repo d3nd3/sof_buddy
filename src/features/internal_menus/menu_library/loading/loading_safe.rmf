@@ -6,5 +6,5 @@
 
 <frame top 0 180>
 <frame header_content 0 180 cut top page loading/loading_header>
-<frame bottom 0 0 page loading/loading_blank>
+<frame bottom 0 0 page loading/loading_files>
 </stm>

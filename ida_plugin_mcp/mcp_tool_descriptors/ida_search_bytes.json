@@ -1,0 +1,13 @@
+{
+  "name": "ida_search_bytes",
+  "description": "Binary pattern search (IDA hex syntax, ?? wildcards). max_hits capped at 500.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "pattern": { "type": "string", "title": "Pattern" },
+      "max_hits": { "type": "integer", "default": 40, "title": "Max Hits" }
+    },
+    "required": ["pattern"],
+    "title": "ida_search_bytesArguments"
+  }
+}

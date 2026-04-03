@@ -3,17 +3,30 @@
 #if FEATURE_TEXTURE_MAPPING_MIN_MAG
 
 #include "sof_compat.h"
+#include "generated_detours.h"
 #include "util.h"
 #include <string.h>
+#include <windows.h>
 #include "../shared.h"
 #include "../../vsync_toggle/shared.h"
 
 void setup_minmag_filters(char const* name) {
 	static bool first_run = true;
 
-	_gl_texturemode = orig_Cvar_Get("gl_texturemode","GL_LINEAR_MIPMAP_LINEAR",CVAR_SOFBUDDY_ARCHIVE,NULL);
+	_gl_texturemode = detour_Cvar_Get::oCvar_Get("gl_texturemode","GL_LINEAR_MIPMAP_LINEAR",CVAR_SOFBUDDY_ARCHIVE,NULL);
 
-	orig_glTexParameterf = (glTexParameterf_t)(*(int*)rvaToAbsRef((void*)0x000A457C));
+	orig_glTexParameterf = detour_glTexParameterf::oglTexParameterf;
+	if (!orig_glTexParameterf) {
+		HMODULE hGl = GetModuleHandleA("opengl32.dll");
+		if (hGl) {
+			orig_glTexParameterf = reinterpret_cast<glTexParameterf_t>(
+				GetProcAddress(hGl, "glTexParameterf"));
+		}
+	}
+	if (!orig_glTexParameterf) {
+		PrintOut(PRINT_BAD, "texture_mapping_min_mag: glTexParameterf unresolved; skipping hook patching\n");
+		return;
+	}
 
 	WriteE8Call(rvaToAbsRef((void*)0x00006636), (void*)&orig_glTexParameterf_min_mipped);
 	WriteByte(rvaToAbsRef((void*)0x0000663B), 0x90);
@@ -31,8 +44,8 @@ void setup_minmag_filters(char const* name) {
 	if (_gl_texturemode) _gl_texturemode->modified = true;
 
 #if FEATURE_VSYNC_TOGGLE
-	gl_swapinterval = orig_Cvar_Get("gl_swapinterval","0",0,NULL);
-	vid_ref = orig_Cvar_Get("vid_ref","gl",0,NULL);
+	gl_swapinterval = detour_Cvar_Get::oCvar_Get("gl_swapinterval","0",0,NULL);
+	vid_ref = detour_Cvar_Get::oCvar_Get("vid_ref","gl",0,NULL);
 #endif
 }
 

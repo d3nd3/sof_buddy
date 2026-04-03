@@ -39,19 +39,19 @@ HMODULE (__stdcall *orig_LoadLibraryA)(LPCSTR lpLibFileName) = nullptr;
 */
 static void new_system_bug_InitDefaults(void)
 {
-	SOFBUDDY_ASSERT(orig_Cmd_ExecuteString != nullptr);
+	SOFBUDDY_ASSERT(detour_Cmd_ExecuteString::oCmd_ExecuteString != nullptr);
 	
 	PrintOut(PRINT_LOG, "New System Bug Fix: Applying optimal defaults...\n");
 	
 	// Override with highest quality settings
-	orig_Cmd_ExecuteString("exec drivers/highest.cfg\n");
+	detour_Cmd_ExecuteString::oCmd_ExecuteString("exec drivers/highest.cfg\n");
 	
 	// Fix 1024 high value of fx_maxdebrisonscreen, hurts CPU performance
-	orig_Cmd_ExecuteString("set fx_maxdebrisonscreen 128\n");
+	detour_Cmd_ExecuteString::oCmd_ExecuteString("set fx_maxdebrisonscreen 128\n");
 	
 	// Fix compression as default for some GPUs
-	orig_Cmd_ExecuteString("set r_isf GL_SOLID_FORMAT\n");
-	orig_Cmd_ExecuteString("set r_iaf GL_ALPHA_FORMAT\n");
+	detour_Cmd_ExecuteString::oCmd_ExecuteString("set r_isf GL_SOLID_FORMAT\n");
+	detour_Cmd_ExecuteString::oCmd_ExecuteString("set r_iaf GL_ALPHA_FORMAT\n");
 
 	PrintOut(PRINT_DEV, "New System Bug Fix: Optimal defaults applied\n");
 }

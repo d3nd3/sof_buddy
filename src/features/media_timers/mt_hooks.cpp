@@ -35,7 +35,6 @@ static bool g_timer_period_1ms_requested = false;
 static int g_cl_maxfps_target_msec = 33;
 
 extern void* o_sofplus;
-extern void (*orig_Qcommon_Frame) (int msec);
 
 int qpcTimeStampNano(void);
 
@@ -414,9 +413,9 @@ int winmain_loop(void)
 	//when frequency and msec value do not match = change speed
 	
 	//Time is applied to extratime here: 
-	SOFBUDDY_ASSERT(orig_Qcommon_Frame != nullptr);
+	SOFBUDDY_ASSERT(detour_Qcommon_Frame::oQcommon_Frame != nullptr);
 	SOFBUDDY_ASSERT(timedelta >= 0);
-	orig_Qcommon_Frame (timedelta);
+	detour_Qcommon_Frame::oQcommon_Frame(timedelta);
 
 	//does not matter what we return here because we have jmp instruction immidiately after.
 	return 0;
@@ -485,7 +484,7 @@ int winmain_loop(void)
 	#endif
 
 	oldtime = newtime;
-	orig_Qcommon_Frame (time);
+	detour_Qcommon_Frame::oQcommon_Frame(time);
 
 	//fake return because we are implementing everything
 	return 0;

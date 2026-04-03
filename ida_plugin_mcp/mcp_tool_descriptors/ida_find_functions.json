@@ -1,0 +1,32 @@
+{
+  "name": "ida_find_functions",
+  "description": "Search all functions: substring match, case-insensitive, not regex, over mangled and long-demangled names (min 2 characters). max_results maps to limit and is always capped at 100 (different from ida_get_callers where max_results=0 means unlimited).",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "pattern": {
+        "title": "Pattern",
+        "type": "string"
+      },
+      "max_results": {
+        "default": 15,
+        "title": "Max Results",
+        "type": "integer"
+      }
+    },
+    "required": ["pattern"],
+    "title": "ida_find_functionsArguments"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "title": "Result",
+        "type": "string",
+        "description": "Markdown list of matches."
+      }
+    },
+    "required": ["result"],
+    "title": "ida_find_functionsOutput"
+  }
+}

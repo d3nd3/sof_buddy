@@ -53,6 +53,7 @@ void raw_mouse_unregister_input(bool log_result);
 void raw_mouse_process_raw_mouse();
 void raw_mouse_drain_pending_raw_for_cursor();
 void PumpWindowMessagesCapped(bool from_winmain);
+void raw_mouse_write_engine_frame_time();
 void Sys_SendKeyEvents_Replacement();
 void raw_mouse_install_winmain_peek_detour();
 BOOL __stdcall hkSetCursorPos(int X, int Y);

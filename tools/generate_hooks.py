@@ -3,8 +3,16 @@
 import yaml
 import json
 import os
+import re
 import sys
 from pathlib import Path
+
+def format_params_decl(params, variadic=False):
+    """Build C++ parameter list for typedefs; append ', ...' when variadic (e.g. Com_Printf)."""
+    decl = ', '.join([f"{p['type']} {p['name']}" for p in params])
+    if variadic:
+        return f'{decl}, ...' if decl else '...'
+    return decl
 
 def parse_detours_yaml(yaml_path):
     with open(yaml_path, 'r') as f:
@@ -55,24 +63,71 @@ def parse_features_txt(features_txt_path):
                 continue
             if line.startswith('//'):
                 continue
+            # Inline "# comment" on the same line as a feature name (common in FEATURES.txt)
+            if '#' in line:
+                line = line.split('#', 1)[0].strip()
+            if not line:
+                continue
             enabled_features.add(line)
     return enabled_features
 
 
 def parse_hooks_json(hooks_path):
-    with open(hooks_path, 'r') as f:
-        return json.load(f)
+    """Strict JSON plus minimal conveniences: strip /* */ (not in std JSON) and trailing commas."""
+    with open(hooks_path, 'r', encoding='utf-8') as f:
+        text = f.read()
+    text = re.sub(r'/\*[\s\S]*?\*/', '', text)
+    text = re.sub(r',(\s*[\]}])', r'\1', text)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        print(f"FATAL: {hooks_path}: invalid JSON: {e}", file=sys.stderr)
+        sys.exit(1)
 
-def find_used_detours(feature_hooks, src_dir, all_detours, enabled_features):
+
+def find_pointers_json_files(features_dir, core_dir):
+    pointers_files = []
+    for root, dirs, files in os.walk(features_dir):
+        if 'pointers.json' in files:
+            rel_path = os.path.relpath(root, features_dir)
+            path_parts = rel_path.split(os.sep)
+            feature_name = path_parts[0] if path_parts else os.path.basename(root)
+            pointers_path = os.path.join(root, 'pointers.json')
+            pointers_files.append((feature_name, pointers_path))
+    if os.path.exists(os.path.join(core_dir, 'pointers.json')):
+        pointers_path = os.path.join(core_dir, 'pointers.json')
+        pointers_files.append(('core', pointers_path))
+    return pointers_files
+
+
+def parse_pointers_json(pointers_path):
+    with open(pointers_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    out = []
+    if not isinstance(data, list):
+        raise ValueError(f'{pointers_path}: expected a JSON array')
+    for item in data:
+        if isinstance(item, str):
+            out.append(item)
+        elif isinstance(item, dict) and 'function' in item:
+            out.append(item['function'])
+        else:
+            raise ValueError(f'{pointers_path}: each entry must be a string or {{"function": "Name"}}')
+    return out
+
+
+def find_used_detours(feature_hooks, feature_pointers, src_dir, all_detours, enabled_features):
     used_detours = set()
     override_hooks = {}  # func_name -> (feature_name, callback_name)
-    
-    # First pass: find all override hooks
+    hook_function_names = set()
+
+    # hooks.json: full detours + track names for pointer/hook overlap
     for feature_name, hooks_path in feature_hooks:
         try:
             hooks = parse_hooks_json(hooks_path)
             for hook in hooks:
                 func_name = hook['function']
+                hook_function_names.add(func_name)
                 used_detours.add(func_name)
                 if hook.get('override', False):
                     if func_name in override_hooks:
@@ -85,6 +140,26 @@ def find_used_detours(feature_hooks, src_dir, all_detours, enabled_features):
                     override_hooks[func_name] = (feature_name, hook['callback'])
         except Exception as e:
             print(f"Error processing {hooks_path}: {e}", file=sys.stderr)
+
+    pointer_function_names = set()
+    for feature_name, pointers_path in feature_pointers:
+        try:
+            for raw_name in parse_pointers_json(pointers_path):
+                func_name = raw_name.strip()
+                if not func_name:
+                    continue
+                if func_name not in all_detours:
+                    print(f"Warning: pointers.json function '{func_name}' not in detours.yaml (feature: {feature_name}, {pointers_path})", file=sys.stderr)
+                    continue
+                pointer_function_names.add(func_name)
+                used_detours.add(func_name)
+        except Exception as e:
+            print(f"Error processing {pointers_path}: {e}", file=sys.stderr)
+
+    pointer_only_set = set(pointer_function_names - hook_function_names)
+    overlap = pointer_function_names & hook_function_names
+    for name in sorted(overlap):
+        print(f"Info: '{name}' is in hooks.json and pointers.json — hooks.json wins (full detour); pointers.json entry ignored", file=sys.stderr)
     
     features_dir = os.path.join(src_dir, 'features')
     core_dir = os.path.join(src_dir, 'core')
@@ -119,16 +194,54 @@ def find_used_detours(feature_hooks, src_dir, all_detours, enabled_features):
                 except Exception as e:
                     print(f"Warning: Could not scan {file_path}: {e}", file=sys.stderr)
     
-    return used_detours, override_hooks
+    return used_detours, override_hooks, pointer_only_set
 
-def generate_detours_header(detours, header_path, cpp_path, override_hooks, enabled_features):
+
+def emit_pointer_only_resolve_lines(f, func_name, func):
+    """Emit C++ body that sets o{func_name} from ResolveFunctionAddress or GetProcAddress (matches detour address logic)."""
+    namespace = f'detour_{func_name}'
+    module = func['module']
+    identifier = func['identifier']
+    f.write(f'        using namespace {namespace};\n')
+    if identifier.startswith('0x') or identifier.startswith('0X'):
+        f.write(f'        void* addr_{func_name} = GetDetourSystem().ResolveFunctionAddress(\n')
+        f.write(f'            reinterpret_cast<void*>({identifier}), DetourModule::{module});\n')
+        f.write(f'        o{func_name} = reinterpret_cast<t{func_name}>(addr_{func_name});\n')
+    else:
+        module_map = {
+            'RefDll': 'ref.dll',
+            'GameDll': 'game.dll',
+            'PlayerDll': 'player.dll',
+            'SofExe': None,
+            'Unknown': 'user32.dll',
+        }
+        dll_name = module_map.get(module, 'ref.dll')
+        if dll_name:
+            f.write(f'        void* addr_{func_name} = nullptr;\n')
+            f.write(f'        {{\n')
+            f.write(f'            HMODULE hMod = GetModuleHandleA("{dll_name}");\n')
+            f.write(f'            if (hMod) addr_{func_name} = reinterpret_cast<void*>(GetProcAddress(hMod, "{identifier}"));\n')
+            f.write(f'        }}\n')
+            if module == 'Unknown':
+                f.write(f'        if (!addr_{func_name}) {{\n')
+                f.write(f'            HMODULE hGl = GetModuleHandleA("opengl32.dll");\n')
+                f.write(f'            if (hGl) addr_{func_name} = reinterpret_cast<void*>(GetProcAddress(hGl, "{identifier}"));\n')
+                f.write(f'        }}\n')
+            f.write(f'        o{func_name} = reinterpret_cast<t{func_name}>(addr_{func_name});\n')
+        else:
+            f.write(f'        void* addr_{func_name} = reinterpret_cast<void*>(GetProcAddress(GetModuleHandleA(NULL), "{identifier}"));\n')
+            f.write(f'        o{func_name} = reinterpret_cast<t{func_name}>(addr_{func_name});\n')
+
+
+def generate_detours_header(detours, header_path, cpp_path, override_hooks, enabled_features, pointer_only_set):
     with open(header_path, 'w') as f:
         f.write('#pragma once\n\n')
         f.write('#include "detours.h"\n')
         f.write('#include "typed_shared_hook_manager.h"\n')
         f.write('#include "sof_compat.h"\n\n')
         f.write('// Auto-generated detour definitions\n')
-        f.write('// DO NOT EDIT - Generated by tools/generate_hooks.py\n\n')
+        f.write('// DO NOT EDIT - Generated by tools/generate_hooks.py\n')
+        f.write('// pointer-only entries (pointers.json): typedef + o* only; resolved via RegisterPointerOnlyFunctions_*\n\n')
         
         for func_name, func in detours.items():
             namespace = f'detour_{func_name}'
@@ -138,9 +251,22 @@ def generate_detours_header(detours, header_path, cpp_path, override_hooks, enab
             module = func['module']
             identifier = func['identifier']
             detour_len = func.get('detour_len', 0)
+            variadic = func.get('variadic', False)
+            if variadic and func_name not in pointer_only_set:
+                print(
+                    f"Warning: '{func_name}' has variadic: true but is not pointer-only; "
+                    f"variadic full detours are not supported (feature: generate_hooks)",
+                    file=sys.stderr,
+                )
             
-            params_decl = ', '.join([f"{p['type']} {p['name']}" for p in params])
-            params_call = ', '.join([p['name'] for p in params])
+            params_decl = format_params_decl(params, variadic)
+            
+            if func_name in pointer_only_set:
+                f.write(f'namespace {namespace} {{\n')
+                f.write(f'    using t{func_name} = {return_type}({conv}*)({params_decl});\n')
+                f.write(f'    extern t{func_name} o{func_name};\n')
+                f.write(f'}}\n\n')
+                continue
             
             f.write(f'namespace {namespace} {{\n')
             f.write(f'    using t{func_name} = {return_type}({conv}*)({params_decl});\n')
@@ -186,6 +312,11 @@ def generate_detours_header(detours, header_path, cpp_path, override_hooks, enab
                     f.write(f'                    HMODULE hMod = GetModuleHandleA("{dll_name}");\n')
                     f.write(f'                    if (hMod) addr_{func_name} = reinterpret_cast<void*>(GetProcAddress(hMod, "{identifier}"));\n')
                     f.write(f'                }}\n')
+                    if module == 'Unknown':
+                        f.write(f'                if (!addr_{func_name}) {{\n')
+                        f.write(f'                    HMODULE hGl = GetModuleHandleA("opengl32.dll");\n')
+                        f.write(f'                    if (hGl) addr_{func_name} = reinterpret_cast<void*>(GetProcAddress(hGl, "{identifier}"));\n')
+                        f.write(f'                }}\n')
                     f.write(f'                GetDetourSystem().RegisterDetour(\n')
                     f.write(f'                    addr_{func_name},\n')
                 else:
@@ -202,6 +333,11 @@ def generate_detours_header(detours, header_path, cpp_path, override_hooks, enab
             f.write(f'    }};\n')
             f.write(f'    static AutoDetour_{func_name} g_AutoDetour_{func_name};\n')
             f.write(f'}}\n\n')
+
+        f.write('// Resolve pointer-only symbols (detours.yaml + pointers.json) after the target module is loaded.\n')
+        for mod in ['SofExe', 'RefDll', 'GameDll', 'PlayerDll', 'Unknown']:
+            f.write(f'void RegisterPointerOnlyFunctions_{mod}();\n')
+        f.write('\n')
     
     with open(cpp_path, 'w') as f:
         f.write('// Auto-generated detour implementations\n')
@@ -216,12 +352,13 @@ def generate_detours_header(detours, header_path, cpp_path, override_hooks, enab
             return_type = func['return_type']
             conv = func['calling_convention']
             params = func.get('params', [])
-            params_decl = ', '.join([f"{p['type']} {p['name']}" for p in params])
             f.write(f'namespace {namespace} {{\n')
             f.write(f'    t{func_name} o{func_name} = nullptr;\n')
             f.write(f'}}\n\n')
         
         for func_name, func in detours.items():
+            if func_name in pointer_only_set:
+                continue
             namespace = f'detour_{func_name}'
             return_type = func['return_type']
             params = func.get('params', [])
@@ -252,6 +389,8 @@ def generate_detours_header(detours, header_path, cpp_path, override_hooks, enab
         
         # First pass: Generate all normal hooks (non-override)
         for func_name, func in detours.items():
+            if func_name in pointer_only_set:
+                continue
             if func_name in override_hooks:
                 continue
             
@@ -259,8 +398,9 @@ def generate_detours_header(detours, header_path, cpp_path, override_hooks, enab
             return_type = func['return_type']
             conv = func['calling_convention']
             params = func.get('params', [])
+            variadic = func.get('variadic', False)
             
-            params_decl = ', '.join([f"{p['type']} {p['name']}" for p in params])
+            params_decl = format_params_decl(params, variadic)
             params_call = ', '.join([p['name'] for p in params])
             
             f.write(f'namespace {namespace} {{\n')
@@ -314,8 +454,9 @@ def generate_detours_header(detours, header_path, cpp_path, override_hooks, enab
                 return_type = func['return_type']
                 conv = func['calling_convention']
                 params = func.get('params', [])
+                variadic = func.get('variadic', False)
                 
-                params_decl = ', '.join([f"{p['type']} {p['name']}" for p in params])
+                params_decl = format_params_decl(params, variadic)
                 params_call = ', '.join([p['name'] for p in params])
                 
                 feature_name, callback_name = override_hooks[func_name]
@@ -342,12 +483,25 @@ def generate_detours_header(detours, header_path, cpp_path, override_hooks, enab
                         f.write(f'    }}\n')
                 f.write(f'}}\n\n')
 
+        # Pointer-only: resolve o* after the target module is loaded (no hook installed)
+        f.write('// Pointer-only symbols (detours.yaml + pointers.json)\n')
+        module_order = ['SofExe', 'RefDll', 'GameDll', 'PlayerDll', 'Unknown']
+        for mod in module_order:
+            f.write(f'void RegisterPointerOnlyFunctions_{mod}() {{\n')
+            names = sorted(
+                n for n in pointer_only_set
+                if n in detours and detours[n].get('module') == mod
+            )
+            for func_name in names:
+                emit_pointer_only_resolve_lines(f, func_name, detours[func_name])
+            f.write(f'}}\n\n')
+
 def generate_registrations_header(detours, feature_hooks, feature_callbacks, output_path, override_hooks):
     callback_decls = {}
     
     hook_params = {
         'RefDllLoaded': 'char const* name',
-        'GameDllLoaded': 'void* imports',
+        'GameDllLoaded': 'void* game_export',
     }
     
     for feature_name, callbacks_path in feature_callbacks:
@@ -378,11 +532,12 @@ def generate_registrations_header(detours, feature_hooks, feature_callbacks, out
                 func = detours[func_name]
                 return_type = func['return_type']
                 params = func.get('params', [])
+                variadic = func.get('variadic', False)
                 
                 # For override hooks, generate callback signature that includes original function pointer
                 if is_override:
                     if params:
-                        params_decl = ', '.join([f"{p['type']} {p['name']}" for p in params])
+                        params_decl = format_params_decl(params, variadic)
                         if return_type == 'void':
                             callback_decls[callback_name] = f'void {callback_name}({params_decl}, detour_{func_name}::t{func_name} original);'
                         else:
@@ -432,7 +587,7 @@ def generate_registrations_header(detours, feature_hooks, feature_callbacks, out
         
         hook_params = {
             'RefDllLoaded': 'char const* name',
-            'GameDllLoaded': 'void* imports',
+            'GameDllLoaded': 'void* game_export',
         }
         
         for feature_name, callbacks_path in feature_callbacks:
@@ -571,8 +726,11 @@ def main():
     
     feature_hooks = [(name, path) for name, path in all_feature_hooks if name == 'core' or name in effective_enabled_features]
     feature_callbacks = [(name, path) for name, path in all_feature_callbacks if name == 'core' or name in effective_enabled_features]
+    all_feature_pointers = find_pointers_json_files(features_dir, core_dir)
+    feature_pointers = [(name, path) for name, path in all_feature_pointers if name == 'core' or name in effective_enabled_features]
     
-    used_detours, override_hooks = find_used_detours(feature_hooks, src_dir, all_detours, enabled_features)
+    used_detours, override_hooks, pointer_only_set = find_used_detours(
+        feature_hooks, feature_pointers, src_dir, all_detours, enabled_features)
     
     detours = {name: func for name, func in all_detours.items() if name in used_detours}
     
@@ -583,7 +741,8 @@ def main():
     if override_hooks:
         print(f"Info: Found {len(override_hooks)} override hook(s) from hooks.json: {', '.join([f'{name} ({feature}::{callback})' for name, (feature, callback) in sorted(override_hooks.items())])}", file=sys.stderr)
     
-    generate_detours_header(detours, detours_output, detours_cpp_output, override_hooks, effective_enabled_features)
+    generate_detours_header(
+        detours, detours_output, detours_cpp_output, override_hooks, effective_enabled_features, pointer_only_set)
     generate_registrations_header(detours, feature_hooks, feature_callbacks, registrations_output, override_hooks)
     
     print(f"Generated {detours_output}")

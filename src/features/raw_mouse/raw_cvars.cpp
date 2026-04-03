@@ -7,6 +7,7 @@
 #include "util.h"
 #include <windows.h>
 #include "shared.h"
+#include "generated_detours.h"
 
 cvar_t * in_mouse_raw = NULL;
 
@@ -39,7 +40,7 @@ void raw_mouse_on_change(cvar_t *cvar)
 }
 
 void create_raw_mouse_cvars(void) {
-    in_mouse_raw = orig_Cvar_Get("_sofbuddy_rawmouse", "0", CVAR_SOFBUDDY_ARCHIVE, &raw_mouse_on_change);
+    in_mouse_raw = detour_Cvar_Get::oCvar_Get("_sofbuddy_rawmouse", "0", CVAR_SOFBUDDY_ARCHIVE, &raw_mouse_on_change);
 
     PrintOut(PRINT_DEV, "raw_mouse: Registered _sofbuddy_rawmouse cvar with change callback\n");
 }

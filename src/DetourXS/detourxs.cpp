@@ -178,6 +178,22 @@ LPVOID DetourCreate(LPVOID lpFuncOrig, LPVOID lpFuncDetour, int patchType, int d
     return lpMallocPtr;
 }
 
+void DetourFixupTrampolineRel32Call(void* trampoline, void* targetAbsolute)
+{
+    if (!trampoline || !targetAbsolute) {
+        return;
+    }
+    PBYTE p = (PBYTE)trampoline;
+    if (p[0] != 0xE8) {
+        PrintOut(PRINT_BAD, "DetourFixupTrampolineRel32Call: expected 0xE8 at %p, got 0x%02X\n",
+                 trampoline, (unsigned)p[0]);
+        return;
+    }
+    intptr_t rel = (intptr_t)targetAbsolute - (intptr_t)(p + 5);
+    *(DWORD*)(p + 1) = (DWORD)rel;
+    FlushInstructionCache(GetCurrentProcess(), trampoline, 5);
+}
+
 BOOL DetourRemove(void** lppDetourCreatePtr)
 {
 

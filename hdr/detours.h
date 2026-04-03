@@ -64,6 +64,9 @@ public:
     size_t GetDetourCount(DetourModule module) const;
     void DumpRegisteredDetours() const;
 
+    /** Resolve a detours.yaml address (absolute or RVA) without installing a detour. Used by pointer-only entries. */
+    void* ResolveFunctionAddress(void* address_or_rva, DetourModule module) const;
+
 private:
     DetourSystem() : deferred_registrations(nullptr), initialized(false) {}
     

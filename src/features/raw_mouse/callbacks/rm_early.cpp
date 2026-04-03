@@ -8,6 +8,7 @@
 
 void raw_mouse_EarlyStartup()
 {
+    
     //This one is setting center
     WriteE8Call(rvaToAbsExe((void*)0x0004A0B2), (void*)&hkSetCursorPos);
     WriteByte((unsigned char*)rvaToAbsExe((void*)0x0004A0B2) + 5, 0x90);
@@ -23,6 +24,7 @@ void raw_mouse_EarlyStartup()
         if (hUser32)
             oSetCursorPos = (tSetCursorPos)GetProcAddress(hUser32, "SetCursorPos");
     }
+    
 }
 
 #endif // FEATURE_RAW_MOUSE

@@ -1,0 +1,5 @@
+[
+  "Cvar_Get",
+  "Cvar_Set2",
+  "FS_LoadFile"
+]

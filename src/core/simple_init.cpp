@@ -21,24 +21,10 @@
 #include "sofbuddy_cfg.h"
 #include "generated_detours.h"
 #include "generated_registrations.h"
+#include "feature_config.h"
 #if !defined(NDEBUG) && defined(SOFBUDDY_ENABLE_CALLSITE_LOGGER)
 #include "debug/parent_recorder.h"
 #endif
-
-// Original function pointers for non-lifecycle hooks
-cvar_t *(*orig_Cvar_Get)(const char * name, const char * value, int flags, cvarcommand_t command) = reinterpret_cast<cvar_t*(*)(const char*,const char*,int,cvarcommand_t)>(0x20021AE0);
-cvar_t *(*orig_Cvar_Set2) (char *var_name, char *value, qboolean force) = reinterpret_cast<cvar_t*(*)(char*,char*,qboolean)>(0x20021D70);
-void (*orig_Cvar_SetInternal)(bool active) = reinterpret_cast<void(*)(bool)>(0x200216C0);
-void ( *orig_Com_Printf)(const char * msg, ...) = NULL;
-void (*orig_Com_DPrintf)(const char *fmt, ...) = NULL;
-void (*orig_Qcommon_Frame) (int msec) = reinterpret_cast<void(*)(int)>(0x2001F720);
-void (*orig_Qcommon_Init) (int argc, char **argv) = reinterpret_cast<void(*)(int,char**)>(0x2001F390);
-
-typedef void (*xcommand_t)(void);
-void (*orig_Cmd_AddCommand)(char *cmd_name, xcommand_t function) = reinterpret_cast<void(*)(char*,xcommand_t)>(0x20019130);
-// Cmd_Argc/Cmd_Argv are in the tokenizer block, not next to Cmd_AddCommand.
-int (*orig_Cmd_Argc)(void) = reinterpret_cast<int(*)(void)>(0x20018D20);
-char* (*orig_Cmd_Argv)(int i) = reinterpret_cast<char*(*)(int)>(0x20018D30);
 
 void Cmd_SoFBuddy_ListFeatures_f(void);
 
@@ -49,10 +35,6 @@ void fs_initfilesystem_override_callback(detour_FS_InitFilesystem::tFS_InitFiles
     }
     
     PrintOut(PRINT_LOG, "=== Lifecycle: Pre-CVar Init Phase ===\n");
-    
-    orig_Com_Printf = reinterpret_cast<void(*)(const char*,...)>(0x2001C6E0);
-    orig_Com_DPrintf = reinterpret_cast<void(*)(const char*,...)>(0x2001C8E0);
-    if (!orig_Cmd_ExecuteString) orig_Cmd_ExecuteString = (void(*)(const char*))rvaToAbsExe((void*)0x194F0);
 
     sofbuddy_cfg_exec_startup();
     
@@ -74,19 +56,19 @@ qboolean cbuf_addlatecommands_override_callback(detour_Cbuf_AddLateCommands::tCb
     PrintOut(PRINT_LOG, "=== Lifecycle: Post-CVar Init Phase ===\n");
     
     PrintOut(PRINT_DEV, "Attempting to register sofbuddy_list_features command...\n");
-    orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_list_features"), Cmd_SoFBuddy_ListFeatures_f);
+    detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_list_features"), Cmd_SoFBuddy_ListFeatures_f);
     PrintOut(PRINT_DEV, "Registered sofbuddy_list_features command\n");
 
     PrintOut(PRINT_DEV, "Attempting to register sofbuddy_update command...\n");
-    orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_update"), Cmd_SoFBuddy_Update_f);
-    orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_update_install"), Cmd_SoFBuddy_UpdateInstall_f);
-    orig_Cmd_AddCommand(const_cast<char*>("sofbuddy_openurl"), Cmd_SoFBuddy_OpenUrl_f);
+    detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_update"), Cmd_SoFBuddy_Update_f);
+    detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_update_install"), Cmd_SoFBuddy_UpdateInstall_f);
+    detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_openurl"), Cmd_SoFBuddy_OpenUrl_f);
     PrintOut(PRINT_DEV, "Registered sofbuddy_update command\n");
     
     PrintOut(PRINT_DEV, "Registering _sofbuddy_version cvar...\n");
-    cvar_t* version_cvar = orig_Cvar_Get("_sofbuddy_version", SOFBUDDY_VERSION, CVAR_NOSET, NULL);
+    cvar_t* version_cvar = detour_Cvar_Get::oCvar_Get("_sofbuddy_version", SOFBUDDY_VERSION, CVAR_NOSET, NULL);
     if (version_cvar) {
-        orig_Cvar_Set2(const_cast<char*>("_sofbuddy_version"), const_cast<char*>(SOFBUDDY_VERSION), true);
+        detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_version"), const_cast<char*>(SOFBUDDY_VERSION), true);
     }
     PrintOut(PRINT_DEV, "Registered _sofbuddy_version cvar with value: %s\n", SOFBUDDY_VERSION);
 
@@ -115,7 +97,7 @@ qboolean cbuf_addlatecommands_override_callback(detour_Cbuf_AddLateCommands::tCb
 // entries and add your feature with the same pattern using FEATURE_XXX macro.
 // TODO: Automate this using X-macro pattern to prevent manual sync issues.
 void Cmd_SoFBuddy_ListFeatures_f(void) {
-    if (!orig_Com_Printf) return;
+    if (!detour_Com_Printf::oCom_Printf) return;
     
     PrintOut(PRINT_DEV, "=== SoF Buddy Compiled Features ===\n");
     
@@ -153,7 +135,7 @@ void Cmd_SoFBuddy_ListFeatures_f(void) {
     PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "hd_textures\n");
     feature_count++;
     #else
-    PrintOut(PRINT_DEV, PRED "[OFF] " P_WHITE "hd_textures\n");
+    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "hd_textures\n");
     #endif
     total_features++;
     
@@ -181,6 +163,14 @@ void Cmd_SoFBuddy_ListFeatures_f(void) {
     #endif
     total_features++;
 
+    #if FEATURE_ENTITY_VISUALIZER
+    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "entity_visualizer\n");
+    feature_count++;
+    #else
+    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "entity_visualizer\n");
+    #endif
+    total_features++;
+
     #if FEATURE_HTTP_MAPS
     PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "http_maps\n");
     feature_count++;
@@ -193,7 +183,7 @@ void Cmd_SoFBuddy_ListFeatures_f(void) {
     PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "internal_menus\n");
     feature_count++;
     #else
-    PrintOut(PRINT_DEV, P_RED "[OFF] " PWHITE "internal_menus\n");
+    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "internal_menus\n");
     #endif
     total_features++;
     
@@ -247,7 +237,7 @@ void Cmd_SoFBuddy_ListFeatures_f(void) {
 // Earliest initialization function called from DllMain
 void lifecycle_EarlyStartup(void)
 {
-    #ifdef GDB
+    #if defined(GDB) && !defined(NDEBUG)
     extern void sofbuddy_debug_breakpoint(void);
     sofbuddy_debug_breakpoint();
     #endif
@@ -271,6 +261,8 @@ void lifecycle_EarlyStartup(void)
     PrintOut(PRINT_LOG, "=== system DLL detour initialization complete ===\n");
     PrintOut(PRINT_LOG, "\n");
     PrintOut(PRINT_LOG, "\n");
+
+    RegisterPointerOnlyFunctions_Unknown();
     
     // Initialize detours targeting SoF.exe (0x200xxxxx addresses) only
     PrintOut(PRINT_LOG, "=== Initializing SoF.exe detours ===\n");
@@ -279,10 +271,9 @@ void lifecycle_EarlyStartup(void)
     PrintOut(PRINT_LOG, "=== SoF.exe detour initialization complete ===\n");
     PrintOut(PRINT_LOG, "\n");
     PrintOut(PRINT_LOG, "\n");
-    
-    // Cmd_AddCommand is now hardcoded at 0x20019130
-    PrintOut(PRINT_LOG, "Cmd_AddCommand hardcoded at 0x%p\n", orig_Cmd_AddCommand);
-    
+
+    RegisterPointerOnlyFunctions_SofExe();
+
     // Dispatch to all features registered for early startup
     DISPATCH_SHARED_HOOK(EarlyStartup, Post);
 

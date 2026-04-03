@@ -136,13 +136,13 @@ void sofbuddy_cfg_exec_startup(void) {
     }
     g_cfg_exec_queued = true;
 
-    if (!orig_Cmd_ExecuteString) {
+    if (!detour_Cmd_ExecuteString::oCmd_ExecuteString) {
         PrintOut(PRINT_BAD, "sofbuddy_cfg: Cmd_ExecuteString not available for startup exec\n");
         return;
     }
 
     // Resolve through FS search path. We write to {basedir}/base/sofbuddy.cfg.
-    orig_Cmd_ExecuteString("exec sofbuddy.cfg\n");
+    detour_Cmd_ExecuteString::oCmd_ExecuteString("exec sofbuddy.cfg\n");
 }
 
 void sofbuddy_cfg_save_now(void) {

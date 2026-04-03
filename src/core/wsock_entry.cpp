@@ -356,7 +356,7 @@ int __stdcall sys_bind(SOCKET s,const struct sockaddr *name,int namelen)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_bind == NULL ) {
-		orig_Com_Printf("bind\n");
+		detour_Com_Printf::oCom_Printf("bind\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -373,7 +373,7 @@ int sys_closesocket(SOCKET s)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_closesocket == NULL ) {
-		orig_Com_Printf("closesocket\n");
+		detour_Com_Printf::oCom_Printf("closesocket\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -388,7 +388,7 @@ int sys_connect(SOCKET s,const struct sockaddr *name,int namelen)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_connect == NULL ) {
-		orig_Com_Printf("connect\n");
+		detour_Com_Printf::oCom_Printf("connect\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -403,7 +403,7 @@ int sys_getsockname(SOCKET s, struct sockaddr *name,int *namelen)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_getsockname == NULL ) {
-		orig_Com_Printf("getsockname\n");
+		detour_Com_Printf::oCom_Printf("getsockname\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -417,7 +417,7 @@ u_long sys_htonl(u_long hostlong)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_htonl == NULL ) {
-		orig_Com_Printf("htonl\n");
+		detour_Com_Printf::oCom_Printf("htonl\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -431,7 +431,7 @@ u_short sys_htons(u_short hostshort)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_htons == NULL ) {
-		orig_Com_Printf("htons\n");
+		detour_Com_Printf::oCom_Printf("htons\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -445,7 +445,7 @@ unsigned long sys_inet_addr(const char *cp)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_inet_addr == NULL ) {
-		orig_Com_Printf("inet_addr\n");
+		detour_Com_Printf::oCom_Printf("inet_addr\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -459,7 +459,7 @@ char* sys_inet_ntoa(struct in_addr in)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_inet_ntoa == NULL ) {
-		orig_Com_Printf("inet_ntoa\n");
+		detour_Com_Printf::oCom_Printf("inet_ntoa\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -475,7 +475,7 @@ int sys_ioctlsocket(SOCKET s,long cmd,u_long *argp)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_ioctlsocket == NULL ) {
-		orig_Com_Printf("ioctlsocket\n");
+		detour_Com_Printf::oCom_Printf("ioctlsocket\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -491,7 +491,7 @@ u_long sys_ntohl(u_long netlong)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_ntohl == NULL ) {
-		orig_Com_Printf("ntohl\n");
+		detour_Com_Printf::oCom_Printf("ntohl\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -505,7 +505,7 @@ u_short sys_ntohs(u_short netshort)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_ntohs == NULL ) {
-		orig_Com_Printf("ntohs\n");
+		detour_Com_Printf::oCom_Printf("ntohs\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -519,7 +519,7 @@ int sys_recv(SOCKET s,char *buf,int len,int flags)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_recv == NULL ) {
-		orig_Com_Printf("recv\n");
+		detour_Com_Printf::oCom_Printf("recv\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -558,7 +558,7 @@ int sys_recvfrom(SOCKET s,char *buf,int len,int flags,struct sockaddr *from,int 
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_recvfrom == NULL ) {
-		orig_Com_Printf("recvfrom\n");
+		detour_Com_Printf::oCom_Printf("recvfrom\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -598,7 +598,7 @@ int sys_select(int nfds,fd_set *readfds,fd_set *writefds,fd_set *exceptfds,const
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_select == NULL ) {
-		orig_Com_Printf("select\n");
+		detour_Com_Printf::oCom_Printf("select\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -612,7 +612,7 @@ int sys_send(SOCKET s,const char *buf,int len,int flags)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_send == NULL ) {
-		orig_Com_Printf("send\n");
+		detour_Com_Printf::oCom_Printf("send\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -646,7 +646,7 @@ int sys_sendto(SOCKET s,const char *buf,int len,int flags,const struct sockaddr 
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_sendto == NULL ) {
-		orig_Com_Printf("sendto\n");
+		detour_Com_Printf::oCom_Printf("sendto\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -681,7 +681,7 @@ int sys_setsockopt(SOCKET s,int level,int optname,const char *optval,int optlen)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_setsockopt == NULL ) {
-		orig_Com_Printf("setsockopt\n");
+		detour_Com_Printf::oCom_Printf("setsockopt\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -695,7 +695,7 @@ int sys_shutdown(SOCKET s,int how)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_shutdown == NULL ) {
-		orig_Com_Printf("shutdown\n");
+		detour_Com_Printf::oCom_Printf("shutdown\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -709,7 +709,7 @@ SOCKET sys_socket(int af,int type,int protocol)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_socket == NULL ) {
-		orig_Com_Printf("socket\n");
+		detour_Com_Printf::oCom_Printf("socket\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -723,7 +723,7 @@ struct hostent* sys_gethostbyname(const char *name)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_gethostbyname == NULL ) {
-		orig_Com_Printf("gethostbyname\n");
+		detour_Com_Printf::oCom_Printf("gethostbyname\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -737,7 +737,7 @@ int sys_gethostname(char *name,int namelen)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_gethostname == NULL ) {
-		orig_Com_Printf("gethostname\n");
+		detour_Com_Printf::oCom_Printf("gethostname\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -752,7 +752,7 @@ int sys_WSAGetLastError(void)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_WSAGetLastError == NULL ) {
-		orig_Com_Printf("WSAGetLastError\n");
+		detour_Com_Printf::oCom_Printf("WSAGetLastError\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -775,7 +775,7 @@ int sys_WSAStartup(WORD wVersionRequested,LPWSADATA lpWSAData)
 	static bool doOnce = false;
 	#ifdef WINSOCK_ASSERT
 	if ( sp_WSAStartup == NULL ) {
-		orig_Com_Printf("WSAStartup\n");
+		detour_Com_Printf::oCom_Printf("WSAStartup\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -804,7 +804,7 @@ int sys_WSACleanup(void)
 {
 	#ifdef WINSOCK_ASSERT
 	if ( sp_WSACleanup == NULL ) {
-		orig_Com_Printf("WSACleanup\n");
+		detour_Com_Printf::oCom_Printf("WSACleanup\n");
 		ExitProcess(1);
 	}
 	#endif
@@ -818,7 +818,7 @@ int sys___WSAFDIsSet(SOCKET fd,fd_set *set)
 {   
 	#ifdef WINSOCK_ASSERT
 	if ( sp___WSAFDIsSet == NULL ) {
-		orig_Com_Printf("__WSAFDIsSet\n");
+		detour_Com_Printf::oCom_Printf("__WSAFDIsSet\n");
 		ExitProcess(1);
 	}
 	#endif

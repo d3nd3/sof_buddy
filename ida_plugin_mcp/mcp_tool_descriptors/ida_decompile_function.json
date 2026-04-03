@@ -1,0 +1,38 @@
+{
+  "name": "ida_decompile_function",
+  "description": "Hex-Rays F5 pseudocode. Plugin v4+: on failure may return decompile_detail (reason, thunk hint) and fallback_asm when fallback_asm=true. error_code includes decompile_thunk, hexrays_decompilation_failure, decompile_none, etc. Requires decompile op + Hex-Rays. Prefer hex EA for scripts.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "symbol_or_address": {
+        "title": "Symbol Or Address",
+        "type": "string"
+      },
+      "fallback_asm": {
+        "default": true,
+        "title": "Fallback Asm",
+        "type": "boolean",
+        "description": "When decompilation fails, request a truncated asm listing from function entry (plugin v4+)."
+      },
+      "fallback_max_lines": {
+        "default": 128,
+        "title": "Fallback Max Lines",
+        "type": "integer"
+      }
+    },
+    "required": ["symbol_or_address"],
+    "title": "ida_decompile_functionArguments"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "title": "Result",
+        "type": "string",
+        "description": "Markdown with c fenced block of pseudocode, or error with optional JSON decompile_detail and asm fallback."
+      }
+    },
+    "required": ["result"],
+    "title": "ida_decompile_functionOutput"
+  }
+}

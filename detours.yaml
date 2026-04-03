@@ -57,6 +57,36 @@ functions:
       - type: bool
         name: override_pak
 
+  - name: FS_FreeFile
+    module: SofExe
+    identifier: "0x25420"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: void*
+        name: buffer
+
+  - name: Z_Malloc
+    module: SofExe
+    identifier: "0x1F120"
+    return_type: void*
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: int
+        name: size
+
+  - name: SCR_UpdateScreen
+    module: SofExe
+    identifier: "0x15FA0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: bool
+        name: force
+
   - name: Cbuf_AddLateCommands
     module: SofExe
     identifier: "0x20018740"
@@ -72,8 +102,134 @@ functions:
     calling_convention: __cdecl
     detour_len: 0
     params:
-      - type: char*
+      - type: const char*
         name: text
+
+  # Engine globals (pointer-only; resolved via core/pointers.json + RegisterPointerOnlyFunctions_SofExe)
+  - name: Cvar_Get
+    module: SofExe
+    identifier: "0x20021AE0"
+    return_type: cvar_t*
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: const char*
+        name: name
+      - type: const char*
+        name: value
+      - type: int
+        name: flags
+      - type: cvarcommand_t
+        name: command
+
+  - name: Cvar_Set2
+    module: SofExe
+    identifier: "0x20021D70"
+    return_type: cvar_t*
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: char*
+        name: var_name
+      - type: char*
+        name: value
+      - type: qboolean
+        name: force
+
+  - name: Cvar_SetInternal
+    module: SofExe
+    identifier: "0x200216C0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: bool
+        name: active
+
+  - name: Com_Printf
+    module: SofExe
+    identifier: "0x2001C6E0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    variadic: true
+    params:
+      - type: const char*
+        name: msg
+
+  - name: Com_DPrintf
+    module: SofExe
+    identifier: "0x2001C8E0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    variadic: true
+    params:
+      - type: const char*
+        name: fmt
+
+  - name: Qcommon_Init
+    module: SofExe
+    identifier: "0x2001F390"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: int
+        name: argc
+      - type: char**
+        name: argv
+
+  - name: Cmd_AddCommand
+    module: SofExe
+    identifier: "0x20019130"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: char*
+        name: cmd_name
+      - type: xcommand_t
+        name: function
+
+  - name: Cmd_Argc
+    module: SofExe
+    identifier: "0x20018D20"
+    return_type: int
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
+  - name: Cmd_Argv
+    module: SofExe
+    identifier: "0x20018D30"
+    return_type: char*
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: int
+        name: i
+
+  - name: Z_Free
+    module: SofExe
+    identifier: "0x0001EB00"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: void*
+        name: v
+
+  # SoF.exe.json: rva 125648 (0x1EA90); function before Z_Free in map — verify if cvar string ops misbehave
+  - name: CopyString
+    module: SofExe
+    identifier: "0x0001EA90"
+    return_type: char*
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: char*
+        name: in
 
   - name: Qcommon_Frame
     module: SofExe
@@ -101,12 +257,14 @@ functions:
     detour_len: 5
     params: []
 
+  
+  # Trampoline: first insn is E8 rel32 -> M_ForceMenuOff_f; detours.cpp retargets rel for trampoline.
   - name: SCR_BeginLoadingPlaque
     module: SofExe
     identifier: "0x00013A50"
     return_type: void
     calling_convention: __cdecl
-    detour_len: 0
+    detour_len: 5
     params:
       - type: qboolean
         name: noPlaque
@@ -335,6 +493,231 @@ functions:
       - type: char*
         name: name
 
+  # ---------------------------------------------------------------------------
+  # Entity visualizer support helpers (SoF.exe + gamex86.dll)
+  # ---------------------------------------------------------------------------
+  - name: MSG_WriteByte
+    module: SofExe
+    identifier: "0x2001CB00"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: void*
+        name: sb
+      - type: int
+        name: c
+
+  - name: MSG_WritePos
+    module: SofExe
+    identifier: "0x2001CE00"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: void*
+        name: sb
+      - type: float*
+        name: pos
+
+  - name: MSG_WriteLong
+    module: SofExe
+    identifier: "0x2001CBF0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: void*
+        name: sb
+      - type: int
+        name: c
+
+  - name: SV_Multicast
+    module: SofExe
+    identifier: "0x20061A80"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 5
+    params:
+      - type: float*
+        name: origin
+      - type: int
+        name: to
+      - type: int
+        name: thirdunknown
+
+  - name: SV_FindIndex
+    module: SofExe
+    identifier: "0x2005D320"
+    return_type: int
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: char*
+        name: name
+      - type: int
+        name: start
+      - type: int
+        name: max
+      - type: int
+        name: create
+      - type: char*
+        name: type
+
+  - name: FXRunner_Exec
+    module: GameDll
+    identifier: "0x000852E0"
+    return_type: void
+    calling_convention: __thiscall
+    detour_len: 0
+    params:
+      - type: void*
+        name: self
+      - type: int
+        name: effectID
+      - type: float*
+        name: pos
+      - type: int
+        name: castType
+      - type: void*
+        name: ignoreClient
+
+  # Client FX (same path as HandleTestLine / TE_TEST_LINE) — pointer-only (optional wireframe feature).
+  - name: FX_AllocNewQuad
+    module: SofExe
+    identifier: "0x2003B170"
+    return_type: int
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: void**
+        name: out_quad
+
+  - name: FX_SetQuadAsLine
+    module: SofExe
+    identifier: "0x200390A0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: void*
+        name: quad
+      - type: float*
+        name: pos_a
+      - type: float*
+        name: pos_b
+      - type: unsigned char
+        name: red
+      - type: unsigned char
+        name: green
+      - type: unsigned char
+        name: blue
+      - type: unsigned char
+        name: alpha
+      - type: float
+        name: scale
+
+  - name: FX_SetQuadLineGenericInfo
+    module: SofExe
+    identifier: "0x20038F70"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: void*
+        name: quad
+      - type: float*
+        name: p0
+      - type: float*
+        name: p1
+      - type: float*
+        name: p2
+      - type: float*
+        name: p3
+      - type: float
+        name: f0
+      - type: float
+        name: f1
+      - type: float
+        name: f2
+      - type: int
+        name: flags
+
+  # Resets quads/mark/debris pools (IDA: FX_ClearQuads__Fv @ 0x2003B360, Windows IDB) — pointer-only (wireframe redraw budget).
+  - name: FX_ClearQuads
+    module: SofExe
+    identifier: "0x2003B360"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
+  # ---------------------------------------------------------------------------
+  # Entity visualizer feature
+  # ---------------------------------------------------------------------------
+  - name: ClientThink
+    module: GameDll
+    identifier: "0x000F53A0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: void*
+        name: ent
+      - type: void*
+        name: ucmd
+
+  # g_spawn.cpp — ED_CallSpawn(edict_t *); VA 0x500BD570 → RVA 0xBD570 when gamex86 preferred base 0x50000000
+  # detour_len 0 = auto (required): a fixed length can split instructions and make the hook never run correctly.
+  - name: ED_CallSpawn
+    module: GameDll
+    identifier: "0x000BD570"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: void*
+        name: ent
+
+  # g_utils.cpp — G_FreeEdict(edict_t *); VA 0x500C3880 → RVA 0xC3880 when game.dll @ 0x50000000
+  - name: G_FreeEdict
+    module: GameDll
+    identifier: "0x000C3880"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: void*
+        name: ed
+
+  # qcommon/mathlib.h — engine AngleVectors; same address as (void*)0x20054B30 with default exe base.
+  - name: AngleVectors
+    module: SofExe
+    identifier: "0x54B30"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: float*
+        name: angles
+      - type: float*
+        name: forward
+      - type: float*
+        name: right
+      - type: float*
+        name: up
+
+  # game q_shared / cbuf — intersect feedback (matches orig_Cbuf_AddText in gamex86.dll).
+  - name: Cbuf_AddText
+    module: SofExe
+    identifier: "0x18180"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: const char*
+        name: text
+
   - name: R_DrawFont
     module: RefDll
     identifier: "0x000045B0"
@@ -428,8 +811,132 @@ functions:
     identifier: "0x00065CF0"
     return_type: void
     calling_convention: __cdecl
-    detour_len: 5
+    detour_len: 0
     params: []
+
+  - name: SV_Shutdown
+    module: SofExe
+    identifier: "0x0005FEC0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: char*
+        name: finalmsg
+      - type: int
+        name: reconnect
+
+  - name: Sys_QuitPath
+    module: SofExe
+    identifier: "0x00065D71"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
+  - name: AdjustTexCoords
+    module: RefDll
+    identifier: "0x00014C30"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: float*
+        name: player_pos
+      - type: float*
+        name: vertex
+      - type: float*
+        name: in_normal
+      - type: float*
+        name: in_tangent
+      - type: float*
+        name: in_bitangent
+      - type: float*
+        name: out_new_s_t
+
+  - name: glTexParameterf
+    module: Unknown
+    identifier: "glTexParameterf"
+    return_type: void
+    calling_convention: __stdcall
+    detour_len: 0
+    params:
+      - type: int
+        name: target_tex
+      - type: int
+        name: param_name
+      - type: float
+        name: value
+
+  - name: glBlendFunc
+    module: Unknown
+    identifier: "glBlendFunc"
+    return_type: void
+    calling_convention: __stdcall
+    detour_len: 0
+    params:
+      - type: unsigned int
+        name: sfactor
+      - type: unsigned int
+        name: dfactor
+
+  - name: glTexCoord2f
+    module: Unknown
+    identifier: "glTexCoord2f"
+    return_type: void
+    calling_convention: __stdcall
+    detour_len: 0
+    params:
+      - type: float
+        name: s
+      - type: float
+        name: t
+
+  - name: glVertex3f
+    module: Unknown
+    identifier: "glVertex3f"
+    return_type: void
+    calling_convention: __stdcall
+    detour_len: 0
+    params:
+      - type: float
+        name: x
+      - type: float
+        name: y
+      - type: float
+        name: z
+
+  - name: glBegin
+    module: Unknown
+    identifier: "glBegin"
+    return_type: void
+    calling_convention: __stdcall
+    detour_len: 0
+    params:
+      - type: unsigned int
+        name: mode
+
+  - name: glEnd
+    module: Unknown
+    identifier: "glEnd"
+    return_type: void
+    calling_convention: __stdcall
+    detour_len: 0
+    params: []
+
+  - name: glColor3f
+    module: Unknown
+    identifier: "glColor3f"
+    return_type: void
+    calling_convention: __stdcall
+    detour_len: 0
+    params:
+      - type: float
+        name: r
+      - type: float
+        name: g
+      - type: float
+        name: b
 
   - name: GetCursorPos
     module: Unknown

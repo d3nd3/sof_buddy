@@ -75,10 +75,8 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
         content.replace(pos, 5, "");
 
     const int size = static_cast<int>(content.size() + 1);
-    static void* (*Z_Malloc)(int) = nullptr;
-    if (!Z_Malloc) Z_Malloc = (void*(*)(int))rvaToAbsExe((void*)0x0001F120);
-    if (!Z_Malloc) return original(path, buffer, override_pak);
-    void* copy = Z_Malloc(size);
+    if (!detour_Z_Malloc::oZ_Malloc) return original(path, buffer, override_pak);
+    void* copy = detour_Z_Malloc::oZ_Malloc(size);
     if (!copy) return original(path, buffer, override_pak);
     std::memcpy(copy, content.c_str(), content.size() + 1);
     *buffer = copy;

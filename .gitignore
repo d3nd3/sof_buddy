@@ -23,3 +23,6 @@ src/features/internal_menus/menu_data.cpp
 # SDK/
 # SDK/*/
 .cursor/*.log
+
+# Local MCP bridge venv (ida_plugin_mcp)
+.venv-mcp/

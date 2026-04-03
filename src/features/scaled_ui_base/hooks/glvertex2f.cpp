@@ -49,8 +49,7 @@ static inline void scaleVertexFromCenter(float& x, float& y, float scale) {
 
         if (DrawPicWidth == 0 || DrawPicHeight == 0) {
             PrintOut(PRINT_LOG, "[DEBUG] scaleVertexFromCenter: FATAL ERROR - DrawPicWidth or DrawPicHeight is 0!\n");
-            extern void (*orig_Com_Printf)(const char* fmt, ...);
-            if (orig_Com_Printf) orig_Com_Printf("FATAL ERROR: DrawPicWidth or DrawPicHeight is 0! This should not happen!\n");
+            if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("FATAL ERROR: DrawPicWidth or DrawPicHeight is 0! This should not happen!\n");
             exit(1);
         }
     }

@@ -11,11 +11,6 @@
 
 // see util.h for debugging toggles 
 
-void (*orig_Z_Free) (void * v);
-char *(*orig_CopyString) (char *in);
-void (*orig_Cmd_ExecuteString)(const char * string);
-extern void (*orig_Com_DPrintf)(const char *fmt, ...);
-
 FILE * go_logfile = NULL;
 
 #ifndef NDEBUG
@@ -182,34 +177,32 @@ void PrintOutImpl(int mode, const char *msg,...)
 	
 #endif
 
-    extern void (*orig_Com_Printf)(const char*, ...);
-    extern void (*orig_Com_DPrintf)(const char*, ...);
-    if (!orig_Com_Printf) return;
+    if (!detour_Com_Printf::oCom_Printf) return;
 	//in-game print
 	switch (mode) {
 		case PRINT_DEV:
-			if (orig_Com_DPrintf) {
-				orig_Com_DPrintf("%s", ac_tmp);
+			if (detour_Com_DPrintf::oCom_DPrintf) {
+				detour_Com_DPrintf::oCom_DPrintf("%s", ac_tmp);
 			}
 			break;
 		case PRINT_LOG :
 
                 strcpy(ac_buf, P_CYAN "~~~~~~~~~~" P_BLACK "\x24\xF8\x46" P_CYAN "\xAE\xC9\xC9 : " P_ORANGE);
 				strcat(ac_buf,ac_tmp);
-				orig_Com_Printf("%s",ac_buf);
+				detour_Com_Printf::oCom_Printf("%s",ac_buf);
 
 		break;
 		case PRINT_LOG_EMPTY :
-			orig_Com_Printf("%s",ac_tmp);
+			detour_Com_Printf::oCom_Printf("%s",ac_tmp);
 		break;
 		case PRINT_BAD :
 
                 strcpy(ac_buf, P_CYAN "~~~~~~~~~~" P_BLACK "\x24\xF8\x46" P_CYAN "\xAE\xC9\xC9 : " P_RED);
 				strcat(ac_buf,ac_tmp);
-				orig_Com_Printf("%s",ac_buf);
+				detour_Com_Printf::oCom_Printf("%s",ac_buf);
 		break;
 		default :
-			orig_Com_Printf("%s",ac_tmp);
+			detour_Com_Printf::oCom_Printf("%s",ac_tmp);
 	}
 	
 }
@@ -309,50 +302,50 @@ cvar_t * findCvar(char * cvarname)
 
 inline void setCvarUnsignedInt(cvar_t * which,unsigned int val){
     which->modified = true;
-    orig_Z_Free(which->string);
+    detour_Z_Free::oZ_Free(which->string);
     char intstring[64];
     which->value = (float)val;
     sprintf(intstring,"%u",val);
-    which->string = orig_CopyString(intstring);
+    which->string = detour_CopyString::oCopyString(intstring);
 }
 
 
 inline void setCvarInt(cvar_t * which,int val){
     which->modified = true;
-    orig_Z_Free(which->string);
+    detour_Z_Free::oZ_Free(which->string);
     char intstring[64];
     which->value = (float)val;
     sprintf(intstring,"%d",val);
-    which->string = orig_CopyString(intstring);
+    which->string = detour_CopyString::oCopyString(intstring);
 }
 
 inline void setCvarByte(cvar_t * which, unsigned char val) {
     which->modified = true;
-    orig_Z_Free(which->string);
+    detour_Z_Free::oZ_Free(which->string);
     char bytestring[64];
     sprintf(bytestring,"%hhu",val);
     which->value = atof(bytestring);
-    which->string = orig_CopyString(bytestring);
+    which->string = detour_CopyString::oCopyString(bytestring);
 }
 
 
 inline void setCvarFloat(cvar_t * which, float val) {
 
     which->modified = true;
-    orig_Z_Free(which->string);
+    detour_Z_Free::oZ_Free(which->string);
     char floatstring[64];
     sprintf(floatstring,"%f",val);
-    which->string = orig_CopyString(floatstring);
+    which->string = detour_CopyString::oCopyString(floatstring);
     which->value = val;
 }
 
 inline void setCvarString(cvar_t * which, char * newstr) {
 
     which->modified = true;
-    orig_Z_Free(which->string);
+    detour_Z_Free::oZ_Free(which->string);
     
     
-    which->string = orig_CopyString(newstr);
+    which->string = detour_CopyString::oCopyString(newstr);
     which->value = atof(which->string);
 }
 

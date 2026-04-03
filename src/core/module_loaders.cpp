@@ -15,6 +15,7 @@
 #include "util.h"
 #include "sof_compat.h"
 #include "debug/callsite_classifier.h"
+#include "feature_config.h"
 
 #include "generated_detours.h"
 
@@ -47,6 +48,11 @@ qboolean vid_loadrefresh_override_callback(char const* name, detour_VID_LoadRefr
         PrintOut(PRINT_LOG, "Found %zu ref.dll detours to apply\n", DetourSystem::Instance().GetDetourCount(DetourModule::RefDll));
         DetourSystem::Instance().ApplyRefDetours();
         PrintOut(PRINT_LOG, "=== ref.dll detour initialization complete ===\n");
+
+        RegisterPointerOnlyFunctions_RefDll();
+        // Some Unknown-module pointers (OpenGL exports) only become available
+        // once ref/opengl are loaded, so refresh them here as well.
+        RegisterPointerOnlyFunctions_Unknown();
         
         DISPATCH_SHARED_HOOK_ARGS(RefDllLoaded, Post, name);
         
@@ -78,8 +84,13 @@ void* sys_getgameapi_override_callback(void* imports, detour_Sys_GetGameApi::tSy
         PrintOut(PRINT_LOG, "Found %zu game.dll detours to apply\n", DetourSystem::Instance().GetDetourCount(DetourModule::GameDll));
         DetourSystem::Instance().ApplyGameDetours();
         PrintOut(PRINT_LOG, "=== game.dll detour initialization complete ===\n");
-        
-        DISPATCH_SHARED_HOOK_ARGS(GameDllLoaded, Post, imports);
+
+        RegisterPointerOnlyFunctions_GameDll();
+        RegisterPointerOnlyFunctions_PlayerDll();
+        RegisterPointerOnlyFunctions_Unknown();
+
+        // GameDllLoaded receives the Sys_GetGameApi return value (game_export_t*), not the imports argument.
+        DISPATCH_SHARED_HOOK_ARGS(GameDllLoaded, Post, result);
         
         PrintOut(PRINT_LOG, "=== game.dll Loading Complete ===\n");
         PrintOut(PRINT_LOG, "\n");

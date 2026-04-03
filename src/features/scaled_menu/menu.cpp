@@ -206,7 +206,7 @@ void mutateWidthTokeC_resize(void * toke_c) {
             }
             if ( val2 > 0 ) val2 = val2 * screen_y_scale;
             // --- SUCCESS: The entire "resize <int> <int>" pattern was matched ---
-            if (orig_Com_Printf) orig_Com_Printf("Mutated resize\n");
+            if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("Mutated resize\n");
             // Build the replacement string
             char buf[128]; // Increased buffer size for safety with large numbers
             int n = snprintf(buf, sizeof(buf), "resize %ld %ld", 
@@ -244,20 +244,20 @@ void mutateWidthTokeC_resize(void * toke_c) {
     
     #if 0
     if ( printSuccess )  {
-        if (orig_Com_Printf) orig_Com_Printf("BEFORE!\n");
+        if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("BEFORE!\n");
         for ( int k = 0 ; k < *length_ptr; k++ ) {
             char p = (*start_ptr)[k];
-            if ( p != 0xD && orig_Com_Printf )
-            orig_Com_Printf("%c",p);
+            if ( p != 0xD && detour_Com_Printf::oCom_Printf )
+            detour_Com_Printf::oCom_Printf("%c",p);
         }
-        if (orig_Com_Printf) orig_Com_Printf("\n");
+        if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("\n");
         
-        if (orig_Com_Printf) orig_Com_Printf("AFTER!\n");
+        if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("AFTER!\n");
         for ( int k = 0 ; k < out_len+1; k++ ) {
-            if ( new_string_data[k] != 0xD && orig_Com_Printf )
-            orig_Com_Printf("%c",new_string_data[k]);
+            if ( new_string_data[k] != 0xD && detour_Com_Printf::oCom_Printf )
+            detour_Com_Printf::oCom_Printf("%c",new_string_data[k]);
         }
-        if (orig_Com_Printf) orig_Com_Printf("\n");
+        if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("\n");
     }
     #endif
     
@@ -308,13 +308,13 @@ void mutateWidthTokeC_width_height(void * toke_c, char * match) {
     char * endOfOptions = findClosingBracket(*cursor_ptr);
     
     #if 0
-    orig_Com_Printf("\nStart...\n");
+    detour_Com_Printf::oCom_Printf("\nStart...\n");
     for ( int k = 0 ; k < endOfOptions - *cursor_ptr; k++ ) {
         char p = (*cursor_ptr)[k];
         if ( p != 0xD )
-        orig_Com_Printf("%c",p);
+        detour_Com_Printf::oCom_Printf("%c",p);
     }
-    orig_Com_Printf("\nEnd...\n");
+    detour_Com_Printf::oCom_Printf("\nEnd...\n");
     
     #endif
     // Scan from cursor to end for the match
@@ -359,7 +359,7 @@ void mutateWidthTokeC_width_height(void * toke_c, char * match) {
             }
             if (val1 > 0) val1 = val1 * screen_y_scale;
             
-            if (orig_Com_Printf) orig_Com_Printf("Mutated %s\n", match);
+            if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("Mutated %s\n", match);
             
             // Build the replacement string
             char buf[128];
@@ -414,13 +414,13 @@ void mutateWidthTokeC_width_height(void * toke_c, char * match) {
     *length_ptr = out_len+1; //includes null terminator
     
     #if 0
-    orig_Com_Printf("\nAFTERStart...\n");
+    detour_Com_Printf::oCom_Printf("\nAFTERStart...\n");
     for ( int k = 0 ; k < tmp_len; k++ ) {
         char p = (*cursor_ptr)[k];
         if ( p != 0xD )
-        orig_Com_Printf("%c",p);
+        detour_Com_Printf::oCom_Printf("%c",p);
     }
-    orig_Com_Printf("\nAFTEREnd...\n");
+    detour_Com_Printf::oCom_Printf("\nAFTEREnd...\n");
     #endif
     
     // orig_Com_Printf("new length = %i\n", *length_ptr);
@@ -493,7 +493,7 @@ void mutateBlankTokeC_width_height(void * toke_c) {
             char buf[128]; // Buffer for the new formatted string
             int n = snprintf(buf, sizeof(buf), "<blank %ld %ld", width, height);
             out.append(buf, n);
-            if (orig_Com_Printf) orig_Com_Printf("Rescaling a BLANK width hight to %s\n",buf);
+            if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("Rescaling a BLANK width hight to %s\n",buf);
             changed = true;
 
             // Advance the main loop counter past the entire matched pattern
@@ -583,7 +583,7 @@ void __thiscall my_frame_c_Constructor(void* self, void * menu_c, char * width, 
     unsigned char *p = (unsigned char *)menu_c;
     char hexbuf[3*16+1];
     char asciibuf[17];
-    if (orig_Com_Printf) orig_Com_Printf("menu_c @ %p hex dump (first 64 bytes):\n", menu_c);
+    if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("menu_c @ %p hex dump (first 64 bytes):\n", menu_c);
     for (int i = 0; i < 64; i += 16) {
         int hexpos = 0;
         int asciipos = 0;
@@ -601,12 +601,12 @@ void __thiscall my_frame_c_Constructor(void* self, void * menu_c, char * width, 
         }
         hexbuf[hexpos] = '\0';
         asciibuf[asciipos] = '\0';
-        if (orig_Com_Printf) orig_Com_Printf("%04X: %s |%s|\n", i, hexbuf, asciibuf);
+        if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("%04X: %s |%s|\n", i, hexbuf, asciibuf);
     }
 }
 #endif
 
-    if (orig_Com_Printf) orig_Com_Printf("%s : %s x %s\n",frame_name, width,height);
+    if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("%s : %s x %s\n",frame_name, width,height);
 
     #if 0
     // Disabling stretched menu's becuase we handle it ourselves.
@@ -630,7 +630,7 @@ void __thiscall my_frame_c_Constructor(void* self, void * menu_c, char * width, 
     //Only scale certain pages that don't break with scaling.
     if ( ( !strcmp(width,"400") && !strcmp(height,"240") ) || 
     isMenuSpmSettings ) {
-        if (orig_Com_Printf) orig_Com_Printf("==SCALING FRAME %s==\n",frame_name);
+        if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("==SCALING FRAME %s==\n",frame_name);
         //if width height specified, we scale it.
 
         int scaled_width = 0, scaled_height = 0;
@@ -715,12 +715,12 @@ char * __thiscall hkstm_c_ParseStm(void *self_stm_c, void * toke_c)
     #if 0
     int out_len = *(int*)(toke_c+0x10);
     char * toke_data = *(char**)toke_c;
-    if (orig_Com_Printf) orig_Com_Printf("AFTER!\n");
+    if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("AFTER!\n");
     for ( int k = 0 ; k < out_len; k++ ) {
-        if ( toke_data[k] != 0xD && orig_Com_Printf )
-        orig_Com_Printf("%c",toke_data[k]);
+        if ( toke_data[k] != 0xD && detour_Com_Printf::oCom_Printf )
+        detour_Com_Printf::oCom_Printf("%c",toke_data[k]);
     }
-    if (orig_Com_Printf) orig_Com_Printf("\n");
+    if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("\n");
 
     #endif
     char * out_ret = ostm_c_ParseStm(self_stm_c, toke_c);
@@ -781,9 +781,9 @@ menu players/$menu_temp_skin text
 void my_M_PushMenu(const char * name, const char * frame, bool force)
 {
     
-    if (orig_Com_Printf) orig_Com_Printf("M_PushMenu : %s %s %i\n",name,frame, force);
+    if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("M_PushMenu : %s %s %i\n",name,frame, force);
     if ( !strcmp( name, "spm" ) || !strncmp(name,"spm_",4) ) {
-        if (orig_Com_Printf) orig_Com_Printf("Detected sofplus settings menu!\n");
+        if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("Detected sofplus settings menu!\n");
         isMenuSpmSettings = true;
         oM_PushMenu(name,frame,force);
         isMenuSpmSettings = false;

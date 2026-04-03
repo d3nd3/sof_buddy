@@ -2,7 +2,7 @@
   {
     "hook": "RefDllLoaded",
     "callback": "scaledUIBase_RefDllLoaded",
-    "priority": 50,
+    "priority": 65,
     "phase": "Post"
   }
 ]

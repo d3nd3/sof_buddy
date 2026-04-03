@@ -3,8 +3,10 @@
 #if FEATURE_LIGHTING_BLEND
 
 #include "sof_compat.h"
+#include "generated_detours.h"
 #include "util.h"
 #include "../shared.h"
+#include <windows.h>
 
 int *lightblend_target_src = nullptr;
 int *lightblend_target_dst = nullptr;
@@ -53,14 +55,25 @@ void lightblend_RefDllLoaded(char const* name)
         WriteByte(shiny_spherical_target3, value);
     }
 
-	real_glBlendFunc = (void(__stdcall *)(unsigned int, unsigned int))*(int*)rvaToAbsRef((void*)0x000A426C);
-	//Hook glBlendFunc - CheckComplexStates @call    glBlendFunc
-	WriteE8Call(rvaToAbsRef((void*)0x0001B9A4), (void*)&glBlendFunc_R_BlendLightmaps);
-	WriteByte(rvaToAbsRef((void*)0x0001B9A9), 0x90);
+	real_glBlendFunc = detour_glBlendFunc::oglBlendFunc;
+	if (!real_glBlendFunc) {
+		HMODULE hGl = GetModuleHandleA("opengl32.dll");
+		if (hGl) {
+			real_glBlendFunc = reinterpret_cast<void(__stdcall *)(unsigned int, unsigned int)>(
+				GetProcAddress(hGl, "glBlendFunc"));
+		}
+	}
+	//Hook glBlendFunc - CheckComplexStates @call glBlendFunc
+	if (real_glBlendFunc) {
+		WriteE8Call(rvaToAbsRef((void*)0x0001B9A4), (void*)&glBlendFunc_R_BlendLightmaps);
+		WriteByte(rvaToAbsRef((void*)0x0001B9A9), 0x90);
 
-	//Hook glBlendFunc- CheckComplexStates @call    glBlendFunc
-	WriteE8Call(rvaToAbsRef((void*)0x0001B690), (void*)&glBlendFunc_R_BlendLightmaps);
-	WriteByte(rvaToAbsRef((void*)0x0001B695), 0x90);
+		//Hook glBlendFunc- CheckComplexStates @call glBlendFunc
+		WriteE8Call(rvaToAbsRef((void*)0x0001B690), (void*)&glBlendFunc_R_BlendLightmaps);
+		WriteByte(rvaToAbsRef((void*)0x0001B695), 0x90);
+	} else {
+		PrintOut(PRINT_BAD, "lighting_blend: glBlendFunc unresolved; skipping blend hook patching\n");
+	}
 	
 	// Nop:
 	//mov     target_blend_sfactor, ebp
@@ -68,27 +81,42 @@ void lightblend_RefDllLoaded(char const* name)
 	WriteNops(rvaToAbsRef((void*)0x00015584), 11);
 
 
-	//Hook Builds_S_T_Shiny - R_DrawDetailChains @call    Builds_S_T_Shiny
-	oAdjustTexCoords = (void(__cdecl *)(float*, float*, float*, float*, float*, float*))rvaToAbsRef((void*)0x00014C30);
-	WriteE8Call(rvaToAbsRef((void*)0x00014995), (void*)&hkAdjustTexCoords);
+	//Hook Builds_S_T_Shiny - R_DrawDetailChains @call Builds_S_T_Shiny
+	oAdjustTexCoords = detour_AdjustTexCoords::oAdjustTexCoords;
+	if (oAdjustTexCoords) {
+		WriteE8Call(rvaToAbsRef((void*)0x00014995), (void*)&hkAdjustTexCoords);
+	} else {
+		PrintOut(PRINT_BAD, "lighting_blend: AdjustTexCoords unresolved; skipping shiny hook patching\n");
+	}
 
-	glTexCoord2f = (void(__stdcall *)(float, float))*(int*)rvaToAbsRef((void*)0x000A42F4);
-	glVertex3f = (void(__stdcall *)(float, float, float))*(int*)rvaToAbsRef((void*)0x000A47C4);
-	glBegin = (void(__stdcall *)(unsigned int))*(int*)rvaToAbsRef((void*)0x000A4710);
-	glEnd = (void(__stdcall *)(void))*(int*)rvaToAbsRef((void*)0x000A45F4);
-	glColor3f = (void(__stdcall *)(float, float, float))*(int*)rvaToAbsRef((void*)0x000A4490);
+	glTexCoord2f = detour_glTexCoord2f::oglTexCoord2f;
+	glVertex3f = detour_glVertex3f::oglVertex3f;
+	glBegin = detour_glBegin::oglBegin;
+	glEnd = detour_glEnd::oglEnd;
+	glColor3f = detour_glColor3f::oglColor3f;
+	if (!glTexCoord2f || !glVertex3f || !glBegin || !glEnd || !glColor3f) {
+		HMODULE hGl = GetModuleHandleA("opengl32.dll");
+		if (hGl) {
+			if (!glTexCoord2f) glTexCoord2f = reinterpret_cast<void(__stdcall *)(float, float)>(GetProcAddress(hGl, "glTexCoord2f"));
+			if (!glVertex3f) glVertex3f = reinterpret_cast<void(__stdcall *)(float, float, float)>(GetProcAddress(hGl, "glVertex3f"));
+			if (!glBegin) glBegin = reinterpret_cast<void(__stdcall *)(unsigned int)>(GetProcAddress(hGl, "glBegin"));
+			if (!glEnd) glEnd = reinterpret_cast<void(__stdcall *)(void)>(GetProcAddress(hGl, "glEnd"));
+			if (!glColor3f) glColor3f = reinterpret_cast<void(__stdcall *)(float, float, float)>(GetProcAddress(hGl, "glColor3f"));
+		}
+	}
 	
 
-	//We will call gltexCoord2f instead.
-	//Disable glTexCoord2f by NOP ... R_DrawDetailChains @call    glTexCoord2f
-	void* glTexCoord2f_call_addr = rvaToAbsRef((void*)0x000149AC);
-	PrintOut(PRINT_LOG, "lighting_blend: glTexCoord2f call address: 0x%p\n", glTexCoord2f_call_addr);
-	WriteNops(glTexCoord2f_call_addr, 3);
-	// Clean up stack: add esp, 8 (removes 2 float parameters from stack)
-	// 0x83 0xC4 0x08 = add esp, 8
-	WriteByte((char*)glTexCoord2f_call_addr + 3, 0x83);
-	WriteByte((char*)glTexCoord2f_call_addr + 4, 0xC4);
-	WriteByte((char*)glTexCoord2f_call_addr + 5, 0x08);
+	// We will call glTexCoord2f directly instead.
+	// Disable inline glTexCoord2f call in R_DrawDetailChains.
+	if (glTexCoord2f) {
+		void* glTexCoord2f_call_addr = rvaToAbsRef((void*)0x000149AC);
+		PrintOut(PRINT_LOG, "lighting_blend: glTexCoord2f call address: 0x%p\n", glTexCoord2f_call_addr);
+		WriteNops(glTexCoord2f_call_addr, 3);
+		// Clean up stack: add esp, 8 (removes 2 float parameters from stack)
+		WriteByte((char*)glTexCoord2f_call_addr + 3, 0x83);
+		WriteByte((char*)glTexCoord2f_call_addr + 4, 0xC4);
+		WriteByte((char*)glTexCoord2f_call_addr + 5, 0x08);
+	}
 
 	PrintOut(PRINT_LOG, "lighting_blend: Applied blend modes (src=0x%X, dst=0x%X)\n", 
 	         lightblend_src, lightblend_dst);
