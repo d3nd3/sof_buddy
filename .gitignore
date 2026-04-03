@@ -26,3 +26,7 @@ src/features/internal_menus/menu_data.cpp
 
 # Local MCP bridge venv (ida_plugin_mcp)
 .venv-mcp/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
