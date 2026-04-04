@@ -2,7 +2,7 @@
   "mcpServers": {
     "ida-sof-buddy": {
       "command": "${workspaceFolder}/.venv-mcp/bin/python",
-      "args": ["${workspaceFolder}/ida_plugin_mcp/cursor_mcp_server.py"],
+      "args": ["${env:IDA_MCP_ROOT}/cursor_mcp_server.py"],
       "env": {
         "IDA_MCP_BASE": "http://127.0.0.1:31337"
       }
