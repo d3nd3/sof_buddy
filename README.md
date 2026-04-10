@@ -245,6 +245,7 @@
 ## 🤝 Credits
 
 - **WhiteMagicRaven** — Lighting blend mode
+- **Acadie** — Endless knowledge
 - **d3nd3** — Project lead
 - **Community** — Bug reports, testing, and support
 
