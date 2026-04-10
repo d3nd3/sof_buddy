@@ -96,9 +96,75 @@ static bool try_resolve_stored_last_page(std::string& menu_to_push) {
 namespace {
 
 constexpr const char* kInternalMenusDiskRoot = "user/menus";
+void set_runtime_cvar_str(const char* name, const char* value);
 
 void materialize_embedded_menus_to_disk() {
     // No longer materializing to disk.
+}
+
+void sync_sofbuddy_profile_targets_from_selection() {
+    if (!detour_Cvar_Get::oCvar_Get) return;
+    cvar_t* perf = detour_Cvar_Get::oCvar_Get("_sofbuddy_perf_profile", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    const int profile = perf ? static_cast<int>(perf->value + 0.5f) : 0;
+    static int last_profile = -9999;
+    if (profile == last_profile) return;
+    last_profile = profile;
+    const char* fx = "0";
+    const char* debris = "2";
+    const char* shadows = "Off";
+    const char* specular = "Off";
+    const char* quads = "0";
+    if (profile == 1) {
+        fx = "32"; debris = "32"; shadows = "Detailed"; specular = "On"; quads = "1024";
+    } else if (profile == 2) {
+        fx = "0"; debris = "2"; shadows = "Detailed"; specular = "On"; quads = "1024";
+    } else if (profile == 3) {
+        cvar_t* cv_fx = detour_Cvar_Get::oCvar_Get("fx_maxdebrisonscreen", "0", 0, nullptr);
+        cvar_t* cv_debris = detour_Cvar_Get::oCvar_Get("cl_max_debris", "2", 0, nullptr);
+        cvar_t* cv_shadows = detour_Cvar_Get::oCvar_Get("ghl_shadows", "0", 0, nullptr);
+        cvar_t* cv_specular = detour_Cvar_Get::oCvar_Get("ghl_specular", "0", 0, nullptr);
+        cvar_t* cv_quads = detour_Cvar_Get::oCvar_Get("cl_max_quads", "0", 0, nullptr);
+        fx = (cv_fx && cv_fx->string) ? cv_fx->string : "0";
+        debris = (cv_debris && cv_debris->string) ? cv_debris->string : "2";
+        const int sh = cv_shadows ? static_cast<int>(cv_shadows->value + 0.5f) : 0;
+        shadows = (sh <= 0) ? "Off" : ((sh == 1) ? "Blob" : "Detailed");
+        const int sp = cv_specular ? static_cast<int>(cv_specular->value + 0.5f) : 0;
+        specular = (sp == 0) ? "Off" : "On";
+        quads = (cv_quads && cv_quads->string) ? cv_quads->string : "0";
+    }
+    set_runtime_cvar_str("_sofbuddy_profile_target_fx_maxdebrisonscreen", fx);
+    set_runtime_cvar_str("_sofbuddy_profile_target_cl_max_debris", debris);
+    set_runtime_cvar_str("_sofbuddy_profile_target_ghl_shadows", shadows);
+    set_runtime_cvar_str("_sofbuddy_profile_target_ghl_specular", specular);
+    set_runtime_cvar_str("_sofbuddy_profile_target_cl_max_quads", quads);
+}
+
+void sofbuddy_perf_profile_change(cvar_t* cvar) {
+    (void)cvar;
+    sync_sofbuddy_profile_targets_from_selection();
+}
+
+void apply_sofbuddy_perf_profile_common(const char* fx_maxdebrisonscreen,
+                                        const char* cl_max_debris,
+                                        const char* ghl_shadows,
+                                        const char* ghl_specular,
+                                        const char* cl_max_quads) {
+    set_runtime_cvar_str("fx_maxdebrisonscreen", fx_maxdebrisonscreen);
+    set_runtime_cvar_str("cl_max_debris", cl_max_debris);
+    set_runtime_cvar_str("ghl_shadows", ghl_shadows);
+    set_runtime_cvar_str("ghl_specular", ghl_specular);
+    set_runtime_cvar_str("cl_max_quads", cl_max_quads);
+    if (detour_Cmd_ExecuteString::oCmd_ExecuteString)
+        detour_Cmd_ExecuteString::oCmd_ExecuteString("refresh");
+}
+
+void apply_sofbuddy_perf_profile_value(int profile) {
+    switch (profile) {
+        case 1: apply_sofbuddy_perf_profile_common("32", "32", "2", "1", "1024"); break;
+        case 2: apply_sofbuddy_perf_profile_common("0", "2", "2", "1", "1024"); break;
+        case 3: break; // Custom/Current is view-only.
+        default: apply_sofbuddy_perf_profile_common("0", "2", "0", "0", "0"); break;
+    }
 }
 
 void create_loading_cvars() {
@@ -119,6 +185,13 @@ void create_loading_cvars() {
     detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_last_page", "", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     // Performance profile selector used by Perf Tweaks page.
     detour_Cvar_Get::oCvar_Get("_sofbuddy_perf_profile", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_profile_target_fx_maxdebrisonscreen", "0", 0, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_profile_target_cl_max_debris", "2", 0, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_profile_target_ghl_shadows", "Off", 0, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_profile_target_ghl_specular", "Off", 0, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_profile_target_cl_max_quads", "0", 0, nullptr);
+    cvar_t* perf = detour_Cvar_Get::oCvar_Get("_sofbuddy_perf_profile", "0", CVAR_SOFBUDDY_ARCHIVE, sofbuddy_perf_profile_change);
+    sofbuddy_perf_profile_change(perf);
 
 }
 
@@ -211,44 +284,11 @@ void Cmd_SoFBuddy_Apply_Menu_Hotkey_f() {
     apply_menu_hotkey_binding();
 }
 
-void apply_sofbuddy_perf_profile_common(const char* profile_value,
-                                        const char* cl_max_debris,
-                                        const char* fx_maxdebrisonscreen,
-                                        const char* ghl_light_method,
-                                        const char* cl_quads,
-                                        const char* cl_freezequads,
-                                        const char* ghl_shadows,
-                                        const char* gl_modulate,
-                                        const char* ghl_light_multiply,
-                                        const char* gl_dlightintensity,
-                                        const char* _sofbuddy_sleep,
-                                        const char* ghl_mip,
-                                        const char* gl_pictip,
-                                        const char* gl_picmip) {
-    set_runtime_cvar_str("_sofbuddy_perf_profile", profile_value);
-    set_runtime_cvar_str("cl_max_debris", cl_max_debris);
-    set_runtime_cvar_str("fx_maxdebrisonscreen", fx_maxdebrisonscreen);
-    set_runtime_cvar_str("ghl_light_method", ghl_light_method);
-    set_runtime_cvar_str("cl_quads", cl_quads);
-    set_runtime_cvar_str("cl_freezequads", cl_freezequads);
-    set_runtime_cvar_str("ghl_shadows", ghl_shadows);
-    set_runtime_cvar_str("gl_modulate", gl_modulate);
-    set_runtime_cvar_str("ghl_light_multiply", ghl_light_multiply);
-    set_runtime_cvar_str("gl_dlightintensity", gl_dlightintensity);
-    set_runtime_cvar_str("_sofbuddy_sleep", _sofbuddy_sleep);
-    set_runtime_cvar_str("ghl_mip", ghl_mip);
-    set_runtime_cvar_str("gl_pictip", gl_pictip);
-    set_runtime_cvar_str("gl_picmip", gl_picmip);
-    if (detour_Cmd_ExecuteString::oCmd_ExecuteString)
-        detour_Cmd_ExecuteString::oCmd_ExecuteString("refresh");
-}
-
-void Cmd_SoFBuddy_Apply_Profile_Comp_f() {
-    apply_sofbuddy_perf_profile_common("0", "2", "0", "0", "0", "1", "0", "2", "2", "2", "0", "0", "0", "5");
-}
-
-void Cmd_SoFBuddy_Apply_Profile_Visual_f() {
-    apply_sofbuddy_perf_profile_common("1", "128", "128", "2", "1", "0", "2", "1", "1", "2", "1", "0", "0", "-10");
+void Cmd_SoFBuddy_Apply_Profile_f() {
+    if (!detour_Cvar_Get::oCvar_Get) return;
+    cvar_t* perf = detour_Cvar_Get::oCvar_Get("_sofbuddy_perf_profile", "0", CVAR_SOFBUDDY_ARCHIVE, sofbuddy_perf_profile_change);
+    const int profile = perf ? static_cast<int>(perf->value + 0.5f) : 0;
+    apply_sofbuddy_perf_profile_value(profile);
 }
 
 void update_layout_cvars(bool trigger_reloadall_if_changed) {
@@ -342,10 +382,27 @@ static int internal_menus_content_inset_px(void) {
         int vid_w = (current_vid_w > 0) ? current_vid_w : 0;
         if (vid_w <= 0 && viddef_width && *viddef_width > 0) vid_w = *viddef_width;
         if (vid_w <= 0) vid_w = 640;
-        inner_frame_px = (vid_w * 640 + 320) / 640;
+        inner_frame_px = vid_w;
     }
     const int centered_content_size_px = 640;
     return std::max(28, (inner_frame_px - centered_content_size_px) / 2);
+}
+
+static int internal_menus_menu_vid_h_px(void) {
+    int vid_h = (current_vid_h > 0) ? current_vid_h : 0;
+    if (vid_h <= 0 && viddef_height && *viddef_height > 0) vid_h = *viddef_height;
+    if (vid_h <= 0) vid_h = 480;
+    const int out = vid_h; // Match full-screen vbar extent across modes.
+    static int prev_vid = -999999;
+    static int prev_out = -999999;
+    if (vid_h != prev_vid || out != prev_out) {
+        prev_vid = vid_h;
+        prev_out = out;
+        PrintOut(PRINT_DEV,
+                 "sofbuddy: tall-blank height fixed src=vid vid_h=%d using=%d\n",
+                 vid_h, out);
+    }
+    return out;
 }
 const char* internal_menus_get_content_inset_rmf(void) {
     static char buf[32];
@@ -354,7 +411,7 @@ const char* internal_menus_get_content_inset_rmf(void) {
 }
 const char* internal_menus_get_content_inset_tall_rmf(void) {
     static char buf[32];
-    std::snprintf(buf, sizeof(buf), "<blank %d 10000>", internal_menus_content_inset_px());
+    std::snprintf(buf, sizeof(buf), "<blank %d %d>", internal_menus_content_inset_px(), internal_menus_menu_vid_h_px());
     return buf;
 }
 
@@ -381,6 +438,7 @@ void loading_reset_current_map_unknown(void) {
 }
 
 void internal_menus_call_SCR_UpdateScreen(bool force) {
+    sync_sofbuddy_profile_targets_from_selection();
     if (detour_SCR_UpdateScreen::oSCR_UpdateScreen) {
         detour_SCR_UpdateScreen::oSCR_UpdateScreen(force);
     }
@@ -410,8 +468,7 @@ void internal_menus_PostCvarInit(void) {
 
     detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_menu"), Cmd_SoFBuddy_Menu_f);
     detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_apply_menu_hotkey"), Cmd_SoFBuddy_Apply_Menu_Hotkey_f);
-    detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_apply_profile_comp"), Cmd_SoFBuddy_Apply_Profile_Comp_f);
-    detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_apply_profile_visual"), Cmd_SoFBuddy_Apply_Profile_Visual_f);
+    detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_apply_profile"), Cmd_SoFBuddy_Apply_Profile_f);
 
     apply_menu_hotkey_binding();
 

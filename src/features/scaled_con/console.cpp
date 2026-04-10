@@ -20,6 +20,7 @@ using detour_SCR_DrawPlayerInfo::oSCR_DrawPlayerInfo;
 
 #include <math.h>
 #include <stdint.h>
+#include <cstdio>
 
 #define GL_BLEND 0x0BE2
 
@@ -65,6 +66,11 @@ void fontscale_change(cvar_t * cvar) {
 	}
 
 	SOFBUDDY_ASSERT(fontScale > 0.0f);
+	if (detour_Cvar_Set2::oCvar_Set2) {
+		char buf[32];
+		std::snprintf(buf, sizeof(buf), "%.2f", fontScale);
+		detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_font_scale_rounded"), buf, true);
+	}
 	first_run = false;
 }
 

@@ -51,10 +51,12 @@ using detour_cHealthArmor2_Draw::ocHealthArmor2_Draw;
 using detour_cDMRanking_Draw::ocDMRanking_Draw;
 using detour_cCtfFlag_Draw::ocCtfFlag_Draw;
 using detour_SCR_ExecuteLayoutString::oSCR_ExecuteLayoutString;
+using detour_Cvar_Set2::oCvar_Set2;
 #include "../scaled_ui_base/shared.h"
 
 #include "debug/hook_callsite.h"
 
+#include <cstdio>
 #include <math.h>
 #include <string.h>
 
@@ -77,11 +79,17 @@ using detour_SCR_ExecuteLayoutString::oSCR_ExecuteLayoutString;
 
 void hudscale_change(cvar_t * cvar) {
     SOFBUDDY_ASSERT(cvar != nullptr);
-    SOFBUDDY_ASSERT(cvar->value > 0.0f);
-    
-    //round to nearest quarter
-    hudScale = roundf(cvar->value * 4.0f) / 4.0f;
-    SOFBUDDY_ASSERT(hudScale > 0.0f);
+    float v = cvar->value;
+    if (v < 0.25f) v = 0.25f;
+    if (v > 8.0f) v = 8.0f;
+    hudScale = roundf(v * 4.0f) / 4.0f;
+    if (hudScale < 0.25f) hudScale = 0.25f;
+    if (hudScale > 8.0f) hudScale = 8.0f;
+    if (oCvar_Set2) {
+        char buf[32];
+        std::snprintf(buf, sizeof(buf), "%.2f", hudScale);
+        oCvar_Set2(const_cast<char*>("_sofbuddy_hud_scale_rounded"), buf, true);
+    }
 }
 
 void crosshairscale_change(cvar_t * cvar) {

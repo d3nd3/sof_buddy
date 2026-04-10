@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "ida-sof-buddy": {
-      "command": "${workspaceFolder}/.venv-mcp/bin/python",
-      "args": ["${env:IDA_MCP_ROOT}/cursor_mcp_server.py"],
+      "command": "/home/dinda/git-projects/d3nd3/private/sof/ida_plugin_mcp/run_mcp_stdio.sh",
+      "args": [],
       "env": {
         "IDA_MCP_BASE": "http://127.0.0.1:31337"
       }

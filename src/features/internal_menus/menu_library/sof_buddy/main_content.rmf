@@ -30,9 +30,7 @@
 <text "Texture" key mouse1 "sofbuddy_menu sof_buddy/texture" border 8 1 cyan regular>
 <text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/lighting" border 8 1 cyan regular>
 <text "Video" key mouse1 "sofbuddy_menu sof_buddy/video" border 8 1 cyan regular>
-<text "Profiles" key mouse1 "sofbuddy_menu sof_buddy/profiles" border 8 1 cyan regular>
 <text "Misc" key mouse1 "sofbuddy_menu sof_buddy/misc" border 8 1 cyan regular>
-<text "Map study" key mouse1 "sofbuddy_menu sof_buddy/map_debug" border 8 1 cyan regular>
 <text "Updates" key mouse1 "sofbuddy_menu sof_buddy/updates" border 8 1 cyan regular>
 <text "Social" key mouse1 "sofbuddy_menu sof_buddy/social" border 8 1 cyan regular><hbr>
 

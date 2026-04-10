@@ -1,5 +1,24 @@
 # Changelog
 
+## v5.7
+
+- Removed vendored `ida_plugin_mcp` from the repository and switched Cursor MCP wiring to external checkout paths.
+- Ignored Python bytecode artifacts and removed tracked `__pycache__` files.
+- Updated internal menus:
+  - Moved the former profiles/cpu-eaters content into the `CPU` tab.
+  - Removed the standalone profile tab navigation.
+  - Added profile preview block with `Will set...` target values and `Custom/Current` view mode.
+  - Simplified profile apply flow to a single `Apply Profile` action.
+  - Updated tab/page labels from `Profiles` to `CpuEaters` where applicable.
+  - Removed `Map study` from menu navigation tabs.
+- Lighting menu controls:
+  - Enforced integer slider behavior for `_sofbuddy_lighting_cutoff`.
+  - Enforced integer slider behavior for `_sofbuddy_water_size`.
+- UI scaling/runtime updates:
+  - Included recent tweaks in `scaled_con`, `scaled_hud`, and `scaled_ui_base` cvar handling.
+
+# Changelog
+
 ## v5.6
 
 - **Detours / codegen:** Expanded `detours.yaml` and `tools/generate_hooks.py` for pointer-backed hook targets; `rsrc/funcmaps/SoF.exe.json` and per-feature `hooks/pointers.json` (plus `src/core/pointers.json`); `docs/DETOUR_SYSTEM.md` and `hdr/detours.h` updates; `DetourXS` and core detour registration (`detours.cpp`, `shared_hook_manager.cpp`) aligned with the new flow.

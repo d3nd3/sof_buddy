@@ -30,9 +30,7 @@
 <text "Texture" key mouse1 "sofbuddy_menu sof_buddy/texture" border 8 1 cyan regular>
 <text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/lighting" border 8 1 orange regular>
 <text "Video" key mouse1 "sofbuddy_menu sof_buddy/video" border 8 1 cyan regular>
-<text "Profiles" key mouse1 "sofbuddy_menu sof_buddy/profiles" border 8 1 cyan regular>
 <text "Misc" key mouse1 "sofbuddy_menu sof_buddy/misc" border 8 1 cyan regular>
-<text "Map study" key mouse1 "sofbuddy_menu sof_buddy/map_debug" border 8 1 cyan regular>
 <text "Updates" key mouse1 "sofbuddy_menu sof_buddy/updates" border 8 1 cyan regular>
 <text "Social" key mouse1 "sofbuddy_menu sof_buddy/social" border 8 1 cyan regular><hbr>
 
@@ -52,9 +50,9 @@
 <list "Off,On" cvari _sofbuddy_lighting_overbright atext "Overbright : " noshade><br>
 <list "Off,On" cvari _sofbuddy_shiny_spherical atext "Shiny Spherical : " noshade><br>
 <ctext _sofbuddy_lighting_cutoff atext "Lighting Cutoff : " noshade><br>
-<slider cvar _sofbuddy_lighting_cutoff min 1 max 256 step 1><br>
+<slider cvari _sofbuddy_lighting_cutoff min 1 max 256 step 1><br>
 <ctext _sofbuddy_water_size atext "Water Size : " noshade><br>
-<slider cvar _sofbuddy_water_size min 16 max 256 step 1><br>
+<slider cvari _sofbuddy_water_size min 16 max 256 step 1><br>
 
 <font type title tint sb_subtle atint sb_subtle>
 "_____________________________"

@@ -30,9 +30,7 @@
 <text "Texture" key mouse1 "sofbuddy_menu sof_buddy/texture" border 8 1 cyan regular>
 <text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/lighting" border 8 1 cyan regular>
 <text "Video" key mouse1 "sofbuddy_menu sof_buddy/video" border 8 1 cyan regular>
-<text "Profiles" key mouse1 "sofbuddy_menu sof_buddy/profiles" border 8 1 cyan regular>
 <text "Misc" key mouse1 "sofbuddy_menu sof_buddy/misc" border 8 1 cyan regular>
-<text "Map study" key mouse1 "sofbuddy_menu sof_buddy/map_debug" border 8 1 cyan regular>
 <text "Updates" key mouse1 "sofbuddy_menu sof_buddy/updates" border 8 1 cyan regular>
 <text "Social" key mouse1 "sofbuddy_menu sof_buddy/social" border 8 1 cyan regular><hbr>
 
@@ -49,10 +47,12 @@
 <hbr>
 <hbr>
 <font type title tint white atint white>
-<list "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" match "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" cvar _sofbuddy_font_scale atext "Font Scale : " noshade tip "Scales SoF Buddy menu font sizes."><br>
+<ctext _sofbuddy_font_scale_rounded atext "Font Scale : " noshade><br>
+<slider cvar _sofbuddy_font_scale min 0.25 max 8.00 step 0.03125 tip "Scales SoF Buddy menu font sizes. Extra-slow proportional step."><br>
 <ctext _sofbuddy_console_size atext "Console Size : " noshade><br>
 <slider cvar _sofbuddy_console_size min 0.00 max 1.00 step 0.01 tip "Height of the in-game console as a fraction of screen."><br>
-<list "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" match "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" cvar _sofbuddy_hud_scale atext "HUD Scale : " noshade tip "Global scale for HUD elements."><br>
+<ctext _sofbuddy_hud_scale_rounded atext "HUD Scale : " noshade><br>
+<slider cvar _sofbuddy_hud_scale min 0.25 max 8.00 step 0.03125 tip "Global scale for HUD elements. Extra-slow proportional step, rounded display at 0.25."><br>
 <list "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" match "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" cvar _sofbuddy_crossh_scale atext "Crosshair Scale : " noshade tip "Size multiplier for the current crosshair."><br>
 <ctext tip_duration atext "Tooltip ms : " noshade><br>
 <slider cvar tip_duration min 0 max 8000 step 250 tip "Tooltip lifetime in milliseconds."><br>

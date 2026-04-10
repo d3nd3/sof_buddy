@@ -49,10 +49,12 @@ void create_scaled_ui_cvars(void) {
 #if FEATURE_SCALED_CON
     _sofbuddy_font_scale = detour_Cvar_Get::oCvar_Get("_sofbuddy_font_scale", "1", CVAR_SOFBUDDY_ARCHIVE, fontscale_change);
     _sofbuddy_console_size = detour_Cvar_Get::oCvar_Get("_sofbuddy_console_size", "0.5", CVAR_SOFBUDDY_ARCHIVE, consolesize_change);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_font_scale_rounded", "1", 0, nullptr);
 #endif
 #if FEATURE_SCALED_HUD
     _sofbuddy_hud_scale = detour_Cvar_Get::oCvar_Get("_sofbuddy_hud_scale", "1", CVAR_SOFBUDDY_ARCHIVE, hudscale_change);
     _sofbuddy_crossh_scale = detour_Cvar_Get::oCvar_Get("_sofbuddy_crossh_scale", "1", CVAR_SOFBUDDY_ARCHIVE, crosshairscale_change);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_hud_scale_rounded", "1", 0, nullptr);
 #endif
 }
 
