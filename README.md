@@ -41,10 +41,9 @@
 - 🧾 **Large `config.cfg` Exec Fix** — Avoid `Cbuf_AddText: overflow` when running `exec config.cfg` with very large configs.
 - 🧩 **Embedded Loading / Internal Menus** — Serve RMF menu assets from memory (includes loading UI) and open internal pages via `sofbuddy_menu`.
 - 🌐 **HTTP Map Download Assist** — Download missing maps over HTTP and resume precache; provider URLs configurable via cvars.
-- 🗺️ **Map entity spawn replacement assistance & visualization** — Map study in the SoF Buddy menu (F12): with `**_sofbuddy_entity_edit 1`**, spawn-time cache, wireframe draw (`sofbuddy_entities_draw`), and attack intersect. See [Map entity wireframes](src/features/entity_visualizer/README.md#map-entity-wireframes-how-it-works) in the feature README.
 - ⬆️ **In-Game Updater + Startup Prompt** — Check/download release zips in-game, with optional startup check and internal-menu prompt.
 - 🧓 **Windows XP Updater Mirror Defaults** — XP builds default updater feed URLs to `sofvault.org` (overrideable via cvars).
-- 📚 **Feature Docs** — See `src/features/internal_menus/README.md`, `src/features/http_maps/README.md`, `src/features/entity_visualizer/README.md`, and `src/features/cbuf_limit_increase/README.md`.
+- 📚 **Feature Docs** — See `src/features/internal_menus/README.md`, `src/features/http_maps/README.md`, and `src/features/cbuf_limit_increase/README.md`.
 
 ---
 
