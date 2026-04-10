@@ -23,7 +23,8 @@
 
 ## ✨ Features
 
-**Click to expand**
+<details open>
+<summary><b>Click to expand</b></summary>
 
 - 🔠 **Font Scaling** — Crisp, readable fonts at any resolution: `1x`, `2x`, `3x`, `4x`, etc.
 - 🖥️ **HUD Scaling** — Scale the HUD independently from the font for perfect UI balance.
@@ -45,11 +46,14 @@
 - 🧓 **Windows XP Updater Mirror Defaults** — XP builds default updater feed URLs to `sofvault.org` (overrideable via cvars).
 - 📚 **Feature Docs** — See `src/features/internal_menus/README.md`, `src/features/http_maps/README.md`, and `src/features/cbuf_limit_increase/README.md`.
 
+</details>
+
 ---
 
 ## 🚀 Installation
 
-**Click to expand**
+<details>
+<summary><b>Click to expand</b></summary>
 
 ### 1. Get SoF Buddy
 
@@ -81,11 +85,14 @@
   - `**update_from_zip.cmd**` → Extract newest downloaded SoF Buddy update zip (`sof_buddy/update/*.zip`) into SoF root
 - SoF Buddy auto-loads `spcl.dll` if present, so it works *with* SoF Plus.
 
+</details>
+
 ---
 
 ## 🕹️ Usage
 
-**Click to expand**
+<details>
+<summary><b>Click to expand</b></summary>
 
 ### Enable SoF Buddy (Recommended)
 
@@ -122,11 +129,14 @@
 - `sofbuddy_update_install` — Queue `sof_buddy/update_from_zip.cmd` via engine `start` and quit SoF.
 - `sofbuddy_openurl <https_url>` — Open trusted community links in your default browser (used by the Social Links menu page).
 
+</details>
+
 ---
 
 ## 🧓 Windows XP
 
-**Click to expand**
+<details>
+<summary><b>Click to expand</b></summary>
 
 - Use the **XP package** from releases (`release_windows_xp.zip`) or compile with:
   ```sh
@@ -142,11 +152,14 @@
   ```
 - XP users may hit WinHTTP TLS failures on modern HTTPS endpoints (for example GitHub API). The mirror defaults above avoid that path.
 
+</details>
+
 ---
 
 ## 🍷 Wine/Proton (Linux)
 
-**Click to expand**
+<details>
+<summary><b>Click to expand</b></summary>
 
 - **Recommendation:** Use Wine for best fullscreen experience and fewer visual glitches.
 - **Launch Example:**
@@ -163,11 +176,14 @@
   ```
   (Note: `cl_quads 0` disables many effects.)
 
+</details>
+
 ---
 
 ## ⚙️ Cvars (Configuration Variables)
 
-**Click to expand**
+<details>
+<summary><b>Click to expand</b></summary>
 
 
 | Cvar                             | Default                                                   | Description                                                                                                                                                                                                                                                                                                                                                                                    |
@@ -221,6 +237,8 @@
 - See [OpenGL glBlendFunc docs](https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glBlendFunc.xhtml) for blend values.
 - If `_sofbuddy_lighting_overbright` is enabled, it overrides blend cvars.
 - `internal_menus` loading UI cvars used by current slim loading pages: `_sofbuddy_loading_progress`, `_sofbuddy_loading_current`.
+
+</details>
 
 ---
 
