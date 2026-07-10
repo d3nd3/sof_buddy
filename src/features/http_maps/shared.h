@@ -24,6 +24,7 @@ void http_maps_on_parse_configstring_post(void);
 bool http_maps_should_skip_loading_plaque_menu(void);
 void http_maps_try_begin_precache(detour_CL_Precache_f::tCL_Precache_f original);
 bool http_maps_frame_work_pending(void);
+bool http_maps_wants_custom_loading_menu(void);
 void http_maps_pump(void);
 void http_maps_run_deferred_continue_if_pending(void);
 

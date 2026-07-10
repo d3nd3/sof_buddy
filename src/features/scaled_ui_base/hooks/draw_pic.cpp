@@ -6,6 +6,7 @@
 #include "util.h"
 #include "generated_detours.h"
 #include "../../scaled_ui_base/shared.h"
+#include "../../scaled_ui_base/ref_gl_state.h"
 #include "debug/hook_callsite.h"
 
 void hkDraw_Pic(int x, int y, char const * imgname, int palette, detour_Draw_Pic::tDraw_Pic original) {
@@ -42,6 +43,13 @@ void hkDraw_Pic(int x, int y, char const * imgname, int palette, detour_Draw_Pic
     }
 
     original(x, y, imgname, palette);
+#if FEATURE_SCALED_HUD
+    // Draw_Pic enables GL_BLEND but never clears it (unlike Draw_StretchPic).
+    // client_sb rows end with Draw_Pic; next row's Draw_String_Color/Draw_Char
+    // must start with blend off or text chars render inconsistently soft.
+    if (g_activeRenderType == uiRenderType::Scoreboard)
+        ref_gl_cache_disable_blend();
+#endif
     g_currentPicCaller = PicCaller::Unknown;
     g_activeDrawCall = DrawRoutineType::None;
     resetGlVertexQuadState();

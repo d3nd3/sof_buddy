@@ -5,6 +5,7 @@
 #include "sof_compat.h"
 #include "util.h"
 #include "../../scaled_ui_base/shared.h"
+#include "../../scaled_ui_base/ref_gl_state.h"
 
 extern void(__stdcall * orig_glVertex2f)(float one, float two);
 extern void(__stdcall * orig_glVertex2i)(int x, int y);
@@ -31,6 +32,10 @@ void scaledUIBase_RefDllLoaded(char const* name)
     orig_glDisable = (void(__stdcall*)(int))*(int*)rvaToAbsRef((void*)0x000A44EC);
     SOFBUDDY_ASSERT(orig_glVertex2i != nullptr);
     SOFBUDDY_ASSERT(orig_glDisable != nullptr);
+
+#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD
+    ref_gl_state_init();
+#endif
 
 #if FEATURE_SCALED_CON
     PrintOut(PRINT_LOG, "scaled_ui_base: Installing Draw_Char vertex hooks\n");

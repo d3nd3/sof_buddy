@@ -58,14 +58,13 @@ void fontscale_change(cvar_t * cvar) {
 	// Negative value -> auto mode: track resolution ratio (vid_h/480) like the
 	// cinematic credit pics. Kept in sync on resolution changes by
 	// scaled_ui_refresh_vid_dimensions_from_engine() via apply_auto_font_scale().
-	fontScaleAuto = (cvar->value < 0.0f);
+    fontScaleAuto = (cvar->value < 0.0f);
 	if (fontScaleAuto) {
 		apply_auto_font_scale();
 		return;
 	}
 
-	//round to nearest quarter
-	fontScale = roundf(cvar->value * 4.0f) / 4.0f;
+	fontScale = round_scale_value(cvar->value);
 	PrintOut(PRINT_LOG,"Precise fontScale change: %.10f\n", fontScale);
 
 	//Protect from divide by 0.
@@ -85,6 +84,7 @@ void fontscale_change(cvar_t * cvar) {
 void apply_auto_font_scale(void) {
 	if (!fontScaleAuto) return;
 	fontScale = (screen_y_scale > 0.0f) ? screen_y_scale : 1.0f;
+	if (scaleRoundAuto) fontScale = round_scale_value(fontScale);
 	SOFBUDDY_ASSERT(fontScale > 0.0f);
 	if (detour_Cvar_Set2::oCvar_Set2) {
 		char buf[32];

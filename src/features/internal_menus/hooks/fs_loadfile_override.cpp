@@ -55,6 +55,10 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
     std::string filename = path_to_filename(path);
     if (menu_name.empty() || filename.empty()) return original(path, buffer, override_pak);
 
+    // SP / non-DM: vanilla pak loading menus (deathmatch exinclude / menu_nostats stats gating).
+    if (menu_name == "loading" && internal_menus_use_vanilla_loading_menu())
+        return original(path, buffer, override_pak);
+
     // Look up in embedded menu map; if missing, let the engine load from disk/pak.
     auto menu_it = g_menu_internal_files.find(menu_name);
     if (menu_it == g_menu_internal_files.end()) return original(path, buffer, override_pak);

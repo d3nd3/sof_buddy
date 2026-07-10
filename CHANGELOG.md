@@ -1,5 +1,36 @@
 # Changelog
 
+## v6.2
+
+### cl_maxfps singleplayer — paired SV/CL throttle
+
+- **Replaced `CL_Frame` Pre hook** with **`Qcommon_Frame` Pre** + **`SV_Frame` override**: when `cl_maxfps` would render-throttle a frame, the server tick is skipped too so AI/cinematic sim does not outrun the capped client frame rate.
+- Removed the old throttle-tick path (`CL_ReadPackets` + `Cbuf_Execute` on skipped draw frames); SV/CL pairing replaces it.
+
+### Internal menus — SP vanilla loading screen
+
+- **Singleplayer** uses the **vanilla pak `loading.rmf`** again (deathmatch `exinclude` / `menu_nostats` stats gating). Buddy custom loading UI is reserved for **deathmatch** and **HTTP maps** connect flows.
+- **`loading_stats.rmf`:** new bottom panel for SP loading (stats layout); MP keeps **`loading_files`**.
+- **`SCR_BeginLoadingPlaque`:** SP path pushes vanilla `loading` without `killmenu` churn so blankscreen/outfit interstitials are not cleared early.
+- **`FS_LoadFile` override** and **`loading_show_ui`** respect the vanilla-vs-custom loading decision.
+
+### HTTP maps — DM-only connect assist
+
+- Map download / precache assist runs only in **deathmatch** mode (or while HTTP maps frame work is already pending), so SP level loads are not intercepted.
+- **`http_maps_wants_custom_loading_menu()`** coordinates when Buddy should show the custom loading UI vs vanilla SP loading.
+
+### Scaled UI — configurable scale rounding
+
+- **`_sofbuddy_scale_round_auto`:** when on, auto font/HUD scale snaps to round steps instead of a continuous `vid_h/480` ratio.
+- **`_sofbuddy_scale_round_ratio`:** step size for manual and auto rounding (default **0.25**).
+- **`round_scale_value()`** / **`effective_auto_scale()`** centralize rounding for font scale, HUD scale, and cinematic image scaling.
+- **F12 → UI Scale:** **Auto Round Scale** toggle plus **Round Ratio** sub-page; Restore Defaults resets both new cvars.
+
+### Scaled UI — ref.dll GL blend hygiene
+
+- **`ref_gl_state`:** resolves ref.dll's GL context and calls its disable-cap vtable to turn off **GL_BLEND** without a global `glDisable` detour.
+- **Console notify, scoreboard layout, scoreboard `Draw_Pic`:** sync blend state before/after draw so scoreboard text does not render inconsistently soft when `Draw_Pic` leaves blend enabled.
+
 ## v6.1
 
 ### cl_maxfps singleplayer — black screen after cinematics

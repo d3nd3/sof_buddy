@@ -213,8 +213,8 @@ namespace detour_drawTeamIcons {
     tdrawTeamIcons odrawTeamIcons = nullptr;
 }
 
-namespace detour_CL_Frame {
-    tCL_Frame oCL_Frame = nullptr;
+namespace detour_SV_Frame {
+    tSV_Frame oSV_Frame = nullptr;
 }
 
 namespace detour_M_PushMenu {
@@ -692,7 +692,7 @@ namespace detour_drawTeamIcons {
     }
 }
 
-namespace detour_CL_Frame {
+namespace detour_SV_Frame {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
         if (!instance) {
@@ -925,17 +925,6 @@ namespace detour_drawTeamIcons {
     }
 }
 
-namespace detour_CL_Frame {
-    void __cdecl hkCL_Frame(int msec) {
-        ManagerType& mgr = GetManager();
-        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre(msec);
-        if (oCL_Frame) {
-            oCL_Frame(msec);
-        }
-        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost(msec);
-    }
-}
-
 namespace detour_M_PushMenu {
     void __cdecl hkM_PushMenu(char const* menu_file, char const* parentFrame, bool lock_input) {
         ManagerType& mgr = GetManager();
@@ -1106,6 +1095,12 @@ namespace detour_SCR_DrawPlayerInfo {
 namespace detour_SCR_ExecuteLayoutString {
     void __cdecl hkSCR_ExecuteLayoutString(char* text) {
         ::hkSCR_ExecuteLayoutString(text, oSCR_ExecuteLayoutString);
+    }
+}
+
+namespace detour_SV_Frame {
+    void __cdecl hkSV_Frame(int msec) {
+        ::mfps_sv_frame_override(msec, oSV_Frame);
     }
 }
 

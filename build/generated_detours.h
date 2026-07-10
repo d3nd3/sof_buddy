@@ -1082,31 +1082,31 @@ namespace {
     static AutoDetour_drawTeamIcons g_AutoDetour_drawTeamIcons;
 }
 
-namespace detour_CL_Frame {
-    using tCL_Frame = void(__cdecl*)(int msec);
-    extern tCL_Frame oCL_Frame;
+namespace detour_SV_Frame {
+    using tSV_Frame = void(__cdecl*)(int msec);
+    extern tSV_Frame oSV_Frame;
     using ManagerType = TypedSharedHookManager<void, int>;
     ManagerType& GetManager();
     
-    void __cdecl hkCL_Frame(int msec);
+    void __cdecl hkSV_Frame(int msec);
 }
 
 namespace {
-    struct AutoDetour_CL_Frame {
-        AutoDetour_CL_Frame() {
-            using namespace detour_CL_Frame;
-            if (!GetDetourSystem().IsDetourRegistered("CL_Frame")) {
+    struct AutoDetour_SV_Frame {
+        AutoDetour_SV_Frame() {
+            using namespace detour_SV_Frame;
+            if (!GetDetourSystem().IsDetourRegistered("SV_Frame")) {
                 GetDetourSystem().RegisterDetour(
-                    reinterpret_cast<void*>(0x000D8F0),
-                    reinterpret_cast<void*>(detour_CL_Frame::hkCL_Frame),
-                    reinterpret_cast<void**>(&detour_CL_Frame::oCL_Frame),
-                    "CL_Frame",
+                    reinterpret_cast<void*>(0x0005F5B0),
+                    reinterpret_cast<void*>(detour_SV_Frame::hkSV_Frame),
+                    reinterpret_cast<void**>(&detour_SV_Frame::oSV_Frame),
+                    "SV_Frame",
                     DetourModule::SofExe,
                     static_cast<size_t>(0));
             }
         }
     };
-    static AutoDetour_CL_Frame g_AutoDetour_CL_Frame;
+    static AutoDetour_SV_Frame g_AutoDetour_SV_Frame;
 }
 
 namespace detour_M_PushMenu {

@@ -59,9 +59,10 @@ extern void lightblend_PostCvarInit();
 extern void lightblend_RefDllLoaded(char const* name);
 extern void mediaTimers_EarlyStartup();
 extern void mediaTimers_PostCvarInit();
-extern void mfps_CL_Frame_pre(int& msec);
 extern void mfps_ExitLevel_post();
 extern void mfps_M_PushMenu_pre(char const*& menu_file, char const*& parentFrame, bool& lock_input);
+extern void mfps_qcommon_frame_pre(int& msec);
+extern void mfps_sv_frame_override(int msec, detour_SV_Frame::tSV_Frame original);
 extern void new_system_bug_EarlyStartup();
 extern void r_blendlightmaps_post_callback();
 extern void r_blendlightmaps_pre_callback();
@@ -150,10 +151,10 @@ inline void RegisterAllFeatureHooks() {
     SharedHookManager::Instance().RegisterCallback(
         "PostCvarInit", "internal_menus", "internal_menus_PostCvarInit",
         []() { internal_menus_PostCvarInit(); }, 70, SharedHookPhase::Post);
-    detour_CL_Frame::GetManager().RegisterPreCallback(
-        "cl_maxfps_singleplayer", "mfps_CL_Frame_pre",
-        [](int& msec) { mfps_CL_Frame_pre(msec); },
-        80);
+    detour_Qcommon_Frame::GetManager().RegisterPreCallback(
+        "cl_maxfps_singleplayer", "mfps_qcommon_frame_pre",
+        [](int& msec) { mfps_qcommon_frame_pre(msec); },
+        75);
     {
         auto& mgr = detour_CinematicFreeze::GetManager();
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] CinematicFreeze manager at 0x%p\n", &mgr);

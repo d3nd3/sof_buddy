@@ -151,6 +151,19 @@ static bool http_maps_is_enabled(void)
 	return http_maps_mode() != 0;
 }
 
+static bool http_maps_should_assist_connect(void)
+{
+	if (!http_maps_is_enabled()) return false;
+	if (http_maps_frame_work_pending()) return true;
+#if FEATURE_INTERNAL_MENUS
+	return internal_menus_deathmatch_mode_active();
+#else
+	if (!detour_Cvar_Get::oCvar_Get) return false;
+	cvar_t* dm = detour_Cvar_Get::oCvar_Get("deathmatch", "0", 0, nullptr);
+	return dm && dm->value != 0.0f;
+#endif
+}
+
 static float http_maps_clamp_progress(float p)
 {
 	if (p < 0.0f) return 0.0f;
@@ -1601,6 +1614,7 @@ bool http_maps_should_run_on_configstring_post(void) { return s_configstring_ind
 
 void http_maps_on_parse_configstring_post(void)
 {
+	if (!http_maps_should_assist_connect()) return;
 	std::string map_bsp_path;
 	if (!http_maps_read_map_from_memory(map_bsp_path, false, false)) return;
 	if (!http_maps_normalize_map_path(map_bsp_path)) return;
@@ -1644,7 +1658,7 @@ void http_maps_try_begin_precache(detour_CL_Precache_f::tCL_Precache_f original)
 {
 	SOFBUDDY_ASSERT(original != nullptr);
 
-	if (!http_maps_is_enabled()) {
+	if (!http_maps_is_enabled() || !http_maps_should_assist_connect()) {
 		http_maps_clear_loading_cvars();
 		original();
 		return;
@@ -1718,6 +1732,13 @@ void http_maps_on_frame_cls_state(int state)
 bool http_maps_frame_work_pending(void)
 {
 	return g_http_maps_state.waiting || g_http_maps_state.deferred_continue_reason != nullptr;
+}
+
+bool http_maps_wants_custom_loading_menu(void)
+{
+	if (!http_maps_is_enabled()) return false;
+	if (http_maps_frame_work_pending()) return true;
+	return g_http_maps_state.loading_ui_active;
 }
 
 void http_maps_pump(void)

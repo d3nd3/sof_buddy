@@ -17,6 +17,11 @@ void internal_menus_EarlyStartup(void);
 void internal_menus_PostCvarInit(void);
 void internal_menus_OnVidChanged(void);
 void Cmd_SoFBuddy_Menu_f(void);
+// deathmatch!=0 — same latched game-mode flag vanilla loading.rmf uses (exinclude deathmatch).
+bool internal_menus_deathmatch_mode_active(void);
+// Pak vanilla loading.rmf (SP quirks) unless MP mode or http_maps connect UI is active.
+bool internal_menus_use_vanilla_loading_menu(void);
+bool internal_menus_is_mp_loading_context(void);
 bool internal_menus_should_lock_loading_input(void);
 const char* internal_menus_loading_menu_name(void);
 void loading_set_current(const char* map_name);

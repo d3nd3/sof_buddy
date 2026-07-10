@@ -1,9 +1,14 @@
 [
   {
-    "function": "CL_Frame",
-    "callback": "mfps_CL_Frame_pre",
+    "function": "Qcommon_Frame",
+    "callback": "mfps_qcommon_frame_pre",
     "phase": "Pre",
-    "priority": 80
+    "priority": 75
+  },
+  {
+    "function": "SV_Frame",
+    "callback": "mfps_sv_frame_override",
+    "override": true
   },
   {
     "function": "CinematicFreeze",

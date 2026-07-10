@@ -136,7 +136,7 @@ static void handleDrawPicVertex(float x, float y) {
             scaleVertexFromScreenCenter(x, y, crosshairScale);
             return;
         case PicCaller::SCR_DrawCinemaScope: {
-            const float s = screen_y_scale;
+            const float s = effective_auto_scale(screen_y_scale);
             if (g_scaleCinematicPics && s != 1.0f && DrawPicWidth > 0 && DrawPicHeight > 0) {
                 if (g_quadVertexIndex == 1) {
                     g_quadXFirst = x;

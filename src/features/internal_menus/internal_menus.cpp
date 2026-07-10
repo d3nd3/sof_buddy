@@ -9,6 +9,10 @@
 #include "generated_detours.h"
 #include "generated_registrations.h"
 
+#if FEATURE_HTTP_MAPS
+#include "features/http_maps/shared.h"
+#endif
+
 #include <windows.h>
 #include <algorithm>
 #include <cctype>
@@ -415,6 +419,23 @@ const char* internal_menus_get_content_inset_tall_rmf(void) {
     return buf;
 }
 
+bool internal_menus_deathmatch_mode_active(void) {
+    if (!detour_Cvar_Get::oCvar_Get) return false;
+    cvar_t* dm = detour_Cvar_Get::oCvar_Get("deathmatch", "0", 0, nullptr);
+    return dm && dm->value != 0.0f;
+}
+
+bool internal_menus_use_vanilla_loading_menu(void) {
+#if FEATURE_HTTP_MAPS
+    if (http_maps_wants_custom_loading_menu()) return false;
+#endif
+    return !internal_menus_deathmatch_mode_active();
+}
+
+bool internal_menus_is_mp_loading_context(void) {
+    return !internal_menus_use_vanilla_loading_menu();
+}
+
 bool internal_menus_should_lock_loading_input(void) {
     if (!detour_Cvar_Get::oCvar_Get) return true;
     cvar_t* c = detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_lock_input", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
@@ -565,6 +586,7 @@ void internal_menus_OnVidChanged(void) {
 }
 
 void loading_show_ui(void) {
+    if (internal_menus_use_vanilla_loading_menu()) return;
     if (detour_M_PushMenu::oM_PushMenu) {
         loading_reset_current_map_unknown();
         const bool lock_input = internal_menus_should_lock_loading_input();

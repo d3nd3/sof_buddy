@@ -6,14 +6,12 @@
 #include "util.h"
 #include "generated_detours.h"
 #include "../../scaled_ui_base/shared.h"
-
-#define GL_BLEND 0x0BE2
+#include "../../scaled_ui_base/ref_gl_state.h"
 
 void hkCon_DrawNotify(detour_Con_DrawNotify::tCon_DrawNotify original) {
 	SOFBUDDY_ASSERT(viddef_width != nullptr);
 	SOFBUDDY_ASSERT(fontScale > 0.0f);
 	SOFBUDDY_ASSERT(current_vid_w > 0);
-	SOFBUDDY_ASSERT(orig_glDisable != nullptr);
 	
 	real_refdef_width = current_vid_w;
 
@@ -23,7 +21,8 @@ void hkCon_DrawNotify(detour_Con_DrawNotify::tCon_DrawNotify original) {
 	SOFBUDDY_ASSERT(*viddef_width > 0);
 	resetGlVertexQuadState();
 	g_activeRenderType = uiRenderType::Console;
-	orig_glDisable(GL_BLEND);
+	ref_gl_cache_disable_blend();
+	ref_gl_cache_sync();
 	original();
 	
 	//restore the width

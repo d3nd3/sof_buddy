@@ -4,12 +4,12 @@
 
 #include "generated_detours.h"
 #include "sof_compat.h"
-#include "util.h"
 #include "../shared.h"
 
 // Mirrors CL_Frame throttle checks (SoF.exe @ 0x2000D960..0x2000D992).
 static int* mfps_extratime(void) { return (int*)rvaToAbsExe((void*)0x001E7578); }
 static int* mfps_cls_state(void) { return (int*)rvaToAbsExe((void*)0x001C1F00); }
+static bool g_mfps_throttle_frame = false;
 
 static bool mfps_cl_frame_would_throttle(int msec)
 {
@@ -47,27 +47,18 @@ static bool mfps_cl_frame_would_throttle(int msec)
 	return etAfter < minMsec;
 }
 
-static void mfps_cl_frame_throttle_tick(void)
+// Qcommon_Frame Pre: decide before SV_Frame runs so server sim stays paired with CL throttle.
+void mfps_qcommon_frame_pre(int& msec)
 {
-	typedef void(__cdecl * Fn)(void);
-	auto readPackets = (Fn)rvaToAbsExe((void*)0x0000C5C0);
-	auto cbufExecute = (Fn)rvaToAbsExe((void*)0x00018530);
-	if (readPackets) {
-		readPackets();
-	}
-	if (cbufExecute) {
-		cbufExecute();
-	}
-	mfps_sync_exe_cinematicfreeze_from_game();
+	g_mfps_throttle_frame = mfps_cl_frame_would_throttle(msec);
 }
 
-// CL_Frame NOP keeps cl_maxfps render throttle in SP; run net/cmd work when draw is skipped.
-void mfps_CL_Frame_pre(int& msec)
+void mfps_sv_frame_override(int msec, detour_SV_Frame::tSV_Frame original)
 {
-	if (!mfps_cl_frame_would_throttle(msec)) {
+	if (g_mfps_throttle_frame) {
 		return;
 	}
-	mfps_cl_frame_throttle_tick();
+	original(msec);
 }
 
 #endif // FEATURE_CL_MAXFPS_SINGLEPLAYER
