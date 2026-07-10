@@ -1,5 +1,12 @@
 # Changelog
 
+## v6.4
+
+### Internal menus — UI Scale round-step layout
+
+- **Auto Round Step** moved back to a conditional sub-page (`ui_scale_round_ratio.rmf`) via `cinclude` — shown only when **Auto Round Scale** is on, matching the font/HUD manual-scale pattern.
+- **Auto Round Scale** toggle refreshes the UI Scale page so the step list appears or hides immediately.
+
 ## v6.3
 
 ### Updater — install-version picker & downgrades

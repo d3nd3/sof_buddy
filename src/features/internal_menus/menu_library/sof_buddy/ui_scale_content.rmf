@@ -53,8 +53,8 @@
 <slider cvar _sofbuddy_console_size min 0.00 max 1.00 step 0.01 tip "Height of the in-game console as a fraction of screen."><br>
 <list "Off,On" cvari _sofbuddy_hud_scale_auto atext "Auto HUD Scale : " key mouse1 "sofbuddy_menu sof_buddy/ui_scale" noshade tip "Track HUD scale from resolution (vid_h/480)."><br>
 <cninclude _sofbuddy_hud_scale_auto sof_buddy/ui_scale_hud_manual>
-<list "Off,On" cvari _sofbuddy_scale_round_auto atext "Auto Round Scale : " noshade tip "When on, auto font/HUD scale snaps to round steps instead of a continuous value."><br>
-<list "0.05,0.1,0.125,0.25,0.5,1" match "0.05,0.1,0.125,0.25,0.5,1" cvar _sofbuddy_scale_round_ratio atext "Auto Round Step : " noshade tip "Snap increment for auto font/HUD scale. Only used when Auto Round Scale is on."><br>
+<list "Off,On" cvari _sofbuddy_scale_round_auto atext "Auto Round Scale : " key mouse1 "sofbuddy_menu sof_buddy/ui_scale" noshade tip "When on, auto font/HUD scale snaps to round steps instead of a continuous value."><br>
+<cinclude _sofbuddy_scale_round_auto sof_buddy/ui_scale_round_ratio>
 <list "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" match "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" cvar _sofbuddy_crossh_scale atext "Crosshair Scale : " noshade tip "Size multiplier for the current crosshair."><br>
 <ctext tip_duration atext "Tooltip ms : " noshade><br>
 <slider cvar tip_duration min 0 max 8000 step 250 tip "Tooltip lifetime in milliseconds."><br>
