@@ -55,6 +55,7 @@ extern void internal_menus_M_PushMenu_pre(char const*& menu_file, char const*& p
 extern void internal_menus_PostCvarInit();
 extern void internal_menus_SCR_BeginLoadingPlaque_post(qboolean noPlaque);
 extern int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool override_pak, detour_FS_LoadFile::tFS_LoadFile original);
+extern void internal_menus_qcommon_frame_post(int msec);
 extern void lightblend_PostCvarInit();
 extern void lightblend_RefDllLoaded(char const* name);
 extern void mediaTimers_EarlyStartup();
@@ -257,6 +258,15 @@ inline void RegisterAllFeatureHooks() {
             [](char const* menu_file, char const* parentFrame, bool lock_input) { internal_menus_M_PushMenu_post(menu_file, parentFrame, lock_input); },
             90);
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] M_PushMenu post callbacks: %zu\n", mgr.GetPostCallbackCount());
+    }
+    {
+        auto& mgr = detour_Qcommon_Frame::GetManager();
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] Qcommon_Frame manager at 0x%p\n", &mgr);
+        mgr.RegisterPostCallback(
+            "internal_menus", "internal_menus_qcommon_frame_post",
+            [](int msec) { internal_menus_qcommon_frame_post(msec); },
+            85);
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] Qcommon_Frame post callbacks: %zu\n", mgr.GetPostCallbackCount());
     }
     {
         auto& mgr = detour_SCR_BeginLoadingPlaque::GetManager();

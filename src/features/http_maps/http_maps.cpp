@@ -156,7 +156,7 @@ static bool http_maps_should_assist_connect(void)
 	if (!http_maps_is_enabled()) return false;
 	if (http_maps_frame_work_pending()) return true;
 #if FEATURE_INTERNAL_MENUS
-	return internal_menus_deathmatch_mode_active();
+	return internal_menus_mp_connect_flow_active() || internal_menus_deathmatch_mode_active();
 #else
 	if (!detour_Cvar_Get::oCvar_Get) return false;
 	cvar_t* dm = detour_Cvar_Get::oCvar_Get("deathmatch", "0", 0, nullptr);

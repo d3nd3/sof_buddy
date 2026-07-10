@@ -4,6 +4,7 @@
 
 #include "generated_detours.h"
 #include "sof_compat.h"
+#include "util.h"
 #include "../shared.h"
 #if FEATURE_HTTP_MAPS
 #include "../../http_maps/shared.h"
@@ -13,7 +14,10 @@ void internal_menus_SCR_BeginLoadingPlaque_post(qboolean noPlaque) {
     if (noPlaque) return;
     if (!detour_M_PushMenu::oM_PushMenu) return;
 
-    // SP / non-DM: vanilla loading.rmf from pak. Avoid killmenu so blankscreen/outfit interstitials
+    static int* s_cls_state = (int*)rvaToAbsExe((void*)0x001C1F00);
+    if (s_cls_state) internal_menus_update_connect_flow(*s_cls_state);
+
+    // SP local load: vanilla loading.rmf from pak. Avoid killmenu so blankscreen/outfit interstitials
     // are not cleared early.
     if (internal_menus_use_vanilla_loading_menu()) {
         detour_M_PushMenu::oM_PushMenu("loading", "", true);

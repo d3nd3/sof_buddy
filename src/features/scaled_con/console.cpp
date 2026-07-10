@@ -55,16 +55,15 @@ int real_refdef_width = 0;
 void fontscale_change(cvar_t * cvar) {
 	SOFBUDDY_ASSERT(cvar != nullptr);
 
-	// Negative value -> auto mode: track resolution ratio (vid_h/480) like the
-	// cinematic credit pics. Kept in sync on resolution changes by
-	// scaled_ui_refresh_vid_dimensions_from_engine() via apply_auto_font_scale().
-    fontScaleAuto = (cvar->value < 0.0f);
-	if (fontScaleAuto) {
-		apply_auto_font_scale();
-		return;
-	}
+	// Auto mode is controlled by _sofbuddy_font_scale_auto; kept in sync on
+	// resolution changes by scaled_ui_refresh_vid_dimensions_from_engine().
+    if (fontScaleAuto) {
+        apply_auto_font_scale();
+        return;
+    }
 
-	fontScale = round_scale_value(cvar->value);
+    SOFBUDDY_ASSERT(cvar->value > 0.0f);
+    fontScale = round_scale_value(cvar->value);
 	PrintOut(PRINT_LOG,"Precise fontScale change: %.10f\n", fontScale);
 
 	//Protect from divide by 0.
@@ -78,6 +77,11 @@ void fontscale_change(cvar_t * cvar) {
 		std::snprintf(buf, sizeof(buf), "%.2f", fontScale);
 		detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_font_scale_rounded"), buf, true);
 	}
+}
+
+void font_scale_auto_change(cvar_t* cvar) {
+	fontScaleAuto = cvar && cvar->value != 0.0f;
+	if (_sofbuddy_font_scale) fontscale_change(_sofbuddy_font_scale);
 }
 
 // Sets fontScale from the current resolution ratio when auto mode is active.

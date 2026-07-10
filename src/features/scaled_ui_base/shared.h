@@ -27,6 +27,7 @@
 extern float fontScale;
 extern bool fontScaleAuto;
 void apply_auto_font_scale(void);
+void font_scale_auto_change(cvar_t* cvar);
 extern float consoleSize;
 extern bool isFontInner;
 extern bool isDrawingTeamicons;
@@ -34,6 +35,7 @@ extern bool isDrawingTeamicons;
 extern float hudScale;
 extern bool hudScaleAuto;
 void apply_auto_hud_scale(void);
+void hud_scale_auto_change(cvar_t* cvar);
 extern float scaleRoundRatio;
 extern bool scaleRoundAuto;
 float round_scale_value(float v);
@@ -227,8 +229,10 @@ extern int* cls_state;
 
 // CVars
 extern cvar_t * _sofbuddy_font_scale;
+extern cvar_t * _sofbuddy_font_scale_auto;
 extern cvar_t * _sofbuddy_console_size;
 extern cvar_t * _sofbuddy_hud_scale;
+extern cvar_t * _sofbuddy_hud_scale_auto;
 extern cvar_t * _sofbuddy_crossh_scale;
 void create_scaled_ui_cvars(void);
 

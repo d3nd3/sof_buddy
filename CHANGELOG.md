@@ -1,5 +1,39 @@
 # Changelog
 
+## v6.3
+
+### Updater — install-version picker & downgrades
+
+- **`_sofbuddy_update_target_tag`:** pick **Latest** or a specific GitHub release tag before checking or downloading.
+- **`sofbuddy_update releases`** (alias `list`): fetches all release tags and builds the in-menu install-version list (`_sofbuddy_update_release_list_rmf`).
+- **Download flow:** selecting a specific tag always downloads that zip (downgrade-friendly); **Latest** keeps the existing “only if newer” behavior unless `download force` is used.
+- **F12 → Updates:** **Refresh Release List**, **Install version** picker, renamed **Download Selected Zip**, and updated step-by-step help.
+
+### Scaled UI — dedicated auto-scale cvars
+
+- **`_sofbuddy_font_scale_auto`** / **`_sofbuddy_hud_scale_auto`** replace the old **`-1` = Auto** convention on `_sofbuddy_font_scale` / `_sofbuddy_hud_scale`.
+- **Legacy migration:** configs with `-1` are converted to auto on + manual scale `1` on first load; non-default manual values disable auto automatically.
+- **F12 → UI Scale:** separate **Auto Font Scale** / **Auto HUD Scale** toggles; manual scale lists (`ui_scale_font_manual`, `ui_scale_hud_manual`) appear only when auto is off.
+- **Auto Round Step** is inline on the main UI Scale page (removed separate `ui_scale_round_ratio` sub-page).
+
+### Internal menus — MP connect loading UI
+
+- **`internal_menus_update_connect_flow()`** tracks `cls_state` during server connect (`ca_connecting` … `ca_won_receive_challenge1`).
+- **`Qcommon_Frame` Post** hook keeps connect-flow state current each frame.
+- Custom Buddy loading UI is shown during **MP connect/map load**, not only when `deathmatch` is latched — SP local loads still use vanilla pak `loading.rmf`.
+
+### HTTP maps
+
+- Connect assist also activates during the **MP connect flow** (not only latched deathmatch).
+
+### Internal menus — Video FPS controls
+
+- **`video_fps.rmf`:** labeled **Show FPS** list for `cl_showfps` bit combinations plus `debuggraph` hint text (replaces raw numeric FPS bits row).
+
+### README
+
+- Documented new auto-scale cvars, round-step cvars, and updated F12 UI Scale / updater behavior.
+
 ## v6.2
 
 ### cl_maxfps singleplayer — paired SV/CL throttle

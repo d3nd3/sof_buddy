@@ -49,6 +49,13 @@ constexpr const char* kCvarUpdateCheckedUtc = "_sofbuddy_update_checked_utc";
 constexpr const char* kCvarUpdateCheckStartup = "_sofbuddy_update_check_startup";
 constexpr const char* kCvarUpdateApiUrl = "_sofbuddy_update_api_url";
 constexpr const char* kCvarUpdateReleasesUrl = "_sofbuddy_update_releases_url";
+constexpr const char* kCvarUpdateTargetTag = "_sofbuddy_update_target_tag";
+constexpr const char* kCvarUpdateReleaseListRmf = "_sofbuddy_update_release_list_rmf";
+constexpr const char* kCvarUpdateReleaseListStatus = "_sofbuddy_update_release_list_status";
+constexpr const char* kUpdateApiUrlAllReleasesGitHub = "https://api.github.com/repos/d3nd3/sof_buddy/releases?per_page=100";
+constexpr const char* kUpdateTargetLatest = "latest";
+constexpr const char* kDefaultReleaseListRmf =
+    "<list \"Latest\" match \"latest\" cvar _sofbuddy_update_target_tag atext \"Install version : \" noshade tip \"Refresh Release List to load all tags.\"><hbr>";
 constexpr const char* kCvarOpenUrlStatus = "_sofbuddy_openurl_status";
 constexpr const char* kCvarOpenUrlLast = "_sofbuddy_openurl_last";
 bool g_startup_update_prompt_pending = false;
@@ -723,32 +730,49 @@ bool write_update_readme(const ReleaseInfo& info, const std::string& zip_path) {
     return true;
 }
 
-bool fetch_latest_release(ReleaseInfo& out, std::string& error) {
-    const std::string api_url = get_update_api_url();
-    const std::string releases_url = get_update_releases_url();
+bool is_latest_target_tag(const std::string& tag) {
+    return tag.empty() || tag == kUpdateTargetLatest;
+}
 
+std::string get_update_target_tag() {
+    return get_update_cvar_or_default(kCvarUpdateTargetTag, kUpdateTargetLatest);
+}
+
+std::string get_update_releases_list_api_url() {
+    const std::string api_url = get_update_api_url();
+    const size_t pos = api_url.rfind("/releases/latest");
+    if (pos != std::string::npos)
+        return api_url.substr(0, pos) + "/releases?per_page=100";
+    return kUpdateApiUrlAllReleasesGitHub;
+}
+
+bool http_fetch_text(const std::string& url, bool github_api_headers, std::string& out_body, std::string& error) {
     HINTERNET session = nullptr;
     HINTERNET connect = nullptr;
     HINTERNET request = nullptr;
     DWORD status = 0;
 
-    const bool github_api = api_url.find("api.github.com") != std::string::npos;
-    if (!http_begin_get(api_url, github_api, session, connect, request, status, error))
+    if (!http_begin_get(url, github_api_headers, session, connect, request, status, error))
         return false;
 
     std::vector<uint8_t> payload;
-    bool ok = http_read_all(request, payload, error);
+    const bool ok = http_read_all(request, payload, error);
     WinHttpCloseHandle(request);
     WinHttpCloseHandle(connect);
     WinHttpCloseHandle(session);
     if (!ok) return false;
 
-    std::string body(payload.begin(), payload.end());
+    out_body.assign(payload.begin(), payload.end());
     if (status != 200) {
-        if (body.size() > 200) body.resize(200);
-        error = "GitHub API returned HTTP " + std::to_string(status) + ": " + body;
+        if (out_body.size() > 200) out_body.resize(200);
+        error = "Release API returned HTTP " + std::to_string(status) + ": " + out_body;
         return false;
     }
+    return true;
+}
+
+bool parse_release_json_body(const std::string& body, const std::string& api_url, ReleaseInfo& out, std::string& error) {
+    const std::string releases_url = get_update_releases_url();
 
     if (!json_find_string_field(body, "tag_name", 0, out.tag_name, nullptr) &&
         !json_find_string_field(body, "version", 0, out.tag_name, nullptr) &&
@@ -780,6 +804,108 @@ bool fetch_latest_release(ReleaseInfo& out, std::string& error) {
 
     finalize_xp_mirror_release(out, api_url);
     return true;
+}
+
+bool fetch_release_from_api_url(const std::string& api_url, ReleaseInfo& out, std::string& error) {
+    std::string body;
+    const bool github_api = api_url.find("api.github.com") != std::string::npos;
+    if (!http_fetch_text(api_url, github_api, body, error))
+        return false;
+    return parse_release_json_body(body, api_url, out, error);
+}
+
+bool fetch_latest_release(ReleaseInfo& out, std::string& error) {
+    return fetch_release_from_api_url(get_update_api_url(), out, error);
+}
+
+bool fetch_release_by_tag(const std::string& tag, ReleaseInfo& out, std::string& error) {
+    if (tag.empty()) {
+        error = "Release tag is empty";
+        return false;
+    }
+    std::string url = "https://api.github.com/repos/d3nd3/sof_buddy/releases/tags/";
+    url += tag;
+    return fetch_release_from_api_url(url, out, error);
+}
+
+bool fetch_all_release_tags(std::vector<std::string>& out_tags, std::string& error) {
+    out_tags.clear();
+    const std::string api_url = get_update_releases_list_api_url();
+    std::string body;
+    const bool github_api = api_url.find("api.github.com") != std::string::npos;
+    if (!http_fetch_text(api_url, github_api, body, error))
+        return false;
+
+    size_t search = 0;
+    std::string tag;
+    while (json_find_string_field(body, "tag_name", search, tag, &search)) {
+        if (!tag.empty())
+            out_tags.push_back(tag);
+    }
+    if (out_tags.empty()) {
+        error = "Release list response did not contain any tag_name entries";
+        return false;
+    }
+    return true;
+}
+
+std::string build_release_list_rmf(const std::vector<std::string>& tags) {
+    std::string labels = "Latest";
+    std::string values = kUpdateTargetLatest;
+    for (const auto& tag : tags) {
+        labels.push_back(',');
+        labels += tag;
+        values.push_back(',');
+        values += tag;
+    }
+
+    std::string rmf = "<list \"";
+    rmf += labels;
+    rmf += "\" match \"";
+    rmf += values;
+    rmf += "\" cvar ";
+    rmf += kCvarUpdateTargetTag;
+    rmf += " atext \"Install version : \" noshade tip \"Pick a release to download. Latest follows GitHub newest tag.\"><hbr>";
+    return rmf;
+}
+
+bool target_tag_in_release_list(const std::vector<std::string>& tags, const std::string& target) {
+    if (is_latest_target_tag(target)) return true;
+    for (const auto& tag : tags)
+        if (tag == target) return true;
+    return false;
+}
+
+void refresh_release_list() {
+    std::vector<std::string> tags;
+    std::string error;
+    if (!fetch_all_release_tags(tags, error)) {
+        set_update_status("release list fetch failed");
+        set_update_cvar(kCvarUpdateReleaseListStatus, error);
+        PrintOut(PRINT_BAD, "sofbuddy_update releases: %s\n", error.c_str());
+        return;
+    }
+
+    const std::string rmf = build_release_list_rmf(tags);
+    set_update_cvar(kCvarUpdateReleaseListRmf, rmf);
+    set_update_cvar(kCvarUpdateReleaseListStatus, std::to_string(tags.size()) + " releases loaded");
+
+    const std::string target = get_update_target_tag();
+    if (!target_tag_in_release_list(tags, target)) {
+        set_update_cvar(kCvarUpdateTargetTag, kUpdateTargetLatest);
+        PrintOut(PRINT_DEV, "Reset install target to latest (previous tag is no longer listed).\n");
+    }
+
+    set_update_status("release list refreshed");
+    PrintOut(PRINT_DEV, "Loaded %zu GitHub releases for install-version picker.\n", tags.size());
+    PrintOut(PRINT_DEV, "Run `refresh` in the Updates menu if the list control did not update.\n");
+}
+
+bool fetch_target_release(ReleaseInfo& out, std::string& error) {
+    const std::string target = get_update_target_tag();
+    if (is_latest_target_tag(target))
+        return fetch_latest_release(out, error);
+    return fetch_release_by_tag(target, out, error);
 }
 
 bool download_release_zip(const std::string& url, const std::string& out_path, size_t& out_bytes, std::string& error) {
@@ -834,7 +960,9 @@ void print_update_usage() {
     PrintOut(PRINT_DEV, "Usage:\n");
     PrintOut(PRINT_DEV, "  sofbuddy_update                (check only)\n");
     PrintOut(PRINT_DEV, "  sofbuddy_update download       (check + download if newer)\n");
-    PrintOut(PRINT_DEV, "  sofbuddy_update download force (always download latest zip)\n");
+    PrintOut(PRINT_DEV, "  sofbuddy_update download force (always download selected zip)\n");
+    PrintOut(PRINT_DEV, "  sofbuddy_update releases       (refresh install-version list)\n");
+    PrintOut(PRINT_DEV, "Install target cvar: _sofbuddy_update_target_tag (latest or a tag)\n");
     PrintOut(PRINT_DEV, "Optional overrides (for XP/proxy mirrors):\n");
     PrintOut(PRINT_DEV, "  set _sofbuddy_update_api_url <url>\n");
     PrintOut(PRINT_DEV, "  set _sofbuddy_update_releases_url <url>\n");
@@ -850,13 +978,15 @@ void queue_startup_update_prompt() {
 
 static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool startup_check) {
     const std::string releases_url = get_update_releases_url();
-    set_update_status("checking github releases");
+    const std::string target_tag = get_update_target_tag();
+    const bool use_latest = is_latest_target_tag(target_tag);
+    set_update_status(use_latest ? std::string("checking github releases") : ("checking release " + target_tag));
     set_update_cvar(kCvarUpdateCheckedUtc, current_utc_timestamp());
     set_update_cvar(kCvarUpdateDownloadedAsset, "");
 
     ReleaseInfo latest;
     std::string error;
-    if (!fetch_latest_release(latest, error)) {
+    if (!fetch_target_release(latest, error)) {
         set_update_status("check failed");
         PrintOut(PRINT_BAD, "sofbuddy_update: %s\n", error.c_str());
         PrintOut(PRINT_BAD, "You can still check manually: %s\n", releases_url.c_str());
@@ -882,33 +1012,36 @@ static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool
             PrintOut(PRINT_DEV, "Release page: %s\n", latest.html_url.c_str());
         else
             PrintOut(PRINT_DEV, "Release page: %s\n", releases_url.c_str());
-        if (startup_check)
+        if (startup_check && use_latest)
             queue_startup_update_prompt();
     } else if (cmp == 0) {
-        set_update_status("up to date");
+        set_update_status(use_latest ? std::string("up to date") : ("matches selected " + latest.tag_name));
         if (startup_check)
-            PrintOut(PRINT_DEV, "Startup check: SoF Buddy is up to date (%s).\n", SOFBUDDY_VERSION);
+            PrintOut(PRINT_DEV, "Startup check: SoF Buddy matches selected release (%s).\n", latest.tag_name.c_str());
         else
-            PrintOut(PRINT_DEV, "SoF Buddy is up to date (%s).\n", SOFBUDDY_VERSION);
+            PrintOut(PRINT_DEV, "SoF Buddy matches selected release (%s).\n", latest.tag_name.c_str());
     } else {
-        set_update_status("local build is newer");
+        set_update_status(use_latest ? std::string("local build is newer") : ("local build newer than " + latest.tag_name));
         if (startup_check) {
-            PrintOut(PRINT_DEV, "Startup check: local build (%s) is newer than latest tagged release (%s).\n",
+            PrintOut(PRINT_DEV, "Startup check: local build (%s) is newer than selected release (%s).\n",
                 SOFBUDDY_VERSION, latest.tag_name.c_str());
         } else {
-            PrintOut(PRINT_DEV, "Local build (%s) is newer than latest tagged release (%s).\n",
+            PrintOut(PRINT_DEV, "Local build (%s) is newer than selected release (%s).\n",
                 SOFBUDDY_VERSION, latest.tag_name.c_str());
         }
     }
 
     if (!do_download) {
-        if (cmp < 0) {
+        if (cmp < 0 && use_latest) {
             PrintOut(PRINT_DEV, "Run `sofbuddy_update download` to fetch the latest zip now.\n");
+        } else if (!use_latest) {
+            PrintOut(PRINT_DEV, "Run `sofbuddy_update download force` to fetch the selected release zip.\n");
         }
         return;
     }
 
-    if (!force_download && cmp >= 0) {
+    const bool should_download = force_download || !use_latest || cmp < 0;
+    if (!should_download) {
         PrintOut(PRINT_DEV, "Skipping download (no newer release). Use `sofbuddy_update download force` if you still want the zip.\n");
         return;
     }
@@ -958,12 +1091,16 @@ void sofbuddy_update_init(void) {
     detour_Cvar_Get::oCvar_Get(kCvarUpdateDownloadedAsset, "", 0, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateCheckedUtc, "", 0, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateCheckStartup, "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
-    cvar_t* api_url_cvar = detour_Cvar_Get::oCvar_Get(kCvarUpdateApiUrl, kUpdateApiUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get(kCvarUpdateApiUrl, kUpdateApiUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
     cvar_t* releases_url_cvar = detour_Cvar_Get::oCvar_Get(kCvarUpdateReleasesUrl, kUpdateReleasesUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get(kCvarUpdateTargetTag, kUpdateTargetLatest, CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get(kCvarUpdateReleaseListRmf, kDefaultReleaseListRmf, 0, nullptr);
+    detour_Cvar_Get::oCvar_Get(kCvarUpdateReleaseListStatus, "not loaded", 0, nullptr);
 
 #if defined(SOFBUDDY_XP_BUILD)
     // XP builds should default to the sofvault mirror. Preserve explicit user customizations.
     if (detour_Cvar_Set2::oCvar_Set2) {
+        cvar_t* api_url_cvar = detour_Cvar_Get::oCvar_Get(kCvarUpdateApiUrl, kUpdateApiUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
         if (cvar_is_empty_or_value(api_url_cvar, kUpdateApiUrlGitHub))
             detour_Cvar_Set2::oCvar_Set2(const_cast<char*>(kCvarUpdateApiUrl), const_cast<char*>(kUpdateApiUrlSofVault), true);
         if (cvar_is_empty_or_value(releases_url_cvar, kUpdateReleasesUrlGitHub))
@@ -1013,6 +1150,9 @@ void Cmd_SoFBuddy_Update_f(void) {
             do_download = true;
         } else if (!std::strcmp(arg, "force")) {
             force_download = true;
+        } else if (!std::strcmp(arg, "releases") || !std::strcmp(arg, "list")) {
+            refresh_release_list();
+            return;
         } else if (!std::strcmp(arg, "help") || !std::strcmp(arg, "-h") || !std::strcmp(arg, "--help")) {
             print_update_usage();
             return;

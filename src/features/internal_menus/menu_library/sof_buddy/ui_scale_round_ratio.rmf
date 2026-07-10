@@ -1,3 +1,0 @@
-<stm>
-<list "0.05,0.1,0.125,0.25,0.5,1" match "0.05,0.1,0.125,0.25,0.5,1" cvar _sofbuddy_scale_round_ratio atext "Auto Round Step : " noshade tip "Snap increment for auto font/HUD scale (0.25 = quarter steps like manual scale lists)."><br>
-</stm>

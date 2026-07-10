@@ -425,11 +425,37 @@ bool internal_menus_deathmatch_mode_active(void) {
     return dm && dm->value != 0.0f;
 }
 
+static bool g_mp_connect_flow = false;
+
+void internal_menus_update_connect_flow(int cls_state) {
+    switch (static_cast<connstate_t>(cls_state)) {
+        case ca_uninitialized:
+        case ca_disconnected:
+            g_mp_connect_flow = false;
+            break;
+        case ca_connecting:
+        case ca_won_receive_result:
+        case ca_connecting_stage2:
+        case ca_won_challenge:
+        case ca_won_receive_challenge1:
+            g_mp_connect_flow = true;
+            break;
+        default:
+            break;
+    }
+}
+
+bool internal_menus_mp_connect_flow_active(void) {
+    return g_mp_connect_flow;
+}
+
 bool internal_menus_use_vanilla_loading_menu(void) {
 #if FEATURE_HTTP_MAPS
     if (http_maps_wants_custom_loading_menu()) return false;
 #endif
-    return !internal_menus_deathmatch_mode_active();
+    if (g_mp_connect_flow) return false;
+    if (internal_menus_deathmatch_mode_active()) return false;
+    return true;
 }
 
 bool internal_menus_is_mp_loading_context(void) {
