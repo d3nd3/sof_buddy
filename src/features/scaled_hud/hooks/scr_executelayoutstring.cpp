@@ -17,4 +17,3 @@ void hkSCR_ExecuteLayoutString(char * text, detour_SCR_ExecuteLayoutString::tSCR
 }
 
 #endif // FEATURE_SCALED_HUD
-

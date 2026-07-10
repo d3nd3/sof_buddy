@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "ida-sof-buddy": {
-      "command": "/home/dinda/git-projects/d3nd3/private/sof/ida_plugin_mcp/run_mcp_stdio.sh",
+      "command": "/absolute/path/to/ida-plugin-mcp/run_mcp_stdio.sh",
       "args": [],
       "env": {
         "IDA_MCP_BASE": "http://127.0.0.1:31337"

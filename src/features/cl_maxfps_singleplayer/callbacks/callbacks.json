@@ -4,6 +4,17 @@
     "callback": "cl_maxfps_EarlyStartup",
     "priority": 70,
     "phase": "Post"
+  },
+  {
+    "hook": "GameDllLoaded",
+    "callback": "cl_maxfps_GameDllLoaded",
+    "priority": 50,
+    "phase": "Post"
+  },
+  {
+    "hook": "SV_ShutdownGameProgs",
+    "callback": "cl_maxfps_ShutdownGameProgs",
+    "priority": 90,
+    "phase": "Pre"
   }
 ]
-

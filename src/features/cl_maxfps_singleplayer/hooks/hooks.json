@@ -1,9 +1,26 @@
 [
   {
+    "function": "CL_Frame",
+    "callback": "mfps_CL_Frame_pre",
+    "phase": "Pre",
+    "priority": 80
+  },
+  {
     "function": "CinematicFreeze",
     "callback": "cinematicfreeze_callback",
     "phase": "Post",
     "priority": 100
+  },
+  {
+    "function": "M_PushMenu",
+    "callback": "mfps_M_PushMenu_pre",
+    "phase": "Pre",
+    "priority": 85
+  },
+  {
+    "function": "ExitLevel",
+    "callback": "mfps_ExitLevel_post",
+    "phase": "Post",
+    "priority": 100
   }
 ]
-

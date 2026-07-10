@@ -21,12 +21,6 @@
     "priority": 100
   },
   {
-    "function": "glVertex2f",
-    "callback": "hkglVertex2f",
-    "override": true,
-    "custom_detour": true
-  },
-  {
     "function": "VID_CheckChanges",
     "callback": "vid_checkchanges_post",
     "phase": "Post",

@@ -8,11 +8,21 @@ Makes the `cl_maxfps` cvar work properly in singleplayer mode and fixes the blac
 
 - **EarlyStartup** (Post, Priority: 70)
   - `cl_maxfps_EarlyStartup()` - Applies memory patches to enable frame limiting in singleplayer and installs sp_Sys_Mil hook
+- **GameDllLoaded** (Post, Priority: 50)
+  - `cl_maxfps_GameDllLoaded()` - Clears stale exe cinematic-freeze on gamex86.dll load
+- **SV_ShutdownGameProgs** (Pre, Priority: 90)
+  - `cl_maxfps_ShutdownGameProgs()` - Clears exe cinematic-freeze before game.dll unloads
 
 ## Hooks
 
+- **CL_Frame** (Pre, Priority: 80)
+  - `mfps_CL_Frame_pre()` - On render-throttled frames, runs packet read + command buffer before `CL_Frame` returns early
 - **CinematicFreeze** (Post, Priority: 100)
   - `cinematicfreeze_callback()` - Synchronizes freeze state between game.dll and exe to prevent black loading screens
+- **M_PushMenu** (Pre, Priority: 85)
+  - `mfps_M_PushMenu_pre()` - Clears stale exe cinematic-freeze before intermission/level menus (fixes tsr1 endcin → black screen)
+- **ExitLevel** (Post, Priority: 100)
+  - `mfps_ExitLevel_post()` - Clears exe freeze flag when game.dll clears cinematic state without `CinematicFreeze(false)`
 
 ## OverrideHooks
 
@@ -28,7 +38,8 @@ None
 
 ### Memory Patches
 
-- **CL_Frame() patch**: `0x2000D973`, `0x2000D974` - Enable singleplayer frame limiting
+- **CL_Frame() patch**: `0x2000D973`, `0x2000D974` - Apply `cl_maxfps` render throttle during SP (vanilla bypasses when connected to local server)
+- **CL_Frame throttle tick**: when a frame is render-throttled, still runs `CL_ReadPackets` + `Cbuf_Execute` so client sim stays in sync with `SV_Frame`
 - **Freeze sync target**: `0x201E7F5B` - Exe's cinematic freeze flag
 
 ### Module-Specific Hook Architecture

@@ -168,7 +168,10 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 	}
 	original(screenX, screenY, text, colorPalette, font, rememberLastColor);
 
-	if (g_currentFontCaller != FontCaller::MissionStatus)
+	// MissionStatus and SCR_DrawCenterPrint are set by their parent hooks and span
+	// multiple R_DrawFont calls (one per line); keep the caller so lines 2+ scale too.
+	if (g_currentFontCaller != FontCaller::MissionStatus &&
+	    g_currentFontCaller != FontCaller::SCR_DrawCenterPrint)
 		g_currentFontCaller = FontCaller::Unknown;
 	characterIndex = 0;
 	g_activeDrawCall = DrawRoutineType::None;

@@ -213,12 +213,20 @@ namespace detour_drawTeamIcons {
     tdrawTeamIcons odrawTeamIcons = nullptr;
 }
 
+namespace detour_CL_Frame {
+    tCL_Frame oCL_Frame = nullptr;
+}
+
 namespace detour_M_PushMenu {
     tM_PushMenu oM_PushMenu = nullptr;
 }
 
 namespace detour_CinematicFreeze {
     tCinematicFreeze oCinematicFreeze = nullptr;
+}
+
+namespace detour_ExitLevel {
+    tExitLevel oExitLevel = nullptr;
 }
 
 namespace detour_Sys_Milliseconds {
@@ -684,6 +692,17 @@ namespace detour_drawTeamIcons {
     }
 }
 
+namespace detour_CL_Frame {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
 namespace detour_M_PushMenu {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
@@ -696,6 +715,17 @@ namespace detour_M_PushMenu {
 }
 
 namespace detour_CinematicFreeze {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_ExitLevel {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
         if (!instance) {
@@ -895,6 +925,17 @@ namespace detour_drawTeamIcons {
     }
 }
 
+namespace detour_CL_Frame {
+    void __cdecl hkCL_Frame(int msec) {
+        ManagerType& mgr = GetManager();
+        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre(msec);
+        if (oCL_Frame) {
+            oCL_Frame(msec);
+        }
+        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost(msec);
+    }
+}
+
 namespace detour_M_PushMenu {
     void __cdecl hkM_PushMenu(char const* menu_file, char const* parentFrame, bool lock_input) {
         ManagerType& mgr = GetManager();
@@ -914,6 +955,17 @@ namespace detour_CinematicFreeze {
             oCinematicFreeze(bEnable);
         }
         if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost(bEnable);
+    }
+}
+
+namespace detour_ExitLevel {
+    void __cdecl hkExitLevel() {
+        ManagerType& mgr = GetManager();
+        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre();
+        if (oExitLevel) {
+            oExitLevel();
+        }
+        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost();
     }
 }
 

@@ -18,7 +18,6 @@
 #include "sof_compat.h"
 #include "generated_detours.h"
 
-// CVar declarations
 #if FEATURE_SCALED_CON
 cvar_t * _sofbuddy_font_scale = NULL;
 cvar_t * _sofbuddy_console_size = NULL;
@@ -29,7 +28,6 @@ cvar_t * _sofbuddy_crossh_scale = NULL;
 cvar_t * _sofbuddy_scale_cinematic_pics = NULL;
 #endif
 
-// Forward declarations of change callbacks (defined in hooks.cpp)
 #if FEATURE_SCALED_CON
 extern void fontscale_change(cvar_t * cvar);
 extern void consolesize_change(cvar_t * cvar);
@@ -43,13 +41,6 @@ static void scalecinematicpics_change(cvar_t * cvar) {
 }
 #endif
 
-/*
-	Create and register all scaled_ui cvars
-	
-	Called during initialization to register all CVars with the engine.
-	Note: The actual initialization happens in my_Con_Init() in hooks.cpp,
-	but we provide this function for consistency with the feature system.
-*/
 void create_scaled_ui_cvars(void) {
 #if FEATURE_SCALED_CON
     _sofbuddy_font_scale = detour_Cvar_Get::oCvar_Get("_sofbuddy_font_scale", "-1", CVAR_SOFBUDDY_ARCHIVE, fontscale_change);

@@ -1082,6 +1082,33 @@ namespace {
     static AutoDetour_drawTeamIcons g_AutoDetour_drawTeamIcons;
 }
 
+namespace detour_CL_Frame {
+    using tCL_Frame = void(__cdecl*)(int msec);
+    extern tCL_Frame oCL_Frame;
+    using ManagerType = TypedSharedHookManager<void, int>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkCL_Frame(int msec);
+}
+
+namespace {
+    struct AutoDetour_CL_Frame {
+        AutoDetour_CL_Frame() {
+            using namespace detour_CL_Frame;
+            if (!GetDetourSystem().IsDetourRegistered("CL_Frame")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x000D8F0),
+                    reinterpret_cast<void*>(detour_CL_Frame::hkCL_Frame),
+                    reinterpret_cast<void**>(&detour_CL_Frame::oCL_Frame),
+                    "CL_Frame",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_CL_Frame g_AutoDetour_CL_Frame;
+}
+
 namespace detour_M_PushMenu {
     using tM_PushMenu = void(__cdecl*)(char const* menu_file, char const* parentFrame, bool lock_input);
     extern tM_PushMenu oM_PushMenu;
@@ -1134,6 +1161,33 @@ namespace {
         }
     };
     static AutoDetour_CinematicFreeze g_AutoDetour_CinematicFreeze;
+}
+
+namespace detour_ExitLevel {
+    using tExitLevel = void(__cdecl*)();
+    extern tExitLevel oExitLevel;
+    using ManagerType = TypedSharedHookManager<void>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkExitLevel();
+}
+
+namespace {
+    struct AutoDetour_ExitLevel {
+        AutoDetour_ExitLevel() {
+            using namespace detour_ExitLevel;
+            if (!GetDetourSystem().IsDetourRegistered("ExitLevel")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0xAE0A0),
+                    reinterpret_cast<void*>(detour_ExitLevel::hkExitLevel),
+                    reinterpret_cast<void**>(&detour_ExitLevel::oExitLevel),
+                    "ExitLevel",
+                    DetourModule::GameDll,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_ExitLevel g_AutoDetour_ExitLevel;
 }
 
 namespace detour_Sys_Milliseconds {

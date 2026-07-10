@@ -12,7 +12,7 @@ void cl_maxfps_EarlyStartup(void)
 {
     PrintOut(PRINT_LOG, "cl_maxfps_singleplayer: Applying early patches...\n");
     
-    //Nop the CL_Frame() function to prevent frame limiting in singleplayer
+    // Apply cl_maxfps throttle during SP (vanilla skips it when Com_ServerState != 0).
     WriteByte(rvaToAbsExe((void*)0x0000D973), 0x90);
     WriteByte(rvaToAbsExe((void*)0x0000D974), 0x90);
 

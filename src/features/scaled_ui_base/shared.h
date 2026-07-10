@@ -168,7 +168,7 @@ enum class FontCaller;
 // FUNCTION DECLARATIONS
 // =============================================================================
 
-// Reset quad-vertex counters used by hkglVertex2f (call at draw-scope entry).
+// Reset quad-vertex counters used by glVertex2f E8 handlers (call at draw-scope entry).
 void resetGlVertexQuadState();
 
 // Font scaling functions
@@ -185,15 +185,37 @@ void hkDraw_String_Color(int x, int y, char const * text, int length, int colorP
 void hkSCR_ExecuteLayoutString(char * text, detour_SCR_ExecuteLayoutString::tSCR_ExecuteLayoutString original);
 #endif
 
-// Low-level font vertex hooks (used by ref.dll detours)
+// Low-level vertex hooks (E8 patches in ref.dll draw routines)
+#if FEATURE_SCALED_CON
+void __stdcall my_glVertex2f_DrawChar_1(float x, float y);
+void __stdcall my_glVertex2f_DrawChar_2(float x, float y);
+void __stdcall my_glVertex2f_DrawChar_3(float x, float y);
+void __stdcall my_glVertex2f_DrawChar_4(float x, float y);
+#endif
+#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
+void __stdcall my_glVertex2f_StretchPic_1(float x, float y);
+void __stdcall my_glVertex2f_StretchPic_2(float x, float y);
+void __stdcall my_glVertex2f_StretchPic_3(float x, float y);
+void __stdcall my_glVertex2f_StretchPic_4(float x, float y);
+void __stdcall my_glVertex2f_DrawPic_1(float x, float y);
+void __stdcall my_glVertex2f_DrawPic_2(float x, float y);
+void __stdcall my_glVertex2f_DrawPic_3(float x, float y);
+void __stdcall my_glVertex2f_DrawPic_4(float x, float y);
 void __stdcall my_glVertex2f_DrawFont_1(float x, float y);
 void __stdcall my_glVertex2f_DrawFont_2(float x, float y);
 void __stdcall my_glVertex2f_DrawFont_3(float x, float y);
 void __stdcall my_glVertex2f_DrawFont_4(float x, float y);
+#endif
+#if FEATURE_SCALED_HUD
+void __stdcall my_glVertex2f_PicOptions_1(float x, float y);
+void __stdcall my_glVertex2f_PicOptions_2(float x, float y);
+void __stdcall my_glVertex2f_PicOptions_3(float x, float y);
+void __stdcall my_glVertex2f_PicOptions_4(float x, float y);
 void __stdcall my_glVertex2f_CroppedPic_1(float x, float y);
 void __stdcall my_glVertex2f_CroppedPic_2(float x, float y);
 void __stdcall my_glVertex2f_CroppedPic_3(float x, float y);
 void __stdcall my_glVertex2f_CroppedPic_4(float x, float y);
+#endif
 
 // Additional font scaling variables
 extern float draw_con_frac;

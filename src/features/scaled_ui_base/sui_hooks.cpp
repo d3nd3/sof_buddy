@@ -8,10 +8,8 @@
 	- Global variable definitions
 	- Shared function implementations
 
-    Contains 3 glVertex implementations
-        - hkglVertex2f (Catch all)
-        - my_glVertex2f_CroppedPic_1 (CroppedPicOptions)
-        - my_glVertex2f_DrawFont_1 (DrawFont)
+    Contains glVertex E8 handlers (DrawFont, CroppedPic in sibling files;
+    Draw_Char, StretchPic, Pic, PicOptions in hooks/glvertex2f.cpp)
 
     Also contains a shared hook for Draw_Pic and Draw_StretchPic.
     For various things like:
@@ -414,37 +412,57 @@ void drawCroppedPicVertex(bool top, bool left, float & x, float & y) {
 // OPENGL VERTEX HOOKS
 // =============================================================================
 
+#if FEATURE_SCALED_HUD
+int g_croppedPicVertexIndex = 1;
+
+static void handleCroppedPicVertex(float x, float y) {
+    SOFBUDDY_ASSERT(orig_glVertex2f != nullptr);
+    const int idx = g_croppedPicVertexIndex;
+    drawCroppedPicVertex(idx == 1 || idx == 2, idx == 1 || idx == 4, x, y);
+    orig_glVertex2f(x, y);
+    g_croppedPicVertexIndex = (idx >= 4) ? 1 : idx + 1;
+}
+#endif
+
 /*
- Required for HUD Vertex scaling - patch each corner of rectangle
+ Required for HUD Vertex scaling - patch each glVertex2f in Draw_CroppedPicOptions
         This function is called internally by:
             - cInventory2::Draw() (ammo, gun, item displays)
             - cHealthArmour2::Draw() (HP bar, armour bar)
 */
 void __stdcall my_glVertex2f_CroppedPic_1(float x, float y) {
-    //top-left
-    drawCroppedPicVertex(true, true, x, y);
+#if FEATURE_SCALED_HUD
+    handleCroppedPicVertex(x, y);
+#else
     orig_glVertex2f(x, y);
+#endif
 }
 
 void __stdcall my_glVertex2f_CroppedPic_2(float x, float y) {
-    //top-right
-    drawCroppedPicVertex(true, false, x, y);
+#if FEATURE_SCALED_HUD
+    handleCroppedPicVertex(x, y);
+#else
     orig_glVertex2f(x, y);
+#endif
 }
 
 void __stdcall my_glVertex2f_CroppedPic_3(float x, float y) {
-    //bottom-right
-    drawCroppedPicVertex(false, false, x, y);
+#if FEATURE_SCALED_HUD
+    handleCroppedPicVertex(x, y);
+#else
     orig_glVertex2f(x, y);
+#endif
 }
 
 void __stdcall my_glVertex2f_CroppedPic_4(float x, float y) {
-    //bottom-left
-    drawCroppedPicVertex(false, true, x, y);
+#if FEATURE_SCALED_HUD
+    handleCroppedPicVertex(x, y);
+#else
     orig_glVertex2f(x, y);
+#endif
 }
 
-// hkglVertex2f / scaleVertex* live in hooks/glvertex2f.cpp
+// Draw_Char/StretchPic/Pic/PicOptions vertex hooks live in hooks/glvertex2f.cpp
 
 realFontEnum_t getRealFontEnum(const char* realFont) {
 	if (!realFont) {

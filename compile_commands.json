@@ -400,6 +400,11 @@
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_hud/hooks/cinventory2_and_cgunammo2_draw.cpp"
     },
     {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/scaled_hud/hooks/cmissionstatus_draw.o src/features/scaled_hud/hooks/cmissionstatus_draw.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_hud/hooks/cmissionstatus_draw.cpp"
+    },
+    {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/scaled_hud/hooks/draw_croppedpicoptions.o src/features/scaled_hud/hooks/draw_croppedpicoptions.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_hud/hooks/draw_croppedpicoptions.cpp"
@@ -445,6 +450,11 @@
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui_base/hooks/con_init.cpp"
     },
     {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/scaled_ui_base/hooks/draw_charextra.o src/features/scaled_ui_base/hooks/draw_charextra.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui_base/hooks/draw_charextra.cpp"
+    },
+    {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/scaled_ui_base/hooks/draw_pic.o src/features/scaled_ui_base/hooks/draw_pic.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui_base/hooks/draw_pic.cpp"
@@ -473,6 +483,26 @@
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/scaled_ui_base/hooks/scr_centerprint.o src/features/scaled_ui_base/hooks/scr_centerprint.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui_base/hooks/scr_centerprint.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/scaled_ui_base/hooks/scr_drawcenterprint.o src/features/scaled_ui_base/hooks/scr_drawcenterprint.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui_base/hooks/scr_drawcenterprint.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/scaled_ui_base/hooks/scr_drawcinemascope.o src/features/scaled_ui_base/hooks/scr_drawcinemascope.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui_base/hooks/scr_drawcinemascope.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/scaled_ui_base/hooks/scr_drawcinematicstring.o src/features/scaled_ui_base/hooks/scr_drawcinematicstring.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui_base/hooks/scr_drawcinematicstring.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/scaled_ui_base/hooks/scr_drawpause.o src/features/scaled_ui_base/hooks/scr_drawpause.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui_base/hooks/scr_drawpause.cpp"
     },
     {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/scaled_ui_base/hooks/vid_checkchanges.o src/features/scaled_ui_base/hooks/vid_checkchanges.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",

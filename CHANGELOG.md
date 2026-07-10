@@ -1,5 +1,27 @@
 # Changelog
 
+## v6.1
+
+### cl_maxfps singleplayer — black screen after cinematics
+
+- **`cl_maxfps` in SP:** CL_Frame render throttle now stays active during listen-server singleplayer (existing NOP patch). On throttled frames, a **CL_Frame Pre** hook still runs `CL_ReadPackets` + `Cbuf_Execute` so client sim stays in sync with `SV_Frame` when draw is skipped.
+- **Cinematic freeze sync:** Hooks `CinematicFreeze`, `M_PushMenu` (Pre), and `ExitLevel` (Post) keep the exe `cinematicfreeze` flag aligned with `game.dll` — fixes black fade / stuck intermission after mission-end cinematics (e.g. tsr1 `endcin.ds` → tsr2) when `cl_maxfps` is enabled.
+- **Lifecycle:** Clear stale exe freeze on `GameDllLoaded` and `SV_ShutdownGameProgs`.
+- Fixes [#3](https://github.com/d3nd3/sof_buddy/issues/3) and related SP level-transition hangs with frame limiting on.
+
+### Scaled UI — ref.dll vertex hooks (E8 patches)
+
+- **Removed global `glVertex2f` detour** on ref.dll; replaced with per-routine **E8 call-site patches** for `Draw_Char`, `Draw_StretchPic`, `Draw_Pic`, `Draw_PicOptions`, `DrawFont`, and `Draw_CroppedPicOptions`.
+- **CroppedPic HUD scaling:** All 16 `glVertex2f` sites in `Draw_CroppedPicOptions` patched; shared vertex-index counter with `resetGlVertexQuadState()` at draw boundaries.
+- **Center print (multi-line):** `R_DrawFont` keeps `FontCaller::SCR_DrawCenterPrint` across lines so wrapped yellow subtitles / center-print text scale on every line, not just the first.
+- **Console notify:** `glDisable(GL_BLEND)` before `Con_DrawNotify` to avoid blend-state artifacts on the notify overlay.
+
+### Updates & XP mirror
+
+- **Windows XP updater:** SofVault mirror manifest (`sofvault_latest.json`) attached to each GitHub release; XP builds resolve the zip from `sofvault.org` when using the mirror API (no GitHub token required).
+- **`rsrc/sofvault_mirror/publish.sh`:** Helper to push `latest.json` + `release_windows_xp.zip` to the SofVault host.
+- **`.cursor/mcp.json`** gitignored; **`.cursor/mcp.json.example`** added for local MCP setup.
+
 ## v6.0
 
 Stable release consolidating all changes since **v5.7-build160** (intermediate v5.8/v5.9 builds were withdrawn).

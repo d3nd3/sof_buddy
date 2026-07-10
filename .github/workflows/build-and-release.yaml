@@ -180,6 +180,18 @@ jobs:
           draft: false
           prerelease: false
 
+      - name: Generate sofvault XP mirror manifest
+        run: |
+          TAG="v${{ steps.version.outputs.version }}-build${{ github.run_number }}"
+          cat > sofvault_latest.json <<EOF
+          {
+            "tag_name": "$TAG",
+            "html_url": "http://sofvault.org/sof_buddy/releases/latest",
+            "zip_url": "http://sofvault.org/sof_buddy/releases/files/release_windows_xp.zip"
+          }
+          EOF
+          cat sofvault_latest.json
+
       - name: Upload Windows Release Asset
         uses: actions/upload-release-asset@v1
         env:
@@ -209,6 +221,16 @@ jobs:
           asset_path: windows_xp_release/release_windows_xp.zip
           asset_name: release_windows_xp.zip
           asset_content_type: application/zip
+
+      - name: Upload sofvault XP mirror manifest
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: sofvault_latest.json
+          asset_name: sofvault_latest.json
+          asset_content_type: application/json
 
       - name: Upload Windows Debug Asset
         uses: actions/upload-release-asset@v1

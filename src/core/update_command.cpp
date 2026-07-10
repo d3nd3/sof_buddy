@@ -25,6 +25,8 @@ constexpr const char* kUpdateApiUrlGitHub = "https://api.github.com/repos/d3nd3/
 constexpr const char* kUpdateReleasesUrlGitHub = "https://github.com/d3nd3/sof_buddy/releases/latest";
 constexpr const char* kUpdateApiUrlSofVault = "http://sofvault.org/sof_buddy/releases/latest.json";
 constexpr const char* kUpdateReleasesUrlSofVault = "http://sofvault.org/sof_buddy/releases/latest";
+constexpr const char* kUpdateSofVaultFilesBase = "http://sofvault.org/sof_buddy/releases/files/";
+constexpr const char* kUpdateSofVaultXpZipName = "release_windows_xp.zip";
 
 #if defined(SOFBUDDY_XP_BUILD)
 constexpr const char* kUpdateApiUrl = kUpdateApiUrlSofVault;
@@ -629,6 +631,18 @@ bool zip_matches_build_preference(const std::string& url) {
     return is_preferred_release_zip(zip_asset_name_from_url(url));
 }
 
+bool api_url_uses_sofvault_mirror(const std::string& api_url) {
+    return api_url.find("sofvault.org") != std::string::npos;
+}
+
+void finalize_xp_mirror_release(ReleaseInfo& info, const std::string& api_url) {
+#if defined(SOFBUDDY_XP_BUILD)
+    if (!api_url_uses_sofvault_mirror(api_url)) return;
+    if (zip_matches_build_preference(info.zip_url)) return;
+    info.zip_url = std::string(kUpdateSofVaultFilesBase) + kUpdateSofVaultXpZipName;
+#endif
+}
+
 std::vector<int> parse_version_parts(const std::string& version_text) {
     std::vector<int> parts;
     size_t i = 0;
@@ -718,7 +732,8 @@ bool fetch_latest_release(ReleaseInfo& out, std::string& error) {
     HINTERNET request = nullptr;
     DWORD status = 0;
 
-    if (!http_begin_get(api_url, true, session, connect, request, status, error))
+    const bool github_api = api_url.find("api.github.com") != std::string::npos;
+    if (!http_begin_get(api_url, github_api, session, connect, request, status, error))
         return false;
 
     std::vector<uint8_t> payload;
@@ -763,6 +778,7 @@ bool fetch_latest_release(ReleaseInfo& out, std::string& error) {
         }
     }
 
+    finalize_xp_mirror_release(out, api_url);
     return true;
 }
 

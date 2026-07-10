@@ -9,6 +9,7 @@
 
 void hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, int palette, char * name, detour_Draw_CroppedPicOptions::tDraw_CroppedPicOptions original) {
     SOFBUDDY_ASSERT(original != nullptr);
+    resetGlVertexQuadState();
     if (g_activeRenderType == uiRenderType::HudInventory) {
         if (!strncmp(name, "pics/interface2/", 16)) {
 
