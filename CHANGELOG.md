@@ -1,5 +1,9 @@
 # Changelog
 
+## v5.9
+
+- **Scaled HUD:** Restored scoreboard scaling in `hkglVertex2f` — v5.8 had limited `SCR_ExecuteLayoutString` scaling to image quads only, which left scoreboard text tiny/unscaled; scoreboard mode again scales all layout vertices.
+
 ## v5.8
 
 - **Scaled UI / HUD vertex scaling:**

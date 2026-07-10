@@ -23,17 +23,6 @@ void resetGlVertexQuadState() {
     g_tiledBgVertexIndex = 1;
 }
 
-static inline bool isQuadDrawCall() {
-    switch (g_activeDrawCall) {
-        case DrawRoutineType::Pic:
-        case DrawRoutineType::StretchPic:
-        case DrawRoutineType::PicOptions:
-            return true;
-        default:
-            return false;
-    }
-}
-
 static inline void scaleVertexFromScreenCenter(float& x, float& y, float scale) {
     SOFBUDDY_ASSERT(orig_glVertex2f != nullptr);
     SOFBUDDY_ASSERT(scale > 0.0f);
@@ -66,11 +55,8 @@ void __stdcall hkglVertex2f(float x, float y) {
         break;
 #endif
         case uiRenderType::Scoreboard:
-            if (isQuadDrawCall()) {
-                scaleVertexFromScreenCenter(x, y, hudScale);
-                return;
-            }
-            break;
+            scaleVertexFromScreenCenter(x, y, hudScale);
+            return;
         default:
             switch (g_activeDrawCall) {
                 case DrawRoutineType::PicOptions: {
