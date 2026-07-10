@@ -201,6 +201,7 @@ FontCaller getFontCallerFrom(Module m, uint32_t fnStartRva) {
 				case 0x00008260: return FontCaller::Inventory2;
 				case 0x00013710: return FontCaller::SCRDrawPause;
 				case 0x000163C0: return FontCaller::SCR_DrawCenterPrint;
+				case 0x00009250: return FontCaller::MissionStatus;
 				case 0x000CECC0: return FontCaller::RectDrawTextItem;
 				case 0x000CF0E0: return FontCaller::RectDrawTextLine;
 				case 0x000D19F0: return FontCaller::TickerDraw;

@@ -355,6 +355,20 @@ functions:
       - type: char*
         name: str
 
+  - name: SCR_DrawCinematicString
+    module: SofExe
+    identifier: "0x00013B70"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: int
+        name: speed
+      - type: int
+        name: x
+      - type: int
+        name: y
+
   - name: cInventory2_And_cGunAmmo2_Draw
     module: SofExe
     identifier: "0x00008430"

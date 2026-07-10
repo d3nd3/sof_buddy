@@ -1,2 +1,3 @@
 #!/bin/bash
-bash patch_sof_binary.sh ../SoF.exe sof_buddy.dll
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+bash "$DIR/patch_sof_binary.sh" "$DIR/../SoF.exe" sof_buddy.dll

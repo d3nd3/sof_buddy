@@ -41,5 +41,10 @@
     "function": "SCR_CenterPrint",
     "callback": "hkSCR_CenterPrint",
     "override": true
+  },
+  {
+    "function": "SCR_DrawCinematicString",
+    "callback": "hkSCR_DrawCinematicString",
+    "override": true
   }
 ]

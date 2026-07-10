@@ -1,5 +1,12 @@
 # Changelog
 
+## v6.0
+
+- **Scaled UI / scoreboard:** Scoreboard text now scales with `_sofbuddy_font_scale` and images with `_sofbuddy_hud_scale` (hybrid path in `hkglVertex2f` instead of applying HUD scale to all vertices).
+- **Scaled UI / cinematic text:** Hook `SCR_DrawCinematicString` and scale cinematic string vertices with `fontScale`.
+- **Scaled UI / mission status:** Add `FontCaller::MissionStatus` and shared `scaleCenterAnchoredText` helper for mission-status / center-anchored on-screen text.
+- **Linux scripts:** Fix `enable_*.sh` patch scripts to resolve paths relative to script location (works when run from any cwd).
+
 ## v5.9
 
 - **Scaled HUD:** Restored scoreboard scaling in `hkglVertex2f` — v5.8 had limited `SCR_ExecuteLayoutString` scaling to image quads only, which left scoreboard text tiny/unscaled; scoreboard mode again scales all layout vertices.

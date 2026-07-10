@@ -43,6 +43,8 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
         } else if (static_cast<float>(screenY) < g_centerPrintAnchorY) {
             g_centerPrintAnchorY = static_cast<float>(screenY);
         }
+    } else if (g_currentFontCaller == FontCaller::MissionStatus) {
+        g_missionStatusAnchorY = static_cast<float>(screenY);
     }
 	SOFBUDDY_ASSERT(font != nullptr);
 	if (font) {

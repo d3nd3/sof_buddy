@@ -93,6 +93,7 @@ unsigned int g_lastCenterPrintSeq = 0;
 int g_lastCenterPrintLineCount = 1;
 float g_centerPrintAnchorY = 0.0f;
 unsigned int g_centerPrintAnchorSeq = 0;
+float g_missionStatusAnchorY = 0.0f;
 
 // Shared state enums
 realFontEnum_t realFont = REALFONT_UNKNOWN;

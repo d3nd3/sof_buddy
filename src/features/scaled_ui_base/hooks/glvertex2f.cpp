@@ -23,6 +23,17 @@ void resetGlVertexQuadState() {
     g_tiledBgVertexIndex = 1;
 }
 
+static inline bool isQuadDrawCall() {
+    switch (g_activeDrawCall) {
+        case DrawRoutineType::Pic:
+        case DrawRoutineType::StretchPic:
+        case DrawRoutineType::PicOptions:
+            return true;
+        default:
+            return false;
+    }
+}
+
 static inline void scaleVertexFromScreenCenter(float& x, float& y, float scale) {
     SOFBUDDY_ASSERT(orig_glVertex2f != nullptr);
     SOFBUDDY_ASSERT(scale > 0.0f);
@@ -55,8 +66,21 @@ void __stdcall hkglVertex2f(float x, float y) {
         break;
 #endif
         case uiRenderType::Scoreboard:
-            scaleVertexFromScreenCenter(x, y, hudScale);
+            if (isQuadDrawCall()) {
+                scaleVertexFromScreenCenter(x, y, hudScale);
+                return;
+            }
+            if (fontScale != 1.0f) {
+                orig_glVertex2f(x * fontScale, y * fontScale);
+                return;
+            }
+            break;
+#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
+        case uiRenderType::Cinematic:
+            SOFBUDDY_ASSERT(fontScale > 0.0f);
+            orig_glVertex2f(x * fontScale, y * fontScale);
             return;
+#endif
         default:
             switch (g_activeDrawCall) {
                 case DrawRoutineType::PicOptions: {

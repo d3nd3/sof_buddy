@@ -145,6 +145,10 @@ namespace detour_SCR_CenterPrint {
     tSCR_CenterPrint oSCR_CenterPrint = nullptr;
 }
 
+namespace detour_SCR_DrawCinematicString {
+    tSCR_DrawCinematicString oSCR_DrawCinematicString = nullptr;
+}
+
 namespace detour_cInventory2_And_cGunAmmo2_Draw {
     tcInventory2_And_cGunAmmo2_Draw ocInventory2_And_cGunAmmo2_Draw = nullptr;
 }
@@ -463,6 +467,17 @@ namespace detour_SCR_ExecuteLayoutString {
 }
 
 namespace detour_SCR_CenterPrint {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_SCR_DrawCinematicString {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
         if (!instance) {
@@ -922,6 +937,12 @@ namespace detour_R_DrawFont {
 namespace detour_SCR_CenterPrint {
     void __cdecl hkSCR_CenterPrint(char* str) {
         ::hkSCR_CenterPrint(str, oSCR_CenterPrint);
+    }
+}
+
+namespace detour_SCR_DrawCinematicString {
+    void __cdecl hkSCR_DrawCinematicString(int speed, int x, int y) {
+        ::hkSCR_DrawCinematicString(speed, x, y, oSCR_DrawCinematicString);
     }
 }
 

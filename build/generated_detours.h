@@ -623,6 +623,33 @@ namespace {
     static AutoDetour_SCR_CenterPrint g_AutoDetour_SCR_CenterPrint;
 }
 
+namespace detour_SCR_DrawCinematicString {
+    using tSCR_DrawCinematicString = void(__cdecl*)(int speed, int x, int y);
+    extern tSCR_DrawCinematicString oSCR_DrawCinematicString;
+    using ManagerType = TypedSharedHookManager<void, int, int, int>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkSCR_DrawCinematicString(int speed, int x, int y);
+}
+
+namespace {
+    struct AutoDetour_SCR_DrawCinematicString {
+        AutoDetour_SCR_DrawCinematicString() {
+            using namespace detour_SCR_DrawCinematicString;
+            if (!GetDetourSystem().IsDetourRegistered("SCR_DrawCinematicString")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x00013B70),
+                    reinterpret_cast<void*>(detour_SCR_DrawCinematicString::hkSCR_DrawCinematicString),
+                    reinterpret_cast<void**>(&detour_SCR_DrawCinematicString::oSCR_DrawCinematicString),
+                    "SCR_DrawCinematicString",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_SCR_DrawCinematicString g_AutoDetour_SCR_DrawCinematicString;
+}
+
 namespace detour_cInventory2_And_cGunAmmo2_Draw {
     using tcInventory2_And_cGunAmmo2_Draw = void(__thiscall*)(void* self);
     extern tcInventory2_And_cGunAmmo2_Draw ocInventory2_And_cGunAmmo2_Draw;
