@@ -18,6 +18,7 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
     SOFBUDDY_ASSERT(w > 0);
     SOFBUDDY_ASSERT(h > 0);
     SOFBUDDY_ASSERT(current_vid_h > 0);
+    resetGlVertexQuadState();
     g_activeDrawCall = DrawRoutineType::StretchPic;
     if (g_currentStretchPicCaller == StretchPicCaller::Unknown) {
         uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("Draw_StretchPic");
@@ -37,12 +38,14 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
         orig_SRC_AddDirtyPoint(w - 1, consoleHeight - 1);
         g_currentStretchPicCaller = StretchPicCaller::Unknown;
         g_activeDrawCall = DrawRoutineType::None;
+        resetGlVertexQuadState();
         return;
         #else
         // FEATURE_SCALED_CON not enabled, just call original
         original(x, y, w, h, palette, name, flags);
         g_currentStretchPicCaller = StretchPicCaller::Unknown;
         g_activeDrawCall = DrawRoutineType::None;
+        resetGlVertexQuadState();
         return;
         #endif
     }
@@ -58,6 +61,7 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
 
     g_currentStretchPicCaller = StretchPicCaller::Unknown;
     g_activeDrawCall = DrawRoutineType::None;
+    resetGlVertexQuadState();
 
     // PrintOut(PRINT_LOG, "hkDraw_StretchPic End: caller=%d\n", caller);
 }

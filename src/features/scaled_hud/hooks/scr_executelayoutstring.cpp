@@ -9,9 +9,11 @@
 void hkSCR_ExecuteLayoutString(char * text, detour_SCR_ExecuteLayoutString::tSCR_ExecuteLayoutString original) {
     SOFBUDDY_ASSERT(original != nullptr);
 
+    resetGlVertexQuadState();
     g_activeRenderType = uiRenderType::Scoreboard;
     original(text);
     g_activeRenderType = uiRenderType::None;
+    resetGlVertexQuadState();
 }
 
 #endif // FEATURE_SCALED_HUD

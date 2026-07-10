@@ -144,6 +144,9 @@ enum class FontCaller;
 // FUNCTION DECLARATIONS
 // =============================================================================
 
+// Reset quad-vertex counters used by hkglVertex2f (call at draw-scope entry).
+void resetGlVertexQuadState();
+
 // Font scaling functions
 #if FEATURE_SCALED_CON
 void hkCon_DrawConsole(float frac, detour_Con_DrawConsole::tCon_DrawConsole original);

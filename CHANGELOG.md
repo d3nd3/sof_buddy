@@ -1,5 +1,15 @@
 # Changelog
 
+## v5.8
+
+- **Scaled UI / HUD vertex scaling:**
+  - Fixed sticky quad-vertex counters in `hkglVertex2f` by moving state to file scope and adding `resetGlVertexQuadState()` at draw-hook boundaries (`Draw_Pic`, `Draw_StretchPic`, `Draw_PicOptions`, console, scoreboard, font).
+  - Scoreboard layout (`SCR_ExecuteLayoutString`) now scales only image quads (`Pic` / `StretchPic` / `PicOptions`); layout text via `Draw_String`/`Draw_Char` passes through unscaled (fixes garbled scoreboard text at non-1:1 HUD scale).
+  - Hardened exit paths: symmetric quad-state reset on `Draw_PicOptions`, `R_DrawFont`, and console `Draw_StretchPic` early returns.
+  - Removed duplicate dead scaling helpers from `sui_hooks.cpp`.
+- **Core:** Added `video_state_fallback.cpp` so `current_vid_w` / `viddef_*` symbols resolve when all scaled UI features are disabled (needed by internal menus).
+- **README:** Restored badges and hero screenshots; collapsible `<details>` sections; static Discord join badge; removed map-entity feature from the advertised list; credit for Acadie.
+
 ## v5.7
 
 - Removed vendored `ida_plugin_mcp` from the repository and switched Cursor MCP wiring to external checkout paths.
@@ -16,8 +26,6 @@
   - Enforced integer slider behavior for `_sofbuddy_water_size`.
 - UI scaling/runtime updates:
   - Included recent tweaks in `scaled_con`, `scaled_hud`, and `scaled_ui_base` cvar handling.
-
-# Changelog
 
 ## v5.6
 

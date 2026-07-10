@@ -8,63 +8,49 @@
 
 extern void(__stdcall * orig_glVertex2f)(float one, float two);
 
+static int g_quadVertexIndex = 1;
+static float g_quadXMidOffset;
+static float g_quadYMidOffset;
+static float g_quadXFirst;
+static float g_quadYFirst;
+
+static int g_tiledBgVertexIndex = 1;
+static int g_tiledBgStartX;
+static int g_tiledBgStartY;
+
+void resetGlVertexQuadState() {
+    g_quadVertexIndex = 1;
+    g_tiledBgVertexIndex = 1;
+}
+
+static inline bool isQuadDrawCall() {
+    switch (g_activeDrawCall) {
+        case DrawRoutineType::Pic:
+        case DrawRoutineType::StretchPic:
+        case DrawRoutineType::PicOptions:
+            return true;
+        default:
+            return false;
+    }
+}
+
 static inline void scaleVertexFromScreenCenter(float& x, float& y, float scale) {
     SOFBUDDY_ASSERT(orig_glVertex2f != nullptr);
     SOFBUDDY_ASSERT(scale > 0.0f);
     SOFBUDDY_ASSERT(current_vid_w > 0);
     SOFBUDDY_ASSERT(current_vid_h > 0);
-    
-    static int vertexCounter = 1;
-    static float x_mid_offset;
-    static float y_mid_offset;
-    static float x_first_vertex;
-    static float y_first_vertex;
-    if (vertexCounter == 1) {
-        x_mid_offset = current_vid_w * 0.5f - x;
-        y_mid_offset = current_vid_h * 0.5f - y;
-        x_first_vertex = x;
-        y_first_vertex = y;
+
+    if (g_quadVertexIndex == 1) {
+        g_quadXMidOffset = current_vid_w * 0.5f - x;
+        g_quadYMidOffset = current_vid_h * 0.5f - y;
+        g_quadXFirst = x;
+        g_quadYFirst = y;
     }
-    float final_x = x * scale - x_first_vertex * (scale - 1) - x_mid_offset * (scale - 1);
-    float final_y = y * scale - y_first_vertex * (scale - 1) - y_mid_offset * (scale - 1);
+    float final_x = x * scale - g_quadXFirst * (scale - 1) - g_quadXMidOffset * (scale - 1);
+    float final_y = y * scale - g_quadYFirst * (scale - 1) - g_quadYMidOffset * (scale - 1);
     orig_glVertex2f(final_x, final_y);
-    vertexCounter++;
-    if (vertexCounter > 4) vertexCounter = 1;
-}
-
-static inline void scaleVertexFromCenter(float& x, float& y, float scale) {
-    SOFBUDDY_ASSERT(orig_glVertex2f != nullptr);
-    SOFBUDDY_ASSERT(scale > 0.0f);
-    
-    static int svfc_vertexCounter = 1;
-    static int svfc_centerX;
-    static int svfc_centerY;
-
-    if (svfc_vertexCounter == 1) {
-        SOFBUDDY_ASSERT(DrawPicWidth > 0);
-        SOFBUDDY_ASSERT(DrawPicHeight > 0);
-        
-        svfc_centerX = x + DrawPicWidth * 0.5f;
-        svfc_centerY = y + DrawPicHeight * 0.5f;
-
-        if (DrawPicWidth == 0 || DrawPicHeight == 0) {
-            PrintOut(PRINT_LOG, "[DEBUG] scaleVertexFromCenter: FATAL ERROR - DrawPicWidth or DrawPicHeight is 0!\n");
-            if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("FATAL ERROR: DrawPicWidth or DrawPicHeight is 0! This should not happen!\n");
-            exit(1);
-        }
-    }
-
-    x = svfc_centerX + (x - svfc_centerX) * scale;
-    y = svfc_centerY + (y - svfc_centerY) * scale;
-
-    orig_glVertex2f(x, y);
-
-    svfc_vertexCounter++;
-    if (svfc_vertexCounter > 4) {
-        svfc_vertexCounter = 1;
-        DrawPicWidth = 0;
-        DrawPicHeight = 0;
-    }
+    g_quadVertexIndex++;
+    if (g_quadVertexIndex > 4) g_quadVertexIndex = 1;
 }
 
 void __stdcall hkglVertex2f(float x, float y) {
@@ -79,12 +65,13 @@ void __stdcall hkglVertex2f(float x, float y) {
             }
         break;
 #endif
-        case uiRenderType::Scoreboard: {
-            scaleVertexFromScreenCenter(x, y, hudScale);
-            return;
-        }
+        case uiRenderType::Scoreboard:
+            if (isQuadDrawCall()) {
+                scaleVertexFromScreenCenter(x, y, hudScale);
+                return;
+            }
+            break;
         default:
-            // Generic Draw calls
             switch (g_activeDrawCall) {
                 case DrawRoutineType::PicOptions: {
                     switch (g_currentPicOptionsCaller) {
@@ -103,45 +90,32 @@ void __stdcall hkglVertex2f(float x, float y) {
                         }
                         default: {
                             if (mainMenuBgTiled) {
-                                //BackdropDraw
-                                static int vertexCounter = 1;
-                                static int startX;
-                                static int startY;
-                                if (vertexCounter == 1) {
-                                    startX = x;
-                                    startY = y;
+                                if (g_tiledBgVertexIndex == 1) {
+                                    g_tiledBgStartX = x;
+                                    g_tiledBgStartY = y;
                                 }
-                                if (vertexCounter > 1 && vertexCounter < 4)
-                                    x = startX + DrawPicWidth;
-                                if (vertexCounter > 2)
-                                    y = startY + DrawPicHeight;
+                                if (g_tiledBgVertexIndex > 1 && g_tiledBgVertexIndex < 4)
+                                    x = g_tiledBgStartX + DrawPicWidth;
+                                if (g_tiledBgVertexIndex > 2)
+                                    y = g_tiledBgStartY + DrawPicHeight;
                                 orig_glVertex2f(x, y);
-                                vertexCounter++;
-                                if (vertexCounter > 4) { 
-                                    vertexCounter = 1;
+                                g_tiledBgVertexIndex++;
+                                if (g_tiledBgVertexIndex > 4) {
+                                    g_tiledBgVertexIndex = 1;
                                     DrawPicWidth = 0;
                                     DrawPicHeight = 0;
                                 }
                                 return;
-                            } else {
-                                // Scale from center of image
-                                if (g_currentPicCaller != PicCaller::DrawPicWrapper) {
-                                    break;
-                                    scaleVertexFromCenter(x, y, hudScale);
-                                    return;
-                                }
                             }
                             break;
                         }
-                    
                     }
                 break;
-
             }
         }
     }
+    resetGlVertexQuadState();
     orig_glVertex2f(x, y);
 }
 
 #endif // FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
-

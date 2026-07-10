@@ -21,6 +21,7 @@ void hkCon_DrawNotify(detour_Con_DrawNotify::tCon_DrawNotify original) {
 	*viddef_width = 1 / fontScale * current_vid_w;
 	
 	SOFBUDDY_ASSERT(*viddef_width > 0);
+	resetGlVertexQuadState();
 	g_activeRenderType = uiRenderType::Console;
 	orig_glDisable(GL_BLEND);
 	original();
@@ -28,6 +29,7 @@ void hkCon_DrawNotify(detour_Con_DrawNotify::tCon_DrawNotify original) {
 	//restore the width
 	*viddef_width = real_refdef_width;
 	g_activeRenderType = uiRenderType::None;
+	resetGlVertexQuadState();
 }
 
 #endif // FEATURE_SCALED_CON

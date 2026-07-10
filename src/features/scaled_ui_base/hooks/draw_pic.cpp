@@ -10,6 +10,7 @@
 
 void hkDraw_Pic(int x, int y, char const * imgname, int palette, detour_Draw_Pic::tDraw_Pic original) {
     SOFBUDDY_ASSERT(original != nullptr);
+    resetGlVertexQuadState();
     g_activeDrawCall = DrawRoutineType::Pic;
     if (g_currentPicCaller == PicCaller::Unknown) {
         uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("Draw_Pic");
@@ -33,6 +34,7 @@ void hkDraw_Pic(int x, int y, char const * imgname, int palette, detour_Draw_Pic
                     mainMenuBgTiled = false;
                     g_currentPicCaller = PicCaller::Unknown;
                     g_activeDrawCall = DrawRoutineType::None;
+                    resetGlVertexQuadState();
                     return;
                 }
             }
@@ -42,6 +44,7 @@ void hkDraw_Pic(int x, int y, char const * imgname, int palette, detour_Draw_Pic
     original(x, y, imgname, palette);
     g_currentPicCaller = PicCaller::Unknown;
     g_activeDrawCall = DrawRoutineType::None;
+    resetGlVertexQuadState();
 }
 
 #endif // FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE

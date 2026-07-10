@@ -28,6 +28,7 @@ static bool fallbackCenterPrintLineMatch(int screenX, const char* text)
 }
 
 void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor, detour_R_DrawFont::tR_DrawFont original) {
+    resetGlVertexQuadState();
     g_activeDrawCall = DrawRoutineType::Font;
     if (g_currentFontCaller == FontCaller::Unknown) {
         uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("R_DrawFont");
@@ -140,6 +141,7 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 	g_currentFontCaller = FontCaller::Unknown;
 	characterIndex = 0;
 	g_activeDrawCall = DrawRoutineType::None;
+	resetGlVertexQuadState();
 }
 
 #endif // FEATURE_SCALED_HUD || FEATURE_SCALED_MENU

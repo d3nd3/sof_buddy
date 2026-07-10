@@ -9,6 +9,7 @@
 
 void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int pal, char * name, detour_Draw_PicOptions::tDraw_PicOptions original) {
     SOFBUDDY_ASSERT(original != nullptr);
+    resetGlVertexQuadState();
     g_activeDrawCall = DrawRoutineType::PicOptions;
     if (g_currentPicOptionsCaller == PicOptionsCaller::Unknown) {
         uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("Draw_PicOptions");
@@ -57,6 +58,7 @@ void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int pal, char
 
     g_currentPicOptionsCaller = PicOptionsCaller::Unknown;
     g_activeDrawCall = DrawRoutineType::None;
+    resetGlVertexQuadState();
 }
 
 #endif // FEATURE_SCALED_HUD
