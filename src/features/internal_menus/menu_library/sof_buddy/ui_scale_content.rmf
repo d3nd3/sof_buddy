@@ -47,21 +47,20 @@
 <hbr>
 <hbr>
 <font type title tint white atint white>
-<ctext _sofbuddy_font_scale_rounded atext "Font Scale : " noshade><br>
-<slider cvar _sofbuddy_font_scale min 0.25 max 8.00 step 0.03125 tip "Scales SoF Buddy menu font sizes. Extra-slow proportional step."><br>
+<list "Auto,0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" match "-1,0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" cvar _sofbuddy_font_scale atext "Font Scale : " noshade tip "Scales console and UI fonts. Auto tracks resolution (vid_h/480)."><br>
 <ctext _sofbuddy_console_size atext "Console Size : " noshade><br>
 <slider cvar _sofbuddy_console_size min 0.00 max 1.00 step 0.01 tip "Height of the in-game console as a fraction of screen."><br>
-<ctext _sofbuddy_hud_scale_rounded atext "HUD Scale : " noshade><br>
-<slider cvar _sofbuddy_hud_scale min 0.25 max 8.00 step 0.03125 tip "Global scale for HUD elements. Extra-slow proportional step, rounded display at 0.25."><br>
+<list "Auto,0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" match "-1,0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" cvar _sofbuddy_hud_scale atext "HUD Scale : " noshade tip "Global scale for HUD elements. Auto tracks resolution (vid_h/480)."><br>
 <list "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" match "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" cvar _sofbuddy_crossh_scale atext "Crosshair Scale : " noshade tip "Size multiplier for the current crosshair."><br>
 <ctext tip_duration atext "Tooltip ms : " noshade><br>
 <slider cvar tip_duration min 0 max 8000 step 250 tip "Tooltip lifetime in milliseconds."><br>
+<list "Off,On" cvari _sofbuddy_scale_cinematic_pics atext "Scale Cinematic Images : " noshade tip "Scales cinematic credit/fade images (SCR_FadePic) up from 640x480 to your resolution."><br>
 
 <font type title tint sb_subtle atint sb_subtle>
 "_____________________________"
 <hbr>
 <hbr>
 <font type title tint white atint white>
-<text "Restore Scaling Defaults" key mouse1 "set _sofbuddy_font_scale 1;set _sofbuddy_console_size 0.5;set _sofbuddy_hud_scale 1;set _sofbuddy_crossh_scale 1;refresh" border 14 1 cyan regular>
+<text "Restore Scaling Defaults" key mouse1 "set _sofbuddy_font_scale -1;set _sofbuddy_console_size 0.5;set _sofbuddy_hud_scale -1;set _sofbuddy_crossh_scale 1;set _sofbuddy_scale_cinematic_pics 1;refresh" border 14 1 cyan regular>
 <text "Close" key mouse1 "popmenu" border 14 1 cyan regular>
 </stm>

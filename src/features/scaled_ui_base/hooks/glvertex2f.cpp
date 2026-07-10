@@ -18,20 +18,14 @@ static int g_tiledBgVertexIndex = 1;
 static int g_tiledBgStartX;
 static int g_tiledBgStartY;
 
+static int g_cineVertexIndex = 1;
+static float g_cineAnchorX;
+static float g_cineAnchorY;
+
 void resetGlVertexQuadState() {
     g_quadVertexIndex = 1;
     g_tiledBgVertexIndex = 1;
-}
-
-static inline bool isQuadDrawCall() {
-    switch (g_activeDrawCall) {
-        case DrawRoutineType::Pic:
-        case DrawRoutineType::StretchPic:
-        case DrawRoutineType::PicOptions:
-            return true;
-        default:
-            return false;
-    }
+    g_cineVertexIndex = 1;
 }
 
 static inline void scaleVertexFromScreenCenter(float& x, float& y, float scale) {
@@ -66,20 +60,24 @@ void __stdcall hkglVertex2f(float x, float y) {
         break;
 #endif
         case uiRenderType::Scoreboard:
-            if (isQuadDrawCall()) {
-                scaleVertexFromScreenCenter(x, y, hudScale);
-                return;
-            }
-            if (fontScale != 1.0f) {
-                orig_glVertex2f(x * fontScale, y * fontScale);
-                return;
-            }
-            break;
-#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
-        case uiRenderType::Cinematic:
-            SOFBUDDY_ASSERT(fontScale > 0.0f);
-            orig_glVertex2f(x * fontScale, y * fontScale);
+            scaleVertexFromScreenCenter(x, y, hudScale);
             return;
+#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
+        case uiRenderType::Cinematic: {
+            if (fontScale == 1.0f) {
+                orig_glVertex2f(x, y);
+                return;
+            }
+            if (g_cineVertexIndex == 1) {
+                g_cineAnchorX = x;
+                g_cineAnchorY = y;
+            }
+            orig_glVertex2f(
+                g_cineAnchorX + (x - g_cineAnchorX) * fontScale,
+                g_cineAnchorY + (y - g_cineAnchorY) * fontScale);
+            if (++g_cineVertexIndex > 4) g_cineVertexIndex = 1;
+            return;
+        }
 #endif
         default:
             switch (g_activeDrawCall) {
@@ -97,6 +95,30 @@ void __stdcall hkglVertex2f(float x, float y) {
                         case PicCaller::SCR_DrawCrosshair: {
                             scaleVertexFromScreenCenter(x, y, crosshairScale);
                             return;
+                        }
+                        case PicCaller::SCR_DrawCinemaScope: {
+                            // SP_FLAG_CREDIT fade pics draw at native pixel size; grow by the
+                            // 480->vid_h ratio while keeping the pic's fractional screen position
+                            // (SCR_FadePic places it at frac*(viddef - picsize)).
+                            const float s = screen_y_scale;
+                            if (g_scaleCinematicPics && s != 1.0f && DrawPicWidth > 0 && DrawPicHeight > 0) {
+                                if (g_quadVertexIndex == 1) {
+                                    g_quadXFirst = x;
+                                    g_quadYFirst = y;
+                                    const float freeW = current_vid_w - (float)DrawPicWidth;
+                                    const float freeH = current_vid_h - (float)DrawPicHeight;
+                                    const float fx = freeW > 0.0f ? x / freeW : 0.5f;
+                                    const float fy = freeH > 0.0f ? y / freeH : 0.5f;
+                                    g_quadXMidOffset = fx * (current_vid_w - DrawPicWidth * s);
+                                    g_quadYMidOffset = fy * (current_vid_h - DrawPicHeight * s);
+                                }
+                                orig_glVertex2f(
+                                    g_quadXMidOffset + (x - g_quadXFirst) * s,
+                                    g_quadYMidOffset + (y - g_quadYFirst) * s);
+                                if (++g_quadVertexIndex > 4) g_quadVertexIndex = 1;
+                                return;
+                            }
+                            break;
                         }
                         default: {
                             if (mainMenuBgTiled) {
@@ -124,7 +146,6 @@ void __stdcall hkglVertex2f(float x, float y) {
             }
         }
     }
-    resetGlVertexQuadState();
     orig_glVertex2f(x, y);
 }
 

@@ -48,7 +48,7 @@ PicCaller getPicCallerFrom(Module m, uint32_t fnStartRva) {
 			switch (fnStartRva) {
 				case 0x00014510: return PicCaller::ExecuteLayoutString;
 				case 0x00015DA0: return PicCaller::SCR_DrawCrosshair;
-				case 0x000165A0: return PicCaller::NetworkDisconnectIcon;
+				case 0x000165A0: return PicCaller::SCR_DrawCinemaScope;
 				case 0x000C8A40: return PicCaller::DrawPicWrapper;
 				default: return PicCaller::Unknown;
 			}

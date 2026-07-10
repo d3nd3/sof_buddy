@@ -20,6 +20,11 @@
     "override": true
   },
   {
+    "function": "cMissionStatus_Draw",
+    "callback": "hkcMissionStatus_Draw",
+    "override": true
+  },
+  {
     "function": "cDMRanking_Draw",
     "callback": "hkcDMRanking_Draw",
     "override": true

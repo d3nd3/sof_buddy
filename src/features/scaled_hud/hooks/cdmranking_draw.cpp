@@ -11,6 +11,7 @@ void hkcDMRanking_Draw(void * self, detour_cDMRanking_Draw::tcDMRanking_Draw ori
     SOFBUDDY_ASSERT(original != nullptr);
 
     g_activeRenderType = uiRenderType::HudDmRanking;
+    resetDmRankingFontPhase();
 	original(self);
     g_activeRenderType = uiRenderType::None;
     hudDmRanking_wasImage = false;

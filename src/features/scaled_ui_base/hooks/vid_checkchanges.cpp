@@ -19,6 +19,12 @@ void scaled_ui_refresh_vid_dimensions_from_engine(void) {
         current_vid_w = *viddef_width;
         current_vid_h = *viddef_height;
         screen_y_scale = (float)current_vid_h / 480.0f;
+#if FEATURE_SCALED_CON
+        apply_auto_font_scale();
+#endif
+#if FEATURE_SCALED_HUD
+        apply_auto_hud_scale();
+#endif
     }
 }
 

@@ -2,24 +2,56 @@
 
 ## v6.0
 
-- **Scaled UI / scoreboard:** Scoreboard text now scales with `_sofbuddy_font_scale` and images with `_sofbuddy_hud_scale` (hybrid path in `hkglVertex2f` instead of applying HUD scale to all vertices).
-- **Scaled UI / cinematic text:** Hook `SCR_DrawCinematicString` and scale cinematic string vertices with `fontScale`.
-- **Scaled UI / mission status:** Add `FontCaller::MissionStatus` and shared `scaleCenterAnchoredText` helper for mission-status / center-anchored on-screen text.
-- **Linux scripts:** Fix `enable_*.sh` patch scripts to resolve paths relative to script location (works when run from any cwd).
+Stable release consolidating all changes since **v5.7-build160** (intermediate v5.8/v5.9 builds were withdrawn).
 
-## v5.9
+### Scaled UI — auto resolution scaling
 
-- **Scaled HUD:** Restored scoreboard scaling in `hkglVertex2f` — v5.8 had limited `SCR_ExecuteLayoutString` scaling to image quads only, which left scoreboard text tiny/unscaled; scoreboard mode again scales all layout vertices.
+- **`_sofbuddy_font_scale -1` (Auto):** Negative value enables auto mode — scale tracks `vid_h / 480` and updates on resolution changes (`vid_restart`, `vid_checkchanges`). Default is **`-1`**.
+- **`_sofbuddy_hud_scale -1` (Auto):** Same auto ratio for HUD elements. Default is **`-1`**.
+- **F12 → UI Scale:** Font Scale and HUD Scale lists include **Auto** as the first option (writes `-1`). Restore Defaults resets both to Auto.
+- **`_sofbuddy_scale_cinematic_pics`:** New cvar (default **`1` = on**) scales cinematic credit/fade images (`SP_FLAG_CREDIT` / `SCR_DrawCinemaScope`) from 640×480 to your resolution. Toggle in F12 → UI Scale → **Scale Cinematic Images**.
 
-## v5.8
+### Scaled UI — scoreboard (CTF / DM)
 
-- **Scaled UI / HUD vertex scaling:**
-  - Fixed sticky quad-vertex counters in `hkglVertex2f` by moving state to file scope and adding `resetGlVertexQuadState()` at draw-hook boundaries (`Draw_Pic`, `Draw_StretchPic`, `Draw_PicOptions`, console, scoreboard, font).
-  - Scoreboard layout (`SCR_ExecuteLayoutString`) now scales only image quads (`Pic` / `StretchPic` / `PicOptions`); layout text via `Draw_String`/`Draw_Char` passes through unscaled (fixes garbled scoreboard text at non-1:1 HUD scale).
-  - Hardened exit paths: symmetric quad-state reset on `Draw_PicOptions`, `R_DrawFont`, and console `Draw_StretchPic` early returns.
-  - Removed duplicate dead scaling helpers from `sui_hooks.cpp`.
-- **Core:** Added `video_state_fallback.cpp` so `current_vid_w` / `viddef_*` symbols resolve when all scaled UI features are disabled (needed by internal menus).
-- **README:** Restored badges and hero screenshots; collapsible `<details>` sections; static Discord join badge; removed map-entity feature from the advertised list; credit for Acadie.
+- **Hybrid scoreboard scaling:** Scoreboard layout text scales with `_sofbuddy_font_scale`; scoreboard images/icons scale with `_sofbuddy_hud_scale` (via `hkglVertex2f` scoreboard path using screen-center pivot).
+- **Quad-state hygiene:** `resetGlVertexQuadState()` at draw-hook boundaries (`Draw_Pic`, `Draw_StretchPic`, `Draw_PicOptions`, `R_DrawFont`, console, scoreboard layout) fixes sticky vertex counters that caused mis-scaled or garbled quads.
+- **CTF player list:** Fixed regression where DM-ranking font repositioning was applied to scoreboard player names — removed erroneous `HudDmRanking → DMRankingCalcXY` mapping from render-type caller detection.
+
+### Scaled UI — cinematic text & images
+
+- **Typematic / cinematic subtitles:** Hook `SCR_DrawCinematicString` + `Draw_CharExtra` — green bottom-left typewriter text scales with `_sofbuddy_font_scale` (including Auto). Uses `g_cinematicDrawDepth` scope guard so HUD `hud_scale` text paths are not affected.
+- **Bottom-anchored text scaling:** Typematic and yellow subtitle/center-print text preserve 480p bottom-margin percentage when scaled (`computeTextBottomAnchor` / `applyBottomAnchoredScale`).
+- **Cinematic credit images:** Hook `SCR_DrawCinemaScope` with scope-based `PicCaller::SCR_DrawCinemaScope`; `glVertex2f` scales the fade/credit quad when `_sofbuddy_scale_cinematic_pics` is on. Renamed mislabeled `NetworkDisconnectIcon` caller entry.
+
+### Scaled UI — mission status, pause, center print
+
+- **Mission status text** (`cMissionStatus::Draw` @ `0x9250`): Scope hook sets `FontCaller::MissionStatus`; scales with **`fontScale`** (not `hudScale`) via `scaleCenterAnchoredText` — fixes red upper-center messages like “Mission Objectives Updated” / “Mission Failed” at wrong size and off-center. Added `0x9250` to SoF.exe funcmap.
+- **“Paused” text** (`SCR_DrawPause` @ `0x13710`): Scope hook + `fontScale` center compensation in `hkR_DrawFont` and per-glyph vertex scaling.
+- **Center print** (`SCR_DrawCenterPrint` @ `0x163C0`): Scope hook replaces fragile text-matching fallback; merged v5.7 word-wrap with bottom-margin scaling for yellow subtitles and center-print lines.
+
+### Scaled UI — DM ranking HUD
+
+- Restored v5.7 `hudDmRanking_wasImage` + `scorePhase` alternation for frag count vs ping/limit lines under team chevrons.
+- `resetDmRankingFontPhase()` at each `cDMRanking_Draw` frame start — prevents line overlap from stale phase state.
+- `FontCaller::DMRankingCalcXY` set from `HudDmRanking` render scope (no fragile per-call-site RVA checks through ref.dll).
+
+### Scaled UI — console & menu caller detection
+
+- **Console repaint:** `Draw_StretchPic` treats `g_activeRenderType == Console` as console background — dirty-rect marking no longer depends solely on stack caller detection (fixes backspace / stale pixel artifacts).
+- **`visitExternalCallers`:** Safe stack walk picks the first *known* `FontCaller` (e.g. `RectDrawTextItem` for F12 menu rows), skipping unknown frames like `R_DrawFont` itself.
+- **Wine crash fix:** Hardened EBP chain walk in `hook_callsite.cpp` (`plausibleFramePtr`, bounded frame advance) — fixes page fault when classifying callers on Wine.
+- **F12 menu bug fix:** Changing Font Scale no longer mis-scales the HUD Scale value below it (removed center-print substring fallback; menu text resolves to `RectDrawTextItem` etc. using `screen_y_scale`).
+
+### Core & Linux scripts
+
+- **`video_state_fallback.cpp`:** Resolves `current_vid_w` / `viddef_*` when all scaled UI features are disabled (needed by internal menus).
+- **Linux `enable_*.sh`:** Patch scripts resolve paths relative to script location (works from any cwd).
+
+### README & docs
+
+- Restored badges and hero screenshots; collapsible `<details>` sections; static Discord join badge.
+- Documented **Auto (`-1`)** for `_sofbuddy_font_scale` and `_sofbuddy_hud_scale`, plus `_sofbuddy_scale_cinematic_pics`.
+- Credit for Acadie; removed map-entity feature from advertised list.
 
 ## v5.7
 

@@ -40,6 +40,12 @@
 // Unified active caller state impl
 DrawRoutineType g_activeDrawCall = DrawRoutineType::None;
 uiRenderType g_activeRenderType = uiRenderType::None;
+int g_cinematicDrawDepth = 0;
+int g_cineTextLineCount = 1;
+float g_cineTextBaseY = -1.0f;
+float g_cineTextBottomY = -1.0f;
+float g_cineTextTargetBottomY = -1.0f;
+bool g_scaleCinematicPics = true;
 
 
 #include "debug/hook_callsite.h"
@@ -66,6 +72,7 @@ float screen_y_scale = 1.0f;
 
 // Variables used by base hooks (defined here, modified by feature files)
 float hudScale = 1;
+bool hudScaleAuto = true;
 float crosshairScale = 1.0f;
 bool hudStretchPicCenter = false;
 bool hudDmRanking = false;
@@ -87,12 +94,17 @@ bool mainMenuBgTiled = false;
 
 // Shared variables used by multiple features (moved from scaled_con for shared access)
 float fontScale = 1;
+bool fontScaleAuto = true;
 bool isDrawingTeamicons = false;
 char g_lastCenterPrintText[1024] = {0};
 unsigned int g_lastCenterPrintSeq = 0;
 int g_lastCenterPrintLineCount = 1;
 float g_centerPrintAnchorY = 0.0f;
 unsigned int g_centerPrintAnchorSeq = 0;
+float g_centerPrintBottomY = -1.0f;
+float g_centerPrintTargetBottomY = -1.0f;
+unsigned int g_centerPrintScaleSeq = 0;
+float g_centerPrintLineStep = 0.0f;
 float g_missionStatusAnchorY = 0.0f;
 
 // Shared state enums

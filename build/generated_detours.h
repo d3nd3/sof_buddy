@@ -623,6 +623,60 @@ namespace {
     static AutoDetour_SCR_CenterPrint g_AutoDetour_SCR_CenterPrint;
 }
 
+namespace detour_SCR_DrawPause {
+    using tSCR_DrawPause = void(__cdecl*)();
+    extern tSCR_DrawPause oSCR_DrawPause;
+    using ManagerType = TypedSharedHookManager<void>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkSCR_DrawPause();
+}
+
+namespace {
+    struct AutoDetour_SCR_DrawPause {
+        AutoDetour_SCR_DrawPause() {
+            using namespace detour_SCR_DrawPause;
+            if (!GetDetourSystem().IsDetourRegistered("SCR_DrawPause")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x00013710),
+                    reinterpret_cast<void*>(detour_SCR_DrawPause::hkSCR_DrawPause),
+                    reinterpret_cast<void**>(&detour_SCR_DrawPause::oSCR_DrawPause),
+                    "SCR_DrawPause",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_SCR_DrawPause g_AutoDetour_SCR_DrawPause;
+}
+
+namespace detour_SCR_DrawCenterPrint {
+    using tSCR_DrawCenterPrint = void(__cdecl*)();
+    extern tSCR_DrawCenterPrint oSCR_DrawCenterPrint;
+    using ManagerType = TypedSharedHookManager<void>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkSCR_DrawCenterPrint();
+}
+
+namespace {
+    struct AutoDetour_SCR_DrawCenterPrint {
+        AutoDetour_SCR_DrawCenterPrint() {
+            using namespace detour_SCR_DrawCenterPrint;
+            if (!GetDetourSystem().IsDetourRegistered("SCR_DrawCenterPrint")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x000163C0),
+                    reinterpret_cast<void*>(detour_SCR_DrawCenterPrint::hkSCR_DrawCenterPrint),
+                    reinterpret_cast<void**>(&detour_SCR_DrawCenterPrint::oSCR_DrawCenterPrint),
+                    "SCR_DrawCenterPrint",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_SCR_DrawCenterPrint g_AutoDetour_SCR_DrawCenterPrint;
+}
+
 namespace detour_SCR_DrawCinematicString {
     using tSCR_DrawCinematicString = void(__cdecl*)(int speed, int x, int y);
     extern tSCR_DrawCinematicString oSCR_DrawCinematicString;
@@ -648,6 +702,33 @@ namespace {
         }
     };
     static AutoDetour_SCR_DrawCinematicString g_AutoDetour_SCR_DrawCinematicString;
+}
+
+namespace detour_SCR_DrawCinemaScope {
+    using tSCR_DrawCinemaScope = void(__cdecl*)();
+    extern tSCR_DrawCinemaScope oSCR_DrawCinemaScope;
+    using ManagerType = TypedSharedHookManager<void>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkSCR_DrawCinemaScope();
+}
+
+namespace {
+    struct AutoDetour_SCR_DrawCinemaScope {
+        AutoDetour_SCR_DrawCinemaScope() {
+            using namespace detour_SCR_DrawCinemaScope;
+            if (!GetDetourSystem().IsDetourRegistered("SCR_DrawCinemaScope")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x000165A0),
+                    reinterpret_cast<void*>(detour_SCR_DrawCinemaScope::hkSCR_DrawCinemaScope),
+                    reinterpret_cast<void**>(&detour_SCR_DrawCinemaScope::oSCR_DrawCinemaScope),
+                    "SCR_DrawCinemaScope",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_SCR_DrawCinemaScope g_AutoDetour_SCR_DrawCinemaScope;
 }
 
 namespace detour_cInventory2_And_cGunAmmo2_Draw {
@@ -704,6 +785,33 @@ namespace {
     static AutoDetour_cHealthArmor2_Draw g_AutoDetour_cHealthArmor2_Draw;
 }
 
+namespace detour_cMissionStatus_Draw {
+    using tcMissionStatus_Draw = void(__thiscall*)(void* self);
+    extern tcMissionStatus_Draw ocMissionStatus_Draw;
+    using ManagerType = TypedSharedHookManager<void, void*>;
+    ManagerType& GetManager();
+    
+    void __thiscall hkcMissionStatus_Draw(void* self);
+}
+
+namespace {
+    struct AutoDetour_cMissionStatus_Draw {
+        AutoDetour_cMissionStatus_Draw() {
+            using namespace detour_cMissionStatus_Draw;
+            if (!GetDetourSystem().IsDetourRegistered("cMissionStatus_Draw")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x00009250),
+                    reinterpret_cast<void*>(detour_cMissionStatus_Draw::hkcMissionStatus_Draw),
+                    reinterpret_cast<void**>(&detour_cMissionStatus_Draw::ocMissionStatus_Draw),
+                    "cMissionStatus_Draw",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_cMissionStatus_Draw g_AutoDetour_cMissionStatus_Draw;
+}
+
 namespace detour_cDMRanking_Draw {
     using tcDMRanking_Draw = void(__thiscall*)(void* self);
     extern tcDMRanking_Draw ocDMRanking_Draw;
@@ -756,6 +864,33 @@ namespace {
         }
     };
     static AutoDetour_cCtfFlag_Draw g_AutoDetour_cCtfFlag_Draw;
+}
+
+namespace detour_Draw_CharExtra {
+    using tDraw_CharExtra = void(__cdecl*)(float x, float y, float scale, void* palette, int ch);
+    extern tDraw_CharExtra oDraw_CharExtra;
+    using ManagerType = TypedSharedHookManager<void, float, float, float, void*, int>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkDraw_CharExtra(float x, float y, float scale, void* palette, int ch);
+}
+
+namespace {
+    struct AutoDetour_Draw_CharExtra {
+        AutoDetour_Draw_CharExtra() {
+            using namespace detour_Draw_CharExtra;
+            if (!GetDetourSystem().IsDetourRegistered("Draw_CharExtra")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x00001B00),
+                    reinterpret_cast<void*>(detour_Draw_CharExtra::hkDraw_CharExtra),
+                    reinterpret_cast<void**>(&detour_Draw_CharExtra::oDraw_CharExtra),
+                    "Draw_CharExtra",
+                    DetourModule::RefDll,
+                    static_cast<size_t>(5));
+            }
+        }
+    };
+    static AutoDetour_Draw_CharExtra g_AutoDetour_Draw_CharExtra;
 }
 
 namespace detour_Draw_StretchPic {

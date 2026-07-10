@@ -7,41 +7,62 @@
 #include "generated_detours.h"
 #include "../../scaled_ui_base/shared.h"
 #include "debug/hook_callsite.h"
+#include "debug/callsite_classifier.h"
 #include <string.h>
 
-static bool fallbackCenterPrintLineMatch(int screenX, const char* text)
+static bool s_dmRankingScorePhase = true;
+
+void resetDmRankingFontPhase(void)
 {
-    if (!text || !*text) {
-        return false;
-    }
-    if (!g_lastCenterPrintText[0]) {
-        return false;
-    }
+    s_dmRankingScorePhase = true;
+}
 
-    // Centerprint draw calls are centered in X. This gate avoids matching
-    // left-anchored notify/console text that may contain similar wording.
-    if (screenX < 80) {
-        return false;
-    }
+struct FontCallerResolveCtx {
+    FontCaller* out;
+};
 
-    return strstr(g_lastCenterPrintText, text) != nullptr;
+static bool pickKnownFontCaller(const CallerInfo& info, void* raw)
+{
+    FontCaller fc = getFontCallerFrom(info.module, (uint32_t)info.functionStartRva);
+    if (fc == FontCaller::Unknown) return false;
+    *static_cast<FontCallerResolveCtx*>(raw)->out = fc;
+    return true;
+}
+
+static FontCaller fontCallerFromRenderType(uiRenderType rt)
+{
+    switch (rt) {
+    case uiRenderType::HudInventory: return FontCaller::Inventory2;
+    case uiRenderType::HudDmRanking: return FontCaller::DMRankingCalcXY;
+    default: return FontCaller::Unknown;
+    }
 }
 
 void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor, detour_R_DrawFont::tR_DrawFont original) {
     resetGlVertexQuadState();
     g_activeDrawCall = DrawRoutineType::Font;
     if (g_currentFontCaller == FontCaller::Unknown) {
-        uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("R_DrawFont");
-        if (fnStart) g_currentFontCaller = getFontCallerFromRva(fnStart);
-        if (g_currentFontCaller == FontCaller::Unknown && fallbackCenterPrintLineMatch(screenX, text))
-            g_currentFontCaller = FontCaller::SCR_DrawCenterPrint;
+        g_currentFontCaller = fontCallerFromRenderType(g_activeRenderType);
+        if (g_currentFontCaller == FontCaller::Unknown) {
+            FontCallerResolveCtx ctx{&g_currentFontCaller};
+            HookCallsite::visitExternalCallers(pickKnownFontCaller, &ctx);
+        }
     }
     if (g_currentFontCaller == FontCaller::SCR_DrawCenterPrint) {
+        static float s_cpLastY = 0.0f;
         if (g_centerPrintAnchorSeq != g_lastCenterPrintSeq) {
             g_centerPrintAnchorSeq = g_lastCenterPrintSeq;
             g_centerPrintAnchorY = static_cast<float>(screenY);
-        } else if (static_cast<float>(screenY) < g_centerPrintAnchorY) {
-            g_centerPrintAnchorY = static_cast<float>(screenY);
+            s_cpLastY = static_cast<float>(screenY);
+            g_centerPrintLineStep = 0.0f;
+            g_centerPrintScaleSeq = 0;
+            g_centerPrintBottomY = -1.0f;
+        } else {
+            if (g_centerPrintLineStep <= 0.0f && static_cast<float>(screenY) > s_cpLastY)
+                g_centerPrintLineStep = static_cast<float>(screenY) - s_cpLastY;
+            if (static_cast<float>(screenY) < g_centerPrintAnchorY)
+                g_centerPrintAnchorY = static_cast<float>(screenY);
+            s_cpLastY = static_cast<float>(screenY);
         }
     } else if (g_currentFontCaller == FontCaller::MissionStatus) {
         g_missionStatusAnchorY = static_cast<float>(screenY);
@@ -53,9 +74,16 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 		realFont = REALFONT_UNKNOWN;
 	}
 
-	if (g_activeRenderType == uiRenderType::HudDmRanking) {
-		static bool scorePhase = true;
-
+	if (g_currentFontCaller == FontCaller::SCRDrawPause) {
+		float s = fontScale;
+		if (s <= 0.0f) s = 1.0f;
+		if (s != 1.0f) {
+			const float textW = (float)(current_vid_w - 2 * screenX);
+			const float textH = (float)(current_vid_h - 2 * screenY);
+			screenX -= (int)(textW * (s - 1.0f) * 0.5f);
+			screenY -= (int)(textH * (s - 1.0f) * 0.5f);
+		}
+	} else if (g_activeRenderType == uiRenderType::HudDmRanking) {
 		int fontWidth = 12;
 		int offsetEdge = 40;
 
@@ -71,20 +99,20 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 				screenX = current_vid_w - 16 * hudScale - offsetEdge * x_scale - hudScale*fontWidth * strlen(text) / 2;
 				screenY = screenY + (hudScale - 1) * (32 + 3);
 
-				if (scorePhase) {
-					scorePhase = false;
+				if (s_dmRankingScorePhase) {
+					s_dmRankingScorePhase = false;
 				} else {
 					screenY = screenY + (hudScale - 1) * (realFontSizes[realFont] + 3);
-					scorePhase = true;
+					s_dmRankingScorePhase = true;
 				}
 			}
 
 		} else {
-			if (scorePhase) {
-				scorePhase = false;
+			if (s_dmRankingScorePhase) {
+				s_dmRankingScorePhase = false;
 			} else {
 				screenY = screenY + (hudScale - 1) * (realFontSizes[realFont] + 3);
-				scorePhase = true;
+				s_dmRankingScorePhase = true;
 			}
 			screenX = current_vid_w - offsetEdge * x_scale - 16 * hudScale - hudScale*fontWidth * strlen(text) / 2;
 		}
@@ -140,7 +168,8 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 	}
 	original(screenX, screenY, text, colorPalette, font, rememberLastColor);
 
-	g_currentFontCaller = FontCaller::Unknown;
+	if (g_currentFontCaller != FontCaller::MissionStatus)
+		g_currentFontCaller = FontCaller::Unknown;
 	characterIndex = 0;
 	g_activeDrawCall = DrawRoutineType::None;
 	resetGlVertexQuadState();

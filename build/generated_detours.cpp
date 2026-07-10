@@ -145,8 +145,20 @@ namespace detour_SCR_CenterPrint {
     tSCR_CenterPrint oSCR_CenterPrint = nullptr;
 }
 
+namespace detour_SCR_DrawPause {
+    tSCR_DrawPause oSCR_DrawPause = nullptr;
+}
+
+namespace detour_SCR_DrawCenterPrint {
+    tSCR_DrawCenterPrint oSCR_DrawCenterPrint = nullptr;
+}
+
 namespace detour_SCR_DrawCinematicString {
     tSCR_DrawCinematicString oSCR_DrawCinematicString = nullptr;
+}
+
+namespace detour_SCR_DrawCinemaScope {
+    tSCR_DrawCinemaScope oSCR_DrawCinemaScope = nullptr;
 }
 
 namespace detour_cInventory2_And_cGunAmmo2_Draw {
@@ -157,12 +169,20 @@ namespace detour_cHealthArmor2_Draw {
     tcHealthArmor2_Draw ocHealthArmor2_Draw = nullptr;
 }
 
+namespace detour_cMissionStatus_Draw {
+    tcMissionStatus_Draw ocMissionStatus_Draw = nullptr;
+}
+
 namespace detour_cDMRanking_Draw {
     tcDMRanking_Draw ocDMRanking_Draw = nullptr;
 }
 
 namespace detour_cCtfFlag_Draw {
     tcCtfFlag_Draw ocCtfFlag_Draw = nullptr;
+}
+
+namespace detour_Draw_CharExtra {
+    tDraw_CharExtra oDraw_CharExtra = nullptr;
 }
 
 namespace detour_Draw_StretchPic {
@@ -477,7 +497,40 @@ namespace detour_SCR_CenterPrint {
     }
 }
 
+namespace detour_SCR_DrawPause {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_SCR_DrawCenterPrint {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
 namespace detour_SCR_DrawCinematicString {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_SCR_DrawCinemaScope {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
         if (!instance) {
@@ -510,6 +563,17 @@ namespace detour_cHealthArmor2_Draw {
     }
 }
 
+namespace detour_cMissionStatus_Draw {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
 namespace detour_cDMRanking_Draw {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
@@ -522,6 +586,17 @@ namespace detour_cDMRanking_Draw {
 }
 
 namespace detour_cCtfFlag_Draw {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
+namespace detour_Draw_CharExtra {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
         if (!instance) {
@@ -886,6 +961,12 @@ namespace detour_DispatchMessageA {
     }
 }
 
+namespace detour_Draw_CharExtra {
+    void __cdecl hkDraw_CharExtra(float x, float y, float scale, void* palette, int ch) {
+        ::hkDraw_CharExtra(x, y, scale, palette, ch, oDraw_CharExtra);
+    }
+}
+
 namespace detour_Draw_CroppedPicOptions {
     void __cdecl hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, int palette, char* name) {
         ::hkDraw_CroppedPicOptions(x, y, c1x, c1y, c2x, c2y, palette, name, oDraw_CroppedPicOptions);
@@ -940,9 +1021,27 @@ namespace detour_SCR_CenterPrint {
     }
 }
 
+namespace detour_SCR_DrawCenterPrint {
+    void __cdecl hkSCR_DrawCenterPrint() {
+        ::hkSCR_DrawCenterPrint(oSCR_DrawCenterPrint);
+    }
+}
+
+namespace detour_SCR_DrawCinemaScope {
+    void __cdecl hkSCR_DrawCinemaScope() {
+        ::hkSCR_DrawCinemaScope(oSCR_DrawCinemaScope);
+    }
+}
+
 namespace detour_SCR_DrawCinematicString {
     void __cdecl hkSCR_DrawCinematicString(int speed, int x, int y) {
         ::hkSCR_DrawCinematicString(speed, x, y, oSCR_DrawCinematicString);
+    }
+}
+
+namespace detour_SCR_DrawPause {
+    void __cdecl hkSCR_DrawPause() {
+        ::hkSCR_DrawPause(oSCR_DrawPause);
     }
 }
 
@@ -1003,6 +1102,12 @@ namespace detour_cHealthArmor2_Draw {
 namespace detour_cInventory2_And_cGunAmmo2_Draw {
     void __thiscall hkcInventory2_And_cGunAmmo2_Draw(void* self) {
         ::hkcInventory2_And_cGunAmmo2_Draw(self, ocInventory2_And_cGunAmmo2_Draw);
+    }
+}
+
+namespace detour_cMissionStatus_Draw {
+    void __thiscall hkcMissionStatus_Draw(void* self) {
+        ::hkcMissionStatus_Draw(self, ocMissionStatus_Draw);
     }
 }
 

@@ -79,12 +79,30 @@ using detour_Cvar_Set2::oCvar_Set2;
 
 void hudscale_change(cvar_t * cvar) {
     SOFBUDDY_ASSERT(cvar != nullptr);
+
+    hudScaleAuto = (cvar->value < 0.0f);
+    if (hudScaleAuto) {
+        apply_auto_hud_scale();
+        return;
+    }
+
     float v = cvar->value;
     if (v < 0.25f) v = 0.25f;
     if (v > 8.0f) v = 8.0f;
     hudScale = roundf(v * 4.0f) / 4.0f;
     if (hudScale < 0.25f) hudScale = 0.25f;
     if (hudScale > 8.0f) hudScale = 8.0f;
+    if (oCvar_Set2) {
+        char buf[32];
+        std::snprintf(buf, sizeof(buf), "%.2f", hudScale);
+        oCvar_Set2(const_cast<char*>("_sofbuddy_hud_scale_rounded"), buf, true);
+    }
+}
+
+void apply_auto_hud_scale(void) {
+    if (!hudScaleAuto) return;
+    hudScale = (screen_y_scale > 0.0f) ? screen_y_scale : 1.0f;
+    SOFBUDDY_ASSERT(hudScale > 0.0f);
     if (oCvar_Set2) {
         char buf[32];
         std::snprintf(buf, sizeof(buf), "%.2f", hudScale);

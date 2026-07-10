@@ -34,7 +34,7 @@ enum class PicCaller {
 	Unknown = 0,
 	ExecuteLayoutString,
 	SCR_DrawCrosshair,
-	NetworkDisconnectIcon,
+	SCR_DrawCinemaScope, // draws SP_FLAG_CREDIT fade pics (SCR_FadePic state)
 	BackdropDraw,
 	DrawPicWrapper
 };

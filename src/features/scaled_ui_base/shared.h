@@ -25,11 +25,15 @@
 
 
 extern float fontScale;
+extern bool fontScaleAuto;
+void apply_auto_font_scale(void);
 extern float consoleSize;
 extern bool isFontInner;
 extern bool isDrawingTeamicons;
 
 extern float hudScale;
+extern bool hudScaleAuto;
+void apply_auto_hud_scale(void);
 extern float crosshairScale;
 extern bool hudStretchPicCenter;
 extern bool hudDmRanking;
@@ -41,6 +45,7 @@ extern bool hudHealthArmor;
 extern int DrawPicWidth;
 extern int DrawPicHeight;
 extern bool isMenuSpmSettings;
+extern bool g_scaleCinematicPics;
 
 extern int menuLoadboxFirstItemX;
 extern int menuLoadboxFirstItemY;
@@ -75,6 +80,16 @@ extern unsigned int g_lastCenterPrintSeq;
 extern int g_lastCenterPrintLineCount;
 extern float g_centerPrintAnchorY;
 extern unsigned int g_centerPrintAnchorSeq;
+extern float g_centerPrintBottomY;
+extern float g_centerPrintTargetBottomY;
+extern unsigned int g_centerPrintScaleSeq;
+extern float g_centerPrintLineStep;
+
+// Bottom-anchored text scaling (typematic + center print): preserve 480p margin %.
+void computeTextBottomAnchor(float topLineY, int lineCount, float lineHeight,
+    float& bottomY, float& targetBottomY);
+void applyBottomAnchoredScale(float& x, float& y, float bottomY, float targetBottomY,
+    float scale, bool centerX);
 extern float g_missionStatusAnchorY;
 
 // =============================================================================
@@ -105,6 +120,13 @@ enum class uiRenderType {
 };
 
 extern uiRenderType g_activeRenderType;
+
+// Nesting depth for SCR_DrawCinematicString only; Draw_CharExtra scales via this, not g_activeRenderType.
+extern int g_cinematicDrawDepth;
+extern int g_cineTextLineCount;   // lines in typematic buffer (split on \n)
+extern float g_cineTextBaseY;     // first drawn line Y (set on first char)
+extern float g_cineTextBottomY;   // last line Y at scale 1 (base + (lines-1)*8)
+extern float g_cineTextTargetBottomY; // bottom Y preserving 480p margin percentage
 
 enum enumCroppedDrawMode {
     HEALTH_FRAME,
@@ -204,11 +226,16 @@ void hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, 
 #if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
 void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor, detour_R_DrawFont::tR_DrawFont original);
 void hkSCR_CenterPrint(char * text, detour_SCR_CenterPrint::tSCR_CenterPrint original);
+void hkSCR_DrawCenterPrint(detour_SCR_DrawCenterPrint::tSCR_DrawCenterPrint original);
+void hkSCR_DrawPause(detour_SCR_DrawPause::tSCR_DrawPause original);
 void hkSCR_DrawCinematicString(int speed, int x, int y, detour_SCR_DrawCinematicString::tSCR_DrawCinematicString original);
+void hkSCR_DrawCinemaScope(detour_SCR_DrawCinemaScope::tSCR_DrawCinemaScope original);
+void hkDraw_CharExtra(float x, float y, float scale, void* palette, int ch, detour_Draw_CharExtra::tDraw_CharExtra original);
 #endif
 #if FEATURE_SCALED_HUD
 void hkcInventory2_And_cGunAmmo2_Draw(void * self, detour_cInventory2_And_cGunAmmo2_Draw::tcInventory2_And_cGunAmmo2_Draw original);
 void hkcHealthArmor2_Draw(void * self, detour_cHealthArmor2_Draw::tcHealthArmor2_Draw original);
+void hkcMissionStatus_Draw(void * self, detour_cMissionStatus_Draw::tcMissionStatus_Draw original);
 void hkcDMRanking_Draw(void * self, detour_cDMRanking_Draw::tcDMRanking_Draw original);
 void hkcCtfFlag_Draw(void * self, detour_cCtfFlag_Draw::tcCtfFlag_Draw original);
 #endif
@@ -218,6 +245,7 @@ void crosshairscale_change(cvar_t * cvar);
 #endif
 realFontEnum_t getRealFontEnum(const char* realFont);
 void drawCroppedPicVertex(bool top, bool left, float & x, float & y);
+void resetDmRankingFontPhase(void);
 
 // Shared rendering functions
 #ifdef UI_MENU

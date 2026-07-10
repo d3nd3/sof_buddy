@@ -43,8 +43,28 @@
     "override": true
   },
   {
+    "function": "SCR_DrawPause",
+    "callback": "hkSCR_DrawPause",
+    "override": true
+  },
+  {
+    "function": "SCR_DrawCenterPrint",
+    "callback": "hkSCR_DrawCenterPrint",
+    "override": true
+  },
+  {
+    "function": "Draw_CharExtra",
+    "callback": "hkDraw_CharExtra",
+    "override": true
+  },
+  {
     "function": "SCR_DrawCinematicString",
     "callback": "hkSCR_DrawCinematicString",
+    "override": true
+  },
+  {
+    "function": "SCR_DrawCinemaScope",
+    "callback": "hkSCR_DrawCinemaScope",
     "override": true
   }
 ]

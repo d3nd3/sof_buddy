@@ -30,6 +30,32 @@ int characterIndex = 0;
 
 FontCaller g_currentFontCaller = FontCaller::Unknown;
 
+void computeTextBottomAnchor(float topLineY, int lineCount, float lineHeight,
+    float& bottomY, float& targetBottomY)
+{
+    const int lines = (lineCount > 0) ? lineCount : 1;
+    bottomY = topLineY + (lines - 1) * lineHeight;
+    const float virtualH = 480.0f;
+    const float vidH = (current_vid_h > 0) ? (float)current_vid_h : virtualH;
+    const float bottomY480 = bottomY * virtualH / vidH;
+    float marginPct = (virtualH - bottomY480) / virtualH;
+    if (marginPct < 0.0f) marginPct = 0.0f;
+    if (marginPct > 1.0f) marginPct = 1.0f;
+    targetBottomY = vidH * (1.0f - marginPct);
+}
+
+void applyBottomAnchoredScale(float& x, float& y, float bottomY, float targetBottomY,
+    float scale, bool centerX)
+{
+    if (centerX) {
+        const float cx = (current_vid_w > 0) ? current_vid_w * 0.5f : 320.0f;
+        x = cx + (x - cx) * scale;
+    } else {
+        x *= scale;
+    }
+    y = targetBottomY + (y - bottomY) * scale;
+}
+
 static void scaleCenterAnchoredText(float& x, float& y, float top_anchor, int lines) {
 	float s = fontScale;
 	if (s <= 0.0f) s = 1.0f;
@@ -93,18 +119,32 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 			orig_glVertex2f(x, y);
 			break;
 			
-		case FontCaller::SCRDrawPause:
-			SOFBUDDY_ASSERT(screen_y_scale > 0.0f);
-			if (scaleX) x = pivotx + (x - pivotx) * screen_y_scale;
-			if (scaleY) y = pivoty + (y - pivoty) * screen_y_scale;
-			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
+		case FontCaller::SCRDrawPause: {
+			float s = fontScale;
+			if (s <= 0.0f) s = 1.0f;
+			if (s != 1.0f) {
+				if (scaleX) x = pivotx + (x - pivotx) * s;
+				if (scaleY) y = pivoty + (y - pivoty) * s;
+				orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(s-1), y);
+			} else {
+				orig_glVertex2f(x, y);
+			}
 			break;
+		}
 
 		case FontCaller::SCR_DrawCenterPrint: {
-			float top = 0.0f;
-			if (g_centerPrintAnchorSeq == g_lastCenterPrintSeq && g_centerPrintAnchorY > 0.0f)
-				top = g_centerPrintAnchorY;
-			scaleCenterAnchoredText(x, y, top, g_lastCenterPrintLineCount);
+			float s = fontScale;
+			if (s <= 0.0f) s = 1.0f;
+			if (s != 1.0f && g_centerPrintAnchorSeq == g_lastCenterPrintSeq &&
+			    g_centerPrintAnchorY > 0.0f && g_lastCenterPrintLineCount > 0) {
+				float font_h = g_centerPrintLineStep;
+				if (font_h <= 0.0f) font_h = static_cast<float>(realFontSizes[realFont]);
+				if (font_h <= 0.0f) font_h = 8.0f;
+				computeTextBottomAnchor(g_centerPrintAnchorY, g_lastCenterPrintLineCount,
+				    font_h, g_centerPrintBottomY, g_centerPrintTargetBottomY);
+				applyBottomAnchoredScale(x, y, g_centerPrintBottomY,
+				    g_centerPrintTargetBottomY, s, true);
+			}
 			orig_glVertex2f(x, y);
 			break;
 		}

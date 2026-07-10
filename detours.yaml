@@ -355,6 +355,22 @@ functions:
       - type: char*
         name: str
 
+  - name: SCR_DrawPause
+    module: SofExe
+    identifier: "0x00013710"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
+  - name: SCR_DrawCenterPrint
+    module: SofExe
+    identifier: "0x000163C0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
   - name: SCR_DrawCinematicString
     module: SofExe
     identifier: "0x00013B70"
@@ -369,6 +385,14 @@ functions:
       - type: int
         name: y
 
+  - name: SCR_DrawCinemaScope
+    module: SofExe
+    identifier: "0x000165A0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
   - name: cInventory2_And_cGunAmmo2_Draw
     module: SofExe
     identifier: "0x00008430"
@@ -382,6 +406,16 @@ functions:
   - name: cHealthArmor2_Draw
     module: SofExe
     identifier: "0x00008C60"
+    return_type: void
+    calling_convention: __thiscall
+    detour_len: 0
+    params:
+      - type: void*
+        name: self
+
+  - name: cMissionStatus_Draw
+    module: SofExe
+    identifier: "0x00009250"
     return_type: void
     calling_convention: __thiscall
     detour_len: 0
@@ -408,6 +442,24 @@ functions:
     params:
       - type: void*
         name: self
+
+  - name: Draw_CharExtra
+    module: RefDll
+    identifier: "0x00001B00"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 5
+    params:
+      - type: float
+        name: x
+      - type: float
+        name: y
+      - type: float
+        name: scale
+      - type: void*
+        name: palette
+      - type: int
+        name: ch
 
   - name: Draw_StretchPic
     module: RefDll
