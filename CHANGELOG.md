@@ -1,5 +1,14 @@
 # Changelog
 
+## v6.5
+
+### CallsiteClassifier — funcmap parser fix
+
+- **Bug:** Since v6.0, `SoF.exe.json` was minified to a single line (~45 KB). `CallsiteClassifier` parsed funcmaps with `fgets` and assumed one function entry per line, so only **~23 of 2611** `SoF.exe` function starts were loaded at runtime.
+- **Impact:** Scaled UI/HUD caller detection (`caller_from`, hook callsite classification) failed for almost all `SoF.exe` call sites — wrong scaling paths and crashes on XP and other builds shipping `sof_buddy/funcmaps/`.
+- **Fix:** Load the whole funcmap file and scan for every `"rva"` entry regardless of JSON formatting (pretty-printed or minified).
+- **Data:** Re-pretty-printed `rsrc/funcmaps/SoF.exe.json` to match `pe_funcmap_gen` output.
+
 ## v6.4
 
 ### Internal menus — UI Scale round-step layout

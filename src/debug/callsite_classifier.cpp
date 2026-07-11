@@ -81,32 +81,36 @@ inline Module identifyModuleFromHandle(HMODULE hmod) {
     return Module::Unknown;
 }
 
-static inline bool parseUintAfterKey(const char *line, const char *key, uint32_t &out) {
-    const char *p = strstr(line, key);
-    if (!p) return false;
-    p += strlen(key);
-    // Skip spaces
-    while (*p == ' ' || *p == '\t') ++p;
-    // Read number (decimal)
-    unsigned int val = 0;
-    if (sscanf(p, "%u", &val) == 1) { out = val; return true; }
-    // Try hex like 0x...
-    if (sscanf(p, "0x%x", &val) == 1) { out = val; return true; }
-    return false;
-}
-
-static inline bool parseStringAfterKey(const char *line, const char *key, std::string &out) {
-    const char *p = strstr(line, key);
-    if (!p) return false;
-    p += strlen(key);
-    while (*p && *p != '"') ++p;
-    if (*p != '"') return false;
-    ++p;
-    std::string s;
-    while (*p && *p != '"') { s.push_back(*p++); }
-    if (*p != '"') return false;
-    out = s;
-    return true;
+static void parseFuncmapJson(const char *data, size_t len, ModuleMap &mm) {
+    const char *p = data;
+    const char *end = data + len;
+    while (p < end) {
+        const char *key = strstr(p, "\"rva\"");
+        if (!key || key >= end) break;
+        key = (const char*)memchr(key, ':', (size_t)(end - key));
+        if (!key || key >= end) break;
+        ++key;
+        while (key < end && (*key == ' ' || *key == '\t')) ++key;
+        unsigned int rva = 0;
+        if (sscanf(key, "%u", &rva) != 1) { p = key + 1; continue; }
+        const char *objEnd = (const char*)memchr(key, '}', (size_t)(end - key));
+        if (!objEnd) break;
+        std::string name;
+        const char *nameKey = strstr(key, "\"name\"");
+        if (nameKey && nameKey < objEnd) {
+            nameKey = (const char*)memchr(nameKey, ':', (size_t)(objEnd - nameKey));
+            if (nameKey) {
+                ++nameKey;
+                while (nameKey < objEnd && (*nameKey == ' ' || *nameKey == '\t')) ++nameKey;
+                if (nameKey < objEnd && *nameKey == '"') {
+                    ++nameKey;
+                    while (nameKey < objEnd && *nameKey != '"') name.push_back(*nameKey++);
+                }
+            }
+        }
+        mm.functions.push_back(Func{ rva, name });
+        p = objEnd + 1;
+    }
 }
 
 static inline const char* moduleJsonLeaf(Module m) {
@@ -190,22 +194,15 @@ static inline void ensureLoadedFor(Module m, const char *dir) {
         f = fopen(path, "rb");
         if (!f) return;
     }
-    char line[2048];
-    uint32_t pendingRva = 0; bool haveRva = false; std::string pendingName;
-    while (fgets(line, sizeof(line), f)) {
-        uint32_t val;
-        if (parseUintAfterKey(line, "\"rva\":", val)) { pendingRva = val; haveRva = true; }
-        std::string nm;
-        if (parseStringAfterKey(line, "\"name\":", nm)) { pendingName = nm; }
-        // End of object '}' can occur on the same line as rva/name (e.g., { "rva": 4096 },)
-        if (strchr(line, '}')) {
-            if (haveRva) {
-                mm.functions.push_back(Func{ pendingRva, pendingName });
-            }
-            haveRva = false; pendingRva = 0; pendingName.clear();
-        }
-    }
+    if (fseek(f, 0, SEEK_END) != 0) { fclose(f); return; }
+    long sz = ftell(f);
+    if (sz <= 0 || sz > 32 * 1024 * 1024) { fclose(f); return; }
+    if (fseek(f, 0, SEEK_SET) != 0) { fclose(f); return; }
+    std::vector<char> buf((size_t)sz + 1);
+    if (fread(buf.data(), 1, (size_t)sz, f) != (size_t)sz) { fclose(f); return; }
     fclose(f);
+    buf[(size_t)sz] = '\0';
+    parseFuncmapJson(buf.data(), (size_t)sz, mm);
     std::sort(mm.functions.begin(), mm.functions.end(), [](const Func&a, const Func&b){ return a.rva < b.rva; });
     mm.loaded = true;
 }
