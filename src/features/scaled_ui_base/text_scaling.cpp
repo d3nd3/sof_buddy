@@ -136,16 +136,27 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 			float s = fontScale;
 			if (s <= 0.0f) s = 1.0f;
 			if (s != 1.0f && g_centerPrintAnchorSeq == g_lastCenterPrintSeq &&
-			    g_centerPrintAnchorY > 0.0f && g_lastCenterPrintLineCount > 0) {
-				float font_h = g_centerPrintLineStep;
-				if (font_h <= 0.0f) font_h = static_cast<float>(realFontSizes[realFont]);
-				if (font_h <= 0.0f) font_h = 8.0f;
-				computeTextBottomAnchor(g_centerPrintAnchorY, g_lastCenterPrintLineCount,
-				    font_h, g_centerPrintBottomY, g_centerPrintTargetBottomY);
-				applyBottomAnchoredScale(x, y, g_centerPrintBottomY,
-				    g_centerPrintTargetBottomY, s, true);
+			    g_lastCenterPrintLineCount > 0) {
+				if (g_centerPrintScaleSeq != g_lastCenterPrintSeq) {
+					float font_h = g_centerPrintLineStep;
+					if (font_h <= 0.0f) font_h = static_cast<float>(realFontSizes[realFont]);
+					if (font_h <= 0.0f) font_h = 8.0f;
+					const float anchorY = (g_centerPrintAnchorY > 0.0f)
+					    ? g_centerPrintAnchorY
+					    : static_cast<float>(current_vid_h) * 0.35f;
+					computeTextBottomAnchor(anchorY, g_lastCenterPrintLineCount,
+					    font_h, g_centerPrintBottomY, g_centerPrintTargetBottomY);
+					g_centerPrintScaleSeq = g_lastCenterPrintSeq;
+				}
+				// Match pause-screen X model (pivot + char advance); keep bottom-anchored Y.
+				if (scaleX) x = pivotx + (x - pivotx) * s;
+				y = g_centerPrintTargetBottomY + (y - g_centerPrintBottomY) * s;
+				orig_glVertex2f(
+				    snap_ui_pixel(x + (characterIndex * realFontSizes[realFont]) * (s - 1)),
+				    snap_ui_pixel(y));
+			} else {
+				orig_glVertex2f(x, y);
 			}
-			orig_glVertex2f(x, y);
 			break;
 		}
 

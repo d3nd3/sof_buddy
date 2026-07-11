@@ -740,6 +740,11 @@ std::string get_update_target_tag() {
 
 std::string get_update_releases_list_api_url() {
     const std::string api_url = get_update_api_url();
+    if (api_url_uses_sofvault_mirror(api_url)) {
+        const size_t pos = api_url.rfind("/latest.json");
+        if (pos != std::string::npos)
+            return api_url.substr(0, pos) + "/list.json";
+    }
     const size_t pos = api_url.rfind("/releases/latest");
     if (pos != std::string::npos)
         return api_url.substr(0, pos) + "/releases?per_page=100";
@@ -822,6 +827,14 @@ bool fetch_release_by_tag(const std::string& tag, ReleaseInfo& out, std::string&
     if (tag.empty()) {
         error = "Release tag is empty";
         return false;
+    }
+    const std::string api_url = get_update_api_url();
+    if (api_url_uses_sofvault_mirror(api_url)) {
+        const size_t pos = api_url.rfind("/latest.json");
+        if (pos != std::string::npos) {
+            std::string url = api_url.substr(0, pos) + "/by_tag/" + tag + ".json";
+            return fetch_release_from_api_url(url, out, error);
+        }
     }
     std::string url = "https://api.github.com/repos/d3nd3/sof_buddy/releases/tags/";
     url += tag;

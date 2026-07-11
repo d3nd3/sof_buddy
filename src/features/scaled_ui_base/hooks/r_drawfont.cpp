@@ -67,6 +67,16 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
     } else if (g_currentFontCaller == FontCaller::MissionStatus) {
         g_missionStatusAnchorY = static_cast<float>(screenY);
     }
+
+    if (g_currentFontCaller == FontCaller::SCR_DrawCenterPrint) {
+        float s = fontScale;
+        if (s <= 0.0f) s = 1.0f;
+        if (s != 1.0f) {
+            const float textW = static_cast<float>(current_vid_w - 2 * screenX);
+            screenX -= static_cast<int>(snap_ui_pixel(textW * (s - 1.0f) * 0.5f));
+        }
+    }
+
 	SOFBUDDY_ASSERT(font != nullptr);
 	if (font) {
 		realFont = getRealFontEnum((char*)(* (int * )(font + 4)));

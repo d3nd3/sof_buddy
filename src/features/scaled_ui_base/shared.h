@@ -40,6 +40,8 @@ extern float scaleRoundRatio;
 extern bool scaleRoundAuto;
 float round_scale_value(float v);
 float effective_auto_scale(float raw);
+float snap_font_scale_to_glyph_grid(float s);
+float snap_ui_pixel(float v);
 extern float crosshairScale;
 extern bool hudStretchPicCenter;
 extern bool hudDmRanking;

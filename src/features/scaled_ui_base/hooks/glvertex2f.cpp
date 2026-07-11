@@ -73,8 +73,8 @@ static inline void scaleCinematicVertex(float x, float y) {
         g_cineAnchorY = y;
     }
     orig_glVertex2f(
-        g_cineAnchorX + (x - g_cineAnchorX) * fontScale,
-        g_cineAnchorY + (y - g_cineAnchorY) * fontScale);
+        snap_ui_pixel(g_cineAnchorX + (x - g_cineAnchorX) * fontScale),
+        snap_ui_pixel(g_cineAnchorY + (y - g_cineAnchorY) * fontScale));
     if (++g_cineVertexIndex > 4) g_cineVertexIndex = 1;
 }
 #endif
@@ -84,6 +84,13 @@ static void handleDrawCharVertex(float x, float y) {
     SOFBUDDY_ASSERT(orig_glVertex2f != nullptr);
 #if FEATURE_SCALED_HUD
     if (tryScoreboardVertex(x, y)) return;
+#endif
+#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
+    // TYPEAMATIC: hkDraw_CharExtra scales char positions; scale the 8px quads too.
+    if (g_activeRenderType == uiRenderType::Cinematic) {
+        scaleCinematicVertex(x, y);
+        return;
+    }
 #endif
     if (g_activeRenderType == uiRenderType::Console &&
         g_activeDrawCall != DrawRoutineType::StretchPic) {

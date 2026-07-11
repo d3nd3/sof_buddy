@@ -29,6 +29,16 @@ float effective_auto_scale(float raw) {
 	return scaleRoundAuto ? round_scale_value(raw) : raw;
 }
 
+// Snap scale so 8px reference glyphs land on whole pixels (768p: 1.6 -> 1.625).
+float snap_font_scale_to_glyph_grid(float s) {
+	if (s <= 1.0f) return s;
+	return roundf(s * 8.0f) / 8.0f;
+}
+
+float snap_ui_pixel(float v) {
+	return floorf(v + 0.5f);
+}
+
 static void refresh_scale_rounding(void) {
 #if FEATURE_SCALED_CON
 	if (_sofbuddy_font_scale) fontscale_change(_sofbuddy_font_scale);

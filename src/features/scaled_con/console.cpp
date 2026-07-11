@@ -64,6 +64,7 @@ void fontscale_change(cvar_t * cvar) {
 
     SOFBUDDY_ASSERT(cvar->value > 0.0f);
     fontScale = round_scale_value(cvar->value);
+    fontScale = snap_font_scale_to_glyph_grid(fontScale);
 	PrintOut(PRINT_LOG,"Precise fontScale change: %.10f\n", fontScale);
 
 	//Protect from divide by 0.
@@ -89,6 +90,7 @@ void apply_auto_font_scale(void) {
 	if (!fontScaleAuto) return;
 	fontScale = (screen_y_scale > 0.0f) ? screen_y_scale : 1.0f;
 	if (scaleRoundAuto) fontScale = round_scale_value(fontScale);
+	fontScale = snap_font_scale_to_glyph_grid(fontScale);
 	SOFBUDDY_ASSERT(fontScale > 0.0f);
 	if (detour_Cvar_Set2::oCvar_Set2) {
 		char buf[32];

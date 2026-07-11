@@ -1,5 +1,20 @@
 # Changelog
 
+## v6.7
+
+### Updates — SofVault release list & per-tag manifests (XP)
+
+- **`sync_from_github.sh`:** Cron sync now also writes **`list.json`** (GitHub release list) and **`by_tag/<tag>.json`** manifests for the install-version picker; only the latest tag gets a mirror **`zip_url`**.
+- **XP updater:** When `_sofbuddy_update_api_url` points at the sofvault mirror, **Refresh Release List** reads `list.json` and **check/download by tag** uses `by_tag/<tag>.json`.
+- **Docs:** `rsrc/sofvault_mirror/README.md` documents `list.json`, `by_tag/`, and mirror download limits for older tags.
+
+### Scaled UI — glyph-grid snap & center print
+
+- **`snap_font_scale_to_glyph_grid()`:** Snaps font scale so 8px reference glyphs land on whole pixels (e.g. 768p auto `1.6` → `1.625`).
+- **`snap_ui_pixel()`:** Rounds scaled UI coordinates to the nearest pixel; used for cinematic typematic char quads and center-print text.
+- **Cinematic typematic:** `Draw_Char` vertices in cinematic scope now scale with font scale (char positions were already scaled in `Draw_CharExtra`).
+- **Center print:** Reworked multi-line yellow subtitle / center-print scaling — pause-screen-style horizontal pivot, bottom-anchored Y, and `R_DrawFont` X compensation for centered blocks.
+
 ## v6.6
 
 ### Updates — SofVault XP mirror (cron pull)
