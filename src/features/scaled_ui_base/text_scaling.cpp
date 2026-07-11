@@ -53,48 +53,7 @@ void applyBottomAnchoredScale(float& x, float& y, float bottomY, float targetBot
     } else {
         x *= scale;
     }
-    y = targetBottomY + (y - bottomY) * scale;
-}
-
-static void scaleCenterAnchoredText(float& x, float& y, float top_anchor, int lines) {
-	float s = fontScale;
-	if (s <= 0.0f) s = 1.0f;
-	if (s == 1.0f) return;
-
-	const bool hi_res = (current_vid_w > 640 || current_vid_h > 480);
-	const bool looks_virtual = hi_res && x <= 700.0f && y <= 520.0f;
-	const float cx = looks_virtual ? 320.0f : (current_vid_w * 0.5f);
-	const float domain_h = looks_virtual ? 480.0f : (current_vid_h > 0 ? static_cast<float>(current_vid_h) : 480.0f);
-
-	float top = top_anchor;
-	if (top <= 0.0f)
-		top = (y < 96.0f) ? 48.0f : (looks_virtual ? 168.0f : (current_vid_h * 0.35f));
-	if (lines < 1) lines = 1;
-
-	float font_h = static_cast<float>(realFontSizes[realFont]);
-	if (font_h <= 0.0f) font_h = 8.0f;
-
-	const float block_h = font_h * lines;
-	float s_eff = s;
-	if (block_h > 1.0f) {
-		const float fit_scale = (domain_h - 2.0f) / block_h;
-		if (fit_scale > 0.0f && s_eff > fit_scale) s_eff = fit_scale;
-	}
-	if (s_eff < 0.1f) s_eff = 0.1f;
-
-	const float cy = top + block_h * 0.5f;
-	const float scaled_h = block_h * s_eff;
-	float top_scaled = cy - scaled_h * 0.5f;
-	float bottom_scaled = cy + scaled_h * 0.5f;
-
-	float y_shift = 0.0f;
-	const float margin = 1.0f;
-	if (top_scaled < margin) y_shift = margin - top_scaled;
-	if (bottom_scaled + y_shift > domain_h - margin)
-		y_shift -= (bottom_scaled + y_shift) - (domain_h - margin);
-
-	x = cx + (x - cx) * s_eff;
-	y = cy + (y - cy) * s_eff + y_shift;
+	y = targetBottomY + (y - bottomY) * scale;
 }
 
 inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool incrementChar) {
@@ -107,21 +66,30 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 
 	FontCaller caller = g_currentFontCaller;
 	switch (caller) {
-		case FontCaller::DMRankingCalcXY:
-		case FontCaller::Inventory2:
-			SOFBUDDY_ASSERT(hudScale > 0.0f);
-			if (scaleX) x = pivotx + (x - pivotx) * hudScale;
-			if (scaleY) y = pivoty + (y - pivoty) * hudScale;
-			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(hudScale-1), y);
+		case FontCaller::DMRankingCalcXY: {
+			const float s = snapped_text_scale_active(hudScale);
+			SOFBUDDY_ASSERT(s > 0.0f);
+			if (scaleX) x = pivotx + (x - pivotx) * s;
+			if (scaleY) y = pivoty + (y - pivoty) * s;
+			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(s-1), y);
 			break;
+		}
+		case FontCaller::Inventory2: {
+			// Same scale as cropped inventory/ammo pics (no glyph snap).
+			const float s = hudScale;
+			SOFBUDDY_ASSERT(s > 0.0f);
+			if (scaleX) x = pivotx + (x - pivotx) * s;
+			if (scaleY) y = pivoty + (y - pivoty) * s;
+			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(s-1), y);
+			break;
+		}
 			
 		case FontCaller::ScopeCalcXY:
 			orig_glVertex2f(x, y);
 			break;
 			
 		case FontCaller::SCRDrawPause: {
-			float s = fontScale;
-			if (s <= 0.0f) s = 1.0f;
+			const float s = snapped_text_scale_active(fontScale);
 			if (s != 1.0f) {
 				if (scaleX) x = pivotx + (x - pivotx) * s;
 				if (scaleY) y = pivoty + (y - pivoty) * s;
@@ -133,26 +101,32 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 		}
 
 		case FontCaller::SCR_DrawCenterPrint: {
-			float s = fontScale;
-			if (s <= 0.0f) s = 1.0f;
+			const float s = snapped_text_scale_active(fontScale);
+			if (s != 1.0f && g_centerPrintAnchorSeq == g_lastCenterPrintSeq &&
+			    g_centerPrintAnchorY > 0.0f && g_lastCenterPrintLineCount > 0) {
+				float font_h = g_centerPrintLineStep;
+				if (font_h <= 0.0f) font_h = static_cast<float>(realFontSizes[realFont]);
+				if (font_h <= 0.0f) font_h = 8.0f;
+				computeTextBottomAnchor(g_centerPrintAnchorY, g_lastCenterPrintLineCount,
+				    font_h, g_centerPrintBottomY, g_centerPrintTargetBottomY);
+				applyBottomAnchoredScale(x, y, g_centerPrintBottomY,
+				    g_centerPrintTargetBottomY, s, true);
+			}
+			orig_glVertex2f(x, y);
+			break;
+		}
+
+		case FontCaller::MissionStatus: {
+			const float s = snapped_text_scale_active(fontScale);
 			if (s != 1.0f) {
-				// Uniform scale from screen center (X) + first-line Y anchor.
-				// Unlike pause, center print uses absolute line Y — no pivot/charIndex model.
-				const float cx = (current_vid_w > 0) ? current_vid_w * 0.5f : 320.0f;
-				x = cx + (x - cx) * s;
-				if (g_centerPrintAnchorY > 0.0f)
-					y = g_centerPrintAnchorY + (y - g_centerPrintAnchorY) * s;
-				orig_glVertex2f(x, y);
+				if (scaleX) x = pivotx + (x - pivotx) * s;
+				if (scaleY) y = pivoty + (y - pivoty) * s;
+				orig_glVertex2f(x + (characterIndex * realFontSizes[realFont]) * (s - 1.0f), y);
 			} else {
 				orig_glVertex2f(x, y);
 			}
 			break;
 		}
-
-		case FontCaller::MissionStatus:
-			scaleCenterAnchoredText(x, y, g_missionStatusAnchorY, 1);
-			orig_glVertex2f(x, y);
-			break;
 			
 		case FontCaller::DrawLine:
 			orig_glVertex2f(x, y);
@@ -168,9 +142,12 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 		case FontCaller::ServerboxDraw:
 		case FontCaller::TipRender:
 			SOFBUDDY_ASSERT(screen_y_scale > 0.0f);
-			if (scaleX) x = pivotx + (x - pivotx) * screen_y_scale;
-			if (scaleY) y = pivoty + (y - pivoty) * screen_y_scale;
-			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(screen_y_scale-1), y);
+			{
+			const float s = snapped_text_scale_active(screen_y_scale);
+			if (scaleX) x = pivotx + (x - pivotx) * s;
+			if (scaleY) y = pivoty + (y - pivoty) * s;
+			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(s-1), y);
+			}
 			break;
 #endif
 			

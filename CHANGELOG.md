@@ -1,5 +1,19 @@
 # Changelog
 
+## v7.0
+
+### Scaled UI — per-font glyph snap & XP alignment fixes
+
+- **Per-font glyph grid:** `snap_font_scale_to_glyph_grid(s, glyphPx)` uses each font’s `realFontSizes` entry; helpers `snapped_text_scale_active()`, `console_font_scale()`, and `font_glyph_px()`.
+- **Raw scale at cvar, snap at draw:** `fontScale` / `hudScale` stay on the resolution ratio at the cvar; glyph snap applies on text draw/layout paths only — HUD sprites and cropped pics keep raw `hudScale`.
+- **Console (XP):** `Con_DrawConsole`, `Con_CheckResize`, `Con_DrawNotify`, and console `Draw_Char` vertices all use `console_font_scale()` (8px medium grid) so layout and glyphs stay aligned.
+- **Mission status:** pivot-based per-font glyph scaling plus `R_DrawFont` horizontal compensation for centered red objective text.
+- **Center print:** restored bottom-anchored multi-line scaling (reverts v6.9 screen-center vertex model).
+- **DM ranking:** `R_DrawFont` entry offsets and font vertices both use the same snapped text scale.
+- **Inventory / ammo HUD:** ammo and item count text uses raw `hudScale` to match cropped panel pics (glyph snap drifted labels off the art on XP).
+- **Cinematic typematic:** char positions and quads use per-font glyph snap; removed per-vertex `snap_ui_pixel` rounding.
+- **Menu text:** server box / tip render paths use snapped `screen_y_scale` per active font.
+
 ## v6.9
 
 ### Scaled UI — center print scaling (screen-center model)

@@ -103,7 +103,6 @@ float g_centerPrintBottomY = -1.0f;
 float g_centerPrintTargetBottomY = -1.0f;
 unsigned int g_centerPrintScaleSeq = 0;
 float g_centerPrintLineStep = 0.0f;
-float g_missionStatusAnchorY = 0.0f;
 
 // Shared state enums
 realFontEnum_t realFont = REALFONT_UNKNOWN;

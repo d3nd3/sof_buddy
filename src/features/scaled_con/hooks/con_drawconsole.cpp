@@ -17,22 +17,24 @@ void hkCon_DrawConsole(float frac, detour_Con_DrawConsole::tCon_DrawConsole orig
 	SOFBUDDY_ASSERT(fontScale > 0.0f);
 	SOFBUDDY_ASSERT(frac >= 0.0f && frac <= 1.0f);
 	SOFBUDDY_ASSERT(consoleSize >= 0.0f && consoleSize <= 1.0f);
+
+	const float cs = console_font_scale(fontScale);
 	
 	resetGlVertexQuadState();
 	g_activeRenderType = uiRenderType::Console;
 	g_currentStretchPicCaller = StretchPicCaller::CON_DrawConsole;
 
 	if (frac == 0.5 && *cls_state == 8) {
-		frac = consoleSize / fontScale;
+		frac = consoleSize / cs;
 		draw_con_frac = consoleSize;
 	} else {
 		draw_con_frac = frac;
-		frac = frac / fontScale;
+		frac = frac / cs;
 	}
 
 	SOFBUDDY_ASSERT(frac >= 0.0f);
 	real_refdef_width = current_vid_w;
-	*viddef_width = (int)(current_vid_w / fontScale);
+	*viddef_width = (int)(current_vid_w / cs);
 	original(frac);
 	*viddef_width = real_refdef_width;
 

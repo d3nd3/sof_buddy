@@ -12,11 +12,13 @@ void hkCon_DrawNotify(detour_Con_DrawNotify::tCon_DrawNotify original) {
 	SOFBUDDY_ASSERT(viddef_width != nullptr);
 	SOFBUDDY_ASSERT(fontScale > 0.0f);
 	SOFBUDDY_ASSERT(current_vid_w > 0);
+
+	const float cs = console_font_scale(fontScale);
 	
 	real_refdef_width = current_vid_w;
 
 	//fake the width
-	*viddef_width = 1 / fontScale * current_vid_w;
+	*viddef_width = (int)(current_vid_w / cs);
 	
 	SOFBUDDY_ASSERT(*viddef_width > 0);
 	resetGlVertexQuadState();

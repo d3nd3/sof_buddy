@@ -64,7 +64,9 @@ static inline bool tryScoreboardVertex(float& x, float& y) {
 
 #if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
 static inline void scaleCinematicVertex(float x, float y) {
-    if (fontScale == 1.0f) {
+    const int glyphPx = realFontSizes[REALFONT_MEDIUM];
+    const float s = snap_font_scale_to_glyph_grid(fontScale, glyphPx);
+    if (s == 1.0f) {
         orig_glVertex2f(x, y);
         return;
     }
@@ -73,8 +75,8 @@ static inline void scaleCinematicVertex(float x, float y) {
         g_cineAnchorY = y;
     }
     orig_glVertex2f(
-        snap_ui_pixel(g_cineAnchorX + (x - g_cineAnchorX) * fontScale),
-        snap_ui_pixel(g_cineAnchorY + (y - g_cineAnchorY) * fontScale));
+        g_cineAnchorX + (x - g_cineAnchorX) * s,
+        g_cineAnchorY + (y - g_cineAnchorY) * s);
     if (++g_cineVertexIndex > 4) g_cineVertexIndex = 1;
 }
 #endif
@@ -95,7 +97,8 @@ static void handleDrawCharVertex(float x, float y) {
     if (g_activeRenderType == uiRenderType::Console &&
         g_activeDrawCall != DrawRoutineType::StretchPic) {
         SOFBUDDY_ASSERT(fontScale > 0.0f);
-        orig_glVertex2f(x * fontScale, y * fontScale);
+        const float s = console_font_scale(fontScale);
+        orig_glVertex2f(x * s, y * s);
         return;
     }
     orig_glVertex2f(x, y);

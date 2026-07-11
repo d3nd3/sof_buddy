@@ -29,10 +29,30 @@ float effective_auto_scale(float raw) {
 	return scaleRoundAuto ? round_scale_value(raw) : raw;
 }
 
-// Snap scale so 8px reference glyphs land on whole pixels (768p: 1.6 -> 1.625).
-float snap_font_scale_to_glyph_grid(float s) {
+// Snap scale so glyphs of glyphPx land on whole pixels (768p medium 8: 1.6 -> 1.625).
+// Text paths only; sprite/pic scales stay on the raw UI ratio.
+float snap_font_scale_to_glyph_grid(float s, int glyphPx) {
 	if (s <= 1.0f) return s;
-	return roundf(s * 8.0f) / 8.0f;
+	if (glyphPx <= 0) glyphPx = 8;
+	return roundf(s * (float)glyphPx) / (float)glyphPx;
+}
+
+int font_glyph_px(realFontEnum_t font) {
+	const int px = realFontSizes[font];
+	return (px > 0) ? px : realFontSizes[REALFONT_MEDIUM];
+}
+
+float snapped_text_scale(float raw, int glyphPx) {
+	if (raw <= 0.0f) raw = 1.0f;
+	return snap_font_scale_to_glyph_grid(raw, glyphPx);
+}
+
+float snapped_text_scale_active(float raw) {
+	return snapped_text_scale(raw, font_glyph_px(realFont));
+}
+
+float console_font_scale(float raw) {
+	return snapped_text_scale(raw, realFontSizes[REALFONT_MEDIUM]);
 }
 
 float snap_ui_pixel(float v) {

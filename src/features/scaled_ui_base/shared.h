@@ -40,7 +40,8 @@ extern float scaleRoundRatio;
 extern bool scaleRoundAuto;
 float round_scale_value(float v);
 float effective_auto_scale(float raw);
-float snap_font_scale_to_glyph_grid(float s);
+float snap_font_scale_to_glyph_grid(float s, int glyphPx);
+float snapped_text_scale(float raw, int glyphPx);
 float snap_ui_pixel(float v);
 extern float crosshairScale;
 extern bool hudStretchPicCenter;
@@ -98,7 +99,6 @@ void computeTextBottomAnchor(float topLineY, int lineCount, float lineHeight,
     float& bottomY, float& targetBottomY);
 void applyBottomAnchoredScale(float& x, float& y, float bottomY, float targetBottomY,
     float scale, bool centerX);
-extern float g_missionStatusAnchorY;
 
 // =============================================================================
 // ENUMS AND CONSTANTS
@@ -168,6 +168,10 @@ extern realFontEnum_t realFont;
 
 // Font sizes for each realFontEnum_t, index by enum value
 extern const int realFontSizes[5];
+
+int font_glyph_px(realFontEnum_t font);
+float snapped_text_scale_active(float raw);
+float console_font_scale(float raw);
 
 // Font caller context enum for R_DrawFont callers (defined in text.cpp)
 enum class FontCaller;
