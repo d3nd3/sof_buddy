@@ -152,6 +152,7 @@
   set _sofbuddy_update_releases_url "http://your-endpoint/releases/latest"
   ```
 - XP users may hit WinHTTP TLS failures on modern HTTPS endpoints (for example GitHub API). The mirror defaults above avoid that path.
+- The sofvault host syncs the XP zip + `latest.json` from GitHub on a cron schedule (`rsrc/sofvault_mirror/sync_from_github.sh`); no SSH publish from CI is required.
 
 </details>
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## v6.6
+
+### Updates — SofVault XP mirror (cron pull)
+
+- **`rsrc/sofvault_mirror/sync_from_github.sh`:** Server-side cron script polls GitHub’s latest release API, downloads `release_windows_xp.zip` when the tag changes, and writes `latest.json` for XP in-game updater checks.
+- **Removed `publish.sh`:** No SSH push from GitHub Actions; sofvault syncs from GitHub like the sof1maps mirror.
+- **CI:** Dropped redundant `sofvault_latest.json` generate/upload release-asset steps.
+- **Docs:** `rsrc/sofvault_mirror/README.md` and README XP section note the cron pull model.
+
 ## v6.5
 
 ### CallsiteClassifier — funcmap parser fix
