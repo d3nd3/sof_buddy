@@ -15,22 +15,30 @@ void internal_menus_SCR_BeginLoadingPlaque_post(qboolean noPlaque) {
     if (!detour_M_PushMenu::oM_PushMenu) return;
 
     static int* s_cls_state = (int*)rvaToAbsExe((void*)0x001C1F00);
-    if (s_cls_state) internal_menus_update_connect_flow(*s_cls_state);
+    const int cls = s_cls_state ? *s_cls_state : -1;
+    if (s_cls_state) internal_menus_update_connect_flow(cls);
+    internal_menus_begin_loading_plaque_context(cls);
 
     // SP local load: vanilla loading.rmf from pak. Avoid killmenu so blankscreen/outfit interstitials
     // are not cleared early.
     if (internal_menus_use_vanilla_loading_menu()) {
+        if (internal_menus_savegame_load_active())
+            internal_menus_on_loadgame_map_load();
         internal_menus_sync_loading_network_ui();
         detour_M_PushMenu::oM_PushMenu("loading", "", true);
         internal_menus_call_SCR_UpdateScreen(true);
+        internal_menus_end_loading_plaque_context();
         return;
     }
 
     const bool lock_input = internal_menus_should_lock_loading_input();
 #if FEATURE_HTTP_MAPS
-    // After precache, a second SCR_BeginLoadingPlaque often runs; killmenu+push flashes the loading
-    // UI and can destabilize the client right before spawn.
-    if (lock_input && http_maps_should_skip_loading_plaque_menu()) return;
+    if (lock_input && http_maps_should_skip_loading_plaque_menu()) {
+        internal_menus_sync_loading_network_ui();
+        http_maps_refresh_loading_menu_labels();
+        internal_menus_end_loading_plaque_context();
+        return;
+    }
 #endif
     internal_menus_sync_loading_network_ui();
     if (internal_menus_should_killmenu_before_loading() && lock_input &&
@@ -38,9 +46,14 @@ void internal_menus_SCR_BeginLoadingPlaque_post(qboolean noPlaque) {
         char killmenu_cmd[] = "killmenu";
         detour_Cmd_ExecuteString::oCmd_ExecuteString(killmenu_cmd);
     }
+#if FEATURE_HTTP_MAPS
+    http_maps_refresh_loading_menu_labels();
+#else
     loading_reset_current_map_unknown();
+#endif
     detour_M_PushMenu::oM_PushMenu(internal_menus_loading_menu_name(), "", lock_input);
     internal_menus_call_SCR_UpdateScreen(true);
+    internal_menus_end_loading_plaque_context();
 }
 
 #endif

@@ -151,19 +151,6 @@ static bool http_maps_is_enabled(void)
 	return http_maps_mode() != 0;
 }
 
-static bool http_maps_should_assist_connect(void)
-{
-	if (!http_maps_is_enabled()) return false;
-	if (http_maps_frame_work_pending()) return true;
-#if FEATURE_INTERNAL_MENUS
-	return internal_menus_mp_connect_flow_active() || internal_menus_deathmatch_mode_active();
-#else
-	if (!detour_Cvar_Get::oCvar_Get) return false;
-	cvar_t* dm = detour_Cvar_Get::oCvar_Get("deathmatch", "0", 0, nullptr);
-	return dm && dm->value != 0.0f;
-#endif
-}
-
 static float http_maps_clamp_progress(float p)
 {
 	if (p < 0.0f) return 0.0f;
@@ -1159,8 +1146,12 @@ static void http_maps_set_loading_status(const char* status)
 static void http_maps_loading_ui_show_map(const char* map_bsp_path)
 {
 	PrintOut(PRINT_DEV, "http_maps: UI loading_show_ui; _sofbuddy_loading_current %s\n", map_bsp_path && map_bsp_path[0] ? map_bsp_path : "?");
+	g_http_maps_state.loading_ui_active = true;
+	if (map_bsp_path && map_bsp_path[0])
+		g_http_maps_state.loading_ui_map = map_bsp_path;
+	if (map_bsp_path && map_bsp_path[0])
+		loading_set_current(map_bsp_path);
 	loading_show_ui();
-	loading_set_current(map_bsp_path);
 }
 #endif
 
@@ -1734,11 +1725,52 @@ bool http_maps_frame_work_pending(void)
 	return g_http_maps_state.waiting || g_http_maps_state.deferred_continue_reason != nullptr;
 }
 
+bool http_maps_should_assist_connect(void)
+{
+	if (!_sofbuddy_http_maps || !_sofbuddy_http_maps->string || _sofbuddy_http_maps->string[0] == '0')
+		return false;
+	if (static_cast<int>(_sofbuddy_http_maps->value) <= 0) return false;
+	if (http_maps_frame_work_pending()) return true;
+#if FEATURE_INTERNAL_MENUS
+	return internal_menus_mp_connect_flow_active() || internal_menus_deathmatch_mode_active();
+#else
+	if (!detour_Cvar_Get::oCvar_Get) return false;
+	cvar_t* dm = detour_Cvar_Get::oCvar_Get("deathmatch", "0", 0, nullptr);
+	return dm && dm->value != 0.0f;
+#endif
+}
+
 bool http_maps_wants_custom_loading_menu(void)
 {
 	if (!http_maps_is_enabled()) return false;
 	if (http_maps_frame_work_pending()) return true;
 	return g_http_maps_state.loading_ui_active;
+}
+
+void http_maps_on_sp_local_map_load(void)
+{
+	g_http_maps_state.loading_ui_active = false;
+	g_http_maps_state.loading_ui_map.clear();
+	g_http_maps_state.cached_map_bsp.clear();
+	g_http_maps_state.completed_map_bsp.clear();
+}
+
+void http_maps_refresh_loading_menu_labels(void)
+{
+#if FEATURE_INTERNAL_MENUS
+	if (!http_maps_should_assist_connect()) return;
+	const char* map = nullptr;
+	if (!g_http_maps_state.loading_ui_map.empty())
+		map = g_http_maps_state.loading_ui_map.c_str();
+	else if (!g_http_maps_state.pending_map_bsp.empty())
+		map = g_http_maps_state.pending_map_bsp.c_str();
+	else if (!g_http_maps_state.cached_map_bsp.empty())
+		map = g_http_maps_state.cached_map_bsp.c_str();
+	else if (!g_http_maps_state.completed_map_bsp.empty())
+		map = g_http_maps_state.completed_map_bsp.c_str();
+	if (map && map[0]) loading_set_current(map);
+	else loading_reset_current_map_unknown();
+#endif
 }
 
 void http_maps_pump(void)
