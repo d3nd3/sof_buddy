@@ -1,5 +1,19 @@
 # Changelog
 
+## v6.9
+
+### Scaled UI — center print scaling (screen-center model)
+
+- **Center print / yellow subtitles:** Scale uniformly from **screen center (X)** and the **first-line Y anchor** (`g_centerPrintAnchorY`) — matches how center-print lines use absolute Y, not pause-style inset/pivot.
+- **Removed `R_DrawFont` screenX pre-compensation** for center print; glyph positions are handled entirely in the vertex scaler.
+
+## v6.8
+
+### Scaled UI — center print scaling fix
+
+- **Center print / yellow subtitles:** Reverted the v6.7 bottom-anchor path to standard **pivot-based X/Y scaling** (same model as pause text) — fixes misaligned or drifting multi-line center-print blocks.
+- **`R_DrawFont`:** Center-print horizontal compensation no longer pixel-snaps `screenX`; `screenY` is treated as absolute line Y, not a pause-style inset.
+
 ## v6.7
 
 ### Updates — SofVault release list & per-tag manifests (XP)

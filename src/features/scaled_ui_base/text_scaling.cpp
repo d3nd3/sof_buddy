@@ -136,9 +136,13 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 			float s = fontScale;
 			if (s <= 0.0f) s = 1.0f;
 			if (s != 1.0f) {
-				if (scaleX) x = pivotx + (x - pivotx) * s;
-				if (scaleY) y = pivoty + (y - pivoty) * s;
-				orig_glVertex2f(x + (characterIndex * realFontSizes[realFont]) * (s - 1), y);
+				// Uniform scale from screen center (X) + first-line Y anchor.
+				// Unlike pause, center print uses absolute line Y — no pivot/charIndex model.
+				const float cx = (current_vid_w > 0) ? current_vid_w * 0.5f : 320.0f;
+				x = cx + (x - cx) * s;
+				if (g_centerPrintAnchorY > 0.0f)
+					y = g_centerPrintAnchorY + (y - g_centerPrintAnchorY) * s;
+				orig_glVertex2f(x, y);
 			} else {
 				orig_glVertex2f(x, y);
 			}
