@@ -72,8 +72,9 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
         float s = fontScale;
         if (s <= 0.0f) s = 1.0f;
         if (s != 1.0f) {
+            // screenX is line start; screenY is absolute line Y (not a pause-style inset).
             const float textW = static_cast<float>(current_vid_w - 2 * screenX);
-            screenX -= static_cast<int>(snap_ui_pixel(textW * (s - 1.0f) * 0.5f));
+            screenX -= static_cast<int>(textW * (s - 1.0f) * 0.5f);
         }
     }
 
