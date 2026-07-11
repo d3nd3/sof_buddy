@@ -20,8 +20,10 @@ void Cmd_SoFBuddy_Menu_f(void);
 bool internal_menus_deathmatch_mode_active(void);
 void internal_menus_update_connect_flow(int cls_state);
 bool internal_menus_mp_connect_flow_active(void);
-// Pak vanilla loading.rmf for SP local loads; custom UI during MP connect/map load.
+// Pak vanilla loading.rmf for local loads; custom UI during MP connect or http_maps download.
 bool internal_menus_use_vanilla_loading_menu(void);
+bool internal_menus_should_killmenu_before_loading(void);
+void internal_menus_sync_loading_network_ui(void);
 bool internal_menus_is_mp_loading_context(void);
 bool internal_menus_should_lock_loading_input(void);
 const char* internal_menus_loading_menu_name(void);

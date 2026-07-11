@@ -1,5 +1,19 @@
 # Changelog
 
+## v7.1
+
+### cl_maxfps singleplayer — simplify freeze sync
+
+- **Removed SV/CL throttle pairing** (`Qcommon_Frame` Pre + `SV_Frame` override) and **ExitLevel** / **GameDllLoaded** lifecycle hooks — freeze-flag sync alone fixes the post-cinematic black screen.
+- **Kept:** `CL_Frame` NOP patch, sofplus `sp_Sys_Mil` detour, **CinematicFreeze** mirror to exe, **M_PushMenu** Pre clear when game freeze is already off.
+- **README:** Documents root cause — throttled `CL_Frame` lets `intermission` run at `Qcommon_Frame` top `Cbuf_Execute` while exe `cinematicfreeze` is still set.
+
+### Internal menus — loading screen & HTTP maps
+
+- **Vanilla `loading.rmf`** for all local loads; custom Buddy loading UI only during **MP connect** or **HTTP maps** download.
+- **`loading_network.rmf`:** conditional map/download status panel in loading header via `_sofbuddy_loading_network` (`cninclude` on vanilla loading).
+- **`SCR_BeginLoadingPlaque`:** skip redundant second plaque push during HTTP precache (avoids killmenu flash / client instability before spawn); `killmenu` only on custom loading path.
+
 ## v7.0
 
 ### Scaled UI — per-font glyph snap & XP alignment fixes

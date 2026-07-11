@@ -6,8 +6,9 @@
 #include "util.h"
 #include "../shared.h"
 
-// gamex86.dll: game.cinematicfreeze (game_locals_t::cinematicfreeze)
+// gamex86.dll: game.cinematicfreeze
 static const void* kGameCinematicFreezeRva = (void*)0x0015D8D5;
+// SoF.exe: cl.ps.cinematicfreeze — M_PushMenu bails when set
 static const void* kExeCinematicFreezeRva = (void*)0x001E7F5B;
 
 static char* exeCinematicFreezePtr(void)
@@ -20,19 +21,9 @@ static char* gameCinematicFreezePtr(void)
 	return (char*)rvaToAbsGame((void*)kGameCinematicFreezeRva);
 }
 
-void mfps_set_exe_cinematicfreeze(bool enable)
-{
-	char* flag = exeCinematicFreezePtr();
-	if (flag) {
-		*flag = enable ? 1 : 0;
-	}
-}
-
-void mfps_clear_exe_cinematicfreeze(void)
-{
-	mfps_set_exe_cinematicfreeze(false);
-}
-
+// With cl_maxfps SP throttle, intermission → M_PushMenu often runs at the next
+// Qcommon_Frame top Cbuf_Execute (before CL_ReadPackets), not inside
+// CL_SendCommand. Exe freeze can still be set while game already cleared it.
 void mfps_sync_exe_cinematicfreeze_from_game(void)
 {
 	char* exeFlag = exeCinematicFreezePtr();
@@ -47,7 +38,10 @@ void mfps_sync_exe_cinematicfreeze_from_game(void)
 
 void cinematicfreeze_callback(bool bEnable)
 {
-	mfps_set_exe_cinematicfreeze(bEnable);
+	char* flag = exeCinematicFreezePtr();
+	if (flag) {
+		*flag = bEnable ? 1 : 0;
+	}
 }
 
 #endif // FEATURE_CL_MAXFPS_SINGLEPLAYER

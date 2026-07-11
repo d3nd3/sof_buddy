@@ -180,6 +180,7 @@ void create_loading_cvars() {
 	detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_progress", "", kLoadingCvarFlags, nullptr);
 	detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_current", "", kLoadingCvarFlags, nullptr);
 	detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_status", "CHECKING", kLoadingCvarFlags, nullptr);
+	detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_network", "0", kLoadingCvarFlags, nullptr);
 	detour_Cvar_Get::oCvar_Get("_sofbuddy_tab", "0", 0, nullptr);
     // User preference: keep loading menu input locked (default), or allow interaction.
     detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_lock_input", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
@@ -454,8 +455,19 @@ bool internal_menus_use_vanilla_loading_menu(void) {
     if (http_maps_wants_custom_loading_menu()) return false;
 #endif
     if (g_mp_connect_flow) return false;
-    if (internal_menus_deathmatch_mode_active()) return false;
     return true;
+}
+
+bool internal_menus_should_killmenu_before_loading(void) {
+    return !internal_menus_use_vanilla_loading_menu();
+}
+
+void internal_menus_sync_loading_network_ui(void) {
+#if FEATURE_HTTP_MAPS
+    set_runtime_cvar_int("_sofbuddy_loading_network", http_maps_wants_custom_loading_menu() ? 1 : 0);
+#else
+    set_runtime_cvar_int("_sofbuddy_loading_network", 0);
+#endif
 }
 
 bool internal_menus_is_mp_loading_context(void) {
@@ -614,6 +626,7 @@ void internal_menus_OnVidChanged(void) {
 void loading_show_ui(void) {
     if (internal_menus_use_vanilla_loading_menu()) return;
     if (detour_M_PushMenu::oM_PushMenu) {
+        internal_menus_sync_loading_network_ui();
         loading_reset_current_map_unknown();
         const bool lock_input = internal_menus_should_lock_loading_input();
         detour_M_PushMenu::oM_PushMenu(internal_menus_loading_menu_name(), "", lock_input);

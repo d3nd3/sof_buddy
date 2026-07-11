@@ -10,8 +10,6 @@
 extern qboolean cbuf_addlatecommands_override_callback(detour_Cbuf_AddLateCommands::tCbuf_AddLateCommands original);
 extern void cinematicfreeze_callback(bool bEnable);
 extern void cl_maxfps_EarlyStartup();
-extern void cl_maxfps_GameDllLoaded(void* game_export);
-extern void cl_maxfps_ShutdownGameProgs();
 extern void cl_precache_http_maps_override_callback(detour_CL_Precache_f::tCL_Precache_f original);
 extern void console_protection_EarlyStartup();
 extern LRESULT dispatchmessagea_override_callback(const MSG* msg, detour_DispatchMessageA::tDispatchMessageA original);
@@ -60,10 +58,7 @@ extern void lightblend_PostCvarInit();
 extern void lightblend_RefDllLoaded(char const* name);
 extern void mediaTimers_EarlyStartup();
 extern void mediaTimers_PostCvarInit();
-extern void mfps_ExitLevel_post();
 extern void mfps_M_PushMenu_pre(char const*& menu_file, char const*& parentFrame, bool& lock_input);
-extern void mfps_qcommon_frame_pre(int& msec);
-extern void mfps_sv_frame_override(int msec, detour_SV_Frame::tSV_Frame original);
 extern void new_system_bug_EarlyStartup();
 extern void r_blendlightmaps_post_callback();
 extern void r_blendlightmaps_pre_callback();
@@ -89,12 +84,6 @@ inline void RegisterAllFeatureHooks() {
     SharedHookManager::Instance().RegisterCallback(
         "EarlyStartup", "cl_maxfps_singleplayer", "cl_maxfps_EarlyStartup",
         []() { cl_maxfps_EarlyStartup(); }, 70, SharedHookPhase::Post);
-    SharedHookManager::Instance().RegisterCallback<void*>(
-        "GameDllLoaded", "cl_maxfps_singleplayer", "cl_maxfps_GameDllLoaded",
-        std::function<void(void*)>([](void* game_export) { cl_maxfps_GameDllLoaded(game_export); }), 50, SharedHookPhase::Post);
-    SharedHookManager::Instance().RegisterCallback(
-        "SV_ShutdownGameProgs", "cl_maxfps_singleplayer", "cl_maxfps_ShutdownGameProgs",
-        []() { cl_maxfps_ShutdownGameProgs(); }, 90, SharedHookPhase::Pre);
     SharedHookManager::Instance().RegisterCallback(
         "EarlyStartup", "console_protection", "console_protection_EarlyStartup",
         []() { console_protection_EarlyStartup(); }, 80, SharedHookPhase::Post);
@@ -152,10 +141,6 @@ inline void RegisterAllFeatureHooks() {
     SharedHookManager::Instance().RegisterCallback(
         "PostCvarInit", "internal_menus", "internal_menus_PostCvarInit",
         []() { internal_menus_PostCvarInit(); }, 70, SharedHookPhase::Post);
-    detour_Qcommon_Frame::GetManager().RegisterPreCallback(
-        "cl_maxfps_singleplayer", "mfps_qcommon_frame_pre",
-        [](int& msec) { mfps_qcommon_frame_pre(msec); },
-        75);
     {
         auto& mgr = detour_CinematicFreeze::GetManager();
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] CinematicFreeze manager at 0x%p\n", &mgr);
@@ -169,15 +154,6 @@ inline void RegisterAllFeatureHooks() {
         "cl_maxfps_singleplayer", "mfps_M_PushMenu_pre",
         [](char const*& menu_file, char const*& parentFrame, bool& lock_input) { mfps_M_PushMenu_pre(menu_file, parentFrame, lock_input); },
         85);
-    {
-        auto& mgr = detour_ExitLevel::GetManager();
-        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] ExitLevel manager at 0x%p\n", &mgr);
-        mgr.RegisterPostCallback(
-            "cl_maxfps_singleplayer", "mfps_ExitLevel_post",
-            []() { mfps_ExitLevel_post(); },
-            100);
-        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] ExitLevel post callbacks: %zu\n", mgr.GetPostCallbackCount());
-    }
     detour_GL_BuildPolygonFromSurface::GetManager().RegisterPreCallback(
         "hd_textures", "gl_buildpolygonfromsurface_pre_callback",
         [](void*& msurface_s) { gl_buildpolygonfromsurface_pre_callback(msurface_s); },

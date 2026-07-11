@@ -830,16 +830,6 @@ functions:
       - type: int
         name: msec
 
-  - name: SV_Frame
-    module: SofExe
-    identifier: "0x0005F5B0"
-    return_type: void
-    calling_convention: __cdecl
-    detour_len: 0
-    params:
-      - type: int
-        name: msec
-
   - name: M_PushMenu
     module: SofExe
     identifier: "0x200C7630"
@@ -863,14 +853,6 @@ functions:
     params:
       - type: bool
         name: bEnable
-
-  - name: ExitLevel
-    module: GameDll
-    identifier: "0xAE0A0"
-    return_type: void
-    calling_convention: __cdecl
-    detour_len: 0
-    params: []
 
   - name: Sys_Milliseconds
     module: SofExe

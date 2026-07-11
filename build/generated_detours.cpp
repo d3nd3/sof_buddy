@@ -213,20 +213,12 @@ namespace detour_drawTeamIcons {
     tdrawTeamIcons odrawTeamIcons = nullptr;
 }
 
-namespace detour_SV_Frame {
-    tSV_Frame oSV_Frame = nullptr;
-}
-
 namespace detour_M_PushMenu {
     tM_PushMenu oM_PushMenu = nullptr;
 }
 
 namespace detour_CinematicFreeze {
     tCinematicFreeze oCinematicFreeze = nullptr;
-}
-
-namespace detour_ExitLevel {
-    tExitLevel oExitLevel = nullptr;
 }
 
 namespace detour_Sys_Milliseconds {
@@ -692,17 +684,6 @@ namespace detour_drawTeamIcons {
     }
 }
 
-namespace detour_SV_Frame {
-    ManagerType& GetManager() {
-        static ManagerType* instance = nullptr;
-        if (!instance) {
-            static char storage[sizeof(ManagerType)];
-            instance = new(storage) ManagerType();
-        }
-        return *instance;
-    }
-}
-
 namespace detour_M_PushMenu {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
@@ -715,17 +696,6 @@ namespace detour_M_PushMenu {
 }
 
 namespace detour_CinematicFreeze {
-    ManagerType& GetManager() {
-        static ManagerType* instance = nullptr;
-        if (!instance) {
-            static char storage[sizeof(ManagerType)];
-            instance = new(storage) ManagerType();
-        }
-        return *instance;
-    }
-}
-
-namespace detour_ExitLevel {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
         if (!instance) {
@@ -947,17 +917,6 @@ namespace detour_CinematicFreeze {
     }
 }
 
-namespace detour_ExitLevel {
-    void __cdecl hkExitLevel() {
-        ManagerType& mgr = GetManager();
-        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre();
-        if (oExitLevel) {
-            oExitLevel();
-        }
-        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost();
-    }
-}
-
 // Override hooks (hooks.json override: true)
 // Note: Override hooks with custom_detour: true are manually installed at runtime and not generated here
 namespace detour_CL_Precache_f {
@@ -1095,12 +1054,6 @@ namespace detour_SCR_DrawPlayerInfo {
 namespace detour_SCR_ExecuteLayoutString {
     void __cdecl hkSCR_ExecuteLayoutString(char* text) {
         ::hkSCR_ExecuteLayoutString(text, oSCR_ExecuteLayoutString);
-    }
-}
-
-namespace detour_SV_Frame {
-    void __cdecl hkSV_Frame(int msec) {
-        ::mfps_sv_frame_override(msec, oSV_Frame);
     }
 }
 

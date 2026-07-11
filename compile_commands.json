@@ -80,6 +80,11 @@
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/cl_maxfps_singleplayer/hooks/cinematicfreeze.cpp"
     },
     {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/cl_maxfps_singleplayer/hooks/m_pushmenu_pre.o src/features/cl_maxfps_singleplayer/hooks/m_pushmenu_pre.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/cl_maxfps_singleplayer/hooks/m_pushmenu_pre.cpp"
+    },
+    {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/cl_maxfps_singleplayer/hooks/sp_sys_mil.o src/features/cl_maxfps_singleplayer/hooks/sp_sys_mil.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/cl_maxfps_singleplayer/hooks/sp_sys_mil.cpp"
@@ -218,6 +223,11 @@
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/internal_menus/hooks/m_pushmenu_pre.o src/features/internal_menus/hooks/m_pushmenu_pre.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/internal_menus/hooks/m_pushmenu_pre.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/internal_menus/hooks/qcommon_frame_post.o src/features/internal_menus/hooks/qcommon_frame_post.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/internal_menus/hooks/qcommon_frame_post.cpp"
     },
     {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/internal_menus/hooks/scr_beginloadingplaque_post.o src/features/internal_menus/hooks/scr_beginloadingplaque_post.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
@@ -508,6 +518,16 @@
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/scaled_ui_base/hooks/vid_checkchanges.o src/features/scaled_ui_base/hooks/vid_checkchanges.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
         "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
         "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui_base/hooks/vid_checkchanges.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/scaled_ui_base/ref_gl_state.o src/features/scaled_ui_base/ref_gl_state.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui_base/ref_gl_state.cpp"
+    },
+    {
+        "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/scaled_ui_base/scale_round.o src/features/scaled_ui_base/scale_round.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",
+        "directory": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy",
+        "file": "/home/dinda/git-projects/d3nd3/public/sof/sof_buddy/src/features/scaled_ui_base/scale_round.cpp"
     },
     {
         "command": "i686-w64-mingw32-g++-posix -c -Ihdr -Isrc -Ibuild/release -MMD -MP -o obj/release/features/scaled_ui_base/sui_cvars.o src/features/scaled_ui_base/sui_cvars.cpp -D_WIN32_WINNT=0x0501 -std=c++14 -O3 -fno-omit-frame-pointer -DNDEBUG",

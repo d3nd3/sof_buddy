@@ -1,16 +1,5 @@
 [
   {
-    "function": "Qcommon_Frame",
-    "callback": "mfps_qcommon_frame_pre",
-    "phase": "Pre",
-    "priority": 75
-  },
-  {
-    "function": "SV_Frame",
-    "callback": "mfps_sv_frame_override",
-    "override": true
-  },
-  {
     "function": "CinematicFreeze",
     "callback": "cinematicfreeze_callback",
     "phase": "Post",
@@ -21,11 +10,5 @@
     "callback": "mfps_M_PushMenu_pre",
     "phase": "Pre",
     "priority": 85
-  },
-  {
-    "function": "ExitLevel",
-    "callback": "mfps_ExitLevel_post",
-    "phase": "Post",
-    "priority": 100
   }
 ]
