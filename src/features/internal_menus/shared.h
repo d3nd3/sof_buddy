@@ -30,6 +30,8 @@ void loading_show_ui(void);
 void internal_menus_call_SCR_UpdateScreen(bool force);
 const char* internal_menus_get_content_inset_rmf(void);
 const char* internal_menus_get_content_inset_tall_rmf(void);
+const char* internal_menus_get_tabs_row_prefix_rmf(void);
+const char* internal_menus_get_theme_tints_rmf(void);
 void internal_menus_remember_menu_page(const char* menu_file);
 
 #endif

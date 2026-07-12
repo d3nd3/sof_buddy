@@ -3,7 +3,6 @@
 <include tints>
 <font type title tint lblue atint lblue>
 <hbr>
-<ctext _sofbuddy_loading_current atext "Map: "><hbr>
-<hbr>
-<ctext _sofbuddy_loading_status atext "Download: "><hbr>
+<cinclude _sofbuddy_loading_show_mapname loading/loading_network_map>
+<cinclude _sofbuddy_loading_show_download loading/loading_network_download>
 </stm>

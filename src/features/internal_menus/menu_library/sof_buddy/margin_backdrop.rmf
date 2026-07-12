@@ -1,4 +1,4 @@
 <stm>
-<tint sb_bg 0xff050913>
+{theme_tints}
 <backdrop bgcolor sb_bg>
 </stm>

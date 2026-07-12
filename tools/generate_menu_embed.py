@@ -32,18 +32,20 @@ void internal_menus_load_library(void) { g_menu_internal_files.clear(); }
         '    g_menu_internal_files.clear();',
     ]
 
-    for menu_dir in sorted(menu_lib.iterdir()):
-        if not menu_dir.is_dir():
+    for rmf in sorted(menu_lib.rglob("*.rmf")):
+        rel = rmf.relative_to(menu_lib)
+        parts = rel.parts
+        if len(parts) < 2:
             continue
-        menu_name = menu_dir.name
-        for rmf in sorted(menu_dir.glob("*.rmf")):
-            with open(rmf, 'rb') as f:
-                data = f.read()
-            hex_bytes = ', '.join(f'0x{b:02x}' for b in data)
-            lines.append(f'    {{')
-            lines.append(f'        std::vector<uint8_t> v = {{{hex_bytes}}};')
-            lines.append(f'        g_menu_internal_files["{menu_name}"]["{rmf.name}"] = std::move(v);')
-            lines.append(f'    }}')
+        menu_name = "/".join(parts[:-1])
+        filename = parts[-1]
+        with open(rmf, "rb") as f:
+            data = f.read()
+        hex_bytes = ", ".join(f"0x{b:02x}" for b in data)
+        lines.append("    {")
+        lines.append(f"        std::vector<uint8_t> v = {{{hex_bytes}}};")
+        lines.append(f'        g_menu_internal_files["{menu_name}"]["{filename}"] = std::move(v);')
+        lines.append("    }")
 
     lines.extend(['}', '', '#endif'])
     content = '\n'.join(lines) + '\n'

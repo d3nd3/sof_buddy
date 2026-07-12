@@ -1,5 +1,26 @@
 # Changelog
 
+## v7.4
+
+### Internal menus — themed SoF Buddy settings shell
+
+- **Menu themes:** Added `_sofbuddy_menu_theme` with 31 editor-inspired color presets; RMF files now use `{theme_tints}` so theme colors are injected at load time.
+- **Buddy settings page:** New **Buddy** tab (`sofbuddy.rmf` / `sofbuddy_content.rmf`) for menu theme, tooltip duration, hotkey display, loading-screen options, startup update check, and restore defaults.
+- **Tab layout:** SoF Buddy tabs moved into `sof_buddy/tabs/*.rmf`, with fixed-width three-column rows and a shared `{tabs_row_prefix}` placeholder. Old standalone `*_content.rmf` pages for Input / Profiles / Video were removed where the tab content is now folded into the unified layout.
+- **Layout cvars:** Default tab content width is now 384px for both rows; row prefix calculation uses the full 640px center panel with a small left nudge for balanced tab rows.
+
+### Loading screen options
+
+- **`_sofbuddy_loading_show_mapname`** and **`_sofbuddy_loading_show_download`** let users hide the map name or download status rows independently.
+- **`loading_network_map.rmf`** and **`loading_network_download.rmf`** split the loading header rows so the new cvars can gate each row.
+- Loading map display strips leading `maps/` from paths before writing `_sofbuddy_loading_current`.
+
+### Internal menu plumbing
+
+- `FS_LoadFile` placeholder substitution now supports `{tabs_row_prefix}` and `{theme_tints}`.
+- `tools/generate_menu_embed.py` now embeds nested menu folders (for example `sof_buddy/tabs/*.rmf`) using the full relative menu path.
+- `fx_maxdebrisonscreen` is registered with `CVAR_ARCHIVE` so CPU/profile menu changes persist.
+
 ## v7.3
 
 ### Internal menus — deathmatch-only loading rule

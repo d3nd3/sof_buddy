@@ -1,11 +1,6 @@
 <stm>
 <include tints>
-<tint normaltext 0xfff3f7ff>
-<tint hilitetext 0xff05070b>
-<tint sb_bg 0xff050913>
-<tint sb_panel 0xff101b2b>
-<tint sb_accent 0xff43ffd0>
-<tint sb_subtle 0xff2b3b55>
+{theme_tints}
 <key escape "sofbuddy_menu sof_buddy">
 <cursor 1>
 
@@ -20,19 +15,7 @@
 {content_inset_tall}
 <normal>
 
-<font type title tint white atint white>
-<hbr>
-<text "Home" key mouse1 "sofbuddy_menu sof_buddy/main" border 8 1 cyan regular>
-<text "CPU" key mouse1 "sofbuddy_menu sof_buddy/cpu" border 8 1 cyan regular>
-<text "UI Scale" key mouse1 "sofbuddy_menu sof_buddy/ui_scale" border 8 1 cyan regular>
-<text "Input" key mouse1 "sofbuddy_menu sof_buddy/input" border 8 1 cyan regular>
-<text "Network" key mouse1 "sofbuddy_menu sof_buddy/network" border 8 1 cyan regular><hbr>
-<text "Texture" key mouse1 "sofbuddy_menu sof_buddy/texture" border 8 1 cyan regular>
-<text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/lighting" border 8 1 cyan regular>
-<text "Video" key mouse1 "sofbuddy_menu sof_buddy/video" border 8 1 cyan regular>
-<text "Misc" key mouse1 "sofbuddy_menu sof_buddy/misc" border 8 1 orange regular>
-<text "Updates" key mouse1 "sofbuddy_menu sof_buddy/updates" border 8 1 cyan regular>
-<text "Social" key mouse1 "sofbuddy_menu sof_buddy/social" border 8 1 cyan regular><hbr>
+<include sof_buddy/tabs/misc>
 
 <center>
 <font type title tint sb_accent atint sb_accent>
@@ -46,25 +29,42 @@
 "_____________________________"
 <hbr>
 <hbr>
+<font type title tint cyan atint cyan>
+"View"
 <font type title tint white atint white>
-<list "Off,On" cvar ghl_specular atext "ghl_specular : " noshade><hbr>
-<list "0,1,2,3" cvar gl_detailtexturing atext "gl_detailtexturing : " noshade><hbr>
-<ctext gl_detailtexturingdistance atext "gl_detailtexturingdistance : " noshade><br>
-<slider cvar gl_detailtexturingdistance min 50 max 500 step 50><hbr>
-<ctext gl_effectfill atext "gl_effectfill : " noshade><br>
-<slider cvar gl_effectfill min 500 max 20000 step 500><hbr>
-<list "Off,On" cvar ghl_no_texture_stack atext "ghl_no_texture_stack : " noshade><hbr>
-<list "3,2,1,0" cvar mskins_variety_limit atext "mskins_variety_limit : " noshade><hbr>
-<list "3,2,1,0" cvar mskins_expression_limit atext "mskins_expression_limit : " noshade><hbr>
+<list "H95,V79,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111" match "0,1,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111" cvar _sp_cl_vid_fov atext "_sp_cl_vid_fov : " noshade><hbr>
+<list "Off,On" cvar cl_gun atext "cl_gun : " noshade tip "Off (0) hides the first-person weapon model."><hbr>
+
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint cyan atint cyan>
+"Input"
+<font type title tint white atint white>
+<list "Off,On" cvari _sofbuddy_rawmouse atext "Raw Mouse Input : " noshade><br>
+
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<include sof_buddy/video_fps>
+
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint cyan atint cyan>
+"Game"
+<font type title tint white atint white>
 <ctext ai_maxcorpses atext "ai_maxcorpses : " noshade><br>
 <slider cvar ai_maxcorpses min 1 max 20 step 1><hbr>
-<list "0,50,250,1024" match "0,50,250,1024" cvar cl_max_quads atext "cl_max_quads : " noshade><hbr>
-<list "16,32" match "16,32" cvar gl_bitdepth atext "gl_bitdepth : " noshade><hbr>
 
 <font type title tint sb_subtle atint sb_subtle>
 "_____________________________"
 <hbr>
 <hbr>
 <font type title tint white atint white>
-<text "Close" key mouse1 "popmenu" border 14 1 cyan regular>
+<text "Restore Input Defaults" key mouse1 "set _sofbuddy_rawmouse 0;refresh" border 8 1 cyan regular align center>
+<text "Close" key mouse1 "popmenu" border 8 1 cyan regular align center>
 </stm>

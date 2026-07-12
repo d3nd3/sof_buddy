@@ -1,11 +1,6 @@
 <stm>
 <include tints>
-<tint normaltext 0xfff3f7ff>
-<tint hilitetext 0xff05070b>
-<tint sb_bg 0xff050913>
-<tint sb_panel 0xff101b2b>
-<tint sb_accent 0xff43ffd0>
-<tint sb_subtle 0xff2b3b55>
+{theme_tints}
 <key escape "sofbuddy_menu sof_buddy">
 <cursor 1>
 
@@ -20,19 +15,7 @@
 {content_inset_tall}
 <normal>
 
-<font type title tint white atint white>
-<hbr>
-<text "Home" key mouse1 "sofbuddy_menu sof_buddy/main" border 8 1 cyan regular>
-<text "CPU" key mouse1 "sofbuddy_menu sof_buddy/cpu" border 8 1 cyan regular>
-<text "UI Scale" key mouse1 "sofbuddy_menu sof_buddy/ui_scale" border 8 1 cyan regular>
-<text "Input" key mouse1 "sofbuddy_menu sof_buddy/input" border 8 1 cyan regular>
-<text "Network" key mouse1 "sofbuddy_menu sof_buddy/network" border 8 1 cyan regular><hbr>
-<text "Texture" key mouse1 "sofbuddy_menu sof_buddy/texture" border 8 1 orange regular>
-<text "Lighting" key mouse1 "sofbuddy_menu sof_buddy/lighting" border 8 1 cyan regular>
-<text "Video" key mouse1 "sofbuddy_menu sof_buddy/video" border 8 1 cyan regular>
-<text "Misc" key mouse1 "sofbuddy_menu sof_buddy/misc" border 8 1 cyan regular>
-<text "Updates" key mouse1 "sofbuddy_menu sof_buddy/updates" border 8 1 cyan regular>
-<text "Social" key mouse1 "sofbuddy_menu sof_buddy/social" border 8 1 cyan regular><hbr>
+<include sof_buddy/tabs/texture>
 
 <center>
 <font type title tint sb_accent atint sb_accent>
@@ -76,8 +59,41 @@
 "_____________________________"
 <hbr>
 <hbr>
+<font type title tint cyan atint cyan>
+"Mip / format"
 <font type title tint white atint white>
-<text "Restore Filter Defaults" key mouse1 "set _sofbuddy_minfilter_unmipped GL_LINEAR;set _sofbuddy_magfilter_unmipped GL_LINEAR;set _sofbuddy_minfilter_mipped GL_LINEAR_MIPMAP_LINEAR;set _sofbuddy_magfilter_mipped GL_LINEAR;set _sofbuddy_minfilter_ui GL_NEAREST;set _sofbuddy_magfilter_ui GL_NEAREST;refresh" border 14 1 cyan regular><hbr>
-<text "Vid Restart" key mouse1 "vid_restart" border 14 1 cyan regular>
-<text "Close" key mouse1 "popmenu" border 14 1 cyan regular>
+<ctext gl_picmip atext "gl_picmip : " noshade><br>
+<slider cvar gl_picmip min -20 max 11 step 1><br>
+<list "Off,On" cvar gl_pictip atext "gl_pictip : " noshade tip "Low-polygon models and lower-resolution textures."><br>
+<list "0,1,2" match "0,1,2" cvar ghl_mip atext "ghl_mip : " noshade tip "Skin texture quality. 0=best, higher values reduce quality."><br>
+<list "SOLID,ALPHA" match "GL_SOLID_FORMAT,GL_ALPHA_FORMAT" cvar r_isf atext "r_isf : " noshade><br>
+<list "SOLID,ALPHA" match "GL_SOLID_FORMAT,GL_ALPHA_FORMAT" cvar r_iaf atext "r_iaf : " noshade><br>
+<list "Off,On" cvar gl_ext_multitexture atext "gl_ext_multitexture : " noshade><br>
+<list "Off,On" cvar gl_ext_anisotropic atext "gl_ext_anisotropic : " noshade><br>
+<ctext _sp_cl_vid_gl_texture_max_anisotropy_ext atext "_sp_cl_vid_gl_texture_max_anisotropy_ext : " noshade><br>
+<slider cvar _sp_cl_vid_gl_texture_max_anisotropy_ext min 0 max 16 step 2><br>
+<list "0,1,2,3" cvar gl_detailtexturing atext "gl_detailtexturing : " noshade><br>
+<ctext gl_detailtexturingdistance atext "gl_detailtexturingdistance : " noshade><br>
+<slider cvar gl_detailtexturingdistance min 50 max 500 step 50><br>
+<list "Off,On" cvar ghl_no_texture_stack atext "ghl_no_texture_stack : " noshade><br>
+<list "16,32" match "16,32" cvar gl_bitdepth atext "gl_bitdepth : " noshade><br>
+
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint cyan atint cyan>
+"Enemy skins"
+<font type title tint white atint white>
+<list "Most,More,Less,Least" match "0,1,2,3" cvar mskins_variety_limit atext "mskins_variety_limit : " noshade tip "The variety of skins available for enemy models. From 0 most to 3 least variety. New setting will take effect on next connect."><br>
+<list "Most,More,Less,Least" match "0,1,2,3" cvar mskins_expression_limit atext "mskins_expression_limit : " noshade tip "The amount of facial expressions that can be used by enemy models. From 0 most to 3 least variety. New setting will take effect on next connect."><br>
+
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<text "Restore Filter Defaults" key mouse1 "set _sofbuddy_minfilter_unmipped GL_LINEAR;set _sofbuddy_magfilter_unmipped GL_LINEAR;set _sofbuddy_minfilter_mipped GL_LINEAR_MIPMAP_LINEAR;set _sofbuddy_magfilter_mipped GL_LINEAR;set _sofbuddy_minfilter_ui GL_NEAREST;set _sofbuddy_magfilter_ui GL_NEAREST;set gl_picmip 0;set gl_pictip 0;set ghl_mip 0;set r_isf GL_SOLID_FORMAT;set r_iaf GL_ALPHA_FORMAT;set gl_ext_multitexture 1;set gl_ext_anisotropic 1;set _sp_cl_vid_gl_texture_max_anisotropy_ext 16;refresh" border 8 1 cyan regular align center><hbr>
+<text "Vid Restart" key mouse1 "vid_restart" border 8 1 cyan regular align center>
+<text "Close" key mouse1 "popmenu" border 8 1 cyan regular align center>
 </stm>

@@ -1,2 +1,4 @@
 <stm>
+<cinclude _sofbuddy_loading_show_mapname loading/loading_network_map>
+<cinclude _sofbuddy_loading_show_download loading/loading_network_download>
 </stm>

@@ -1,0 +1,6 @@
+<stm>
+<strings menu_generic>
+<include tints>
+<font type title tint lblue atint lblue>
+<ctext _sofbuddy_loading_status atext "Download: "><hbr>
+</stm>

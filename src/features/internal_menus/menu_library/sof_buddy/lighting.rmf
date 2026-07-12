@@ -1,7 +1,6 @@
 <stm nopush global>
 <include tints>
-<tint normaltext 0xffffffff>
-<tint hilitetext 0xffffffff>
+{theme_tints}
 <key escape "sofbuddy_menu sof_buddy">
 <cursor 1>
 

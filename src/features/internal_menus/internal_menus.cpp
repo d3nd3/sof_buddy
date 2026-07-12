@@ -184,6 +184,8 @@ void create_loading_cvars() {
 	detour_Cvar_Get::oCvar_Get("_sofbuddy_tab", "0", 0, nullptr);
     // User preference: keep loading menu input locked (default), or allow interaction.
     detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_lock_input", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_show_mapname", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_show_download", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     // User preference: key used to open SoF Buddy menu.
     detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_hotkey", "F12", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     // Last SoF Buddy tab/page (e.g. sof_buddy/map_debug) restored when opening via F12 (sofbuddy_menu sof_buddy).
@@ -198,11 +200,16 @@ void create_loading_cvars() {
     cvar_t* perf = detour_Cvar_Get::oCvar_Get("_sofbuddy_perf_profile", "0", CVAR_SOFBUDDY_ARCHIVE, sofbuddy_perf_profile_change);
     sofbuddy_perf_profile_change(perf);
 
+    // FX_Init registers this with flags 0; OR CVAR_ARCHIVE so menu/config.cfg persist changes.
+    detour_Cvar_Get::oCvar_Get("fx_maxdebrisonscreen", "16", CVAR_ARCHIVE, nullptr);
 }
 
 constexpr int kSofBuddyCenterPanelVirtualWidth = 640;
-constexpr int kSofBuddyDefaultRow1ContentWidth = 400;
-constexpr int kSofBuddyDefaultRow2ContentWidth = 520;
+constexpr int kSofBuddyDefaultRow1ContentWidth = 384;
+constexpr int kSofBuddyDefaultRow2ContentWidth = 384;
+constexpr int kSofBuddyTabWidthPx = 120;
+constexpr int kSofBuddyTabGapPx = 12;
+constexpr int kSofBuddyTabLeftNudgePx = 32;
 
 cvar_t* _sofbuddy_sb_tabs_row1_content_px = nullptr;
 cvar_t* _sofbuddy_sb_tabs_row2_content_px = nullptr;
@@ -223,11 +230,14 @@ void create_layout_cvars() {
     detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row2_prefix_rmf", "<blank 36 1>", kLayoutCvarFlags, nullptr);
     detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row1_suffix_rmf", "<blank 96 1>", kLayoutCvarFlags, nullptr);
     detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row2_suffix_rmf", "<blank 36 1>", kLayoutCvarFlags, nullptr);
-    _sofbuddy_sb_tabs_row1_content_px = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row1_content_px", "400", kLayoutCvarFlags, nullptr);
-    _sofbuddy_sb_tabs_row2_content_px = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row2_content_px", "520", kLayoutCvarFlags, nullptr);
+    _sofbuddy_sb_tabs_row1_content_px = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row1_content_px", "384", kLayoutCvarFlags, nullptr);
+    _sofbuddy_sb_tabs_row2_content_px = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row2_content_px", "384", kLayoutCvarFlags, nullptr);
     _sofbuddy_sb_tabs_center_bias_px = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_center_bias_px", "0", kLayoutCvarFlags, nullptr);
     _sofbuddy_sb_tabs_row1_bias_px = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row1_bias_px", "0", kLayoutCvarFlags, nullptr);
     _sofbuddy_sb_tabs_row2_bias_px = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row2_bias_px", "0", kLayoutCvarFlags, nullptr);
+
+    // Menu color theme preset index (see kMenuThemes).
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_theme", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
 
     // SoF default for tip_duration is 2500ms; bump to 5000ms if untouched.
     cvar_t* tip_duration = detour_Cvar_Get::oCvar_Get("tip_duration", "2500", 0, nullptr);
@@ -314,11 +324,11 @@ void update_layout_cvars(bool trigger_reloadall_if_changed) {
     const int row1_bias_px = _sofbuddy_sb_tabs_row1_bias_px ? static_cast<int>(_sofbuddy_sb_tabs_row1_bias_px->value + 0.5f) : 0;
     const int row2_bias_px = _sofbuddy_sb_tabs_row2_bias_px ? static_cast<int>(_sofbuddy_sb_tabs_row2_bias_px->value + 0.5f) : 0;
 
-    row1_content_px = std::max(64, std::min(center_panel_px, row1_content_px));
-    row2_content_px = std::max(64, std::min(center_panel_px, row2_content_px));
+    row1_content_px = std::max(64, std::min(kSofBuddyCenterPanelVirtualWidth, row1_content_px));
+    row2_content_px = row1_content_px;
 
-    const int row1_prefix_px = std::max(0, ((center_panel_px - row1_content_px) / 2) + center_bias_px + row1_bias_px);
-    const int row2_prefix_px = std::max(0, ((center_panel_px - row2_content_px) / 2) + center_bias_px + row2_bias_px);
+    const int row1_prefix_px = std::max(0, ((kSofBuddyCenterPanelVirtualWidth - row1_content_px) / 2) + center_bias_px + row1_bias_px - kSofBuddyTabLeftNudgePx);
+    const int row2_prefix_px = row1_prefix_px + row2_bias_px - row1_bias_px;
 
     char row1_rmf[64];
     char row2_rmf[64];
@@ -419,6 +429,69 @@ const char* internal_menus_get_content_inset_tall_rmf(void) {
     std::snprintf(buf, sizeof(buf), "<blank %d %d>", internal_menus_content_inset_px(), internal_menus_menu_vid_h_px());
     return buf;
 }
+// Menu color themes: (bg, fg, secondary/accent, dim, panel) as ABGR (0xAABBGGRR).
+// Palettes sourced from popular editor themes (Dracula, Nord, One Dark, Tokyo Night, etc.).
+struct MenuTheme { unsigned bg, fg, sec, dim, panel; };
+static const MenuTheme kMenuThemes[] = {
+    {0xff050913, 0xfff3f7ff, 0xff43ffd0, 0xff2b3b55, 0xff101b2b}, // 0 Dark
+    {0xff000000, 0xffffffff, 0xff4ad5ff, 0xffa0a0a0, 0xff161616}, // 1 Hi Contrast
+    {0xff00050a, 0xff00b0ff, 0xff7fd2ff, 0xff106aa0, 0xff000f1a}, // 2 Amber
+    {0xff001100, 0xff66ff33, 0xffc4ff9e, 0xff4f8a2f, 0xff002600}, // 3 Green
+    {0xff362b00, 0xffa1a193, 0xff98a12a, 0xff756e58, 0xff423607}, // 4 Solar Dark
+    {0xffe3f6fd, 0xff423607, 0xffd28b26, 0xffa1a193, 0xffd5e8ee}, // 5 Solar Light
+    {0xfff0f5f5, 0xff1a1a1a, 0xff875f00, 0xff707070, 0xffe0e6e6}, // 6 Paper
+    {0xff000000, 0xff00ffff, 0xffffff00, 0xff00b0b0, 0xff101010}, // 7 Hi Yellow
+    {0xff362a28, 0xfff2f8f8, 0xfffde98b, 0xffa47262, 0xff5a4744}, // 8 Dracula
+    {0xff342c28, 0xffbfb2ab, 0xffefaf61, 0xff70635c, 0xff2b2521}, // 9 One Dark
+    {0xff40342e, 0xfff4efec, 0xffd0c088, 0xff6a564c, 0xff52423b}, // 10 Nord
+    {0xff222827, 0xfff2f8f8, 0xff2ee2a6, 0xff5e7175, 0xff1c1f1e}, // 11 Monokai
+    {0xff261b1a, 0xfff5cac0, 0xfff7a27a, 0xff895f56, 0xff1e1616}, // 12 Tokyo Night
+    {0xff2e1e1e, 0xfff4d6cd, 0xfffab489, 0xff86706c, 0xff251818}, // 13 Catppuccin
+    {0xff282828, 0xffb2dbeb, 0xff98a583, 0xff748392, 0xff21201d}, // 14 Gruvbox
+    {0xff3b352d, 0xffaac6d3, 0xff80c0a7, 0xff78847a, 0xff2e2a23}, // 15 Everforest
+    {0xff17110d, 0xffd9d1c9, 0xffffa658, 0xff9e948b, 0xff221b16}, // 16 GitHub Dark
+    {0xff140e0a, 0xffb6bdbf, 0xffe6ba39, 0xff736a62, 0xff1a130f}, // 17 Ayu Dark
+    {0xff3e2d29, 0xffcdaca6, 0xffffaa82, 0xff956e67, 0xff33221f}, // 18 Palenight
+    {0xff241719, 0xfff4dee0, 0xffe7a7c4, 0xff866a6e, 0xff2e1d1f}, // 19 Rose Pine
+    {0xff271601, 0xffebded6, 0xffffaa82, 0xff777763, 0xff42290b}, // 20 Night Owl
+    {0xff493519, 0xffffffff, 0xff00c6ff, 0xffff8800, 0xff382712}, // 21 Cobalt2
+    {0xff3f3f3f, 0xffccdcdc, 0xff809070, 0xffafaf9f, 0xff333333}, // 22 Zenburn
+    {0xff2f1b24, 0xfff1eff0, 0xffdb7eff, 0xffbd8b84, 0xff23141a}, // 23 Synthwave
+    {0xff08020d, 0xff41ff00, 0xff33cc00, 0xff118f00, 0xff001a00}, // 24 Matrix
+    {0xff000000, 0xffe0e0e0, 0xff76e600, 0xff888888, 0xff0a0a0a}, // 25 OLED
+    {0xffffffff, 0xff2f2924, 0xffda6909, 0xff766d65, 0xfffaf8f6}, // 26 GitHub Light
+    {0xfffafafa, 0xff423a38, 0xfff27840, 0xffa7a1a0, 0xfff0f0f0}, // 27 One Light
+    {0xfff5f1ef, 0xff694f4c, 0xfff5661e, 0xffb0a09c, 0xffefe9e6}, // 28 Cat Latte
+    {0xfff4efec, 0xff40342e, 0xffac815e, 0xff6a564c, 0xfff0e9e5}, // 29 Nord Snow
+    {0xffd8ecf4, 0xff223443, 0xff13458b, 0xff556a7a, 0xffcfe3eb}, // 30 Sepia
+};
+const char* internal_menus_get_theme_tints_rmf(void) {
+    static char buf[512];
+    int idx = 0;
+    if (detour_Cvar_Get::oCvar_Get) {
+        cvar_t* c = detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_theme", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+        if (c) idx = static_cast<int>(c->value + 0.5f);
+    }
+    if (idx < 0 || idx >= static_cast<int>(sizeof(kMenuThemes) / sizeof(kMenuThemes[0]))) idx = 0;
+    const MenuTheme& t = kMenuThemes[idx];
+    std::snprintf(buf, sizeof(buf),
+        "<tint normaltext 0x%08x><tint hilitetext 0x%08x>"
+        "<tint sb_bg 0x%08x><tint sb_panel 0x%08x>"
+        "<tint sb_accent 0x%08x><tint sb_subtle 0x%08x>"
+        "<tint white 0x%08x><tint cyan 0x%08x>"
+        "<tint gray 0x%08x><tint orange 0x%08x>",
+        t.fg, t.bg, t.bg, t.panel,
+        t.sec, t.dim, t.fg, t.sec,
+        t.dim, t.fg);
+    return buf;
+}
+const char* internal_menus_get_tabs_row_prefix_rmf(void) {
+    if (detour_Cvar_Get::oCvar_Get) {
+        cvar_t* c = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row1_prefix_rmf", "<blank 124 1>", 0, nullptr);
+        if (c && c->string && c->string[0]) return c->string;
+    }
+    return "<blank 124 1>";
+}
 
 bool internal_menus_deathmatch_mode_active(void) {
     if (!detour_Cvar_Get::oCvar_Get) return false;
@@ -456,9 +529,28 @@ const char* internal_menus_loading_menu_name(void) {
     return internal_menus_should_lock_loading_input() ? "loading/loading" : "loading/loading_safe";
 }
 
+static std::string loading_display_map_name(const char* map_name) {
+    if (!map_name || !map_name[0]) return map_name ? map_name : "";
+    std::string n(map_name);
+    std::replace(n.begin(), n.end(), '\\', '/');
+    while (n.rfind("./", 0) == 0) n.erase(0, 2);
+    while (!n.empty() && n[0] == '/') n.erase(0, 1);
+    if (n.size() >= 5 &&
+        (n[0] == 'm' || n[0] == 'M') &&
+        (n[1] == 'a' || n[1] == 'A') &&
+        (n[2] == 'p' || n[2] == 'P') &&
+        (n[3] == 's' || n[3] == 'S') &&
+        n[4] == '/') {
+        n.erase(0, 5);
+    }
+    return n;
+}
+
 void loading_set_current(const char* map_name) {
     if (!map_name || !detour_Cvar_Set2::oCvar_Set2) return;
-    detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_current"), const_cast<char*>(map_name), true);
+    const std::string display = loading_display_map_name(map_name);
+    detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_current"),
+                                 const_cast<char*>(display.c_str()), true);
 }
 
 void loading_reset_current_map_unknown(void) {
