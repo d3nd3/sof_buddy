@@ -202,6 +202,10 @@ void create_loading_cvars() {
 
     // FX_Init registers this with flags 0; OR CVAR_ARCHIVE so menu/config.cfg persist changes.
     detour_Cvar_Get::oCvar_Get("fx_maxdebrisonscreen", "16", CVAR_ARCHIVE, nullptr);
+    // CL_InitLocal: cl_showfps/m_yaw lack CVAR_ARCHIVE; OR so OSD and sensitivity persist.
+    detour_Cvar_Get::oCvar_Get("cl_showfps", "0", CVAR_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get("m_yaw", "0.022", CVAR_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get("m_pitch", "0.022", CVAR_ARCHIVE, nullptr);
 }
 
 constexpr int kSofBuddyCenterPanelVirtualWidth = 640;
