@@ -48,9 +48,11 @@ extern void http_maps_qcommon_frame_post_callback(int msec);
 extern void http_maps_qcommon_frame_pre_callback(int& msec);
 extern void http_maps_reconnect_f_pre_callback();
 extern void internal_menus_EarlyStartup();
+extern void internal_menus_GameDllLoaded(void* game_export);
 extern void internal_menus_M_PushMenu_post(char const* menu_file, char const* parentFrame, bool lock_input);
 extern void internal_menus_M_PushMenu_pre(char const*& menu_file, char const*& parentFrame, bool& lock_input);
 extern void internal_menus_PostCvarInit();
+extern void internal_menus_RefDllLoaded(char const* name);
 extern void internal_menus_SCR_BeginLoadingPlaque_post(qboolean noPlaque);
 extern int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool override_pak, detour_FS_LoadFile::tFS_LoadFile original);
 extern void lightblend_PostCvarInit();
@@ -140,6 +142,12 @@ inline void RegisterAllFeatureHooks() {
     SharedHookManager::Instance().RegisterCallback(
         "PostCvarInit", "internal_menus", "internal_menus_PostCvarInit",
         []() { internal_menus_PostCvarInit(); }, 70, SharedHookPhase::Post);
+    SharedHookManager::Instance().RegisterCallback<char const*>(
+        "RefDllLoaded", "internal_menus", "internal_menus_RefDllLoaded",
+        std::function<void(char const*)>([](char const* name) { internal_menus_RefDllLoaded(name); }), 70, SharedHookPhase::Post);
+    SharedHookManager::Instance().RegisterCallback<void*>(
+        "GameDllLoaded", "internal_menus", "internal_menus_GameDllLoaded",
+        std::function<void(void*)>([](void* game_export) { internal_menus_GameDllLoaded(game_export); }), 70, SharedHookPhase::Post);
     {
         auto& mgr = detour_CinematicFreeze::GetManager();
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] CinematicFreeze manager at 0x%p\n", &mgr);

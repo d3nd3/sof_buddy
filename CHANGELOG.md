@@ -1,5 +1,12 @@
 # Changelog
 
+## v7.8
+
+### Internal menus — more cvar persistence
+
+- **Early cvars:** `cl_gun`, `cl_quads`, `cl_freezequads`, and `debuggraph` now OR `CVAR_ARCHIVE` at registration so F12 menu changes persist.
+- **Deferred cvars:** `gl_dynamic` archives after `ref_gl.dll` loads; `mskins_expression_limit` and `mskins_variety_limit` archive after the game DLL loads (these register later than `PostCvarInit`).
+
 ## v7.7
 
 ### Internal menus — cvar persistence

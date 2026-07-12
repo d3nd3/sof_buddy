@@ -200,12 +200,15 @@ void create_loading_cvars() {
     cvar_t* perf = detour_Cvar_Get::oCvar_Get("_sofbuddy_perf_profile", "0", CVAR_SOFBUDDY_ARCHIVE, sofbuddy_perf_profile_change);
     sofbuddy_perf_profile_change(perf);
 
-    // FX_Init registers this with flags 0; OR CVAR_ARCHIVE so menu/config.cfg persist changes.
+    // Engine registers these with flags 0; OR CVAR_ARCHIVE so F12 menu changes persist in config.cfg.
     detour_Cvar_Get::oCvar_Get("fx_maxdebrisonscreen", "16", CVAR_ARCHIVE, nullptr);
-    // CL_InitLocal: cl_showfps/m_yaw lack CVAR_ARCHIVE; OR so OSD and sensitivity persist.
     detour_Cvar_Get::oCvar_Get("cl_showfps", "0", CVAR_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get("m_yaw", "0.022", CVAR_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get("m_pitch", "0.022", CVAR_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get("cl_gun", "1", CVAR_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get("cl_quads", "1", CVAR_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get("cl_freezequads", "0", CVAR_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get("debuggraph", "0", CVAR_ARCHIVE, nullptr);
 }
 
 constexpr int kSofBuddyCenterPanelVirtualWidth = 640;
@@ -361,6 +364,19 @@ void update_layout_cvars(bool trigger_reloadall_if_changed) {
 }
 
 } // namespace
+
+void internal_menus_RefDllLoaded(char const* name) {
+    (void)name;
+    if (!detour_Cvar_Get::oCvar_Get) return;
+    detour_Cvar_Get::oCvar_Get("gl_dynamic", "1", CVAR_ARCHIVE, nullptr);
+}
+
+void internal_menus_GameDllLoaded(void* game_export) {
+    (void)game_export;
+    if (!detour_Cvar_Get::oCvar_Get) return;
+    detour_Cvar_Get::oCvar_Get("mskins_expression_limit", "0", CVAR_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get("mskins_variety_limit", "0", CVAR_ARCHIVE, nullptr);
+}
 
 void internal_menus_remember_menu_page(const char* menu_file) {
     if (!menu_file || !detour_Cvar_Set2::oCvar_Set2) {

@@ -1,4 +1,6 @@
 [
     {"hook":"EarlyStartup","callback":"internal_menus_EarlyStartup","priority":75,"phase":"Post"},
-    {"hook":"PostCvarInit","callback":"internal_menus_PostCvarInit","priority":70,"phase":"Post"}
+    {"hook":"PostCvarInit","callback":"internal_menus_PostCvarInit","priority":70,"phase":"Post"},
+    {"hook":"RefDllLoaded","callback":"internal_menus_RefDllLoaded","priority":70,"phase":"Post"},
+    {"hook":"GameDllLoaded","callback":"internal_menus_GameDllLoaded","priority":70,"phase":"Post"}
 ]
