@@ -1,5 +1,11 @@
 # Changelog
 
+## v7.9
+
+### Internal menus — Video/FPS cleanup
+
+- **Removed `debuggraph` control** from the Video/FPS tab and dropped its `CVAR_ARCHIVE` hook (v7.8 added it; FPS graph is already covered via `cl_showfps`).
+
 ## v7.8
 
 ### Internal menus — more cvar persistence
