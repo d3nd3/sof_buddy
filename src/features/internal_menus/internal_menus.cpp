@@ -426,120 +426,8 @@ bool internal_menus_deathmatch_mode_active(void) {
     return dm && dm->value != 0.0f;
 }
 
-static bool g_mp_connect_flow = false;
-static bool g_plaque_savegame_load = false;
-static bool g_plaque_sp_local = false;
-static int s_prev_cls_for_connect = -1;
-
-// server_t.loadgame (Q2 layout: state + attractloop + loadgame).
-static constexpr uintptr_t kSvLoadgameRva = 0x003A1F25;
-
-static bool internal_menus_is_connect_handshake_state(connstate_t st) {
-    switch (st) {
-        case ca_connecting:
-        case ca_won_receive_result:
-        case ca_connecting_stage2:
-        case ca_won_challenge:
-        case ca_won_receive_challenge1:
-            return true;
-        default:
-            return false;
-    }
-}
-
-static int internal_menus_read_sv_loadgame(void) {
-    auto* loadgame = reinterpret_cast<unsigned char*>(rvaToAbsExe(reinterpret_cast<void*>(kSvLoadgameRva)));
-    return (loadgame && *loadgame) ? 1 : 0;
-}
-
-void internal_menus_update_connect_flow(int cls_state) {
-    const connstate_t st = static_cast<connstate_t>(cls_state);
-    switch (st) {
-        case ca_uninitialized:
-        case ca_disconnected:
-            // cls can glitch to disconnected for one frame during MP map load; require two
-            // consecutive disconnected observations before clearing (matches http_maps).
-            // SP menu loads (newgame.cfg: disconnect; map) run in one script — one frame only.
-            if (!internal_menus_deathmatch_mode_active())
-                g_mp_connect_flow = false;
-            else if (s_prev_cls_for_connect == ca_disconnected)
-                g_mp_connect_flow = false;
-            break;
-        case ca_connecting:
-        case ca_won_receive_result:
-        case ca_connecting_stage2:
-        case ca_won_challenge:
-        case ca_won_receive_challenge1:
-            g_mp_connect_flow = true;
-            break;
-        case ca_connected: {
-            const connstate_t prev = static_cast<connstate_t>(s_prev_cls_for_connect);
-            // SP local reload (mission, quickload): 8 -> 7 — not MP connect, even if deathmatch latched.
-            if (prev == ca_active) {
-                g_mp_connect_flow = false;
-#if FEATURE_HTTP_MAPS
-                http_maps_on_sp_local_map_load();
-#endif
-                break;
-            }
-            // MP join: 2 -> 4 -> 7. Keep latch through map load.
-            if (!g_mp_connect_flow && internal_menus_is_connect_handshake_state(prev))
-                g_mp_connect_flow = true;
-            break;
-        }
-        case ca_active:
-            g_mp_connect_flow = false;
-            break;
-        default:
-            break;
-    }
-    s_prev_cls_for_connect = cls_state;
-}
-
-bool internal_menus_mp_connect_flow_active(void) {
-    return g_mp_connect_flow;
-}
-
-void internal_menus_begin_loading_plaque_context(int cls_state) {
-    const int lg = internal_menus_read_sv_loadgame();
-    g_plaque_savegame_load = lg != 0 && cls_state != static_cast<int>(ca_connected);
-    g_plaque_sp_local = false;
-    if (internal_menus_deathmatch_mode_active()) return;
-    const connstate_t st = static_cast<connstate_t>(cls_state);
-    const connstate_t prev = static_cast<connstate_t>(s_prev_cls_for_connect);
-    if (internal_menus_is_connect_handshake_state(st) || internal_menus_is_connect_handshake_state(prev))
-        return;
-    g_plaque_sp_local = true;
-    g_mp_connect_flow = false;
-#if FEATURE_HTTP_MAPS
-    http_maps_on_sp_local_map_load();
-#endif
-}
-
-void internal_menus_end_loading_plaque_context(void) {
-    g_plaque_savegame_load = false;
-    g_plaque_sp_local = false;
-}
-
-bool internal_menus_savegame_load_active(void) {
-    return g_plaque_savegame_load;
-}
-
-void internal_menus_on_loadgame_map_load(void) {
-    g_mp_connect_flow = false;
-#if FEATURE_HTTP_MAPS
-    http_maps_on_sp_local_map_load();
-#endif
-}
-
 bool internal_menus_use_vanilla_loading_menu(void) {
-    if (internal_menus_savegame_load_active()) return true;
-    if (g_plaque_sp_local) return true;
-#if FEATURE_HTTP_MAPS
-    if (http_maps_wants_custom_loading_menu()) return false;
-#endif
-    if (g_mp_connect_flow) return false;
-    return true;
+    return !internal_menus_deathmatch_mode_active();
 }
 
 bool internal_menus_should_killmenu_before_loading(void) {
@@ -547,14 +435,8 @@ bool internal_menus_should_killmenu_before_loading(void) {
 }
 
 void internal_menus_sync_loading_network_ui(void) {
-#if FEATURE_HTTP_MAPS
-    const bool network = !internal_menus_savegame_load_active() &&
-                         internal_menus_mp_connect_flow_active() &&
-                         http_maps_should_assist_connect();
-    set_runtime_cvar_int("_sofbuddy_loading_network", network ? 1 : 0);
-#else
-    set_runtime_cvar_int("_sofbuddy_loading_network", 0);
-#endif
+    // Map/download header uses <exinclude deathmatch> in loading_header.rmf (same timing as vanilla).
+    set_runtime_cvar_int("_sofbuddy_loading_network", internal_menus_deathmatch_mode_active() ? 1 : 0);
 }
 
 bool internal_menus_is_mp_loading_context(void) {

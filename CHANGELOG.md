@@ -1,5 +1,34 @@
 # Changelog
 
+## v7.3
+
+### Internal menus — deathmatch-only loading rule
+
+- **Removed cls/connect-flow latch** (`Qcommon_Frame` Post, plaque context, savegame/`sv.loadgame` heuristics) — vanilla vs custom loading now follows stock **`deathmatch` `exinclude`** timing only.
+- **`internal_menus_use_vanilla_loading_menu()`:** `deathmatch==0` → pak `loading.rmf`; `deathmatch!=0` → Buddy custom loading menu.
+- **Loading header:** `<exinclude deathmatch>` picks **`loading_network`** (map + download status) in DM or empty **`loading_network_sp`** in SP — replaces `_sofbuddy_loading_network` `cninclude`.
+- **`SCR_BeginLoadingPlaque`:** skip redundant second plaque only when still on the **vanilla** path; never skip when switching to custom MP loading (e.g. deathmatch set after first plaque).
+
+### HTTP maps
+
+- **Connect assist** gated on latched **`deathmatch`** only (removed MP connect-flow check).
+
+## v7.2
+
+### Internal menus — loading context & connect-flow fixes
+
+- **Loading plaque context:** `begin/end_loading_plaque_context` tracks savegame loads (`sv.loadgame`) and SP local map loads so vanilla vs custom loading UI is chosen per plaque, not from stale latch state.
+- **MP connect latch:** Requires **two consecutive `ca_disconnected` frames** in deathmatch before clearing (avoids one-frame cls glitches during MP map load). SP `newgame.cfg` disconnect+map scripts clear immediately.
+- **`ca_active` → `ca_connected`:** Treated as SP local reload (mission/quickload), not MP connect — clears connect latch and HTTP maps loading state.
+- **Savegame loads:** Always use vanilla pak `loading.rmf`; network status panel hidden.
+
+### HTTP maps — loading UI state
+
+- **`http_maps_on_sp_local_map_load()`:** Clears cached loading UI / map labels when SP loads a local map.
+- **`http_maps_refresh_loading_menu_labels()`:** Updates map name on the existing loading menu when the second `SCR_BeginLoadingPlaque` is skipped (no killmenu flash).
+- **Network panel:** `_sofbuddy_loading_network` is on only during **MP connect + HTTP maps assist**, not savegame or SP local loads.
+- **Loading UI show:** Sets `loading_ui_active` / map path before `loading_show_ui()`; `http_maps_should_assist_connect` exported in `shared.h`.
+
 ## v7.1
 
 ### cl_maxfps singleplayer — simplify freeze sync

@@ -12,5 +12,5 @@
 "^MENU_GENERIC_LOADING^"<hbr>
 <hbr>
 <hbar "misc/l_clip" "misc/l_bullet" cvar menu_loading><hbr>
-<cninclude _sofbuddy_loading_network loading/loading_network>
+<exinclude deathmatch loading/loading_network loading/loading_network_sp>
 </stm>

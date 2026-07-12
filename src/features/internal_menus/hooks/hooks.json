@@ -1,1 +1,6 @@
-[{"function":"FS_LoadFile","callback":"internal_menus_fs_loadfile_override_callback","override":true},{"function":"M_PushMenu","callback":"internal_menus_M_PushMenu_pre","phase":"Pre","priority":90},{"function":"M_PushMenu","callback":"internal_menus_M_PushMenu_post","phase":"Post","priority":90},{"function":"Qcommon_Frame","callback":"internal_menus_qcommon_frame_post","phase":"Post","priority":85},{"function":"SCR_BeginLoadingPlaque","callback":"internal_menus_SCR_BeginLoadingPlaque_post","phase":"Post","priority":90}]
+[
+  {"function":"FS_LoadFile","callback":"internal_menus_fs_loadfile_override_callback","override":true},
+  {"function":"M_PushMenu","callback":"internal_menus_M_PushMenu_pre","phase":"Pre","priority":90},
+  {"function":"M_PushMenu","callback":"internal_menus_M_PushMenu_post","phase":"Post","priority":90},
+  {"function":"SCR_BeginLoadingPlaque","callback":"internal_menus_SCR_BeginLoadingPlaque_post","phase":"Post","priority":90}
+]

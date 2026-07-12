@@ -55,7 +55,7 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
     std::string filename = path_to_filename(path);
     if (menu_name.empty() || filename.empty()) return original(path, buffer, override_pak);
 
-    // SP / non-DM: vanilla pak loading menus (deathmatch exinclude / menu_nostats stats gating).
+    // SP (deathmatch==0): vanilla pak loading.rmf — same rule as stock <exinclude deathmatch> in loading.rmf.
     if (menu_name == "loading" && internal_menus_use_vanilla_loading_menu())
         return original(path, buffer, override_pak);
 

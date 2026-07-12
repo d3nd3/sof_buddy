@@ -14,29 +14,22 @@ void internal_menus_SCR_BeginLoadingPlaque_post(qboolean noPlaque) {
     if (noPlaque) return;
     if (!detour_M_PushMenu::oM_PushMenu) return;
 
-    static int* s_cls_state = (int*)rvaToAbsExe((void*)0x001C1F00);
-    const int cls = s_cls_state ? *s_cls_state : -1;
-    if (s_cls_state) internal_menus_update_connect_flow(cls);
-    internal_menus_begin_loading_plaque_context(cls);
-
-    // SP local load: vanilla loading.rmf from pak. Avoid killmenu so blankscreen/outfit interstitials
-    // are not cleared early.
     if (internal_menus_use_vanilla_loading_menu()) {
-        if (internal_menus_savegame_load_active())
-            internal_menus_on_loadgame_map_load();
         internal_menus_sync_loading_network_ui();
         detour_M_PushMenu::oM_PushMenu("loading", "", true);
         internal_menus_call_SCR_UpdateScreen(true);
-        internal_menus_end_loading_plaque_context();
         return;
     }
 
     const bool lock_input = internal_menus_should_lock_loading_input();
 #if FEATURE_HTTP_MAPS
-    if (lock_input && http_maps_should_skip_loading_plaque_menu()) {
+    // Vanilla re-evaluates <exinclude deathmatch> on every menu push; only skip a redundant
+    // second vanilla re-push. Never skip when switching to the custom MP menu (deathmatch set
+    // after the first plaque, or map/http_maps finished before CL_Changing).
+    if (lock_input && internal_menus_use_vanilla_loading_menu() &&
+        http_maps_should_skip_loading_plaque_menu()) {
         internal_menus_sync_loading_network_ui();
         http_maps_refresh_loading_menu_labels();
-        internal_menus_end_loading_plaque_context();
         return;
     }
 #endif
@@ -53,7 +46,6 @@ void internal_menus_SCR_BeginLoadingPlaque_post(qboolean noPlaque) {
 #endif
     detour_M_PushMenu::oM_PushMenu(internal_menus_loading_menu_name(), "", lock_input);
     internal_menus_call_SCR_UpdateScreen(true);
-    internal_menus_end_loading_plaque_context();
 }
 
 #endif
