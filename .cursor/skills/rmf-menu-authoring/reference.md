@@ -120,6 +120,10 @@ Top = last `<hbr>`. `<br>` = temporary stepping stones; layout change resets `<b
 
 `blank`, `hr`, `vbar`, `text`, `ctext`, `image`, `list`, `slider`, `ticker`, `input`, `setkey`, `popup`, `selection`, `ghoul`, `gpm`, `filebox`, `filereq`, `loadbox`, `serverbox`, `serverdetail`, `players`, `listfile`, `users`, `chat`, `rooms`. File sort: `name`/`rname`, `size`/`rsize`, `time`/`rtime`. Area width/height = absolute pixels. For exact tint on list/ctext use `noshade` and area-level tint.
 
+**`<list>` size limit:** SoF can only read **239 characters inside each quoted string** — the dropdown names *and* the `match "..."` values are separate limits. Count every letter, space, and comma between the quotes; ignore `<list`, `match`, `cvar`, and the rest of the line. Too long → menu may freeze, or you see `cvar` / `key` printed as plain text instead of a list. Fix: shorter names, fewer items, or split into two lists.
+
+Example: `<list "Off,On" match "0,1" ...>` — first string is 6 chars (`Off,On`), second is 3 (`0,1`). Both are fine.
+
 ## 9. Undocumented / Extended
 
 - **hbar**: `<hbar "BACKGROUND" "BAR_ITEM" cvar PROGRESS_CVAR [invisible]>` (0.0–1.0).
@@ -133,7 +137,7 @@ Top = last `<hbr>`. `<br>` = temporary stepping stones; layout change resets `<b
 - `ctext` often has `invisible`; `text` has `regular`. `serverbox` columns 0–5 (5 = pure). `filebox` uses `align` in practice.
 - `chat` with `private`. Area parsers can be option-order sensitive. Most tags not explicitly closed.
 - `return` = guarded teardown; `menuoff` = direct. `defaults noborder` + selective borders for cleaner layouts. Prefer frames over blank-heavy layout for scaling. Use `noshade` when list/ctext looks muted.
-- **`<list>` comma-string limit (SoF.exe):** each quoted labels string and each `match "..."` value string is copied into a **240-byte stack buffer** during parse (`sub_200C92D0`, frame `0x11C`, buffer at `+0x2C`, no bounds check). Overflow corrupts the splitter loop and can **hang** the game. Keep each comma-separated string **≤239 chars**; split long pickers across lists/pages. **Do not put `{placeholders}` inside list quotes** — only `{name}` tokens on their own (like `{theme_tints}`) are expanded at load time; inside `"..."` the engine still sees the braces and the `<list>` parse fails, leaking `cvar` / `atext` / `key` tokens as raw centered text.
+- **`<list>` too long?** See §8 — max **239 chars inside each `"..."`**.
 
 ## 11. Agent Authoring Checklist
 

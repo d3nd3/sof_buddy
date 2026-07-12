@@ -429,54 +429,62 @@ const char* internal_menus_get_content_inset_tall_rmf(void) {
     std::snprintf(buf, sizeof(buf), "<blank %d %d>", internal_menus_content_inset_px(), internal_menus_menu_vid_h_px());
     return buf;
 }
-// Menu color themes: (bg, fg, secondary/accent, dim, panel) as ABGR (0xAABBGGRR).
-// Palettes sourced from popular editor themes (Dracula, Nord, One Dark, Tokyo Night, etc.).
-struct MenuTheme { unsigned bg, fg, sec, dim, panel; };
+// Menu color themes as ABGR (0xAABBGGRR): bg, panel, fg, tip, hili, accent, subtle, heading, muted, active.
+// Active tab uses the orange tint slot but each theme picks a distinct hue (pink/green/gold/cyan/etc.).
+struct MenuTheme { unsigned bg, panel, fg, tip, hili, accent, subtle, heading, muted, active; };
 static const MenuTheme kMenuThemes[] = {
-    {0xff050913, 0xfff3f7ff, 0xff43ffd0, 0xff2b3b55, 0xff101b2b}, // 0 Dark
-    {0xff000000, 0xffffffff, 0xff4ad5ff, 0xffa0a0a0, 0xff161616}, // 1 Hi Contrast
-    {0xff00050a, 0xff00b0ff, 0xff7fd2ff, 0xff106aa0, 0xff000f1a}, // 2 Amber
-    {0xff001100, 0xff66ff33, 0xffc4ff9e, 0xff4f8a2f, 0xff002600}, // 3 Green
-    {0xff362b00, 0xffa1a193, 0xff98a12a, 0xff756e58, 0xff423607}, // 4 Solar Dark
-    {0xffe3f6fd, 0xff423607, 0xffd28b26, 0xffa1a193, 0xffd5e8ee}, // 5 Solar Light
-    {0xfff0f5f5, 0xff1a1a1a, 0xff875f00, 0xff707070, 0xffe0e6e6}, // 6 Paper
-    {0xff000000, 0xff00ffff, 0xffffff00, 0xff00b0b0, 0xff101010}, // 7 Hi Yellow
-    {0xff362a28, 0xfff2f8f8, 0xfffde98b, 0xffa47262, 0xff5a4744}, // 8 Dracula
-    {0xff342c28, 0xffbfb2ab, 0xffefaf61, 0xff70635c, 0xff2b2521}, // 9 One Dark
-    {0xff40342e, 0xfff4efec, 0xffd0c088, 0xff6a564c, 0xff52423b}, // 10 Nord
-    {0xff222827, 0xfff2f8f8, 0xff2ee2a6, 0xff5e7175, 0xff1c1f1e}, // 11 Monokai
-    {0xff261b1a, 0xfff5cac0, 0xfff7a27a, 0xff895f56, 0xff1e1616}, // 12 Tokyo Night
-    {0xff2e1e1e, 0xfff4d6cd, 0xfffab489, 0xff86706c, 0xff251818}, // 13 Catppuccin
-    {0xff282828, 0xffb2dbeb, 0xff98a583, 0xff748392, 0xff21201d}, // 14 Gruvbox
-    {0xff3b352d, 0xffaac6d3, 0xff80c0a7, 0xff78847a, 0xff2e2a23}, // 15 Everforest
-    {0xff17110d, 0xffd9d1c9, 0xffffa658, 0xff9e948b, 0xff221b16}, // 16 GitHub Dark
-    {0xff140e0a, 0xffb6bdbf, 0xffe6ba39, 0xff736a62, 0xff1a130f}, // 17 Ayu Dark
-    {0xff3e2d29, 0xffcdaca6, 0xffffaa82, 0xff956e67, 0xff33221f}, // 18 Palenight
-    {0xff241719, 0xfff4dee0, 0xffe7a7c4, 0xff866a6e, 0xff2e1d1f}, // 19 Rose Pine
-    {0xff271601, 0xffebded6, 0xffffaa82, 0xff777763, 0xff42290b}, // 20 Night Owl
-    {0xff493519, 0xffffffff, 0xff00c6ff, 0xffff8800, 0xff382712}, // 21 Cobalt2
-    {0xff3f3f3f, 0xffccdcdc, 0xff809070, 0xffafaf9f, 0xff333333}, // 22 Zenburn
-    {0xff2f1b24, 0xfff1eff0, 0xffdb7eff, 0xffbd8b84, 0xff23141a}, // 23 Synthwave
-    {0xff08020d, 0xff41ff00, 0xff33cc00, 0xff118f00, 0xff001a00}, // 24 Matrix
-    {0xff000000, 0xffe0e0e0, 0xff76e600, 0xff888888, 0xff0a0a0a}, // 25 OLED
-    {0xffffffff, 0xff2f2924, 0xffda6909, 0xff766d65, 0xfffaf8f6}, // 26 GitHub Light
-    {0xfffafafa, 0xff423a38, 0xfff27840, 0xffa7a1a0, 0xfff0f0f0}, // 27 One Light
-    {0xfff5f1ef, 0xff694f4c, 0xfff5661e, 0xffb0a09c, 0xffefe9e6}, // 28 Cat Latte
-    {0xfff4efec, 0xff40342e, 0xffac815e, 0xff6a564c, 0xfff0e9e5}, // 29 Nord Snow
-    {0xffd8ecf4, 0xff223443, 0xff13458b, 0xff556a7a, 0xffcfe3eb}, // 30 Sepia
+    {0xff130905, 0xff2b1b10, 0xfffff7f3, 0xffe8d4c8, 0xff05070b, 0xffd0ff43, 0xff553b2b, 0xffffd94d, 0xffaa927a, 0xffc679ff}, // 0 Dark
+    {0xff000000, 0xff161616, 0xffffffff, 0xffe0e0e0, 0xff1a1a1a, 0xffffff00, 0xff404040, 0xff00ffff, 0xffa0a0a0, 0xffff00ff}, // 1 HiCon
+    {0xff0a0500, 0xff1a0f00, 0xffffb000, 0xffcc8800, 0xff080300, 0xff00d7ff, 0xffa06a10, 0xffffd27f, 0xffaa8844, 0xff6633ff}, // 2 Amber
+    {0xff001100, 0xff002600, 0xff33ff66, 0xff28cc4d, 0xff000800, 0xffaaff00, 0xff2f8a4f, 0xff00ffcc, 0xff25663d, 0xffcc00ff}, // 3 Green
+    {0xff362b00, 0xff423607, 0xff969483, 0xff837b65, 0xff261e00, 0xffd28b26, 0xff756e58, 0xff98a12a, 0xff524e45, 0xff2f32dc}, // 4 SolDk
+    {0xffe3f6fd, 0xffd5e8ee, 0xff423607, 0xff362b00, 0xffc1d6dd, 0xff8236d3, 0xffa1a193, 0xffd28b26, 0xff837b65, 0xffc4716c}, // 5 SolLt
+    {0xfff5f5f0, 0xffe6e6e0, 0xff1a1a1a, 0xff333333, 0xffecece8, 0xffcc6600, 0xff999999, 0xffaa8800, 0xff707070, 0xff880066}, // 6 Paper
+    {0xff000000, 0xff101010, 0xffffff00, 0xffcccc00, 0xff0a0a0a, 0xff00ffff, 0xff888800, 0xffffffff, 0xffb0b000, 0xff8000ff}, // 7 HiYel
+    {0xff362a28, 0xff5a4744, 0xfff2f8f8, 0xffdce0e0, 0xff2c2221, 0xfff993bd, 0xffa47262, 0xfffde98b, 0xff725751, 0xff7bfa50}, // 8 Dracula
+    {0xff342c28, 0xff3c322c, 0xffbfb2ab, 0xff978982, 0xff2b2521, 0xffdd78c6, 0xff70635c, 0xffefaf61, 0xff63524b, 0xff7bc0e5}, // 9 1Dark
+    {0xff40342e, 0xff52423b, 0xfff4efec, 0xffe9ded8, 0xff5e4c43, 0xffd0c088, 0xff6a564c, 0xffc1a181, 0xff886e61, 0xff6a61bf}, // 10 Nord
+    {0xff222827, 0xff323d3e, 0xfff2f8f8, 0xffc2cfcf, 0xff1c1f1e, 0xff2ee2a6, 0xff3e4849, 0xffefd966, 0xff5e7175, 0xff7226f9}, // 11 Mono
+    {0xff261b1a, 0xff3b2824, 0xfff5cac0, 0xffcea59a, 0xff1e1616, 0xfff79abb, 0xff684841, 0xfff7a27a, 0xff895f56, 0xff6ace9e}, // 12 Tokyo
+    {0xff2e1e1e, 0xff443231, 0xfff4d6cd, 0xffc8ada6, 0xff251818, 0xfff7a6cb, 0xff5a4745, 0xfffab489, 0xff86706c, 0xffe7c2f5}, // 13 Catpp
+    {0xff282828, 0xff36383c, 0xffb2dbeb, 0xffa1c4d5, 0xff21201d, 0xff26bbb8, 0xff454950, 0xff98a583, 0xff748392, 0xff2fbdfa}, // 14 Gruv
+    {0xff3b352d, 0xff4d483d, 0xffaac6d3, 0xff8499a8, 0xff2e2a23, 0xff80c0a7, 0xff585247, 0xffb3bb7f, 0xff899285, 0xff807ee6}, // 15 Evrf
+    {0xff17110d, 0xff221b16, 0xffd9d1c9, 0xff9e948b, 0xff090401, 0xffffa658, 0xff3d3630, 0xffffc079, 0xff81766e, 0xffffa8d2}, // 16 GHDrk
+    {0xff140e0a, 0xff291f1a, 0xffb6bdbf, 0xff8f9893, 0xff0c0805, 0xff54b4ff, 0xff443832, 0xffffc259, 0xff736a62, 0xff7871f0}, // 17 Ayu
+    {0xff3e2d29, 0xff4d3732, 0xffcdaca6, 0xffb88b82, 0xff32211e, 0xffea92c7, 0xff79554e, 0xffffaa82, 0xff956e67, 0xff8de8c3}, // 18 Palen
+    {0xff241719, 0xff2e1d1f, 0xfff4dee0, 0xffaa8c90, 0xff1c1012, 0xffe7a7c4, 0xff3a2326, 0xffd8cf9c, 0xff866a6e, 0xff926feb}, // 19 Rose
+    {0xff271601, 0xff42290b, 0xffebded6, 0xffc4b1a2, 0xff221100, 0xffffaa82, 0xff533b1d, 0xffcadb7f, 0xff777763, 0xffea92c7}, // 20 Nowl
+    {0xff493519, 0xff382712, 0xffffffff, 0xffe8d8c0, 0xff37210d, 0xff00c6ff, 0xffff8800, 0xff00d93a, 0xff009dff, 0xff8c62ff}, // 21 Cob2
+    {0xff3f3f3f, 0xff383838, 0xffccdcdc, 0xffacbcbc, 0xff2f2f2f, 0xff809070, 0xff606060, 0xffd3d08c, 0xffafaf9f, 0xffafdff0}, // 22 Zen
+    {0xff2f1b24, 0xff4f2934, 0xfff1eff0, 0xffd8c0c8, 0xff1f1017, 0xffdb7eff, 0xff653446, 0xfff6f936, 0xffbd8b84, 0xff5ddefe}, // 23 Synth
+    {0xff020d02, 0xff001a00, 0xff00ff41, 0xff00cc33, 0xff000800, 0xff66ff00, 0xff008f11, 0xffccff00, 0xff00660a, 0xffffff00}, // 24 Matrix
+    {0xff000000, 0xff0a0a0a, 0xffe0e0e0, 0xffb0b0b0, 0xff141414, 0xff00e676, 0xff333333, 0xffffcc00, 0xff888888, 0xffff6699}, // 25 OLED
+    {0xffffffff, 0xfffaf8f6, 0xff2f2924, 0xff534a42, 0xfff6f3f0, 0xffda6909, 0xffded7d0, 0xffae5005, 0xff766d65, 0xff2e22cf}, // 26 GHLit
+    {0xfffafafa, 0xfff0f0f0, 0xff423a38, 0xff776c69, 0xffe6e5e5, 0xffa426a6, 0xffd4d4d4, 0xfff27840, 0xffa0a1a0, 0xff4956e4}, // 27 1Lite
+    {0xfff5f1ef, 0xffefe9e6, 0xff694f4c, 0xff856f6c, 0xffe8e0dc, 0xffef3988, 0xffdad0cc, 0xfff5661e, 0xffb0a09c, 0xffcb76ea}, // 28 Latte
+    {0xfff4efec, 0xfff0e9e5, 0xff40342e, 0xff6a564c, 0xffe9ded8, 0xffac815e, 0xffdacec8, 0xffc1a181, 0xff918880, 0xff8cbea3}, // 29 NSnow
+    {0xfff4ecd8, 0xffebe3cf, 0xff433422, 0xff665544, 0xffe6ddc8, 0xff8b4513, 0xffccc0a8, 0xffaa7722, 0xff7a6a55, 0xff224488}, // 30 Sepia
+    {0xff281f1f, 0xff372a2a, 0xffbad7dc, 0xffa6c2c8, 0xff1d1616, 0xffd89c7e, 0xff463636, 0xffb87f95, 0xff697172, 0xff6cbb98}, // 31 Kanag
+    {0xff261e1c, 0xff302523, 0xffe1d5cb, 0xffc4b4a8, 0xff1d1716, 0xff6d56e9, 0xff3e302e, 0xffbcb025, 0xff89706b, 0xff95b7fa}, // 32 Horiz
+    {0xff161616, 0xff262626, 0xfff8f4f2, 0xffcdc7c1, 0xff0d0d0d, 0xfff5a542, 0xff393939, 0xffffb133, 0xff8d8d8d, 0xffcf6fff}, // 33 Oxo
+    {0xff19140f, 0xff32231a, 0xffcfe1e6, 0xffa0b0b8, 0xff120e0a, 0xffafff82, 0xff253040, 0xffe6cf5c, 0xff81766e, 0xff80d5ff}, // 34 Moon
+    {0xff0a0a1a, 0xff14142a, 0xffd6e4ff, 0xffa8b8d4, 0xff060612, 0xff4466ff, 0xff20204a, 0xff44aaff, 0xff556688, 0xff4422ff}, // 35 Ember
+    {0xff20101a, 0xff301828, 0xfff8e8ff, 0xffd0b8d8, 0xff180812, 0xffb469ff, 0xff482840, 0xffffe500, 0xff887890, 0xff00ffff}, // 36 Candy
+    {0xff28160a, 0xff382214, 0xfffff4e8, 0xfff0d4b8, 0xff180e06, 0xffffcc66, 0xff50301e, 0xffffd8a8, 0xffaa8868, 0xffcc88ff}, // 37 Frost
 };
 // Short names for <list> labels — engine comma-split buffer is only 240 bytes (SoF.exe sub_200C92D0).
 static const char* kMenuThemeListLabels[] = {
-    "Dark", "HiCon", "Amber", "Green", "SolDrk", "SolLit", "Paper", "HiYel",
-    "Dracula", "OneDark", "Nord", "Monokai", "Tokyo", "Catpp", "Gruvbox", "Evrfrst",
-    "GHDrk", "AyuDark", "Palenight", "Rose", "NOwl", "Cobalt2", "Zenburn", "Synth",
-    "Matrix", "OLED", "GHLit", "OneLight", "Latte", "NSnow", "Sepia",
+    "Dark", "HiCon", "Amber", "Green", "SolDk", "SolLt", "Paper", "HiYel",
+    "Dracula", "1Dark", "Nord", "Mono", "Tokyo", "Catpp", "Gruv", "Evrf",
+    "GHDrk", "Ayu", "Palen", "Rose", "Nowl", "Cob2", "Zen", "Synth",
+    "Matrix", "OLED", "GHLit", "1Lite", "Latte", "NSnow", "Sepia",
+    "Kanag", "Horiz", "Oxo", "Moon", "Ember", "Candy", "Frost",
 };
 static_assert(sizeof(kMenuThemeListLabels) / sizeof(kMenuThemeListLabels[0]) ==
               sizeof(kMenuThemes) / sizeof(kMenuThemes[0]), "theme list/name count mismatch");
 
 const char* internal_menus_get_theme_list_labels_rmf(void) {
-    static char buf[256];
+    static char buf[280];
     char* p = buf;
     const char* end = buf + sizeof(buf) - 1;
     const int n = static_cast<int>(sizeof(kMenuThemeListLabels) / sizeof(kMenuThemeListLabels[0]));
@@ -489,6 +497,19 @@ const char* internal_menus_get_theme_list_labels_rmf(void) {
         p += std::strlen(label);
     }
     *p = '\0';
+    return buf;
+}
+
+const char* internal_menus_get_theme_list_rmf(void) {
+    static char buf[768];
+    const char* labels = internal_menus_get_theme_list_labels_rmf();
+    const char* match = internal_menus_get_theme_list_match_rmf();
+    std::snprintf(buf, sizeof(buf),
+        "<list \"%s\" match \"%s\" cvari _sofbuddy_menu_theme atext \"Menu Theme : \" "
+        "key mouse1 \"reloadall;sofbuddy_menu sof_buddy/sofbuddy\" "
+        "key mouse2 \"reloadall;sofbuddy_menu sof_buddy/sofbuddy\" "
+        "noshade tip \"Editor-inspired color preset. Tab reloads to apply tints.\"><br>",
+        labels, match);
     return buf;
 }
 
@@ -525,9 +546,9 @@ const char* internal_menus_get_theme_tints_rmf(void) {
         "<tint sb_accent 0x%08x><tint sb_subtle 0x%08x>"
         "<tint white 0x%08x><tint cyan 0x%08x>"
         "<tint gray 0x%08x><tint orange 0x%08x>",
-        t.fg, t.bg, t.bg, t.panel,
-        t.sec, t.dim, t.fg, t.sec,
-        t.dim, t.fg);
+        t.tip, t.hili, t.bg, t.panel,
+        t.accent, t.subtle, t.fg, t.heading,
+        t.muted, t.active);
     return buf;
 }
 const char* internal_menus_get_tabs_row_prefix_rmf(void) {

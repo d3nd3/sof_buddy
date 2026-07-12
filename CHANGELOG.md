@@ -1,5 +1,13 @@
 # Changelog
 
+## v7.6
+
+### Internal menus — theme palette expansion & list injection
+
+- **38 themes (was 31):** Added Kanagawa, Horizon, Oxocarbon, Moonlight, Ember, Candy, Frost; expanded `MenuTheme` to 10 tint slots (tip, hili, accent, subtle, heading, muted, active) with per-theme active-tab hues.
+- **`{menu_theme_list}`:** Buddy tab injects the full `<list …>` tag at load time via `internal_menus_get_theme_list_rmf()` so labels stay under the 239-char quoted-string cap as the theme count grows.
+- **RMF docs:** Clearer §8 note on `<list>` size limit — only characters inside each `"..."`, with a short example.
+
 ## v7.5
 
 ### Internal menus — Buddy tab theme list fixes
