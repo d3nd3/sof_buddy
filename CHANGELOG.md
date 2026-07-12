@@ -1,5 +1,11 @@
 # Changelog
 
+## v7.7
+
+### Internal menus — cvar persistence
+
+- **`cl_showfps`, `m_yaw`, `m_pitch`:** OR `CVAR_ARCHIVE` at registration so FPS overlay and mouse sensitivity settings from the Buddy menus persist to `config.cfg` (vanilla registers these without archive flags).
+
 ## v7.6
 
 ### Internal menus — theme palette expansion & list injection
