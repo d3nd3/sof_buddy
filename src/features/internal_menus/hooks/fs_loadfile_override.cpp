@@ -73,6 +73,8 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
     const char* inset_tall = internal_menus_get_content_inset_tall_rmf();
     const char* tabs_prefix = internal_menus_get_tabs_row_prefix_rmf();
     const char* theme_tints = internal_menus_get_theme_tints_rmf();
+    const char* theme_labels = internal_menus_get_theme_list_labels_rmf();
+    const char* theme_match = internal_menus_get_theme_list_match_rmf();
     for (std::string::size_type pos = 0; (pos = content.find("{content_inset_tall}", pos)) != std::string::npos; )
         content.replace(pos, 20, inset_tall), pos += std::strlen(inset_tall);
     for (std::string::size_type pos = 0; (pos = content.find("{content_inset}", pos)) != std::string::npos; )
@@ -81,6 +83,10 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
         content.replace(pos, 17, tabs_prefix), pos += std::strlen(tabs_prefix);
     for (std::string::size_type pos = 0; (pos = content.find("{theme_tints}", pos)) != std::string::npos; )
         content.replace(pos, 13, theme_tints), pos += std::strlen(theme_tints);
+    for (std::string::size_type pos = 0; (pos = content.find("{menu_theme_labels}", pos)) != std::string::npos; )
+        content.replace(pos, 21, theme_labels), pos += std::strlen(theme_labels);
+    for (std::string::size_type pos = 0; (pos = content.find("{menu_theme_match}", pos)) != std::string::npos; )
+        content.replace(pos, 20, theme_match), pos += std::strlen(theme_match);
     for (std::string::size_type pos = 0; (pos = content.find("tall}", pos)) != std::string::npos; )
         content.replace(pos, 5, "");
 

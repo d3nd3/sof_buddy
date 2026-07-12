@@ -465,6 +465,51 @@ static const MenuTheme kMenuThemes[] = {
     {0xfff4efec, 0xff40342e, 0xffac815e, 0xff6a564c, 0xfff0e9e5}, // 29 Nord Snow
     {0xffd8ecf4, 0xff223443, 0xff13458b, 0xff556a7a, 0xffcfe3eb}, // 30 Sepia
 };
+// Short names for <list> labels — engine comma-split buffer is only 240 bytes (SoF.exe sub_200C92D0).
+static const char* kMenuThemeListLabels[] = {
+    "Dark", "HiCon", "Amber", "Green", "SolDrk", "SolLit", "Paper", "HiYel",
+    "Dracula", "OneDark", "Nord", "Monokai", "Tokyo", "Catpp", "Gruvbox", "Evrfrst",
+    "GHDrk", "AyuDark", "Palenight", "Rose", "NOwl", "Cobalt2", "Zenburn", "Synth",
+    "Matrix", "OLED", "GHLit", "OneLight", "Latte", "NSnow", "Sepia",
+};
+static_assert(sizeof(kMenuThemeListLabels) / sizeof(kMenuThemeListLabels[0]) ==
+              sizeof(kMenuThemes) / sizeof(kMenuThemes[0]), "theme list/name count mismatch");
+
+const char* internal_menus_get_theme_list_labels_rmf(void) {
+    static char buf[256];
+    char* p = buf;
+    const char* end = buf + sizeof(buf) - 1;
+    const int n = static_cast<int>(sizeof(kMenuThemeListLabels) / sizeof(kMenuThemeListLabels[0]));
+    for (int i = 0; i < n; ++i) {
+        const char* label = kMenuThemeListLabels[i];
+        const int need = static_cast<int>(std::strlen(label)) + (i ? 1 : 0);
+        if (p + need >= end) break;
+        if (i) *p++ = ',';
+        std::memcpy(p, label, std::strlen(label));
+        p += std::strlen(label);
+    }
+    *p = '\0';
+    return buf;
+}
+
+const char* internal_menus_get_theme_list_match_rmf(void) {
+    static char buf[128];
+    char* p = buf;
+    const char* end = buf + sizeof(buf) - 1;
+    const int n = static_cast<int>(sizeof(kMenuThemes) / sizeof(kMenuThemes[0]));
+    for (int i = 0; i < n; ++i) {
+        char num[8];
+        std::snprintf(num, sizeof(num), "%d", i);
+        const int need = static_cast<int>(std::strlen(num)) + (i ? 1 : 0);
+        if (p + need >= end) break;
+        if (i) *p++ = ',';
+        std::memcpy(p, num, std::strlen(num));
+        p += std::strlen(num);
+    }
+    *p = '\0';
+    return buf;
+}
+
 const char* internal_menus_get_theme_tints_rmf(void) {
     static char buf[512];
     int idx = 0;

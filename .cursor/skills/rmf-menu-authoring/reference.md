@@ -133,6 +133,7 @@ Top = last `<hbr>`. `<br>` = temporary stepping stones; layout change resets `<b
 - `ctext` often has `invisible`; `text` has `regular`. `serverbox` columns 0–5 (5 = pure). `filebox` uses `align` in practice.
 - `chat` with `private`. Area parsers can be option-order sensitive. Most tags not explicitly closed.
 - `return` = guarded teardown; `menuoff` = direct. `defaults noborder` + selective borders for cleaner layouts. Prefer frames over blank-heavy layout for scaling. Use `noshade` when list/ctext looks muted.
+- **`<list>` comma-string limit (SoF.exe):** each quoted labels string and each `match "..."` value string is copied into a **240-byte stack buffer** during parse (`sub_200C92D0`, frame `0x11C`, buffer at `+0x2C`, no bounds check). Overflow corrupts the splitter loop and can **hang** the game. Keep each comma-separated string **≤239 chars**; split long pickers across lists/pages. **Do not put `{placeholders}` inside list quotes** — only `{name}` tokens on their own (like `{theme_tints}`) are expanded at load time; inside `"..."` the engine still sees the braces and the `<list>` parse fails, leaking `cvar` / `atext` / `key` tokens as raw centered text.
 
 ## 11. Agent Authoring Checklist
 

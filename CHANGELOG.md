@@ -1,5 +1,15 @@
 # Changelog
 
+## v7.5
+
+### Internal menus — Buddy tab theme list fixes
+
+- **Hang fix:** Menu theme `<list>` labels shortened to fit SoF.exe’s **240-byte** comma-split stack buffer (`sub_200C92D0`); the v7.4 31-name string (277 chars) overflowed and could freeze the game when opening the Buddy tab.
+- **Layout fix:** Theme list uses inline short labels in RMF (not `{placeholders}` inside quotes) so the engine parses a real `<list>` control instead of dumping `cvar` / `atext` / `key` tokens as raw text.
+- **Right-click apply:** Added `key mouse2` reload on the theme list so right-click previous entry applies tints the same as left-click next (`list_c` only fires `key mouse1` bindings on button 1).
+- **Plumbing:** `kMenuThemeListLabels[]` plus `internal_menus_get_theme_list_labels_rmf()` / `_match_rmf()` for generated list strings; `FS_LoadFile` can substitute `{menu_theme_labels}` / `{menu_theme_match}` when used outside quotes.
+- **RMF reference:** Documented the 240-byte list string limit and the no-placeholders-in-quotes rule.
+
 ## v7.4
 
 ### Internal menus — themed SoF Buddy settings shell

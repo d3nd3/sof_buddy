@@ -32,6 +32,8 @@ const char* internal_menus_get_content_inset_rmf(void);
 const char* internal_menus_get_content_inset_tall_rmf(void);
 const char* internal_menus_get_tabs_row_prefix_rmf(void);
 const char* internal_menus_get_theme_tints_rmf(void);
+const char* internal_menus_get_theme_list_labels_rmf(void);
+const char* internal_menus_get_theme_list_match_rmf(void);
 void internal_menus_remember_menu_page(const char* menu_file);
 
 #endif

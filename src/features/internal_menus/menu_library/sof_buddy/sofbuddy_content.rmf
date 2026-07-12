@@ -32,7 +32,7 @@
 <font type title tint cyan atint cyan>
 "Menu"
 <font type title tint white atint white>
-<list "Dark,Hi Contrast,Amber,Green,Solar Dark,Solar Light,Paper,Hi Yellow,Dracula,One Dark,Nord,Monokai,Tokyo Night,Catppuccin,Gruvbox,Everforest,GitHub Dark,Ayu Dark,Palenight,Rose Pine,Night Owl,Cobalt2,Zenburn,Synthwave,Matrix,OLED,GitHub Light,One Light,Cat Latte,Nord Snow,Sepia" match "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30" cvari _sofbuddy_menu_theme atext "Menu Theme : " key mouse1 "reloadall;sofbuddy_menu sof_buddy/sofbuddy" noshade tip "Editor-inspired color presets chosen for readable contrast."><br>
+<list "Dark,HiCon,Amber,Green,SolDrk,SolLit,Paper,HiYel,Dracula,OneDark,Nord,Monokai,Tokyo,Catpp,Gruvbox,Evrfrst,GHDrk,AyuDark,Palenight,Rose,NOwl,Cobalt2,Zenburn,Synth,Matrix,OLED,GHLit,OneLight,Latte,NSnow,Sepia" match "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30" cvari _sofbuddy_menu_theme atext "Menu Theme : " key mouse1 "reloadall;sofbuddy_menu sof_buddy/sofbuddy" key mouse2 "reloadall;sofbuddy_menu sof_buddy/sofbuddy" noshade tip "Editor-inspired color preset. Tab reloads to apply tints."><br>
 <ctext tip_duration atext "Menu tooltip Duration (ms) : " noshade><br>
 <slider cvar tip_duration min 0 max 8000 step 250 tip "How long menu tooltips stay visible."><br>
 <ctext _sofbuddy_menu_hotkey atext "Menu open key : " noshade tip "Rebind via set _sofbuddy_menu_hotkey <key>;sofbuddy_apply_menu_hotkey in console, or Restore Defaults below."><br>
