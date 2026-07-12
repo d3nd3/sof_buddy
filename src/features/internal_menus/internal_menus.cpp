@@ -208,7 +208,6 @@ void create_loading_cvars() {
     detour_Cvar_Get::oCvar_Get("cl_gun", "1", CVAR_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get("cl_quads", "1", CVAR_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get("cl_freezequads", "0", CVAR_ARCHIVE, nullptr);
-    detour_Cvar_Get::oCvar_Get("debuggraph", "0", CVAR_ARCHIVE, nullptr);
 }
 
 constexpr int kSofBuddyCenterPanelVirtualWidth = 640;

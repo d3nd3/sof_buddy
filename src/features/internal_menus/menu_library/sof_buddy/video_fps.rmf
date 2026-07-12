@@ -3,4 +3,3 @@
 <hbr>
 <font type title tint white atint white>
 <list "Off,Console,OSD,Con+OSD,Graph,Con+Graph,OSD+Graph,Con+OSD+Graph,Fast only,Fast+Con,Fast+OSD,Fast+Con+OSD,Fast+Graph,Fast+Con+Graph,Fast+OSD+Graph,All" match "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15" cvar cl_showfps atext "Show FPS : " noshade tip "Bit 1=console print, 2=OSD counter, 4=FPS graph, 8=fast updates. Values combine (e.g. OSD+Graph=6)."><hbr>
-<list "Off,On" match "0,1" cvar debuggraph atext "Graph channel : " noshade tip "FPS graph also needs netgraph or timegraph set to 1. debuggraph is the usual choice."><hbr>
