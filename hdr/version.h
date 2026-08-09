@@ -7,4 +7,4 @@
     Increment version using: ./increment_version.sh
 */
 
-#define SOFBUDDY_VERSION "7.9"
+#define SOFBUDDY_VERSION "8.0"

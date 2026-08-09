@@ -1,5 +1,13 @@
 # Changelog
 
+## v8.0
+
+### Texture filtering — prevent UI/unmipped MIPMAP lockout
+
+- **Menu:** UI and Unmipped Min lists limited to `NEAREST`/`LINEAR` (MIPMAP options removed; world Mipped Min unchanged).
+- **Clamp:** `minfilter_change` rejects MIPMAP for `_sofbuddy_minfilter_ui` and `_sofbuddy_minfilter_unmipped` (no mip levels → incomplete textures / unreadable fonts).
+- **Poison reset:** Invalid or rejected filter cvar strings are rewritten to the last valid value so archived configs cannot keep a stuck MIPMAP setting.
+
 ## v7.9
 
 ### Internal menus — Video/FPS cleanup

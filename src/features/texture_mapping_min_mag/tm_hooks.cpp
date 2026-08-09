@@ -154,67 +154,64 @@ void __stdcall orig_glTexParameterf_mag_ui(int target_tex, int param_name, float
 	if (orig_glTexParameterf) orig_glTexParameterf(target_tex,param_name,(float)magfilter_ui);
 }
 
-/*
-	CVar change callback for minification filter settings
-	
-	This function is called when any of the _sofbuddy_minfilter_* CVars are changed.
-	It validates the input and updates the corresponding filter setting.
-*/
-void minfilter_change(cvar_t * cvar) {
-	for (int i = 0; i < 6; i++) {
-		if (!strcmp(min_filter_modes[i].name, cvar->string)) {
-			if (!strcmp(cvar->name, "_sofbuddy_minfilter_unmipped")) {
-				minfilter_unmipped = min_filter_modes[i].gl_code;
-				PrintOut(PRINT_LOG, "texture_mapping: minfilter_unmipped set to %s\n", min_filter_modes[i].name);
-			} else if (!strcmp(cvar->name, "_sofbuddy_minfilter_mipped")) {
-				minfilter_mipped = min_filter_modes[i].gl_code;
-				PrintOut(PRINT_LOG, "texture_mapping: minfilter_mipped set to %s\n", min_filter_modes[i].name);
-			} else if (!strcmp(cvar->name, "_sofbuddy_minfilter_ui")) {
-				minfilter_ui = min_filter_modes[i].gl_code;
-				PrintOut(PRINT_LOG, "texture_mapping: minfilter_ui set to %s\n", min_filter_modes[i].name);
-			}
-			
-			// Trigger texture mode refresh if available
-			if (_gl_texturemode) {
-				_gl_texturemode->modified = true;
-			}
-			return;
-		}
-	}
-	PrintOut(PRINT_BAD, "Invalid minfilter value: %s. Valid values: GL_NEAREST, GL_LINEAR, "
-	                     "GL_NEAREST_MIPMAP_NEAREST, GL_LINEAR_MIPMAP_NEAREST, "
-	                     "GL_NEAREST_MIPMAP_LINEAR, GL_LINEAR_MIPMAP_LINEAR\n", cvar->string);
+static const char* filter_name_for_code(filter_mapping* modes, int n, int code) {
+	for (int i = 0; i < n; i++)
+		if (modes[i].gl_code == code) return modes[i].name;
+	return modes[0].name;
 }
 
-/*
-	CVar change callback for magnification filter settings
-	
-	This function is called when any of the _sofbuddy_magfilter_* CVars are changed.
-	It validates the input and updates the corresponding filter setting.
-*/
-void magfilter_change(cvar_t * cvar) {
-	for (int i = 0; i < 2; i++) {
-		if (!strcmp(mag_filter_modes[i].name, cvar->string)) {
-			if (!strcmp(cvar->name, "_sofbuddy_magfilter_unmipped")) {
-				magfilter_unmipped = mag_filter_modes[i].gl_code;
-				PrintOut(PRINT_LOG, "texture_mapping: magfilter_unmipped set to %s\n", mag_filter_modes[i].name);
-			} else if (!strcmp(cvar->name, "_sofbuddy_magfilter_mipped")) {
-				magfilter_mipped = mag_filter_modes[i].gl_code;
-				PrintOut(PRINT_LOG, "texture_mapping: magfilter_mipped set to %s\n", mag_filter_modes[i].name);
-			} else if (!strcmp(cvar->name, "_sofbuddy_magfilter_ui")) {
-				magfilter_ui = mag_filter_modes[i].gl_code;
-				PrintOut(PRINT_LOG, "texture_mapping: magfilter_ui set to %s\n", mag_filter_modes[i].name);
-			}
-			
-			// Trigger texture mode refresh if available
-			if (_gl_texturemode) {
-				_gl_texturemode->modified = true;
-			}
+static bool is_mipmap_filter(int code) {
+	return code >= GL_NEAREST_MIPMAP_NEAREST && code <= GL_LINEAR_MIPMAP_LINEAR;
+}
+
+// Reset poison/invalid string to last applied value (re-enters change cb with a valid name).
+static void reset_filter_cvar(cvar_t* cvar, const char* value) {
+	if (!cvar || !value || !detour_Cvar_Set2::oCvar_Set2) return;
+	if (cvar->string && !strcmp(cvar->string, value)) return;
+	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>(cvar->name), const_cast<char*>(value), true);
+}
+
+void minfilter_change(cvar_t * cvar) {
+	int* slot = nullptr;
+	bool no_mipmap = false;
+	if (!strcmp(cvar->name, "_sofbuddy_minfilter_unmipped")) { slot = &minfilter_unmipped; no_mipmap = true; }
+	else if (!strcmp(cvar->name, "_sofbuddy_minfilter_mipped")) { slot = &minfilter_mipped; }
+	else if (!strcmp(cvar->name, "_sofbuddy_minfilter_ui")) { slot = &minfilter_ui; no_mipmap = true; }
+	if (!slot) return;
+
+	for (int i = 0; i < 6; i++) {
+		if (strcmp(min_filter_modes[i].name, cvar->string)) continue;
+		if (no_mipmap && is_mipmap_filter(min_filter_modes[i].gl_code)) {
+			PrintOut(PRINT_BAD, "texture_mapping: %s rejects MIPMAP (%s) — textures have no mipmaps\n",
+			         cvar->name, cvar->string);
+			reset_filter_cvar(cvar, filter_name_for_code(min_filter_modes, 6, *slot));
 			return;
 		}
+		*slot = min_filter_modes[i].gl_code;
+		PrintOut(PRINT_LOG, "texture_mapping: %s set to %s\n", cvar->name, min_filter_modes[i].name);
+		if (_gl_texturemode) _gl_texturemode->modified = true;
+		return;
 	}
-	PrintOut(PRINT_BAD, "Invalid magfilter value: %s. Valid values: GL_NEAREST, GL_LINEAR\n", 
-	                     cvar->string);
+	PrintOut(PRINT_BAD, "Invalid minfilter value: %s\n", cvar->string);
+	reset_filter_cvar(cvar, filter_name_for_code(min_filter_modes, 6, *slot));
+}
+
+void magfilter_change(cvar_t * cvar) {
+	int* slot = nullptr;
+	if (!strcmp(cvar->name, "_sofbuddy_magfilter_unmipped")) slot = &magfilter_unmipped;
+	else if (!strcmp(cvar->name, "_sofbuddy_magfilter_mipped")) slot = &magfilter_mipped;
+	else if (!strcmp(cvar->name, "_sofbuddy_magfilter_ui")) slot = &magfilter_ui;
+	if (!slot) return;
+
+	for (int i = 0; i < 2; i++) {
+		if (strcmp(mag_filter_modes[i].name, cvar->string)) continue;
+		*slot = mag_filter_modes[i].gl_code;
+		PrintOut(PRINT_LOG, "texture_mapping: %s set to %s\n", cvar->name, mag_filter_modes[i].name);
+		if (_gl_texturemode) _gl_texturemode->modified = true;
+		return;
+	}
+	PrintOut(PRINT_BAD, "Invalid magfilter value: %s. Valid: GL_NEAREST, GL_LINEAR\n", cvar->string);
+	reset_filter_cvar(cvar, filter_name_for_code(mag_filter_modes, 2, *slot));
 }
 
 #endif // FEATURE_TEXTURE_MAPPING_MIN_MAG
