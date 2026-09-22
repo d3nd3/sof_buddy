@@ -43,3 +43,7 @@ echo "$NEW_VERSION" > "$VERSION_FILE"
 
 echo "Version incremented: $CURRENT_VERSION → $NEW_VERSION"
 echo "Updated $VERSION_FILE"
+if [[ -x ./.cursor/skills/new-release/scripts/new_release.sh ]]; then
+  last=$(./.cursor/skills/new-release/scripts/new_release.sh --last-release 2>/dev/null || true)
+  [[ -n "$last" ]] && echo "Latest GitHub release: $last → next tag will be v${NEW_VERSION}-build<N>"
+fi

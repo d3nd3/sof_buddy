@@ -249,6 +249,32 @@
 
 ---
 
+## Releasing (maintainers)
+
+See **[RELEASE_INSTRUCTIONS.md](RELEASE_INSTRUCTIONS.md)** for the full manual guide.
+
+SoF Buddy uses two version numbers:
+
+| Part | Where | Example |
+|------|--------|---------|
+| **Version** (`MAJOR.MINOR`) | `VERSION` file (bump manually) | `8.1` |
+| **Build** | GitHub Actions `run_number` (automatic) | `189` |
+
+Published tags look like **`v8.1-build189`**. Pushing to `master` always builds; a **GitHub Release is created only when `VERSION` changes** in that commit.
+
+**Cut a release:**
+
+```sh
+./.cursor/skills/new-release/scripts/new_release.sh          # bump VERSION, stage hdr/version.h
+# update CHANGELOG.md with ## vX.Y
+./.cursor/skills/new-release/scripts/new_release.sh --check  # verify bump + changelog
+./.cursor/skills/new-release/scripts/new_release.sh --commit -m "Release vX.Y: summary"
+```
+
+`--commit` runs `--check` automatically. Feature fixes on `master` without a `VERSION` bump still CI-build but do not publish a new GitHub release.
+
+---
+
 ## 🤝 Credits
 
 - **WhiteMagicRaven** — Lighting blend mode

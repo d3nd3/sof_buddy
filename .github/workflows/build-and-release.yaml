@@ -6,7 +6,37 @@ on:
       - master
 
 jobs:
+  version_gate:
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.gate.outputs.changed }}
+      version: ${{ steps.gate.outputs.version }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect VERSION bump
+        id: gate
+        run: |
+          VERSION=$(cat VERSION | tr -d '\r\n')
+          PREV=$(git show HEAD~1:VERSION 2>/dev/null | tr -d '\r\n' || true)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ -z "$PREV" || "$VERSION" != "$PREV" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "VERSION changed: ${PREV:-<none>} -> $VERSION (will publish GitHub release)"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "VERSION unchanged ($VERSION); build only, no GitHub release"
+          fi
+
+      - name: Validate release metadata
+        if: steps.gate.outputs.changed == 'true'
+        run: ./.cursor/skills/new-release/scripts/new_release.sh --check --ci
+
   build:
+    needs: version_gate
     if: github.event.inputs.ci-mode != 'manual-skip'
     # The job still runs on a standard GitHub-hosted runner,
     # but the steps will execute inside the container specified below.
@@ -125,7 +155,8 @@ jobs:
   # The 'release' job does not need to run in the container.
   # It only handles artifacts, so using ubuntu-latest is fine and efficient.
   release:
-    needs: build
+    needs: [build, version_gate]
+    if: needs.version_gate.outputs.version_changed == 'true'
     runs-on: ubuntu-latest
 
     steps:
