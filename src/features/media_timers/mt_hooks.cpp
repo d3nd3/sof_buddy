@@ -28,15 +28,10 @@ int (*sp_Sys_Mil) (void) = NULL;
 
 #include "generated_detours.h"
 
-LARGE_INTEGER base = {0};
-LARGE_INTEGER freq = {0};
-
 static bool g_timer_period_1ms_requested = false;
 static int g_cl_maxfps_target_msec = 33;
 
 extern void* o_sofplus;
-
-int qpcTimeStampNano(void);
 
 int oldtime = 0;
 int frametime = 100;
@@ -508,23 +503,5 @@ int winmain_loop(void)
         std::wcout << L"Failed to query timer resolution, NTSTATUS: " << status << L"\n";
     }
 */
-
-
-
-
-int qpcTimeStampNano(void)
-{
-	extern long long qpc_timers(bool force);
-    long long diff = qpc_timers(false);
-    while ( diff < 0 ) {
-		diff = qpc_timers(true);
-	}
-	if (!freq.QuadPart) {
-		return 0;
-	}
-	SOFBUDDY_ASSERT(freq.QuadPart > 0);
-	int ret = diff * 1'000'000'000 / freq.QuadPart;
-	return ret;
-}
 
 #endif // FEATURE_MEDIA_TIMERS

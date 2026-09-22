@@ -37,6 +37,7 @@ CATEGORIES = {
         "new_system_bug",
         "console_protection",
         "cl_maxfps_singleplayer",
+        "wine_focus",
         "cbuf_limit_increase",
     ],
     "Input Features": [

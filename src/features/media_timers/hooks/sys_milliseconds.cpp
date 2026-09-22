@@ -6,156 +6,145 @@
 #include "util.h"
 #include "generated_detours.h"
 #include "../shared.h"
+
 #include <windows.h>
+#include <mmsystem.h>
+#include <cstdint>
 
-using detour_Sys_Milliseconds::tSys_Milliseconds;
+// Ensure compatibility with old Windows XP SDK headers
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0501
+#endif
 
-extern LARGE_INTEGER base;
-extern LARGE_INTEGER freq;
-extern int oldtime;
+namespace {
 
-/*
-freq = 10,000,000, so resolution = 1/10,000,000 = 0.0000001 = 0.1 microseconds = 100 nanoseconds.
-1000 ns = 1us
-1000 us = 1ms
-1000 ms = 1s
-_sp_cl_cpu_cool 1 = 0.1 ms = 100 us
-*/
-long long qpc_timers(bool force)
-{
-	LARGE_INTEGER cur = {0};
-	static LONGLONG last_qpc = 0;
+struct EngineClock {
+    bool          initialized = false;
+    bool          is_win_xp = false;
+    HANDLE        main_thread = nullptr;
+    DWORD_PTR     process_affinity_mask = 0;
 
-	if (!freq.QuadPart || force)
-    {
-		if (!QueryPerformanceFrequency(&freq))
-		{
-			printf("QueryPerformanceFrequency failed\n");
-			PrintOut(PRINT_BAD, "QueryPerformanceFrequency failed\n");
-			ExitProcess(1);
-		}
-		SOFBUDDY_ASSERT(freq.QuadPart > 0);
-	}
-	//obtain a new base.
-	if (!base.QuadPart || force)
-	{
-		if (!QueryPerformanceCounter(&base))
-		{
-			printf("QueryPerformanceCounter failed\n");
-			PrintOut(PRINT_BAD, "QueryPerformanceCounter failed\n");
-			ExitProcess(1);
-		}
-		last_qpc = base.QuadPart;
-	}
+    int64_t       qpc_freq = 0;
+    int64_t       qpc_base = 0;
+    std::uint32_t origin_ms = 0;
+    std::uint32_t last_ms = 0;
 
-	if (!QueryPerformanceCounter(&cur))
-	{
-		printf("QueryPerformanceCounter failed\n");
-		PrintOut(PRINT_BAD, "QueryPerformanceCounter failed\n");
-		ExitProcess(1);
-	}
+    volatile std::uint32_t* curtime_ptr = nullptr;
 
-	// QPC can move backwards on some systems (old HW/BIOS bugs, core migration). Adjust the
-	// base so that returned elapsed ticks never go backwards (prevents hitchy timer resets).
-	if (last_qpc && cur.QuadPart < last_qpc) {
-		base.QuadPart -= (last_qpc - cur.QuadPart);
-	}
-	last_qpc = cur.QuadPart;
+    volatile std::uint32_t* Curtime() {
+        if (!curtime_ptr) {
+            curtime_ptr = static_cast<volatile std::uint32_t*>(
+                rvaToAbsExe(reinterpret_cast<void*>(0x390D38)));
+        }
+        return curtime_ptr;
+    }
 
-	return static_cast<long long>(cur.QuadPart - base.QuadPart);
-}
+    bool CheckIfWindowsXP() {
+        OSVERSIONINFOEXA osvi = { sizeof(OSVERSIONINFOEXA) };
+        if (GetVersionExA(reinterpret_cast<OSVERSIONINFOA*>(&osvi))) {
+            // Windows XP is NT version 5.1 (or 5.2 for XP 64-bit / Server 2003)
+            return (osvi.dwMajorVersion == 5);
+        }
+        return false;
+    }
 
-/*
-	
-The difference between an older and a newer value of the QueryPerformanceCounter can be negative.
-(This can happen when the thread moves from one CPU core to an other.)
+    void QueryCounterSafe(LARGE_INTEGER* out_cur) {
+        // Microsoft recommendation: on Windows XP only, query QPC on a single 
+        // fixed core to prevent cross-core TSC jitter. On Vista+, do not touch affinity.
+        if (is_win_xp && process_affinity_mask != 0) {
+            DWORD_PTR thread_mask = 1; // Pin temporarily to Core 0
+            DWORD_PTR old_mask = SetThreadAffinityMask(main_thread, thread_mask);
+            QueryPerformanceCounter(out_cur);
+            SetThreadAffinityMask(main_thread, old_mask);
+        } else {
+            QueryPerformanceCounter(out_cur);
+        }
+    }
 
-Consider explicitly binding the thread to a specific processor using SetThreadAffinityMask to avoid counter discrepancies caused by core switching.
-*/
-// SofPlus -> Us -> orig
+    void Init(std::uint32_t stock_origin) {
+        LARGE_INTEGER f;
+        if (!QueryPerformanceFrequency(&f) || f.QuadPart <= 0) {
+            // Fallback to stock timeGetTime if hardware lacks QPC
+            qpc_freq = 0;
+            return;
+        }
+        qpc_freq = f.QuadPart;
 
-/*
-	This is actually called in Sys_Init() inside QCommon_Init()
-	By some cpu_analyse type code.
+        is_win_xp = CheckIfWindowsXP();
+        main_thread = GetCurrentThread();
 
-	Next its called by: Netchan_Init()
+        DWORD_PTR sys_mask = 0;
+        GetProcessAffinityMask(GetCurrentProcess(), &process_affinity_mask, &sys_mask);
 
-	Its also called every frame inside CL_Frame() , (not in q2). 
-	Seems to have no purpose too. (Ah unless its to set curtime (would make sense)).
+        LARGE_INTEGER cur;
+        QueryCounterSafe(&cur);
 
-	Cbuf_Execute() in CL_Frame() is meant to handle the sp_sc_timer calbacks.
-	Cbuf_AddText() called by the spTimers() function.
+        qpc_base = cur.QuadPart;
+        origin_ms = stock_origin;
+        last_ms = stock_origin;
 
-	analyze_cpu() - 20021183 , 200211a2
-	Netchan_Init() - 2004d256
-	CL_InitLocal() - 2000cad7 (cls.realtime = Sys_Milliseconds())
-	WinMain() - 20066373 (oldtime = Sys_Milliseconds ();)
-	_US_
-	M_PushMenu() - 200cb7fe, 200c7823 200c78a6 (main menu when game starts)
-	M_PushMenu() innerFunc() - 200e6171
-	IN_MenuMove() - 200cc079
-	CL_Frame() - 2000d91a
-	Sys_SendKeyEvents() - 20065d63
-	_US_
-	CL_Frame()
-	Sys_SendKeyEvents()
-	IN_MenuMove()
-	_US_
-	...
+        if (volatile std::uint32_t* ct = Curtime())
+            *ct = stock_origin;
 
-	CL_ReadPackets()
-		CL_ParseServerMessage()
-			CL_ParseServerData() is what prints' the mapname.
+        initialized = true;
+    }
 
-	(Net_Init())
-	WSA_Startup() is initialising the sofplus with the addon inits.
+    std::uint32_t GetMilliseconds(detour_Sys_Milliseconds::tSys_Milliseconds original) {
+        if (!initialized) {
+            std::uint32_t stock = original ? static_cast<std::uint32_t>(original()) 
+                                           : static_cast<std::uint32_t>(timeGetTime());
+            Init(stock);
+            if (qpc_freq <= 0)
+                return stock;
+        }
 
-	Because the cpu_analyze() calls to Sys_Milliseconds() eventually result in
-	curtime = 0.
-	The times which it got saved at no longer make any sense after it resets.
+        LARGE_INTEGER cur;
+        QueryCounterSafe(&cur);
 
-	We have to find out what causes it to reset to 0.
+        // Compute elapsed ticks from the static base (never shift base backwards)
+        int64_t elapsed_ticks = cur.QuadPart - qpc_base;
+        if (elapsed_ticks < 0)
+            elapsed_ticks = 0;
 
-*/
+        std::uint32_t elapsed_ms = static_cast<std::uint32_t>(
+            (static_cast<std::uint64_t>(elapsed_ticks) * 1000ull) /
+            static_cast<std::uint64_t>(qpc_freq));
+
+        std::uint32_t ms = origin_ms + elapsed_ms;
+
+        // Strictly monotonic clamp (32-bit wrap safe):
+        // Prevents any negative time steps without modifying the origin
+        if (static_cast<std::int32_t>(ms - last_ms) < 0)
+            ms = last_ms;
+
+        if (ms != last_ms) {
+            last_ms = ms;
+            if (volatile std::uint32_t* ct = Curtime())
+                *ct = ms;
+        }
+
+        return ms;
+    }
+};
+
+EngineClock g_clock;
+
+} // namespace
+
 int my_Sys_Milliseconds(void)
 {
-	#if 0
-	void *return_address = __builtin_return_address(0);
-    printf("my_Sys_Milliseconds called by : %p\n", return_address);
-	#endif
-	static int last_curtime = -1;
-
-	const long long ticks_elapsed = qpc_timers(false);
-	if (!freq.QuadPart) {
-		return 0;
-	}
-	SOFBUDDY_ASSERT(freq.QuadPart > 0);
-	const int ret = static_cast<int>((ticks_elapsed * 1000LL) / freq.QuadPart);
-
-	// Avoid redundant writes in spin-wait loops (same ms value can be polled many times).
-	if (ret != last_curtime) {
-		// set curtime
-		*(int*)0x20390D38 = ret;
-		last_curtime = ret;
-	}
-
-	return ret;
+    // If called without original trampoline, fallback to timeGetTime
+    return static_cast<int>(g_clock.GetMilliseconds(nullptr));
 }
 
-int my_TimeGetTime(void) {
-	const long long ticks_elapsed = qpc_timers(false);
-	if (!freq.QuadPart) {
-		return 0;
-	}
-	SOFBUDDY_ASSERT(freq.QuadPart > 0);
-	const int ret = static_cast<int>((ticks_elapsed * 1000LL) / freq.QuadPart);
-	return ret;
+int my_TimeGetTime(void)
+{
+    return my_Sys_Milliseconds();
 }
 
-//an override hook because we do not call original
-int sys_milliseconds_override_callback(detour_Sys_Milliseconds::tSys_Milliseconds original) {
-	int result = my_Sys_Milliseconds();
-	return result;
+int sys_milliseconds_override_callback(detour_Sys_Milliseconds::tSys_Milliseconds original)
+{
+    return static_cast<int>(g_clock.GetMilliseconds(original));
 }
 
 #endif // FEATURE_MEDIA_TIMERS

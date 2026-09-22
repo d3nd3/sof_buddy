@@ -156,6 +156,28 @@ namespace detour_Z_Malloc {
 namespace detour_SCR_UpdateScreen {
     using tSCR_UpdateScreen = void(__cdecl*)(bool force);
     extern tSCR_UpdateScreen oSCR_UpdateScreen;
+    using ManagerType = TypedSharedHookManager<void, bool>;
+    ManagerType& GetManager();
+    
+    void __cdecl hkSCR_UpdateScreen(bool force);
+}
+
+namespace {
+    struct AutoDetour_SCR_UpdateScreen {
+        AutoDetour_SCR_UpdateScreen() {
+            using namespace detour_SCR_UpdateScreen;
+            if (!GetDetourSystem().IsDetourRegistered("SCR_UpdateScreen")) {
+                GetDetourSystem().RegisterDetour(
+                    reinterpret_cast<void*>(0x15FA0),
+                    reinterpret_cast<void*>(detour_SCR_UpdateScreen::hkSCR_UpdateScreen),
+                    reinterpret_cast<void**>(&detour_SCR_UpdateScreen::oSCR_UpdateScreen),
+                    "SCR_UpdateScreen",
+                    DetourModule::SofExe,
+                    static_cast<size_t>(0));
+            }
+        }
+    };
+    static AutoDetour_SCR_UpdateScreen g_AutoDetour_SCR_UpdateScreen;
 }
 
 namespace detour_Cbuf_AddLateCommands {

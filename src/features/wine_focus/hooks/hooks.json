@@ -1,0 +1,8 @@
+[
+  {
+    "function": "SCR_UpdateScreen",
+    "callback": "wine_focus_scr_updatescreen_pre",
+    "phase": "Pre",
+    "priority": 100
+  }
+]

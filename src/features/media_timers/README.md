@@ -24,10 +24,15 @@ None
 ## Technical Details
 
 ### High-Precision Timing
-Uses Windows `QueryPerformanceCounter` API instead of `timeGetTime()` for sub-millisecond timing accuracy. This provides:
-- More consistent frame timing
-- Better frame rate limiting accuracy
-- Reduced timing jitter
+Uses Windows `QueryPerformanceCounter` instead of `timeGetTime()`:
+
+- Elapsed ms is `uint32_t` (same 49.7-day wrap as `timeGetTime`), not `int`
+  (which overflowed at 24.8 days).
+- `curtime` is `SoF.exe` RVA `0x390D38` via `rvaToAbsExe` (VA `0x20390D38`).
+- QPC origin is a ready-flag, not `base.QuadPart == 0` (a rebase can land on 0
+  and used to restart the clock).
+- A backward QPC still shifts the origin; a failed read after init returns the
+  last elapsed ticks instead of killing the process.
 
 ### Frame Rate Limiting
 Implements `cl_maxfps` for singleplayer with intelligent sleep/busy-wait hybrid:

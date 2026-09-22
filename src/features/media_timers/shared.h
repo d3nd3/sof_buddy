@@ -16,9 +16,6 @@ extern cvar_t *cl_maxfps;
 
 extern int (*sp_Sys_Mil)(void);
 
-extern LARGE_INTEGER base;
-extern LARGE_INTEGER freq;
-
 extern int *sp_whileLoopCount;
 extern int *sp_lastFullClientFrame;
 extern int *sp_current_timestamp;
@@ -37,7 +34,6 @@ inline void resetTimers(int val)
 int winmain_loop(void);
 int my_Sys_Milliseconds(void);
 int my_TimeGetTime(void);
-long long qpc_timers(bool force);
 void create_mediatimers_cvars(void);
 void mediaTimers_EarlyStartup(void);
 void mediaTimers_PostCvarInit(void);

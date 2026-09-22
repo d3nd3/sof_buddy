@@ -206,6 +206,7 @@ void create_loading_cvars() {
     detour_Cvar_Get::oCvar_Get("m_yaw", "0.022", CVAR_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get("m_pitch", "0.022", CVAR_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get("cl_gun", "1", CVAR_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sp_cl_vid_fov", "1", CVAR_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get("cl_quads", "1", CVAR_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get("cl_freezequads", "0", CVAR_ARCHIVE, nullptr);
 }

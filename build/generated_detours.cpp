@@ -332,6 +332,17 @@ namespace detour_FS_LoadFile {
     }
 }
 
+namespace detour_SCR_UpdateScreen {
+    ManagerType& GetManager() {
+        static ManagerType* instance = nullptr;
+        if (!instance) {
+            static char storage[sizeof(ManagerType)];
+            instance = new(storage) ManagerType();
+        }
+        return *instance;
+    }
+}
+
 namespace detour_Cbuf_AddLateCommands {
     ManagerType& GetManager() {
         static ManagerType* instance = nullptr;
@@ -805,6 +816,17 @@ namespace detour_VID_CheckChanges {
     }
 }
 
+namespace detour_SCR_UpdateScreen {
+    void __cdecl hkSCR_UpdateScreen(bool force) {
+        ManagerType& mgr = GetManager();
+        if (mgr.GetPreCallbackCount() > 0) mgr.DispatchPre(force);
+        if (oSCR_UpdateScreen) {
+            oSCR_UpdateScreen(force);
+        }
+        if (mgr.GetPostCallbackCount() > 0) mgr.DispatchPost(force);
+    }
+}
+
 namespace detour_Qcommon_Frame {
     void __cdecl hkQcommon_Frame(int msec) {
         ManagerType& mgr = GetManager();
@@ -1161,10 +1183,6 @@ void RegisterPointerOnlyFunctions_SofExe() {
         void* addr_Qcommon_Init = GetDetourSystem().ResolveFunctionAddress(
             reinterpret_cast<void*>(0x2001F390), DetourModule::SofExe);
         oQcommon_Init = reinterpret_cast<tQcommon_Init>(addr_Qcommon_Init);
-        using namespace detour_SCR_UpdateScreen;
-        void* addr_SCR_UpdateScreen = GetDetourSystem().ResolveFunctionAddress(
-            reinterpret_cast<void*>(0x15FA0), DetourModule::SofExe);
-        oSCR_UpdateScreen = reinterpret_cast<tSCR_UpdateScreen>(addr_SCR_UpdateScreen);
         using namespace detour_Z_Free;
         void* addr_Z_Free = GetDetourSystem().ResolveFunctionAddress(
             reinterpret_cast<void*>(0x0001EB00), DetourModule::SofExe);
