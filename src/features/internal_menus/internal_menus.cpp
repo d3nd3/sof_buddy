@@ -182,8 +182,8 @@ void create_loading_cvars() {
 	detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_status", "CHECKING", kLoadingCvarFlags, nullptr);
 	detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_network", "0", kLoadingCvarFlags, nullptr);
 	detour_Cvar_Get::oCvar_Get("_sofbuddy_tab", "0", 0, nullptr);
-    // User preference: keep loading menu input locked (default), or allow interaction.
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_lock_input", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    // User preference: allow loading menu input (default), or lock it.
+    detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_lock_input", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_show_mapname", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_show_download", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     // User preference: key used to open SoF Buddy menu.
@@ -604,7 +604,7 @@ bool internal_menus_is_mp_loading_context(void) {
 
 bool internal_menus_should_lock_loading_input(void) {
     if (!detour_Cvar_Get::oCvar_Get) return true;
-    cvar_t* c = detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_lock_input", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    cvar_t* c = detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_lock_input", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     if (!c) return true;
     return c->value != 0.0f;
 }

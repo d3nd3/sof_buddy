@@ -59,7 +59,7 @@ Created in `PostCvarInit` and recomputed on vid changes:
 - `_sofbuddy_sb_center_panel_px`
 - `_sofbuddy_sb_tabs_row1_prefix_px`, `_sofbuddy_sb_tabs_row2_prefix_px`
 - `_sofbuddy_sb_tabs_row1_prefix_rmf`, `_sofbuddy_sb_tabs_row2_prefix_rmf`
-- `_sofbuddy_loading_lock_input` (`CVAR_SOFBUDDY_ARCHIVE`, default `1`)
+- `_sofbuddy_loading_lock_input` (`CVAR_SOFBUDDY_ARCHIVE`, default `0`)
 - `_sofbuddy_menu_hotkey` (`CVAR_SOFBUDDY_ARCHIVE`, default `F12`). The open key is shown and rebound via RMF `<setkey "sofbuddy_menu sof_buddy" ...>` (Input and main); bind mode updates the cvar.
 - `_sofbuddy_perf_profile` (`CVAR_SOFBUDDY_ARCHIVE`, default `0`, used by Perf T profile list)
 - Tunables: `_sofbuddy_sb_tabs_row1_content_px`, `_sofbuddy_sb_tabs_row2_content_px`, `_sofbuddy_sb_tabs_center_bias_px`, `_sofbuddy_sb_tabs_row1_bias_px`, `_sofbuddy_sb_tabs_row2_bias_px`
@@ -98,7 +98,7 @@ Menus under `menu_library/<name>/` are embedded and served directly from memory 
 | Menu | Purpose |
 |------|---------|
 | **loading** | Shown via SCR_BeginLoadingPlaque (engine loading plaque) and `loading_show_ui()` (e.g. http_maps). Pages `loading`, `loading_header`, `loading_files` kept slim: classic loading flow/progress, optional HTTP zip progress, and disconnect action. |
-| **sof_buddy** | Main SoF Buddy menu set with tabbed top navigation and per-page content files named by tab (e.g. `main`, `cpu`, `network`, `input`, `updates`, `social` + `*_content`). Network tab for loading-lock toggle, startup update-check toggle (`_sofbuddy_update_check_startup`), HTTP provider mode selection, and direct URL editing via RMF `<input>` fields for `_sofbuddy_http_maps_dl_*` / `_sofbuddy_http_maps_crc_*` plus updater feed URLs (`_sofbuddy_update_api_url`, `_sofbuddy_update_releases_url`); provider inputs can be collapsed via `_sofbuddy_http_show_providers`; includes startup update requester (`update_prompt`) when a newer release is found; plus `margin_backdrop.rmf` for margin/background composition. |
+| **sof_buddy** | Main SoF Buddy menu set with tabbed top navigation and per-page content files named by tab (e.g. `main`, `cpu`, `network`, `input`, `updates`, `social`, `sofbuddy` + `*_content`). **Buddy** tab (`sofbuddy_content.rmf`) for loading-screen options (`_sofbuddy_loading_lock_input`, `_sofbuddy_loading_show_mapname`, `_sofbuddy_loading_show_download`), menu theme/hotkey/tooltips, and startup update-check toggle (`_sofbuddy_update_check_startup`). **Network** tab for HTTP provider mode selection and direct URL editing via RMF `<input>` fields for `_sofbuddy_http_maps_dl_*` / `_sofbuddy_http_maps_crc_*` plus updater feed URLs (`_sofbuddy_update_api_url`, `_sofbuddy_update_releases_url`); provider inputs can be collapsed via `_sofbuddy_http_show_providers`; includes startup update requester (`update_prompt`) when a newer release is found; plus `margin_backdrop.rmf` for margin/background composition. |
 
 ## Editing menus
 
