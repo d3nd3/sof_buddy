@@ -1,5 +1,22 @@
 # Changelog
 
+## v8.1
+
+### Loading menu — default unlocked input
+
+- **`_sofbuddy_loading_lock_input`** default is now `0` (unlocked) so loading-screen input is interactive unless the user locks it.
+- **Buddy tab:** Loading-screen toggles (lock input, show map name, show download status) moved above the menu theme block so they are visible without scrolling.
+- **Restore defaults** resets loading lock to `0`.
+
+### Internal menus — Lighting layout
+
+- **Lightblend** warning (`!WARNING: Experimental. Do not change.`) is on its own line below the section heading.
+
+### wine_focus — Wine alt-tab gray screen
+
+- **WndProc hook** strips the minimized bit on `WM_ACTIVATE` before `MainWndProc` runs, matching the engine path for a clean alt-tab return.
+- **Fallback** on `Scr_UpdateScreen` when the engine is stuck minimized but the window is visible: set `ActiveApp`, clear minimized, and run activate/GL restore.
+
 ## v8.0
 
 ### Texture filtering — prevent UI/unmipped MIPMAP lockout
