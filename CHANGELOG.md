@@ -1,5 +1,21 @@
 # Changelog
 
+## v8.2
+
+### wine_focus — Wine 10 alt-tab gray screen
+
+v8.1 stripped the minimized bit on `WM_ACTIVATE`, then `ShowWindow(SW_RESTORE)` nested another activate that cleared `ActiveApp`. `Scr_UpdateScreen` slept and the client stayed the gray window brush.
+
+- **Nested activate** during that restore is dropped so it cannot clear `ActiveApp`.
+- **After the handler**, `ActiveApp` is forced on and the minimized flag is cleared.
+- **Screen-update fallback** repairs the same stuck state when the window is foreground or on screen (not parked at -32000), including when the minimized flag is already clear.
+- **GL rebind:** `wglMakeCurrent` plus a client-sized `glViewport` recreates the drawable Wine drops while minimized. If the context was unbound, the stored `ref_gl` DC and context are used.
+
+### Releases — publish only on VERSION bumps
+
+- **GitHub Releases** are created only when `VERSION` changes in the commit. Other `master` pushes still build.
+- **`new_release.sh --check`** validates the bump and changelog before push. Maintainer steps are in `RELEASE_INSTRUCTIONS.md`.
+
 ## v8.1
 
 ### Loading menu — default unlocked input
