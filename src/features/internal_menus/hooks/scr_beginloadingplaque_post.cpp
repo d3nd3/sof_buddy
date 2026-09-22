@@ -12,11 +12,13 @@
 
 void internal_menus_SCR_BeginLoadingPlaque_post(qboolean noPlaque) {
     if (noPlaque) return;
+    if (!internal_menus_engine_shows_loading_plaque()) return;
     if (!detour_M_PushMenu::oM_PushMenu) return;
 
     if (internal_menus_use_vanilla_loading_menu()) {
         internal_menus_sync_loading_network_ui();
         detour_M_PushMenu::oM_PushMenu("loading", "", true);
+        internal_menus_note_loading_shown();
         internal_menus_call_SCR_UpdateScreen(true);
         return;
     }
@@ -45,6 +47,7 @@ void internal_menus_SCR_BeginLoadingPlaque_post(qboolean noPlaque) {
     loading_reset_current_map_unknown();
 #endif
     detour_M_PushMenu::oM_PushMenu(internal_menus_loading_menu_name(), "", lock_input);
+    internal_menus_note_loading_shown();
     internal_menus_call_SCR_UpdateScreen(true);
 }
 

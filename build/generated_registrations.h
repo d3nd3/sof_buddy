@@ -55,6 +55,7 @@ extern void internal_menus_PostCvarInit();
 extern void internal_menus_RefDllLoaded(char const* name);
 extern void internal_menus_SCR_BeginLoadingPlaque_post(qboolean noPlaque);
 extern int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool override_pak, detour_FS_LoadFile::tFS_LoadFile original);
+extern void internal_menus_scr_updatescreen_post(bool force);
 extern void lightblend_PostCvarInit();
 extern void lightblend_RefDllLoaded(char const* name);
 extern void mediaTimers_EarlyStartup();
@@ -251,6 +252,15 @@ inline void RegisterAllFeatureHooks() {
             [](qboolean noPlaque) { internal_menus_SCR_BeginLoadingPlaque_post(noPlaque); },
             90);
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] SCR_BeginLoadingPlaque post callbacks: %zu\n", mgr.GetPostCallbackCount());
+    }
+    {
+        auto& mgr = detour_SCR_UpdateScreen::GetManager();
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] SCR_UpdateScreen manager at 0x%p\n", &mgr);
+        mgr.RegisterPostCallback(
+            "internal_menus", "internal_menus_scr_updatescreen_post",
+            [](bool force) { internal_menus_scr_updatescreen_post(force); },
+            90);
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] SCR_UpdateScreen post callbacks: %zu\n", mgr.GetPostCallbackCount());
     }
     detour_SCR_UpdateScreen::GetManager().RegisterPreCallback(
         "wine_focus", "wine_focus_scr_updatescreen_pre",

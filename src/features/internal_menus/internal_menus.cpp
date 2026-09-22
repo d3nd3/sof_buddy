@@ -770,12 +770,44 @@ void internal_menus_OnVidChanged(void) {
     update_layout_cvars(true);
 }
 
+static bool g_loading_menu_shown = false;
+
+bool internal_menus_engine_shows_loading_plaque(void) {
+    // SCR_BeginLoadingPlaque returns before "menu loading" on these.
+    // The post hook still runs, so without this check we invent a menu
+    // vanilla never opens (reconnect typed from the console) and the
+    // one-shot close never takes it down.
+    auto* shutting = (unsigned char*)rvaToAbsExe((void*)0x1C1F24);
+    if (shutting && *shutting) return false;
+    auto* key_dest = (int*)rvaToAbsExe((void*)0x1C1F04);
+    if (key_dest && *key_dest == 1) return false;
+    if (!detour_Cvar_Get::oCvar_Get) return true;
+    cvar_t* ded = detour_Cvar_Get::oCvar_Get("dedicated", "0", 0, nullptr);
+    if (ded && ded->value != 0.0f) return false;
+    cvar_t* dev = detour_Cvar_Get::oCvar_Get("developer", "0", 0, nullptr);
+    return !(dev && dev->value != 0.0f);
+}
+
+void internal_menus_note_loading_shown(void) { g_loading_menu_shown = true; }
+
+void internal_menus_scr_updatescreen_post(bool force) {
+    (void)force;
+    if (!g_loading_menu_shown) return;
+    auto* state = (int*)rvaToAbsExe((void*)0x1C1F00);
+    auto* prepped = (unsigned char*)rvaToAbsExe((void*)0x1E7594);
+    if (!state || !prepped || *state != 8 || !*prepped) return;
+    auto off = (void(*)())rvaToAbsExe((void*)0xC7380);
+    if (off) off();
+    g_loading_menu_shown = false;
+}
+
 void loading_show_ui(void) {
     if (internal_menus_use_vanilla_loading_menu()) return;
     if (detour_M_PushMenu::oM_PushMenu) {
         internal_menus_sync_loading_network_ui();
         const bool lock_input = internal_menus_should_lock_loading_input();
         detour_M_PushMenu::oM_PushMenu(internal_menus_loading_menu_name(), "", lock_input);
+        internal_menus_note_loading_shown();
     }
 }
 

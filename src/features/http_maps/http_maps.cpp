@@ -1624,7 +1624,7 @@ void http_maps_on_parse_configstring_post(void)
 	// immediately and skip early HTTP worker altogether.
 	if (http_maps_map_exists_via_engine(map_bsp_path)) {
 #if FEATURE_INTERNAL_MENUS
-		http_maps_loading_ui_show_map(map_bsp_path.c_str());
+		loading_set_current(map_bsp_path.c_str());
 		http_maps_set_loading_status("NOT NEEDED");
 #endif
 		g_http_maps_state.completed_map_bsp = map_bsp_path;
@@ -1670,7 +1670,7 @@ void http_maps_try_begin_precache(detour_CL_Precache_f::tCL_Precache_f original)
 	if (!(g_http_maps_state.waiting && g_http_maps_state.pending_map_bsp == map_bsp_path) &&
 		http_maps_map_exists_via_engine(map_bsp_path)) {
 #if FEATURE_INTERNAL_MENUS
-		http_maps_loading_ui_show_map(map_bsp_path.c_str());
+		loading_set_current(map_bsp_path.c_str());
 		http_maps_set_loading_status("NOT NEEDED");
 #endif
 		g_http_maps_state.completed_map_bsp = map_bsp_path;
