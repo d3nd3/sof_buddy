@@ -6,8 +6,9 @@ This subclasses the game window and:
 
 - clears the minimized bit on an activating `WM_ACTIVATE` so `MainWndProc` takes the active path
 - drops `WM_ACTIVATE` nested inside that call, so `ShowWindow` cannot clear `ActiveApp` again
+- ignores spurious `WM_ACTIVATE` deactivates while the game window still owns foreground (Kubuntu/Wine 10)
 - rebinds the current OpenGL context (`wglMakeCurrent`) so Wine recreates the drawable lost while minimized
 
-If the engine is still inactive while the window is foreground or on screen (not parked at -32000), the next `Scr_UpdateScreen` marks the app active, runs the activate functions, and rebinds GL.
+If the engine is still inactive while the window is foreground (or still marked minimized on screen), the next `Scr_UpdateScreen` marks the app active, runs the activate functions, and rebinds GL. When `ActiveApp` is already set but GL was unbound, it rebinds on the next frame.
 
 No cvars. Enabled from `features/FEATURES.txt`.

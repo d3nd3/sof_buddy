@@ -1,5 +1,16 @@
 # Changelog
 
+## v8.3
+
+### wine_focus — Wine 10 alt-tab gray screen (follow-up)
+
+v8.2 fixed the common nested-activate path, but Kubuntu/Wine 10 could still rarely leave a gray client until a second alt-tab.
+
+- **Spurious deactivate:** ignore `WM_ACTIVATE` `WA_INACTIVE` while the game window still owns foreground, so a stray post-restore message cannot clear `ActiveApp` again.
+- **GL rebind when already active:** if `ActiveApp` is set but Wine dropped the GL context, rebind on the next `Scr_UpdateScreen` instead of waiting for another activate.
+- **Fallback visibility:** repair stuck state when foreground, or when still marked minimized and on-screen — not when alt-tabbed away with the window still visible.
+- **Repaint:** `InvalidateRect` after GL rebind so the client area repaints immediately.
+
 ## v8.2
 
 ### wine_focus — Wine 10 alt-tab gray screen

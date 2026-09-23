@@ -41,9 +41,24 @@ static bool OnScreen(HWND hwnd) {
            (r.right - r.left) > 32 && (r.bottom - r.top) > 32;
 }
 
+static bool SameRoot(HWND a, HWND b) {
+    return a && b && GetAncestor(a, GA_ROOT) == GetAncestor(b, GA_ROOT);
+}
+
 static bool Foreground(HWND hwnd) {
     HWND fg = GetForegroundWindow();
-    return fg && hwnd && GetAncestor(fg, GA_ROOT) == GetAncestor(hwnd, GA_ROOT);
+    return SameRoot(fg, hwnd);
+}
+
+// Wine/KDE may send WM_ACTIVATE WA_INACTIVE while we still own foreground.
+static bool SpuriousDeactivate(HWND hwnd) {
+    return Foreground(hwnd);
+}
+
+static bool StuckVisible(HWND hwnd, unsigned char minimized) {
+    if (Foreground(hwnd))
+        return true;
+    return minimized && OnScreen(hwnd);
 }
 
 static void MarkActive() {
@@ -100,6 +115,22 @@ static bool RefGlContext(HWND hwnd, HDC* outDc, HGLRC* outRc) {
     return true;
 }
 
+static bool GlNeedsRebind(HWND hwnd) {
+    HMODULE gl = GetModuleHandleA("opengl32.dll");
+    if (!gl)
+        return false;
+    using RcFn = HGLRC (WINAPI*)();
+    using DcFn = HDC (WINAPI*)();
+    auto getRc = (RcFn)GetProcAddress(gl, "wglGetCurrentContext");
+    auto getDc = (DcFn)GetProcAddress(gl, "wglGetCurrentDC");
+    HGLRC rc = getRc ? getRc() : nullptr;
+    HDC dc = getDc ? getDc() : nullptr;
+    if (!rc || !dc)
+        return true;
+    HWND w = WindowFromDC(dc);
+    return !SameRoot(w, hwnd);
+}
+
 // Wine drops the GL drawable across minimize. Rebinding recreates it.
 static void RebindGl(HWND hwnd) {
     HMODULE gl = GetModuleHandleA("opengl32.dll");
@@ -124,6 +155,7 @@ static void RebindGl(HWND hwnd) {
     RECT cr;
     if (viewport && GetClientRect(hwnd, &cr) && cr.right > 1 && cr.bottom > 1)
         viewport(0, 0, cr.right, cr.bottom);
+    InvalidateRect(hwnd, nullptr, FALSE);
 }
 
 static WNDPROC g_prev = nullptr;
@@ -136,8 +168,11 @@ static LRESULT CALLBACK WineWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     // Nested activate from ShowWindow(SW_RESTORE) would clear ActiveApp.
     if (g_activate_depth)
         return 0;
-    if (LOWORD(wp) == WA_INACTIVE)
+    if (LOWORD(wp) == WA_INACTIVE) {
+        if (SpuriousDeactivate(hwnd))
+            return 0;
         return CallWindowProcA(g_prev, hwnd, msg, wp, lp);
+    }
 
     g_activate_depth++;
     LRESULT r = CallWindowProcA(g_prev, hwnd, msg, MAKELONG(LOWORD(wp), 0), lp);
@@ -170,10 +205,12 @@ void wine_focus_scr_updatescreen_pre(bool& force) {
     if (!active || !minimized || !game || !*game)
         return;
     Install(*game);
-    if (*active && !*minimized)
+    if (*active && !*minimized) {
+        if (Foreground(*game) && GlNeedsRebind(*game))
+            RebindGl(*game);
         return;
-    // Inactive in the engine, but the window is the one on screen.
-    if (!Foreground(*game) && !OnScreen(*game))
+    }
+    if (!StuckVisible(*game, *minimized))
         return;
     g_activate_depth++;
     EngineActivate();
