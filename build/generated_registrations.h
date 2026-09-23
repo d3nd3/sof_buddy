@@ -81,8 +81,6 @@ extern void vid_checkchanges_post();
 extern qboolean vid_loadrefresh_override_callback(char const* name, detour_VID_LoadRefresh::tVID_LoadRefresh original);
 extern void vsync_on_postcvarinit(char const* name);
 extern void vsync_pre_vid_checkchanges();
-extern void wine_focus_qcommon_frame_pre(int& msec);
-extern void wine_focus_scr_updatescreen_pre(bool& force);
 
 inline void RegisterAllFeatureHooks() {
     SharedHookManager::Instance().RegisterCallback(
@@ -263,14 +261,6 @@ inline void RegisterAllFeatureHooks() {
             90);
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] SCR_UpdateScreen post callbacks: %zu\n", mgr.GetPostCallbackCount());
     }
-    detour_Qcommon_Frame::GetManager().RegisterPreCallback(
-        "wine_focus", "wine_focus_qcommon_frame_pre",
-        [](int& msec) { wine_focus_qcommon_frame_pre(msec); },
-        110);
-    detour_SCR_UpdateScreen::GetManager().RegisterPreCallback(
-        "wine_focus", "wine_focus_scr_updatescreen_pre",
-        [](bool& force) { wine_focus_scr_updatescreen_pre(force); },
-        100);
     {
         auto& mgr = detour_SV_ShutdownGameProgs::GetManager();
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] SV_ShutdownGameProgs manager at 0x%p\n", &mgr);

@@ -29,7 +29,6 @@ internal_menus
 new_system_bug
 console_protection
 cl_maxfps_singleplayer
-wine_focus
 # cbuf_limit_increase  # Deprecated: sofbuddy.cfg persistence replaced config.cfg Cbuf workaround
 
 # Input Features

@@ -1,43 +1,8 @@
 # Changelog
 
-## v8.4
-
-### wine_focus — early focus repair (gray screen + MP timeout)
-
-Stuck `ActiveApp` / `Minimized` after alt-tab back affected more than rendering: WinMain `Sleep(1)` while `Minimized` is set throttles the main loop, and v8.3 only repaired focus in `Scr_UpdateScreen` pre (after `CL_ReadPackets` / usercmds in the same frame).
-
-- **Qcommon_Frame pre:** repair focus before `CL_Frame` each frame so network and input see a consistent active state sooner.
-- **Clear stuck Minimized when foreground:** stops WinMain’s per-loop minimize sleep on the next turn while the window is actually focused.
-- **Scr_UpdateScreen pre:** focus repair shared with Qcommon; GL rebind stays on the draw path only.
-
-## v8.3
-
-### wine_focus — Wine 10 alt-tab gray screen (follow-up)
-
-v8.2 fixed the common nested-activate path, but Kubuntu/Wine 10 could still rarely leave a gray client until a second alt-tab.
-
-- **Spurious deactivate:** ignore `WM_ACTIVATE` `WA_INACTIVE` while the game window still owns foreground, so a stray post-restore message cannot clear `ActiveApp` again.
-- **GL rebind when already active:** if `ActiveApp` is set but Wine dropped the GL context, rebind on the next `Scr_UpdateScreen` instead of waiting for another activate.
-- **Fallback visibility:** repair stuck state when foreground, or when still marked minimized and on-screen — not when alt-tabbed away with the window still visible.
-- **Repaint:** `InvalidateRect` after GL rebind so the client area repaints immediately.
-
-## v8.2
-
-### wine_focus — Wine 10 alt-tab gray screen
-
-v8.1 stripped the minimized bit on `WM_ACTIVATE`, then `ShowWindow(SW_RESTORE)` nested another activate that cleared `ActiveApp`. `Scr_UpdateScreen` slept and the client stayed the gray window brush.
-
-- **Nested activate** during that restore is dropped so it cannot clear `ActiveApp`.
-- **After the handler**, `ActiveApp` is forced on and the minimized flag is cleared.
-- **Screen-update fallback** repairs the same stuck state when the window is foreground or on screen (not parked at -32000), including when the minimized flag is already clear.
-- **GL rebind:** `wglMakeCurrent` plus a client-sized `glViewport` recreates the drawable Wine drops while minimized. If the context was unbound, the stored `ref_gl` DC and context are used.
-
-### Releases — publish only on VERSION bumps
-
-- **GitHub Releases** are created only when `VERSION` changes in the commit. Other `master` pushes still build.
-- **`new_release.sh --check`** validates the bump and changelog before push. Maintainer steps are in `RELEASE_INSTRUCTIONS.md`.
-
 ## v8.1
+
+Withdrawn builds v8.1–v8.4 (GitHub releases removed) included an experimental `wine_focus` workaround for Wine alt-tab gray screen; that feature is **removed**. The underlying issue is outside SoF Buddy (Proton/Wayland/NVIDIA stack).
 
 ### Loading menu — default unlocked input
 
@@ -49,10 +14,10 @@ v8.1 stripped the minimized bit on `WM_ACTIVATE`, then `ShowWindow(SW_RESTORE)` 
 
 - **Lightblend** warning (`!WARNING: Experimental. Do not change.`) is on its own line below the section heading.
 
-### wine_focus — Wine alt-tab gray screen
+### Releases — publish only on VERSION bumps
 
-- **WndProc hook** strips the minimized bit on `WM_ACTIVATE` before `MainWndProc` runs, matching the engine path for a clean alt-tab return.
-- **Fallback** on `Scr_UpdateScreen` when the engine is stuck minimized but the window is visible: set `ActiveApp`, clear minimized, and run activate/GL restore.
+- **GitHub Releases** are created only when `VERSION` changes in the commit. Other `master` pushes still build.
+- **`new_release.sh --check`** validates the bump and changelog before push. Maintainer steps are in `RELEASE_INSTRUCTIONS.md`.
 
 ## v8.0
 
@@ -67,7 +32,6 @@ v8.1 stripped the minimized bit on `WM_ACTIVATE`, then `ShowWindow(SW_RESTORE)` 
 ### Internal menus — Video/FPS cleanup
 
 - **Removed `debuggraph` control** from the Video/FPS tab and dropped its `CVAR_ARCHIVE` hook (v7.8 added it; FPS graph is already covered via `cl_showfps`).
-
 ## v7.8
 
 ### Internal menus — more cvar persistence
