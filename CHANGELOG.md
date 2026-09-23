@@ -1,23 +1,33 @@
 # Changelog
 
-## v8.1
+## v8.5
 
-Withdrawn builds v8.1–v8.4 (GitHub releases removed) included an experimental `wine_focus` workaround for Wine alt-tab gray screen; that feature is **removed**. The underlying issue is outside SoF Buddy (Proton/Wayland/NVIDIA stack).
+Clean release after withdrawing v8.1–v8.4 (those builds shipped experimental `wine_focus`, now removed). **Version 8.5** ensures the in-game updater offers an upgrade to anyone still on withdrawn 8.x builds (8.1 would compare older than 8.4).
+
+### wine_focus — removed
+
+- Alt-tab gray-screen workaround deleted; issue is outside SoF Buddy (Proton/Wayland/NVIDIA).
+
+### media_timers — QPC clock hardening
+
+First **published** release with this work (landed in repo during withdrawn 8.x builds, not in v8.0-build189).
+
+- **Sys_Milliseconds** uses `QueryPerformanceCounter` with safer wrap/rebase handling (`uint32_t` ms, ready-flag origin, last-elapsed fallback on failed reads).
+- **Wine:** double `QueryPerformanceCounter` on XP-class paths per Microsoft guidance.
 
 ### Loading menu — default unlocked input
 
-- **`_sofbuddy_loading_lock_input`** default is now `0` (unlocked) so loading-screen input is interactive unless the user locks it.
-- **Buddy tab:** Loading-screen toggles (lock input, show map name, show download status) moved above the menu theme block so they are visible without scrolling.
+- **`_sofbuddy_loading_lock_input`** default is `0` (unlocked).
+- **Buddy tab:** Loading-screen toggles moved above the menu theme block.
 - **Restore defaults** resets loading lock to `0`.
 
 ### Internal menus — Lighting layout
 
-- **Lightblend** warning (`!WARNING: Experimental. Do not change.`) is on its own line below the section heading.
+- **Lightblend** warning on its own line below the section heading.
 
 ### Releases — publish only on VERSION bumps
 
-- **GitHub Releases** are created only when `VERSION` changes in the commit. Other `master` pushes still build.
-- **`new_release.sh --check`** validates the bump and changelog before push. Maintainer steps are in `RELEASE_INSTRUCTIONS.md`.
+- GitHub Releases only when `VERSION` changes; `new_release.sh --check` validates changelog.
 
 ## v8.0
 
@@ -32,6 +42,7 @@ Withdrawn builds v8.1–v8.4 (GitHub releases removed) included an experimental 
 ### Internal menus — Video/FPS cleanup
 
 - **Removed `debuggraph` control** from the Video/FPS tab and dropped its `CVAR_ARCHIVE` hook (v7.8 added it; FPS graph is already covered via `cl_showfps`).
+
 ## v7.8
 
 ### Internal menus — more cvar persistence
