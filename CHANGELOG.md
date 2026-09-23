@@ -1,5 +1,15 @@
 # Changelog
 
+## v8.4
+
+### wine_focus — early focus repair (gray screen + MP timeout)
+
+Stuck `ActiveApp` / `Minimized` after alt-tab back affected more than rendering: WinMain `Sleep(1)` while `Minimized` is set throttles the main loop, and v8.3 only repaired focus in `Scr_UpdateScreen` pre (after `CL_ReadPackets` / usercmds in the same frame).
+
+- **Qcommon_Frame pre:** repair focus before `CL_Frame` each frame so network and input see a consistent active state sooner.
+- **Clear stuck Minimized when foreground:** stops WinMain’s per-loop minimize sleep on the next turn while the window is actually focused.
+- **Scr_UpdateScreen pre:** focus repair shared with Qcommon; GL rebind stays on the draw path only.
+
 ## v8.3
 
 ### wine_focus — Wine 10 alt-tab gray screen (follow-up)

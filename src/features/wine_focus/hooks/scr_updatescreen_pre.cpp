@@ -11,6 +11,8 @@
 // return is active + minimized. GLimp_AppActivate then ShowWindow(SW_RESTORE),
 // which nests another WM_ACTIVATE that takes the inactive path and clears
 // ActiveApp. Scr_UpdateScreen Sleep()s, so the client stays the gray class brush.
+// WinMain (0x6637b) also Sleep(1)s each loop while Minimized is set, slowing
+// CL_Frame and making server timeouts more likely during a stuck restore.
 
 static const void* kRvaActiveApp = (void*)0x40351C;
 static const void* kRvaMinimized = (void*)0x403514;
@@ -195,28 +197,65 @@ static void Install(HWND game) {
     g_hooked = game;
 }
 
-void wine_focus_scr_updatescreen_pre(bool& force) {
-    (void)force;
-    if (!UnderWine())
-        return;
+static bool GameWindow(HWND* out) {
     int* active = Active();
     unsigned char* minimized = Minimized();
     HWND* game = (HWND*)rvaToAbsExe((void*)kRvaClHwnd);
     if (!active || !minimized || !game || !*game)
+        return false;
+    *out = *game;
+    return true;
+}
+
+// Runs before CL_Frame so stuck focus flags do not slow or stall the client loop.
+static void RepairFocusState(HWND game) {
+    int* active = Active();
+    unsigned char* minimized = Minimized();
+    if (!active || !minimized)
         return;
-    Install(*game);
-    if (*active && !*minimized) {
-        if (Foreground(*game) && GlNeedsRebind(*game))
-            RebindGl(*game);
+    Install(game);
+    // WinMain sleeps while Minimized is set; clear it as soon as we own foreground.
+    if (Foreground(game) && *minimized)
+        *minimized = 0;
+    if (*active && !*minimized)
         return;
-    }
-    if (!StuckVisible(*game, *minimized))
+    if (!StuckVisible(game, *minimized))
         return;
     g_activate_depth++;
-    EngineActivate();
+    if (!*active)
+        EngineActivate();
     g_activate_depth--;
     MarkActive();
-    RebindGl(*game);
+}
+
+void wine_focus_qcommon_frame_pre(int& msec) {
+    (void)msec;
+    if (!UnderWine())
+        return;
+    HWND game;
+    if (!GameWindow(&game))
+        return;
+    RepairFocusState(game);
+}
+
+void wine_focus_scr_updatescreen_pre(bool& force) {
+    (void)force;
+    if (!UnderWine())
+        return;
+    HWND game;
+    if (!GameWindow(&game))
+        return;
+    RepairFocusState(game);
+    int* active = Active();
+    unsigned char* minimized = Minimized();
+    if (*active && !*minimized) {
+        if (Foreground(game) && GlNeedsRebind(game))
+            RebindGl(game);
+        return;
+    }
+    if (!StuckVisible(game, *minimized))
+        return;
+    RebindGl(game);
 }
 
 #endif

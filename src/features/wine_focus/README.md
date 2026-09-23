@@ -9,6 +9,8 @@ This subclasses the game window and:
 - ignores spurious `WM_ACTIVATE` deactivates while the game window still owns foreground (Kubuntu/Wine 10)
 - rebinds the current OpenGL context (`wglMakeCurrent`) so Wine recreates the drawable lost while minimized
 
-If the engine is still inactive while the window is foreground (or still marked minimized on screen), the next `Scr_UpdateScreen` marks the app active, runs the activate functions, and rebinds GL. When `ActiveApp` is already set but GL was unbound, it rebinds on the next frame.
+**Qcommon_Frame pre** runs the same focus repair before `CL_Frame` (network/input), and clears a stuck `Minimized` flag while foreground so WinMain does not keep `Sleep(1)` on every loop turn.
+
+If the engine is still inactive while the window is foreground (or still marked minimized on screen), the next frame marks the app active, runs the activate functions, and rebinds GL. When `ActiveApp` is already set but GL was unbound, it rebinds before draw.
 
 No cvars. Enabled from `features/FEATURES.txt`.
