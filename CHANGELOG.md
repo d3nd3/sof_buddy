@@ -1,5 +1,18 @@
 # Changelog
 
+## v8.7
+
+### Internal menus — fix blank Map Study rows on the Cvars tab
+
+- v8.6 shipped the new **Cvars** tab with a **Map Study** section listing `_sofbuddy_entity_edit`, `_sofbuddy_entities_draw_verbose`, `_sofbuddy_map_debug_map`, and `_sofbuddy_map_study_deathmatch`.
+- Those cvars belong to the `entity_visualizer` feature, which is **disabled by default** in `features/FEATURES.txt`. The feature is compiled out, so the cvars are never registered and the rows rendered an empty live value next to a `Default 0` line — which read like a broken default.
+- The section is now gated behind a new internal build flag cvar, `_sb_internal_feature_entity_visualizer`, set from `FEATURE_ENTITY_VISUALIZER`. It is hidden in default builds and reappears automatically if the feature is enabled.
+- Defaults themselves were never wrong — only the page listed cvars the running build did not register.
+
+### Cvars
+
+- No other cvar changes. Enable `entity_visualizer` in `features/FEATURES.txt` to get the map study cvars back.
+
 ## v8.6
 
 ### Internal menus — new **Cvars** tab
