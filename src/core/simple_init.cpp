@@ -65,12 +65,12 @@ qboolean cbuf_addlatecommands_override_callback(detour_Cbuf_AddLateCommands::tCb
     detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_openurl"), Cmd_SoFBuddy_OpenUrl_f);
     PrintOut(PRINT_DEV, "Registered sofbuddy_update command\n");
     
-    PrintOut(PRINT_DEV, "Registering _sofbuddy_version cvar...\n");
-    cvar_t* version_cvar = detour_Cvar_Get::oCvar_Get("_sofbuddy_version", SOFBUDDY_VERSION, CVAR_NOSET, NULL);
+    PrintOut(PRINT_DEV, "Registering _sb_internal_version cvar...\n");
+    cvar_t* version_cvar = detour_Cvar_Get::oCvar_Get("_sb_internal_version", SOFBUDDY_VERSION, CVAR_NOSET, NULL);
     if (version_cvar) {
-        detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_version"), const_cast<char*>(SOFBUDDY_VERSION), true);
+        detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_version"), const_cast<char*>(SOFBUDDY_VERSION), true);
     }
-    PrintOut(PRINT_DEV, "Registered _sofbuddy_version cvar with value: %s\n", SOFBUDDY_VERSION);
+    PrintOut(PRINT_DEV, "Registered _sb_internal_version cvar with value: %s\n", SOFBUDDY_VERSION);
 
     PrintOut(PRINT_DEV, "Registering updater state cvars...\n");
     sofbuddy_update_init();

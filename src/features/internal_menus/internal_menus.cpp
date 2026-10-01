@@ -61,7 +61,7 @@ static bool try_resolve_stored_last_page(std::string& menu_to_push) {
     if (!detour_Cvar_Get::oCvar_Get) {
         return false;
     }
-    cvar_t* cv = detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_last_page", "", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    cvar_t* cv = detour_Cvar_Get::oCvar_Get("_sb_internal_menu_last_page", "", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     if (!cv || !cv->string || !cv->string[0]) {
         return false;
     }
@@ -136,11 +136,11 @@ void sync_sofbuddy_profile_targets_from_selection() {
         specular = (sp == 0) ? "Off" : "On";
         quads = (cv_quads && cv_quads->string) ? cv_quads->string : "0";
     }
-    set_runtime_cvar_str("_sofbuddy_profile_target_fx_maxdebrisonscreen", fx);
-    set_runtime_cvar_str("_sofbuddy_profile_target_cl_max_debris", debris);
-    set_runtime_cvar_str("_sofbuddy_profile_target_ghl_shadows", shadows);
-    set_runtime_cvar_str("_sofbuddy_profile_target_ghl_specular", specular);
-    set_runtime_cvar_str("_sofbuddy_profile_target_cl_max_quads", quads);
+    set_runtime_cvar_str("_sb_internal_profile_target_fx_maxdebrisonscreen", fx);
+    set_runtime_cvar_str("_sb_internal_profile_target_cl_max_debris", debris);
+    set_runtime_cvar_str("_sb_internal_profile_target_ghl_shadows", shadows);
+    set_runtime_cvar_str("_sb_internal_profile_target_ghl_specular", specular);
+    set_runtime_cvar_str("_sb_internal_profile_target_cl_max_quads", quads);
 }
 
 void sofbuddy_perf_profile_change(cvar_t* cvar) {
@@ -177,11 +177,11 @@ void create_loading_cvars() {
     // Runtime loading UI state cvars.
     constexpr int kLoadingCvarFlags = 0;
 
-	detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_progress", "", kLoadingCvarFlags, nullptr);
-	detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_current", "", kLoadingCvarFlags, nullptr);
-	detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_status", "CHECKING", kLoadingCvarFlags, nullptr);
-	detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_network", "0", kLoadingCvarFlags, nullptr);
-	detour_Cvar_Get::oCvar_Get("_sofbuddy_tab", "0", 0, nullptr);
+	detour_Cvar_Get::oCvar_Get("_sb_internal_loading_progress", "", kLoadingCvarFlags, nullptr);
+	detour_Cvar_Get::oCvar_Get("_sb_internal_loading_current", "", kLoadingCvarFlags, nullptr);
+	detour_Cvar_Get::oCvar_Get("_sb_internal_loading_status", "CHECKING", kLoadingCvarFlags, nullptr);
+	detour_Cvar_Get::oCvar_Get("_sb_internal_loading_network", "0", kLoadingCvarFlags, nullptr);
+	detour_Cvar_Get::oCvar_Get("_sb_internal_tab", "0", 0, nullptr);
     // User preference: allow loading menu input (default), or lock it.
     detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_lock_input", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get("_sofbuddy_loading_show_mapname", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
@@ -189,14 +189,14 @@ void create_loading_cvars() {
     // User preference: key used to open SoF Buddy menu.
     detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_hotkey", "F12", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     // Last SoF Buddy tab/page (e.g. sof_buddy/map_debug) restored when opening via F12 (sofbuddy_menu sof_buddy).
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_last_page", "", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_menu_last_page", "", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     // Performance profile selector used by Perf Tweaks page.
     detour_Cvar_Get::oCvar_Get("_sofbuddy_perf_profile", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_profile_target_fx_maxdebrisonscreen", "0", 0, nullptr);
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_profile_target_cl_max_debris", "2", 0, nullptr);
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_profile_target_ghl_shadows", "Off", 0, nullptr);
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_profile_target_ghl_specular", "Off", 0, nullptr);
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_profile_target_cl_max_quads", "0", 0, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_profile_target_fx_maxdebrisonscreen", "0", 0, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_profile_target_cl_max_debris", "2", 0, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_profile_target_ghl_shadows", "Off", 0, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_profile_target_ghl_specular", "Off", 0, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_profile_target_cl_max_quads", "0", 0, nullptr);
     cvar_t* perf = detour_Cvar_Get::oCvar_Get("_sofbuddy_perf_profile", "0", CVAR_SOFBUDDY_ARCHIVE, sofbuddy_perf_profile_change);
     sofbuddy_perf_profile_change(perf);
 
@@ -218,30 +218,30 @@ constexpr int kSofBuddyTabWidthPx = 120;
 constexpr int kSofBuddyTabGapPx = 12;
 constexpr int kSofBuddyTabLeftNudgePx = 32;
 
-cvar_t* _sofbuddy_sb_tabs_row1_content_px = nullptr;
-cvar_t* _sofbuddy_sb_tabs_row2_content_px = nullptr;
-cvar_t* _sofbuddy_sb_tabs_center_bias_px = nullptr;
-cvar_t* _sofbuddy_sb_tabs_row1_bias_px = nullptr;
-cvar_t* _sofbuddy_sb_tabs_row2_bias_px = nullptr;
+cvar_t* _sb_internal_tabs_row1_content_px = nullptr;
+cvar_t* _sb_internal_tabs_row2_content_px = nullptr;
+cvar_t* _sb_internal_tabs_center_bias_px = nullptr;
+cvar_t* _sb_internal_tabs_row1_bias_px = nullptr;
+cvar_t* _sb_internal_tabs_row2_bias_px = nullptr;
 
 void create_layout_cvars() {
     if (!detour_Cvar_Get::oCvar_Get) return;
 
     constexpr int kLayoutCvarFlags = 0;
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_vid_w", "640", kLayoutCvarFlags, nullptr);
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_vid_h", "480", kLayoutCvarFlags, nullptr);
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_center_panel_px", "640", kLayoutCvarFlags, nullptr);
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row1_prefix_px", "96", kLayoutCvarFlags, nullptr);
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row2_prefix_px", "36", kLayoutCvarFlags, nullptr);
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row1_prefix_rmf", "<blank 96 1>", kLayoutCvarFlags, nullptr);
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row2_prefix_rmf", "<blank 36 1>", kLayoutCvarFlags, nullptr);
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row1_suffix_rmf", "<blank 96 1>", kLayoutCvarFlags, nullptr);
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row2_suffix_rmf", "<blank 36 1>", kLayoutCvarFlags, nullptr);
-    _sofbuddy_sb_tabs_row1_content_px = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row1_content_px", "384", kLayoutCvarFlags, nullptr);
-    _sofbuddy_sb_tabs_row2_content_px = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row2_content_px", "384", kLayoutCvarFlags, nullptr);
-    _sofbuddy_sb_tabs_center_bias_px = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_center_bias_px", "0", kLayoutCvarFlags, nullptr);
-    _sofbuddy_sb_tabs_row1_bias_px = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row1_bias_px", "0", kLayoutCvarFlags, nullptr);
-    _sofbuddy_sb_tabs_row2_bias_px = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row2_bias_px", "0", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_menu_vid_w", "640", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_menu_vid_h", "480", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_center_panel_px", "640", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row1_prefix_px", "96", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row2_prefix_px", "36", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row1_prefix_rmf", "<blank 96 1>", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row2_prefix_rmf", "<blank 36 1>", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row1_suffix_rmf", "<blank 96 1>", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row2_suffix_rmf", "<blank 36 1>", kLayoutCvarFlags, nullptr);
+    _sb_internal_tabs_row1_content_px = detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row1_content_px", "384", kLayoutCvarFlags, nullptr);
+    _sb_internal_tabs_row2_content_px = detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row2_content_px", "384", kLayoutCvarFlags, nullptr);
+    _sb_internal_tabs_center_bias_px = detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_center_bias_px", "0", kLayoutCvarFlags, nullptr);
+    _sb_internal_tabs_row1_bias_px = detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row1_bias_px", "0", kLayoutCvarFlags, nullptr);
+    _sb_internal_tabs_row2_bias_px = detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row2_bias_px", "0", kLayoutCvarFlags, nullptr);
 
     // Menu color theme preset index (see kMenuThemes).
     detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_theme", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
@@ -325,11 +325,11 @@ void update_layout_cvars(bool trigger_reloadall_if_changed) {
 
     // center_panel uses frame units (560 / 640 of screen width).
     const int center_panel_px = (vid_w * kSofBuddyCenterPanelVirtualWidth + 320) / 640;
-    int row1_content_px = _sofbuddy_sb_tabs_row1_content_px ? static_cast<int>(_sofbuddy_sb_tabs_row1_content_px->value + 0.5f) : kSofBuddyDefaultRow1ContentWidth;
-    int row2_content_px = _sofbuddy_sb_tabs_row2_content_px ? static_cast<int>(_sofbuddy_sb_tabs_row2_content_px->value + 0.5f) : kSofBuddyDefaultRow2ContentWidth;
-    const int center_bias_px = _sofbuddy_sb_tabs_center_bias_px ? static_cast<int>(_sofbuddy_sb_tabs_center_bias_px->value + 0.5f) : 0;
-    const int row1_bias_px = _sofbuddy_sb_tabs_row1_bias_px ? static_cast<int>(_sofbuddy_sb_tabs_row1_bias_px->value + 0.5f) : 0;
-    const int row2_bias_px = _sofbuddy_sb_tabs_row2_bias_px ? static_cast<int>(_sofbuddy_sb_tabs_row2_bias_px->value + 0.5f) : 0;
+    int row1_content_px = _sb_internal_tabs_row1_content_px ? static_cast<int>(_sb_internal_tabs_row1_content_px->value + 0.5f) : kSofBuddyDefaultRow1ContentWidth;
+    int row2_content_px = _sb_internal_tabs_row2_content_px ? static_cast<int>(_sb_internal_tabs_row2_content_px->value + 0.5f) : kSofBuddyDefaultRow2ContentWidth;
+    const int center_bias_px = _sb_internal_tabs_center_bias_px ? static_cast<int>(_sb_internal_tabs_center_bias_px->value + 0.5f) : 0;
+    const int row1_bias_px = _sb_internal_tabs_row1_bias_px ? static_cast<int>(_sb_internal_tabs_row1_bias_px->value + 0.5f) : 0;
+    const int row2_bias_px = _sb_internal_tabs_row2_bias_px ? static_cast<int>(_sb_internal_tabs_row2_bias_px->value + 0.5f) : 0;
 
     row1_content_px = std::max(64, std::min(kSofBuddyCenterPanelVirtualWidth, row1_content_px));
     row2_content_px = row1_content_px;
@@ -342,15 +342,15 @@ void update_layout_cvars(bool trigger_reloadall_if_changed) {
     std::snprintf(row1_rmf, sizeof(row1_rmf), "<blank %d 1>", row1_prefix_px);
     std::snprintf(row2_rmf, sizeof(row2_rmf), "<blank %d 1>", row2_prefix_px);
 
-    set_runtime_cvar_int("_sofbuddy_menu_vid_w", vid_w);
-    set_runtime_cvar_int("_sofbuddy_menu_vid_h", vid_h);
-    set_runtime_cvar_int("_sofbuddy_sb_center_panel_px", center_panel_px);
-    set_runtime_cvar_int("_sofbuddy_sb_tabs_row1_prefix_px", row1_prefix_px);
-    set_runtime_cvar_int("_sofbuddy_sb_tabs_row2_prefix_px", row2_prefix_px);
-    set_runtime_cvar_str("_sofbuddy_sb_tabs_row1_prefix_rmf", row1_rmf);
-    set_runtime_cvar_str("_sofbuddy_sb_tabs_row2_prefix_rmf", row2_rmf);
-    set_runtime_cvar_str("_sofbuddy_sb_tabs_row1_suffix_rmf", row1_rmf);
-    set_runtime_cvar_str("_sofbuddy_sb_tabs_row2_suffix_rmf", row2_rmf);
+    set_runtime_cvar_int("_sb_internal_menu_vid_w", vid_w);
+    set_runtime_cvar_int("_sb_internal_menu_vid_h", vid_h);
+    set_runtime_cvar_int("_sb_internal_center_panel_px", center_panel_px);
+    set_runtime_cvar_int("_sb_internal_tabs_row1_prefix_px", row1_prefix_px);
+    set_runtime_cvar_int("_sb_internal_tabs_row2_prefix_px", row2_prefix_px);
+    set_runtime_cvar_str("_sb_internal_tabs_row1_prefix_rmf", row1_rmf);
+    set_runtime_cvar_str("_sb_internal_tabs_row2_prefix_rmf", row2_rmf);
+    set_runtime_cvar_str("_sb_internal_tabs_row1_suffix_rmf", row1_rmf);
+    set_runtime_cvar_str("_sb_internal_tabs_row2_suffix_rmf", row2_rmf);
 
     static int last_vid_w = -1;
     static int last_vid_h = -1;
@@ -404,13 +404,13 @@ void internal_menus_remember_menu_page(const char* menu_file) {
     if (n == "sof_buddy/update_prompt") {
         return;
     }
-    set_runtime_cvar_str("_sofbuddy_menu_last_page", n.c_str());
+    set_runtime_cvar_str("_sb_internal_menu_last_page", n.c_str());
 }
 
 static int internal_menus_content_inset_px(void) {
     int inner_frame_px = 0;
     if (detour_Cvar_Get::oCvar_Get) {
-        cvar_t* c = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_center_panel_px", "640", 0, nullptr);
+        cvar_t* c = detour_Cvar_Get::oCvar_Get("_sb_internal_center_panel_px", "640", 0, nullptr);
         if (c && c->value > 0) inner_frame_px = static_cast<int>(c->value + 0.5f);
     }
     if (inner_frame_px <= 0) {
@@ -573,7 +573,7 @@ const char* internal_menus_get_theme_tints_rmf(void) {
 }
 const char* internal_menus_get_tabs_row_prefix_rmf(void) {
     if (detour_Cvar_Get::oCvar_Get) {
-        cvar_t* c = detour_Cvar_Get::oCvar_Get("_sofbuddy_sb_tabs_row1_prefix_rmf", "<blank 124 1>", 0, nullptr);
+        cvar_t* c = detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row1_prefix_rmf", "<blank 124 1>", 0, nullptr);
         if (c && c->string && c->string[0]) return c->string;
     }
     return "<blank 124 1>";
@@ -595,7 +595,7 @@ bool internal_menus_should_killmenu_before_loading(void) {
 
 void internal_menus_sync_loading_network_ui(void) {
     // Map/download header uses <exinclude deathmatch> in loading_header.rmf (same timing as vanilla).
-    set_runtime_cvar_int("_sofbuddy_loading_network", internal_menus_deathmatch_mode_active() ? 1 : 0);
+    set_runtime_cvar_int("_sb_internal_loading_network", internal_menus_deathmatch_mode_active() ? 1 : 0);
 }
 
 bool internal_menus_is_mp_loading_context(void) {
@@ -635,7 +635,7 @@ static std::string loading_display_map_name(const char* map_name) {
 void loading_set_current(const char* map_name) {
     if (!map_name || !detour_Cvar_Set2::oCvar_Set2) return;
     const std::string display = loading_display_map_name(map_name);
-    detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_current"),
+    detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_loading_current"),
                                  const_cast<char*>(display.c_str()), true);
 }
 

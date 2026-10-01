@@ -94,7 +94,7 @@ void hudscale_change(cvar_t * cvar) {
     if (oCvar_Set2) {
         char buf[32];
         std::snprintf(buf, sizeof(buf), "%.2f", hudScale);
-        oCvar_Set2(const_cast<char*>("_sofbuddy_hud_scale_rounded"), buf, true);
+        oCvar_Set2(const_cast<char*>("_sb_internal_hud_scale_rounded"), buf, true);
     }
 }
 
@@ -111,7 +111,7 @@ void apply_auto_hud_scale(void) {
     if (oCvar_Set2) {
         char buf[32];
         std::snprintf(buf, sizeof(buf), "%.2f", hudScale);
-        oCvar_Set2(const_cast<char*>("_sofbuddy_hud_scale_rounded"), buf, true);
+        oCvar_Set2(const_cast<char*>("_sb_internal_hud_scale_rounded"), buf, true);
     }
 }
 

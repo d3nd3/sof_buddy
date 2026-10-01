@@ -30,9 +30,9 @@
 <hbr>
 <hbr>
 <font type title tint white atint white>
-<ctext _sofbuddy_version atext "Version : " tint white atint white noshade><hbr>
-<ctext _sofbuddy_update_status atext "Updater : " tint white atint white noshade><hbr>
-<ctext _sofbuddy_update_latest atext "Latest : " tint white atint white noshade><hbr>
+<ctext _sb_internal_version atext "Version : " tint white atint white noshade><hbr>
+<ctext _sb_internal_update_status atext "Updater : " tint white atint white noshade><hbr>
+<ctext _sb_internal_update_latest atext "Latest : " tint white atint white noshade><hbr>
 
 <font type title tint sb_subtle atint sb_subtle>
 "_____________________________"

@@ -41,23 +41,23 @@ constexpr const char* kUpdateInstallScriptWine = "sof_buddy/update_from_zip.cmd"
 constexpr DWORD kUpdateTimeoutMs = 8000;
 constexpr uintptr_t kWinstartRva = 0x0040353C;
 
-constexpr const char* kCvarUpdateStatus = "_sofbuddy_update_status";
-constexpr const char* kCvarUpdateLatest = "_sofbuddy_update_latest";
-constexpr const char* kCvarUpdateDownloadPath = "_sofbuddy_update_download_path";
-constexpr const char* kCvarUpdateDownloadedAsset = "_sofbuddy_update_downloaded_asset";
-constexpr const char* kCvarUpdateCheckedUtc = "_sofbuddy_update_checked_utc";
+constexpr const char* kCvarUpdateStatus = "_sb_internal_update_status";
+constexpr const char* kCvarUpdateLatest = "_sb_internal_update_latest";
+constexpr const char* kCvarUpdateDownloadPath = "_sb_internal_update_download_path";
+constexpr const char* kCvarUpdateDownloadedAsset = "_sb_internal_update_downloaded_asset";
+constexpr const char* kCvarUpdateCheckedUtc = "_sb_internal_update_checked_utc";
 constexpr const char* kCvarUpdateCheckStartup = "_sofbuddy_update_check_startup";
 constexpr const char* kCvarUpdateApiUrl = "_sofbuddy_update_api_url";
 constexpr const char* kCvarUpdateReleasesUrl = "_sofbuddy_update_releases_url";
 constexpr const char* kCvarUpdateTargetTag = "_sofbuddy_update_target_tag";
-constexpr const char* kCvarUpdateReleaseListRmf = "_sofbuddy_update_release_list_rmf";
-constexpr const char* kCvarUpdateReleaseListStatus = "_sofbuddy_update_release_list_status";
+constexpr const char* kCvarUpdateReleaseListRmf = "_sb_internal_update_release_list_rmf";
+constexpr const char* kCvarUpdateReleaseListStatus = "_sb_internal_update_release_list_status";
 constexpr const char* kUpdateApiUrlAllReleasesGitHub = "https://api.github.com/repos/d3nd3/sof_buddy/releases?per_page=100";
 constexpr const char* kUpdateTargetLatest = "latest";
 constexpr const char* kDefaultReleaseListRmf =
     "<list \"Latest\" match \"latest\" cvar _sofbuddy_update_target_tag atext \"Install version : \" noshade tip \"Refresh Release List to load all tags.\"><hbr>";
-constexpr const char* kCvarOpenUrlStatus = "_sofbuddy_openurl_status";
-constexpr const char* kCvarOpenUrlLast = "_sofbuddy_openurl_last";
+constexpr const char* kCvarOpenUrlStatus = "_sb_internal_openurl_status";
+constexpr const char* kCvarOpenUrlLast = "_sb_internal_openurl_last";
 bool g_startup_update_prompt_pending = false;
 
 constexpr const char* kAllowedSocialHosts[] = {

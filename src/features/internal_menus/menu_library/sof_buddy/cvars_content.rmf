@@ -1,0 +1,420 @@
+<stm>
+<include tints>
+{theme_tints}
+<key escape "sofbuddy_menu sof_buddy">
+<cursor 1>
+
+<vbar tint sb_accent>
+
+<defaults noborder tiptint normaltext tipbtint sb_panel tipfont title>
+<backdrop bgcolor sb_bg>
+
+<left>
+{content_inset_tall}
+<right>
+{content_inset_tall}
+<normal>
+
+<include sof_buddy/tabs/cvars>
+
+<center>
+<font type title tint sb_accent atint sb_accent>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<text "SOF BUDDY: RAW CVARS">
+<center>
+<font type title tint cyan atint cyan>
+"_____________________________"
+<hbr>
+<hbr>
+<normal>
+<font type title tint gray atint gray>
+Raw editor for every user-facing sof_buddy cvar.
+<hbr>
+<font type title tint gray atint gray>
+Type a new value and press Enter. Hover a row for details.
+<hbr>
+<font type title tint gray atint gray>
+Defaults shown below each row. Internal _sb_internal_ cvars are hidden.
+<hbr>
+<center>
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint cyan atint cyan>
+"Performance / Timers"
+<font type title tint white atint white>
+<ctext _sofbuddy_high_priority atext "_sofbuddy_high_priority : " noshade tip "Process priority. 1 High, 0 Normal. Default 1."><br>
+<font type title tint gray atint gray>
+"Default 1 - High process priority. 0 is Normal."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_sleep atext "_sofbuddy_sleep : " noshade tip "CPU sleep between frames. 1 on saves CPU, 0 off. Default 1."><br>
+<font type title tint gray atint gray>
+"Default 1 - CPU-saving sleep between frames."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_sleep_jitter atext "_sofbuddy_sleep_jitter : " noshade tip "Experimental frame borrowing. Leave 0 unless needed. Default 0."><br>
+<font type title tint gray atint gray>
+"Default 0 - Experimental jitter, leave off."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_sleep_busyticks atext "_sofbuddy_sleep_busyticks : " noshade tip "Busyloop 1ms ticks per frame. Lower saves CPU, 0 may stutter. Default 2."><br>
+<font type title tint gray atint gray>
+"Default 2 - Busyloop ticks. Lower saves CPU."
+<hbr>
+
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint cyan atint cyan>
+"UI Scale"
+<font type title tint white atint white>
+<ctext _sofbuddy_font_scale atext "_sofbuddy_font_scale : " noshade tip "Manual font multiplier 0.25 to 8. Used when auto is 0. Default 1."><br>
+<font type title tint gray atint gray>
+"Default 1 - Manual font scale, auto off only."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_font_scale_auto atext "_sofbuddy_font_scale_auto : " noshade tip "Auto font scale from vid_h div 480. 1 on, 0 off. Default 1."><br>
+<font type title tint gray atint gray>
+"Default 1 - Track font scale from resolution."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_console_size atext "_sofbuddy_console_size : " noshade tip "Console height as screen fraction 0 to 1. Default 0.5."><br>
+<font type title tint gray atint gray>
+"Default 0.5 - Console height fraction of screen."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_hud_scale atext "_sofbuddy_hud_scale : " noshade tip "Manual HUD multiplier 0.25 to 8. Used when auto is 0. Default 1."><br>
+<font type title tint gray atint gray>
+"Default 1 - Manual HUD scale, auto off only."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_hud_scale_auto atext "_sofbuddy_hud_scale_auto : " noshade tip "Auto HUD scale from vid_h div 480. 1 on, 0 off. Default 1."><br>
+<font type title tint gray atint gray>
+"Default 1 - Track HUD scale from resolution."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_crossh_scale atext "_sofbuddy_crossh_scale : " noshade tip "Crosshair size multiplier. Default 1."><br>
+<font type title tint gray atint gray>
+"Default 1 - Crosshair size multiplier."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_scale_cinematic_pics atext "_sofbuddy_scale_cinematic_pics : " noshade tip "Scale credit and fade pics up from 640x480. 1 on. Default 1."><br>
+<font type title tint gray atint gray>
+"Default 1 - Scale cinematic credit images."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_scale_round_auto atext "_sofbuddy_scale_round_auto : " noshade tip "Snap auto scale to round steps. 1 on, 0 off. Default 0."><br>
+<font type title tint gray atint gray>
+"Default 0 - Round auto font and HUD scale."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_scale_round_ratio atext "_sofbuddy_scale_round_ratio : " noshade tip "Snap step when round auto is on. Default 0.25."><br>
+<font type title tint gray atint gray>
+"Default 0.25 - Round step for auto scale."
+<hbr>
+
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint cyan atint cyan>
+"Texture Filtering"
+<font type title tint white atint white>
+<ctext _sofbuddy_minfilter_unmipped atext "_sofbuddy_minfilter_unmipped : " noshade tip "Sky and detail min filter. GL_NEAREST or GL_LINEAR. Default GL_LINEAR."><br>
+<font type title tint gray atint gray>
+"Default GL_LINEAR - Unmipped min filter."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_magfilter_unmipped atext "_sofbuddy_magfilter_unmipped : " noshade tip "Sky and detail mag filter. GL_NEAREST or GL_LINEAR. Default GL_LINEAR."><br>
+<font type title tint gray atint gray>
+"Default GL_LINEAR - Unmipped mag filter."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_minfilter_mipped atext "_sofbuddy_minfilter_mipped : " noshade tip "World min filter with mipmaps. Default GL_LINEAR_MIPMAP_LINEAR."><br>
+<font type title tint gray atint gray>
+"Default GL_LINEAR_MIPMAP_LINEAR - World min."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_magfilter_mipped atext "_sofbuddy_magfilter_mipped : " noshade tip "World mag filter. GL_NEAREST or GL_LINEAR. Default GL_LINEAR."><br>
+<font type title tint gray atint gray>
+"Default GL_LINEAR - World mag filter."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_minfilter_ui atext "_sofbuddy_minfilter_ui : " noshade tip "UI min filter. Keep GL_NEAREST so fonts stay sharp. Default GL_NEAREST."><br>
+<font type title tint gray atint gray>
+"Default GL_NEAREST - UI min filter."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_magfilter_ui atext "_sofbuddy_magfilter_ui : " noshade tip "UI mag filter. Keep GL_NEAREST so fonts stay sharp. Default GL_NEAREST."><br>
+<font type title tint gray atint gray>
+"Default GL_NEAREST - UI mag filter."
+<hbr>
+
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint cyan atint cyan>
+"Lighting"
+<font type title tint white atint white>
+<ctext _sofbuddy_lighting_overbright atext "_sofbuddy_lighting_overbright : " noshade tip "Overbright lighting. 1 on, 0 off. Default 0."><br>
+<font type title tint gray atint gray>
+"Default 0 - Overbright lighting off."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_lighting_cutoff atext "_sofbuddy_lighting_cutoff : " noshade tip "Lighting cutoff value. Default 64."><br>
+<font type title tint gray atint gray>
+"Default 64 - Lighting cutoff."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_water_size atext "_sofbuddy_water_size : " noshade tip "Warp polygon size. Smaller is faster swirl. Min 16. Default 64."><br>
+<font type title tint gray atint gray>
+"Default 64 - Energy swirl polygon size."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_lightblend_src atext "_sofbuddy_lightblend_src : " noshade tip "Lightmap blend source. Experimental, leave default. Default GL_ZERO."><br>
+<font type title tint gray atint gray>
+"Default GL_ZERO - Blend source, experimental."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_lightblend_dst atext "_sofbuddy_lightblend_dst : " noshade tip "Lightmap blend dest. Experimental, leave default. Default GL_SRC_COLOR."><br>
+<font type title tint gray atint gray>
+"Default GL_SRC_COLOR - Blend dest, experimental."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_shiny_spherical atext "_sofbuddy_shiny_spherical : " noshade tip "Shiny detail follows view angles. 1 on, 0 off. Default 1."><br>
+<font type title tint gray atint gray>
+"Default 1 - Spherical shiny detail."
+<hbr>
+
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint cyan atint cyan>
+"Input"
+<font type title tint white atint white>
+<ctext _sofbuddy_rawmouse atext "_sofbuddy_rawmouse : " noshade tip "Raw mouse input bypassing accel. 1 on, 0 off. Default 0."><br>
+<font type title tint gray atint gray>
+"Default 0 - Raw mouse input off."
+<hbr>
+
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint cyan atint cyan>
+"Network / HTTP Maps"
+<font type title tint white atint white>
+<ctext _sofbuddy_http_maps atext "_sofbuddy_http_maps : " noshade tip "Map assist. 0 off, 1 primary, 2 random, 3 rotate. Default 1."><br>
+<font type title tint gray atint gray>
+"Default 1 - Use primary map provider."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+"_sofbuddy_http_maps_dl_1"
+<hbr>
+<font type title tint white atint white>
+<input width 552 cvar _sofbuddy_http_maps_dl_1 border 8 1 gray maxchars 255 tip "Provider 1 zip download base URL. Default sofvault."><hbr>
+<font type title tint gray atint gray>
+"Default sofvault URL - Provider 1 download."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+"_sofbuddy_http_maps_dl_2"
+<hbr>
+<font type title tint white atint white>
+<input width 552 cvar _sofbuddy_http_maps_dl_2 border 8 1 gray maxchars 255 tip "Provider 2 zip download base URL for random and rotate."><hbr>
+<font type title tint gray atint gray>
+"Default github mirror - Provider 2 download."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+"_sofbuddy_http_maps_dl_3"
+<hbr>
+<font type title tint white atint white>
+<input width 552 cvar _sofbuddy_http_maps_dl_3 border 8 1 gray maxchars 255 tip "Provider 3 zip download base URL for random and rotate. Default empty."><hbr>
+<font type title tint gray atint gray>
+"Default empty - Provider 3 download."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+"_sofbuddy_http_maps_crc_1"
+<hbr>
+<font type title tint white atint white>
+<input width 552 cvar _sofbuddy_http_maps_crc_1 border 8 1 gray maxchars 255 tip "Provider 1 CRC lookup base URL. Default sofvault."><hbr>
+<font type title tint gray atint gray>
+"Default sofvault URL - Provider 1 CRC."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+"_sofbuddy_http_maps_crc_2"
+<hbr>
+<font type title tint white atint white>
+<input width 552 cvar _sofbuddy_http_maps_crc_2 border 8 1 gray maxchars 255 tip "Provider 2 CRC lookup base URL paired with DL 2."><hbr>
+<font type title tint gray atint gray>
+"Default github mirror - Provider 2 CRC."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+"_sofbuddy_http_maps_crc_3"
+<hbr>
+<font type title tint white atint white>
+<input width 552 cvar _sofbuddy_http_maps_crc_3 border 8 1 gray maxchars 255 tip "Provider 3 CRC lookup base URL paired with DL 3. Default empty."><hbr>
+<font type title tint gray atint gray>
+"Default empty - Provider 3 CRC."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_http_show_providers atext "_sofbuddy_http_show_providers : " noshade tip "Show provider URL fields on Network tab. 1 show, 0 hide. Default 0."><br>
+<font type title tint gray atint gray>
+"Default 0 - Hide provider URL fields."
+<hbr>
+
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint cyan atint cyan>
+"Updater"
+<font type title tint white atint white>
+<ctext _sofbuddy_update_check_startup atext "_sofbuddy_update_check_startup : " noshade tip "Check for updates at startup. 1 on, 0 off. Default 1."><br>
+<font type title tint gray atint gray>
+"Default 1 - Check updates at startup."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+"_sofbuddy_update_api_url"
+<hbr>
+<font type title tint white atint white>
+<input width 552 cvar _sofbuddy_update_api_url border 8 1 gray maxchars 255 tip "Update JSON feed URL. XP defaults to sofvault, else GitHub API."><hbr>
+<font type title tint gray atint gray>
+"Default build-dependent - Update feed URL."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+"_sofbuddy_update_releases_url"
+<hbr>
+<font type title tint white atint white>
+<input width 552 cvar _sofbuddy_update_releases_url border 8 1 gray maxchars 255 tip "Human release page shown in updater help. XP sofvault, else GitHub."><hbr>
+<font type title tint gray atint gray>
+"Default build-dependent - Release page URL."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_update_target_tag atext "_sofbuddy_update_target_tag : " noshade tip "Install version tag or latest. Refresh list on Updates tab. Default latest."><br>
+<font type title tint gray atint gray>
+"Default latest - Version to install."
+<hbr>
+
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint cyan atint cyan>
+"Menu / Loading"
+<font type title tint white atint white>
+<ctext _sofbuddy_menu_hotkey atext "_sofbuddy_menu_hotkey : " noshade tip "Key opening the menu. Run sofbuddy_apply_menu_hotkey after change. Default F12."><br>
+<font type title tint gray atint gray>
+"Default F12 - Menu open key."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_menu_theme atext "_sofbuddy_menu_theme : " noshade tip "Menu color preset 0 to 37. Tab reloads to apply. Default 0."><br>
+<font type title tint gray atint gray>
+"Default 0 - Dark menu theme."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_loading_lock_input atext "_sofbuddy_loading_lock_input : " noshade tip "Lock input on loading screen. 1 locked, 0 unlocked. Default 0."><br>
+<font type title tint gray atint gray>
+"Default 0 - Loading input unlocked."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_loading_show_mapname atext "_sofbuddy_loading_show_mapname : " noshade tip "Show map name on loading header. 1 on, 0 off. Default 1."><br>
+<font type title tint gray atint gray>
+"Default 1 - Show map name while loading."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_loading_show_download atext "_sofbuddy_loading_show_download : " noshade tip "Show download status on loading header. 1 on, 0 off. Default 1."><br>
+<font type title tint gray atint gray>
+"Default 1 - Show download status."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_perf_profile atext "_sofbuddy_perf_profile : " noshade tip "Perf preset. 0 competitive, 1 visual high, 2 visual low, 3 custom. Default 0."><br>
+<font type title tint gray atint gray>
+"Default 0 - Competitive perf preset."
+<hbr>
+
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint cyan atint cyan>
+"Map Study"
+<font type title tint white atint white>
+<ctext _sofbuddy_entity_edit atext "_sofbuddy_entity_edit : " noshade tip "Enable entity tools and spawn cache. 1 on, 0 off. Default 0."><br>
+<font type title tint gray atint gray>
+"Default 0 - Map entity tools off."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_entities_draw_verbose atext "_sofbuddy_entities_draw_verbose : " noshade tip "Verbose per-entity log lines when drawing. 1 on. Default 0."><br>
+<font type title tint gray atint gray>
+"Default 0 - Quiet entity draw."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_map_debug_map atext "_sofbuddy_map_debug_map : " noshade tip "Map stem for load and record, no path or bsp. Example moscow. Default empty."><br>
+<font type title tint gray atint gray>
+"Default empty - Map stem like moscow."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_map_study_deathmatch atext "_sofbuddy_map_study_deathmatch : " noshade tip "Deathmatch mode before map. 0 to 5, default 4 CTF. Default 4."><br>
+<font type title tint gray atint gray>
+"Default 4 - CTF deathmatch for study."
+<hbr>
+
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<normal>
+<font type title tint gray atint gray>
+Archived cvars persist to sofbuddy.cfg on change.
+<hbr>
+<center>
+<font type title tint white atint white>
+<text "Close" key mouse1 "popmenu" border 8 1 cyan regular align center>
+</stm>

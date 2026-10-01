@@ -1,5 +1,33 @@
 # Changelog
 
+## v8.6
+
+### Internal menus — new **Cvars** tab
+
+- **Raw cvar editor** reachable from the F12 tab bar (next to **Buddy**): every user-facing `_sofbuddy_*` cvar in one scrollable page.
+- Each row shows the live value, the default, and a description, with the full text also available as a hover tooltip.
+- Values are edited in place — `<ctext>` for scalars, text fields for the provider and updater URLs. Press Enter to apply.
+- Grouped by area (Performance / Timers, UI Scale, Texture Filtering, Lighting, Input, Network, Updater, Menu / Loading, Map Study).
+- Internal bookkeeping cvars are deliberately not listed here; see the internal table in the README.
+
+### Cvars — `_sb_internal_` prefix for internal cvars
+
+- sof_buddy's own bookkeeping cvars (menu layout math, scale migration guards, loading and updater status read-outs) were renamed from `_sofbuddy_*` to `_sb_internal_*`.
+- 40 cvars renamed, e.g. `_sofbuddy_menu_vid_w` → `_sb_internal_menu_vid_w`, `_sofbuddy_update_status` → `_sb_internal_update_status`, `_sofbuddy_profile_target_*` → `_sb_internal_profile_target_*`.
+- Makes it obvious at a glance in the console which cvars are yours to set. Nothing user-facing changed name — every cvar on the Cvars tab keeps its old name.
+
+### README — cvar reference refreshed
+
+- Corrected wrong defaults: `_sofbuddy_console_size` (`0.35` → `0.5`), `_sofbuddy_update_check_startup` (`0` → `1`), the six texture filter defaults (were blank), and the HTTP provider URLs (slot 1 is the sofvault mirror, slot 2 the plowsof mirror).
+- Corrected `_sofbuddy_perf_profile` to document all four modes.
+- Added the previously undocumented `_sofbuddy_menu_theme`, `_sofbuddy_update_target_tag`, `_sofbuddy_loading_show_mapname`, `_sofbuddy_loading_show_download`, `_sofbuddy_entities_draw_verbose`, `_sofbuddy_map_debug_map`, and `_sofbuddy_map_study_deathmatch`.
+- Dropped entries for `_sofbuddy_classic_timer` and `sofbuddy_menu_internal`, which no longer exist.
+- Split internal cvars into their own table instead of mixing them into the user-facing list.
+
+### Upgrade note
+
+- An existing `base/sofbuddy.cfg` still contains the old internal cvar names. They are recreated as inert leftovers on the next launch and can be removed by deleting the file; the scale migration guards simply re-run once and converge.
+
 ## v8.5
 
 Clean release after withdrawing v8.1–v8.4 (those builds shipped experimental `wine_focus`, now removed). **Version 8.5** ensures the in-game updater offers an upgrade to anyone still on withdrawn 8.x builds (8.1 would compare older than 8.4).

@@ -69,22 +69,22 @@ void create_scaled_ui_cvars(void) {
 #if FEATURE_SCALED_CON
     _sofbuddy_font_scale = detour_Cvar_Get::oCvar_Get("_sofbuddy_font_scale", "1", CVAR_SOFBUDDY_ARCHIVE, fontscale_change);
     _sofbuddy_font_scale_auto = detour_Cvar_Get::oCvar_Get("_sofbuddy_font_scale_auto", "1", CVAR_SOFBUDDY_ARCHIVE, font_scale_auto_change);
-    migrate_legacy_scale_auto(_sofbuddy_font_scale, _sofbuddy_font_scale_auto, "_sofbuddy_font_scale_auto_migrated");
+    migrate_legacy_scale_auto(_sofbuddy_font_scale, _sofbuddy_font_scale_auto, "_sb_internal_font_scale_auto_migrated");
     font_scale_auto_change(_sofbuddy_font_scale_auto);
     fontscale_change(_sofbuddy_font_scale);
     _sofbuddy_console_size = detour_Cvar_Get::oCvar_Get("_sofbuddy_console_size", "0.5", CVAR_SOFBUDDY_ARCHIVE, consolesize_change);
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_font_scale_rounded", "1", 0, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_font_scale_rounded", "1", 0, nullptr);
 #endif
 #if FEATURE_SCALED_HUD
     _sofbuddy_hud_scale = detour_Cvar_Get::oCvar_Get("_sofbuddy_hud_scale", "1", CVAR_SOFBUDDY_ARCHIVE, hudscale_change);
     _sofbuddy_hud_scale_auto = detour_Cvar_Get::oCvar_Get("_sofbuddy_hud_scale_auto", "1", CVAR_SOFBUDDY_ARCHIVE, hud_scale_auto_change);
-    migrate_legacy_scale_auto(_sofbuddy_hud_scale, _sofbuddy_hud_scale_auto, "_sofbuddy_hud_scale_auto_migrated");
+    migrate_legacy_scale_auto(_sofbuddy_hud_scale, _sofbuddy_hud_scale_auto, "_sb_internal_hud_scale_auto_migrated");
     hud_scale_auto_change(_sofbuddy_hud_scale_auto);
     hudscale_change(_sofbuddy_hud_scale);
     _sofbuddy_crossh_scale = detour_Cvar_Get::oCvar_Get("_sofbuddy_crossh_scale", "1", CVAR_SOFBUDDY_ARCHIVE, crosshairscale_change);
     _sofbuddy_scale_cinematic_pics = detour_Cvar_Get::oCvar_Get("_sofbuddy_scale_cinematic_pics", "1", CVAR_SOFBUDDY_ARCHIVE, scalecinematicpics_change);
     scalecinematicpics_change(_sofbuddy_scale_cinematic_pics);
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_hud_scale_rounded", "1", 0, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_hud_scale_rounded", "1", 0, nullptr);
 #endif
     detour_Cvar_Get::oCvar_Get("_sofbuddy_scale_round_ratio", "0.25", CVAR_SOFBUDDY_ARCHIVE, scale_round_ratio_change);
     detour_Cvar_Get::oCvar_Get("_sofbuddy_scale_round_auto", "0", CVAR_SOFBUDDY_ARCHIVE, scale_round_auto_change);

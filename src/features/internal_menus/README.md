@@ -29,7 +29,7 @@ Internal menus can be opened without `sofbuddy_menu` (e.g. SCR_BeginLoadingPlaqu
 - **Layout cvars synced before open** — `update_layout_cvars(false)` so scaling and centering are correct for the current video mode.
 - **Validation and resolution** — Name is sanitized and resolved against the embedded menu set only (`g_menu_internal_files`); invalid or missing paths are rejected. Converts to `<menu>/<page_stem>` (e.g. `sof_buddy/main`, `loading/loading`) with fallback to `main.rmf` for menu roots.
 - **Replace top page for non-sofbuddy** — For targets other than `sof_buddy/*`, runs `killmenu` first so the new menu replaces the current one and ESC behavior is predictable.
-- **Loading lock** — For `loading/*`, uses `_sofbuddy_loading_lock_input` for lock behavior. The loading current map name (`_sofbuddy_loading_current`) is set to `"resolving..."` only in the loading reset state (http_maps `http_maps_clear_loading_cvars`), not here.
+- **Loading lock** — For `loading/*`, uses `_sofbuddy_loading_lock_input` for lock behavior. The loading current map name (`_sb_internal_loading_current`) is set to `"resolving..."` only in the loading reset state (http_maps `http_maps_clear_loading_cvars`), not here.
 
 `sof_buddy/*` targets rely on `<stm nopush>` in wrapper pages, so tab changes do not grow the stack. Use `sofbuddy_menu` for Buddy tab/page navigation so layout is re-synced and paths stay correct.
 
@@ -53,16 +53,21 @@ sofbuddy_menu <menu>/<page>
 Loading UI is fed by direct helpers:
 - `loading_set_current(...)`
 
+### 6.5) Cvar naming: user-facing vs `_sb_internal_`
+- `_sofbuddy_*` = user-facing settings. Every one of them appears on **F12 → Cvars** (`cvars_content.rmf`) with live value, default and description, and is mirrored in the root `README.md` cvar table.
+- `_sb_internal_*` = sof_buddy's own bookkeeping: layout math, migration guards, runtime status read-outs. These are hidden from the Cvars page because editing them has no lasting effect (they are recomputed on launch). See the internal table in the root `README.md`.
+- RMF pages may still *read* internal cvars (`<ctext _sb_internal_update_status ...>`, `<includecvar _sb_internal_update_release_list_rmf>`), so the rename must be applied to both C++ and `menu_library/*.rmf`.
+
 ### 7) Dynamic layout cvars (SoF Buddy tabs/centering)
 Created in `PostCvarInit` and recomputed on vid changes:
-- `_sofbuddy_menu_vid_w`, `_sofbuddy_menu_vid_h`
-- `_sofbuddy_sb_center_panel_px`
-- `_sofbuddy_sb_tabs_row1_prefix_px`, `_sofbuddy_sb_tabs_row2_prefix_px`
-- `_sofbuddy_sb_tabs_row1_prefix_rmf`, `_sofbuddy_sb_tabs_row2_prefix_rmf`
+- `_sb_internal_menu_vid_w`, `_sb_internal_menu_vid_h`
+- `_sb_internal_center_panel_px`
+- `_sb_internal_tabs_row1_prefix_px`, `_sb_internal_tabs_row2_prefix_px`
+- `_sb_internal_tabs_row1_prefix_rmf`, `_sb_internal_tabs_row2_prefix_rmf`
 - `_sofbuddy_loading_lock_input` (`CVAR_SOFBUDDY_ARCHIVE`, default `0`)
 - `_sofbuddy_menu_hotkey` (`CVAR_SOFBUDDY_ARCHIVE`, default `F12`). The open key is shown and rebound via RMF `<setkey "sofbuddy_menu sof_buddy" ...>` (Input and main); bind mode updates the cvar.
 - `_sofbuddy_perf_profile` (`CVAR_SOFBUDDY_ARCHIVE`, default `0`, used by Perf T profile list)
-- Tunables: `_sofbuddy_sb_tabs_row1_content_px`, `_sofbuddy_sb_tabs_row2_content_px`, `_sofbuddy_sb_tabs_center_bias_px`, `_sofbuddy_sb_tabs_row1_bias_px`, `_sofbuddy_sb_tabs_row2_bias_px`
+- Tunables: `_sb_internal_tabs_row1_content_px`, `_sb_internal_tabs_row2_content_px`, `_sb_internal_tabs_center_bias_px`, `_sb_internal_tabs_row1_bias_px`, `_sb_internal_tabs_row2_bias_px`
 
 When video size changes, `update_layout_cvars(true)` recomputes runtime layout cvars used by tab-prefix `includecvar` blocks.
 
@@ -98,7 +103,7 @@ Menus under `menu_library/<name>/` are embedded and served directly from memory 
 | Menu | Purpose |
 |------|---------|
 | **loading** | Shown via SCR_BeginLoadingPlaque (engine loading plaque) and `loading_show_ui()` (e.g. http_maps). Pages `loading`, `loading_header`, `loading_files` kept slim: classic loading flow/progress, optional HTTP zip progress, and disconnect action. |
-| **sof_buddy** | Main SoF Buddy menu set with tabbed top navigation and per-page content files named by tab (e.g. `main`, `cpu`, `network`, `input`, `updates`, `social`, `sofbuddy` + `*_content`). **Buddy** tab (`sofbuddy_content.rmf`) for loading-screen options (`_sofbuddy_loading_lock_input`, `_sofbuddy_loading_show_mapname`, `_sofbuddy_loading_show_download`), menu theme/hotkey/tooltips, and startup update-check toggle (`_sofbuddy_update_check_startup`). **Network** tab for HTTP provider mode selection and direct URL editing via RMF `<input>` fields for `_sofbuddy_http_maps_dl_*` / `_sofbuddy_http_maps_crc_*` plus updater feed URLs (`_sofbuddy_update_api_url`, `_sofbuddy_update_releases_url`); provider inputs can be collapsed via `_sofbuddy_http_show_providers`; includes startup update requester (`update_prompt`) when a newer release is found; plus `margin_backdrop.rmf` for margin/background composition. |
+| **sof_buddy** | Main SoF Buddy menu set with tabbed top navigation and per-page content files named by tab (e.g. `main`, `cpu`, `network`, `input`, `updates`, `social`, `sofbuddy`, `cvars` + `*_content`). **Cvars** tab (`cvars_content.rmf`) is a scrollable raw editor for every user-facing `_sofbuddy_*` cvar (value via `<ctext>`/`<input>`, default + description below each row); internal layout/status cvars are hidden. **Buddy** tab (`sofbuddy_content.rmf`) for loading-screen options (`_sofbuddy_loading_lock_input`, `_sofbuddy_loading_show_mapname`, `_sofbuddy_loading_show_download`), menu theme/hotkey/tooltips, and startup update-check toggle (`_sofbuddy_update_check_startup`). **Network** tab for HTTP provider mode selection and direct URL editing via RMF `<input>` fields for `_sofbuddy_http_maps_dl_*` / `_sofbuddy_http_maps_crc_*` plus updater feed URLs (`_sofbuddy_update_api_url`, `_sofbuddy_update_releases_url`); provider inputs can be collapsed via `_sofbuddy_http_show_providers`; includes startup update requester (`update_prompt`) when a newer release is found; plus `margin_backdrop.rmf` for margin/background composition. |
 
 ## Editing menus
 

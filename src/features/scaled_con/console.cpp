@@ -75,7 +75,7 @@ void fontscale_change(cvar_t * cvar) {
 	if (detour_Cvar_Set2::oCvar_Set2) {
 		char buf[32];
 		std::snprintf(buf, sizeof(buf), "%.2f", console_font_scale(fontScale));
-		detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_font_scale_rounded"), buf, true);
+		detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_font_scale_rounded"), buf, true);
 	}
 }
 
@@ -93,7 +93,7 @@ void apply_auto_font_scale(void) {
 	if (detour_Cvar_Set2::oCvar_Set2) {
 		char buf[32];
 		std::snprintf(buf, sizeof(buf), "%.2f", console_font_scale(fontScale));
-		detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_font_scale_rounded"), buf, true);
+		detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_font_scale_rounded"), buf, true);
 	}
 }
 

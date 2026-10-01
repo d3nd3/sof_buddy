@@ -1131,21 +1131,21 @@ static void http_maps_apply_progress_cvar(float p)
 	const float clamped = http_maps_clamp_progress(p);
 	char val[32];
 	snprintf(val, sizeof(val), "%.2f", clamped);
-	PrintOut(PRINT_DEV, "http_maps: UI _sofbuddy_loading_progress %s\n", val);
-	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_progress"), val, true);
+	PrintOut(PRINT_DEV, "http_maps: UI _sb_internal_loading_progress %s\n", val);
+	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_loading_progress"), val, true);
 #endif
 }
 
 #if FEATURE_INTERNAL_MENUS
 static void http_maps_set_loading_status(const char* status)
 {
-	PrintOut(PRINT_DEV, "http_maps: UI _sofbuddy_loading_status %s\n", status);
-	if (detour_Cvar_Set2::oCvar_Set2) detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_status"), const_cast<char*>(status), true);
+	PrintOut(PRINT_DEV, "http_maps: UI _sb_internal_loading_status %s\n", status);
+	if (detour_Cvar_Set2::oCvar_Set2) detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_loading_status"), const_cast<char*>(status), true);
 }
 
 static void http_maps_loading_ui_show_map(const char* map_bsp_path)
 {
-	PrintOut(PRINT_DEV, "http_maps: UI loading_show_ui; _sofbuddy_loading_current %s\n", map_bsp_path && map_bsp_path[0] ? map_bsp_path : "?");
+	PrintOut(PRINT_DEV, "http_maps: UI loading_show_ui; _sb_internal_loading_current %s\n", map_bsp_path && map_bsp_path[0] ? map_bsp_path : "?");
 	g_http_maps_state.loading_ui_active = true;
 	if (map_bsp_path && map_bsp_path[0])
 		g_http_maps_state.loading_ui_map = map_bsp_path;
@@ -1160,9 +1160,9 @@ static void http_maps_clear_loading_cvars(bool reset_status = true)
 	http_maps_clear_pending_ui_updates();
 	if (!detour_Cvar_Set2::oCvar_Set2) return;
 #if FEATURE_INTERNAL_MENUS
-	PrintOut(PRINT_DEV, "http_maps: UI _sofbuddy_loading_progress (clear)\n");
-	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_progress"), const_cast<char*>(""), true);
-	PrintOut(PRINT_DEV, "http_maps: UI _sofbuddy_loading_current (unknown)\n");
+	PrintOut(PRINT_DEV, "http_maps: UI _sb_internal_loading_progress (clear)\n");
+	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_loading_progress"), const_cast<char*>(""), true);
+	PrintOut(PRINT_DEV, "http_maps: UI _sb_internal_loading_current (unknown)\n");
 	loading_reset_current_map_unknown();
 	if (reset_status) http_maps_set_loading_status("CHECKING");
 #endif
@@ -1448,9 +1448,9 @@ static void http_maps_download_worker(std::string map_bsp_path, std::string zip_
 #if FEATURE_INTERNAL_MENUS
 		http_maps_set_loading_status("HTTP Downloading...");
 #else
-		PrintOut(PRINT_DEV, "http_maps: UI _sofbuddy_loading_status HTTP Downloading...\n");
+		PrintOut(PRINT_DEV, "http_maps: UI _sb_internal_loading_status HTTP Downloading...\n");
 		if (detour_Cvar_Set2::oCvar_Set2)
-			detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_status"), const_cast<char*>("HTTP Downloading..."), true);
+			detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_loading_status"), const_cast<char*>("HTTP Downloading..."), true);
 #endif
 		if (http_maps_download_zip_winhttp(dl_url, temp_zip_path, job_id)) {
 			http_maps_queue_status(job_id, "Extracting zip to user/...");
@@ -1544,9 +1544,9 @@ static void http_maps_start_worker(const std::string& map_bsp_path, detour_CL_Pr
 	} catch (...) {
 		PrintOut(PRINT_BAD, "http_maps: worker thread failed %s\n", map_bsp_path.c_str());
 #if FEATURE_INTERNAL_MENUS
-		PrintOut(PRINT_DEV, "http_maps: UI _sofbuddy_loading_zip_indicator loading/loading_zip_red\n");
+		PrintOut(PRINT_DEV, "http_maps: UI _sb_internal_loading_zip_indicator loading/loading_zip_red\n");
 		if (detour_Cvar_Set2::oCvar_Set2)
-			detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_loading_zip_indicator"), const_cast<char*>("loading/loading_zip_red"), true);
+			detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_loading_zip_indicator"), const_cast<char*>("loading/loading_zip_red"), true);
 #endif
 		if (g_http_maps_state.active_job_id.load(std::memory_order_acquire) == job_id)
 			g_http_maps_state.active_job_id.store(0, std::memory_order_release);
@@ -1843,7 +1843,7 @@ void http_maps_pump(void)
 			// Failure: HTTP path failed — still show NOT NEEDED if map is already in a pak / on disk.
 			http_maps_set_loading_status(end_status);
 		} else {
-			cvar_t* cur = findCvar(const_cast<char*>("_sofbuddy_loading_status"));
+			cvar_t* cur = findCvar(const_cast<char*>("_sb_internal_loading_status"));
 			if (cur && cur->string && strcmp(cur->string, "CHECKING") == 0)
 				http_maps_set_loading_status(end_status);
 		}
