@@ -1,5 +1,15 @@
 # Changelog
 
+## v8.8
+
+### Internal menus — actually fix the blank Map Study rows on the Cvars tab
+
+- v8.7 claimed to fix this and did not. The section was still rendered because the gate used the wrong conditional tag.
+- Root cause: `<cninclude>` includes when the cvar is **zero** and `<cinclude>` includes when it is **non-zero** — the two are inverses. v8.7 used `<cninclude _sb_internal_feature_entity_visualizer ...>`, and since that build flag is `0` when `entity_visualizer` is disabled, the section was included precisely when it should have been skipped.
+- Fix: switched the gate to `<cinclude>`.
+- Reference cases that settle the polarity: `ui_scale_content.rmf` gates `ui_scale_round_ratio` behind `<cinclude _sofbuddy_scale_round_auto>` (row belongs on screen when auto round is **on**, default `0`), and `ui_scale_font_manual` behind `<cninclude _sofbuddy_font_scale_auto>` (row belongs on screen when auto font scale is **off**, default `1`).
+- Defaults were never wrong; only the page listed cvars the running build did not register.
+
 ## v8.7
 
 ### Internal menus — fix blank Map Study rows on the Cvars tab

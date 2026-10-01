@@ -250,7 +250,8 @@ The four `_sofbuddy_entity_edit` / `_sofbuddy_entities_draw_verbose` / `_sofbudd
 `_sofbuddy_map_study_deathmatch` cvars come from the `entity_visualizer` feature, which is
 **disabled by default** in `features/FEATURES.txt`. In a default build they are never registered,
 so they do not appear in the console and the **Map Study** section is hidden from the Cvars tab
-(gated on `_sb_internal_feature_entity_visualizer`). Enable that feature to get them.
+(gated on `_sb_internal_feature_entity_visualizer` via `<cinclude>`). Enable that feature to get
+them.
 
 - See [OpenGL glBlendFunc docs](https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glBlendFunc.xhtml) for blend values.
 - Cvars with `CVAR_SOFBUDDY_ARCHIVE` persist to `base/sofbuddy.cfg` and are reapplied on startup.
@@ -272,7 +273,7 @@ Written by sof_buddy itself. Values are recomputed each launch, so editing them 
 | `_sb_internal_loading_zip_indicator` | Pic path for the loading-screen download indicator. |
 | `_sb_internal_update_status` / `_sb_internal_update_latest` / `_sb_internal_update_download_path` / `_sb_internal_update_downloaded_asset` / `_sb_internal_update_checked_utc` | Updater progress read-outs shown on the Updates tab. |
 | `_sb_internal_update_release_list_rmf` / `_sb_internal_update_release_list_status` | Generated RMF markup for the release list, plus its load status. |
-| `_sb_internal_feature_entity_visualizer` | Compile-time build flag (`1`/`0`) used by `<cninclude>` to hide menu sections whose feature is not compiled in. |
+| `_sb_internal_feature_entity_visualizer` | Compile-time build flag (`1`/`0`) used by `<cinclude>` to hide menu sections whose feature is not compiled in. |
 | `_sb_internal_openurl_status` / `_sb_internal_openurl_last` | Last social-link open result and requested URL. |
 
 </details>

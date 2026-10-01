@@ -375,7 +375,7 @@ Defaults shown below each row. Internal _sb_internal_ cvars are hidden.
 <font type title tint gray atint gray>
 "Default 0 - Competitive perf preset."
 <hbr>
-<cninclude _sb_internal_feature_entity_visualizer sof_buddy/cvars_map_study>
+<cinclude _sb_internal_feature_entity_visualizer sof_buddy/cvars_map_study>
 
 <font type title tint sb_subtle atint sb_subtle>
 "_____________________________"

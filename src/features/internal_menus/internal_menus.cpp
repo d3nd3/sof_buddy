@@ -663,9 +663,10 @@ void internal_menus_PostCvarInit(void) {
         return;
     }
 
-    // Build flags consumed by <cninclude> in RMF pages. A menu section may list cvars that
+    // Build flags consumed by <cinclude> in RMF pages. A menu section may list cvars that
     // only exist when their feature is compiled in; gating on these keeps the page honest
     // instead of rendering blank <ctext> rows for unregistered cvars.
+    // NOTE: <cinclude> includes when the cvar is non-zero; <cninclude> is its inverse.
     detour_Cvar_Get::oCvar_Get("_sb_internal_feature_entity_visualizer",
                                FEATURE_ENTITY_VISUALIZER ? "1" : "0", 0, nullptr);
 
