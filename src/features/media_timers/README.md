@@ -40,6 +40,12 @@ Implements `cl_maxfps` for singleplayer with intelligent sleep/busy-wait hybrid:
 - Busy-waits for precise timing near target FPS
 - Configurable thresholds via CVars
 
+`cl_maxfps` is resolved by sof_buddy in `create_mediatimers_cvars()` (default `30`, the same value
+the engine later uses in `CL_InitLocal`) with `cl_maxfps_change` attached. That callback keeps the
+sleep/busy-wait frame budget (`g_cl_maxfps_target_msec`) in sync with whatever cap the player picks
+on **F12 → CPU → Framerate**; before this the budget stayed hardcoded at 33 ms (~30 fps) because
+nothing ever registered the cvar. `cl_maxfps 0` means uncapped and is treated as a 1 ms budget.
+
 ### SoFPlus Integration
 Works seamlessly with SoFPlus addon system:
 - Detects SoFPlus DLL loading
@@ -47,7 +53,7 @@ Works seamlessly with SoFPlus addon system:
 - Handles frame timing for both systems
 
 ## Configuration CVars
-- `cl_maxfps` - Maximum frame rate (default: 30)
+- `cl_maxfps` - Maximum frame rate (engine cvar, default `30`, `0` = unlimited). Editable on **F12 → CPU**.
 - `_sofbuddy_high_priority` - CPU priority boost (0/1)
 - `_sofbuddy_sleep` - Enable sleep optimization (0/1)
 - `_sofbuddy_sleep_jitter` - Frame time borrowing (0/1)

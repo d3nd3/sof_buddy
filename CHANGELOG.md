@@ -1,5 +1,21 @@
 # Changelog
 
+## v8.9
+
+### Internal menus — `cl_maxfps` and VSync on the CPU tab
+
+Closes [#21](https://github.com/d3nd3/sof_buddy/issues/21) — framerate cap had no menu control anywhere in F12.
+- New **Framerate** section on **F12 → CPU**: `cl_maxfps` as a list (`Unlimited`, 30, 60, 72, 100, 120, 144, 165, 200, 240, 300) and `gl_swapinterval` as `Off`/`On`, each with a live `<ctext>` readout of the raw value.
+- New **Uncap Framerate** button that sets `cl_maxfps 0` and `gl_swapinterval 0` together.
+- **Restore Perf Defaults** now also resets `cl_maxfps 30` and `gl_swapinterval 0`.
+
+### media_timers — actually track `cl_maxfps`
+
+- `cl_maxfps` was declared but never registered, so `cl_maxfps_change()` was dead code and the sleep/busy-wait frame budget (`g_cl_maxfps_target_msec`) stayed pinned at 33 ms (~30 fps) no matter what the player set.
+- `create_mediatimers_cvars()` now resolves `cl_maxfps` (default `30`, matching `CL_InitLocal`) with the callback attached, so picking a cap on the CPU tab retargets the frame budget.
+- `cl_maxfps 0` (uncapped) is treated as a 1 ms budget instead of falling back to the old 33 ms.
+- Dropped the `SOFBUDDY_ASSERT(cvar->value > 0.0f)` that would have fired on the legitimate `0` case, and added a one-line log of the new budget.
+
 ## v8.8
 
 ### Internal menus — actually fix the blank Map Study rows on the Cvars tab

@@ -98,6 +98,11 @@ sofbuddy_apply_menu_hotkey
 
 ## Menu library
 
+**CPU tab** (`cpu_content.rmf`) holds the frame-pacing controls: a **Framerate** section with `cl_maxfps`
+(Unlimited / 30 … 300) and `gl_swapinterval` (VSync Off/On) plus a live `<ctext>` of each, an
+"Uncap Framerate" shortcut, and `cl_maxfps 30` / `gl_swapinterval 0` folded into "Restore Perf Defaults".
+`cl_maxfps` is registered by `media_timers`, so picking a cap also retargets the sleep/busy-wait budget.
+
 Menus under `menu_library/<name>/` are embedded and served directly from memory via the filesystem hooks.
 
 | Menu | Purpose |

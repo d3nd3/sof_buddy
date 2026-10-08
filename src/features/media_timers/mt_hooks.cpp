@@ -57,8 +57,8 @@ void (*spcl_FreeScript)(void) = NULL;
 
 static int calc_target_msec(float maxfps)
 {
-	// Default behavior matches base game when cvar is unavailable/invalid.
-	if (!(maxfps > 0.0f)) return 33;
+	// 0 means uncapped: there is no frame budget, so keep the sleep heuristic minimal.
+	if (maxfps <= 0.0f) return 1;
 	const double msec = 1000.0 / static_cast<double>(maxfps);
 	int target = static_cast<int>(std::ceil(msec));
 	if (target < 1) target = 1;
@@ -172,15 +172,13 @@ void sleep_busyticks_change(cvar_t * cvar)
 
 void cl_maxfps_change(cvar_t *cvar)
 {
-	SOFBUDDY_ASSERT(cvar != nullptr);
-	SOFBUDDY_ASSERT(cvar->value > 0.0f);
-	
-	// PrintOut(PRINT_DEV,"cl_maxfps changed %f\n",cvar->value);
+    SOFBUDDY_ASSERT(cvar != nullptr);
 
-	//update _sofbuddy_sleep_gamma
-	// orig_Cvar_Set2("_sofbuddy_sleep_gamma",cvar->string,false);
-	previous_cl_maxfps = cvar->value;
-	g_cl_maxfps_target_msec = calc_target_msec(cvar->value);
+    previous_cl_maxfps = cvar->value;
+    g_cl_maxfps_target_msec = calc_target_msec(cvar->value);
+
+    PrintOut(PRINT_DEV, "cl_maxfps is now %f (frame budget %d ms)\n",
+             static_cast<double>(previous_cl_maxfps), g_cl_maxfps_target_msec);
 }
 
 void
