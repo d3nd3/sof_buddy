@@ -1,5 +1,5 @@
 ; Generated from features/FEATURES.txt. Do not edit by hand.
-#define AppVersion "8.12"
+#define AppVersion "8.13"
 
 [Setup]
 AppId={{B0F7F5D4-4A1E-4F4A-A7B4-8CF2E7C9B1A6}}
@@ -26,20 +26,20 @@ Name: "features"; Description: "SoF Buddy features"; Types: full custom; Flags: 
 Name: "windows_compatibility"; Description: "Windows compatibility"; Types: full custom
 Name: "windows_compatibility\appcompat_fix"; Description: "Ensure Windows 10+ Application Compatibility Fix Applied"; Types: full custom
 Name: "game_options"; Description: "Game options"; Types: full custom
-Name: "game_options\full_violence"; Description: "Enable full violence"; Types: full custom; Flags: unchecked
+Name: "game_options\full_violence"; Description: "Enable full violence"; Types: custom
 Name: "features\core_features_always_enabled"; Description: "Core Features (always enabled)"; Types: full custom; Flags: fixed
 Name: "features\core_features_always_enabled\media_timers"; Description: "Media Timers"; Types: full custom; Flags: fixed
 Name: "features\graphics_features"; Description: "Graphics Features"; Types: full custom
 Name: "features\graphics_features\texture_mapping_min_mag"; Description: "Texture Mapping Min Mag"; Types: full custom
 Name: "features\graphics_features\scaled_con"; Description: "Scaled Con"; Types: full custom
 Name: "features\graphics_features\scaled_hud"; Description: "Scaled Hud"; Types: full custom
-Name: "features\graphics_features\scaled_menu"; Description: "Scaled Menu"; Types: full custom; Flags: unchecked
+Name: "features\graphics_features\scaled_menu"; Description: "Scaled Menu"; Types: custom
 Name: "features\graphics_features\hd_textures"; Description: "Hd Textures"; Types: full custom
 Name: "features\graphics_features\vsync_toggle"; Description: "Vsync Toggle"; Types: full custom
 Name: "features\graphics_features\lighting_blend"; Description: "Lighting Blend"; Types: full custom
 Name: "features\game_features"; Description: "Game Features"; Types: full custom
 Name: "features\game_features\teamicons_offset"; Description: "Teamicons Offset"; Types: full custom
-Name: "features\game_features\entity_visualizer"; Description: "Entity Visualizer"; Types: full custom; Flags: unchecked
+Name: "features\game_features\entity_visualizer"; Description: "Entity Visualizer"; Types: custom
 Name: "features\network_features"; Description: "Network Features"; Types: full custom
 Name: "features\network_features\http_maps"; Description: "Http Maps"; Types: full custom
 Name: "features\menu_features"; Description: "Menu Features"; Types: full custom
@@ -48,7 +48,7 @@ Name: "features\bug_fixes"; Description: "Bug fixes"; Types: full custom
 Name: "features\bug_fixes\new_system_bug"; Description: "New System Bug"; Types: full custom
 Name: "features\bug_fixes\console_protection"; Description: "Console Protection"; Types: full custom
 Name: "features\bug_fixes\cl_maxfps_singleplayer"; Description: "Cl Maxfps Singleplayer"; Types: full custom
-Name: "features\bug_fixes\cbuf_limit_increase"; Description: "Cbuf Limit Increase"; Types: full custom; Flags: unchecked
+Name: "features\bug_fixes\cbuf_limit_increase"; Description: "Cbuf Limit Increase"; Types: custom
 Name: "features\input_features"; Description: "Input Features"; Types: full custom
 Name: "features\input_features\raw_mouse"; Description: "Raw Mouse"; Types: full custom
 
