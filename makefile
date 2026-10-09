@@ -75,6 +75,10 @@ ifeq ($(UI_MENU),1)
     CFLAGS += -DUI_MENU
 endif
 
+ifeq ($(UNIVERSAL),1)
+    CFLAGS += -DSOFBUDDY_UNIVERSAL_BUILD
+endif
+
 # Output
 OUT = $(BDIR)/sof_buddy.dll
 UNIVERSAL_OUT = $(BDIR)/sof_buddy-universal.dll
@@ -259,7 +263,7 @@ xp-debug:
 	$(MAKE) BUILD=xp-debug all
 
 universal:
-	$(MAKE) BUILD=release FEATURE_SET=all UI_MENU=1 \
+	$(MAKE) BUILD=release FEATURE_SET=all UI_MENU=1 UNIVERSAL=1 \
 		BDIR_GEN=build/universal ODIR=obj/universal OUT=$(UNIVERSAL_OUT) all
 
 # Clean

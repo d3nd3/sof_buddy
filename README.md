@@ -92,11 +92,23 @@
 
 ### Windows installer features
 
+See [WINDOWS_INSTALLER.md](WINDOWS_INSTALLER.md) for the complete packaging,
+runtime-selection, and updater behavior.
+
 The Windows installer uses one universal DLL and writes the selected features to
 `sof_buddy/features.cfg`; it does not compile a custom DLL for each installation.
+GitHub publishes that universal channel separately as
+`release_windows_universal.zip`; `release_windows.zip` remains the
+compile-time/default channel, and the updater keeps those channels separate.
 Its initial selections are generated from `features/FEATURES.txt`. The file can be
 edited later (`feature` enables it, `// feature` disables it); restart SoF after changes.
 If `features.cfg` is missing, the universal DLL falls back to those same defaults.
+The F12 **Features** tab exposes the same choices at runtime as archived
+`_sofbuddy_feature_<name>` cvars. Changes are written to `base/sofbuddy.cfg`,
+shown as **Unavailable** when the installed non-universal DLL does not contain a
+feature, and take effect after restarting SoF. On startup, those saved selections
+are read before hooks are registered and synchronized back to
+`sof_buddy/features.cfg`; that file remains the early-startup source of truth.
 It also offers the checked-by-default **Ensure Windows 10+ Application Compatibility
 Fix Applied** option. This verifies the known SoF.exe PE layout, removes the
 `Raven Software` string at `0x2015F1C0`, and saves the original as

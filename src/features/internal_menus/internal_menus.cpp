@@ -180,8 +180,51 @@ void apply_sofbuddy_perf_profile_value(int profile) {
     }
 }
 
+bool g_normalizing_feature_cvar = false;
+
+void feature_cvar_change(cvar_t* cvar) {
+    if (!cvar || !cvar->name || g_normalizing_feature_cvar) return;
+    const RuntimeFeatures::Feature feature = RuntimeFeatures::FromCvarName(cvar->name);
+    if (feature == RuntimeFeatures::Feature::Count) return;
+
+    if (!RuntimeFeatures::Compiled(feature)) {
+        if (detour_Cvar_Set2::oCvar_Set2 &&
+            static_cast<int>(cvar->value + 0.5f) != 2) {
+            g_normalizing_feature_cvar = true;
+            detour_Cvar_Set2::oCvar_Set2(cvar->name, const_cast<char*>("2"), true);
+            g_normalizing_feature_cvar = false;
+        }
+        return;
+    }
+    // Feature hooks are restart-applied; leave the startup mask unchanged.
+}
+
+void create_feature_cvars() {
+    if (!detour_Cvar_Get::oCvar_Get) return;
+
+#define FEATURE_CVAR(macro, feature_name, label) do { \
+    const RuntimeFeatures::Feature feature = RuntimeFeatures::Feature::RUNTIME_##macro; \
+    char default_value[2] = { static_cast<char>('0' + RuntimeFeatures::SelectionValue(feature)), '\0' }; \
+    cvar_t* cv = detour_Cvar_Get::oCvar_Get("_sofbuddy_feature_" feature_name, default_value, \
+                                             CVAR_SOFBUDDY_ARCHIVE, feature_cvar_change); \
+    if (!cv) break; \
+    cv->flags |= CVAR_SOFBUDDY_ARCHIVE; \
+    cv->command = feature_cvar_change; \
+    if (static_cast<int>(cv->value + 0.5f) != RuntimeFeatures::SelectionValue(feature) && \
+        detour_Cvar_Set2::oCvar_Set2) { \
+        g_normalizing_feature_cvar = true; \
+        detour_Cvar_Set2::oCvar_Set2(cv->name, default_value, true); \
+        g_normalizing_feature_cvar = false; \
+    } \
+} while (0);
+    FEATURE_LIST(FEATURE_CVAR)
+#undef FEATURE_CVAR
+}
+
 void create_loading_cvars() {
     if (!detour_Cvar_Get::oCvar_Get) return;
+
+    create_feature_cvars();
 
     // Runtime loading UI state cvars.
     constexpr int kLoadingCvarFlags = 0;
