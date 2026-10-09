@@ -5,6 +5,7 @@
 #include "sof_compat.h"
 #include "util.h"
 #include "../../scaled_ui_base/shared.h"
+#include "runtime_features.h"
 
 extern void(__stdcall * orig_glVertex2f)(float one, float two);
 
@@ -89,12 +90,14 @@ static void handleDrawCharVertex(float x, float y) {
 #endif
 #if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
     // TYPEAMATIC: hkDraw_CharExtra scales char positions; scale the 8px quads too.
-    if (g_activeRenderType == uiRenderType::Cinematic) {
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) &&
+        g_activeRenderType == uiRenderType::Cinematic) {
         scaleCinematicVertex(x, y);
         return;
     }
 #endif
-    if (g_activeRenderType == uiRenderType::Console &&
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON) &&
+        g_activeRenderType == uiRenderType::Console &&
         g_activeDrawCall != DrawRoutineType::StretchPic) {
         SOFBUDDY_ASSERT(fontScale > 0.0f);
         const float s = console_font_scale(fontScale);
@@ -114,12 +117,14 @@ void __stdcall my_glVertex2f_DrawChar_4(float x, float y) { handleDrawCharVertex
 static void handleStretchPicVertex(float x, float y) {
     SOFBUDDY_ASSERT(orig_glVertex2f != nullptr);
 #if FEATURE_SCALED_HUD
-    if (g_activeRenderType == uiRenderType::Scoreboard) {
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) &&
+        g_activeRenderType == uiRenderType::Scoreboard) {
         scaleVertexFromScreenCenter(x, y, hudScale);
         return;
     }
 #endif
-    if (g_activeRenderType == uiRenderType::Cinematic) {
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) &&
+        g_activeRenderType == uiRenderType::Cinematic) {
         scaleCinematicVertex(x, y);
         return;
     }
@@ -136,16 +141,22 @@ static void handleDrawPicVertex(float x, float y) {
 #if FEATURE_SCALED_HUD
     if (tryScoreboardVertex(x, y)) return;
 #endif
-    if (g_activeRenderType == uiRenderType::Cinematic) {
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) &&
+        g_activeRenderType == uiRenderType::Cinematic) {
         scaleCinematicVertex(x, y);
         return;
     }
     switch (g_currentPicCaller) {
 #if FEATURE_SCALED_HUD
         case PicCaller::SCR_DrawCrosshair:
-            scaleVertexFromScreenCenter(x, y, crosshairScale);
-            return;
+            if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
+                scaleVertexFromScreenCenter(x, y, crosshairScale);
+                return;
+            }
+            break;
         case PicCaller::SCR_DrawCinemaScope: {
+            if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD))
+                break;
             const float s = effective_auto_scale(screen_y_scale);
             if (g_scaleCinematicPics && s != 1.0f && DrawPicWidth > 0 && DrawPicHeight > 0) {
                 if (g_quadVertexIndex == 1) {
@@ -168,7 +179,7 @@ static void handleDrawPicVertex(float x, float y) {
         }
 #endif
         default:
-            if (mainMenuBgTiled) {
+            if (mainMenuBgTiled && RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
                 if (g_tiledBgVertexIndex == 1) {
                     g_tiledBgStartX = x;
                     g_tiledBgStartY = y;

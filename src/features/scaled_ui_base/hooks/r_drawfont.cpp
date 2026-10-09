@@ -40,7 +40,8 @@ static FontCaller fontCallerFromRenderType(uiRenderType rt)
 
 void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor, detour_R_DrawFont::tR_DrawFont original) {
     if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) &&
-        !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
+        !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU) &&
+        !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON)) {
         original(screenX, screenY, text, colorPalette, font, rememberLastColor);
         return;
     }
@@ -78,7 +79,8 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 		realFont = REALFONT_UNKNOWN;
 	}
 
-	if (g_currentFontCaller == FontCaller::MissionStatus) {
+	if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON) &&
+	    g_currentFontCaller == FontCaller::MissionStatus) {
 		const float s = snapped_text_scale_active(fontScale);
 		if (s != 1.0f) {
 			const float vid_w = (viddef_width && *viddef_width > 0)
@@ -87,7 +89,8 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 			const float textW = vid_w - 2.0f * static_cast<float>(screenX);
 			screenX -= static_cast<int>(textW * (s - 1.0f) * 0.5f);
 		}
-	} else if (g_currentFontCaller == FontCaller::SCRDrawPause) {
+	} else if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON) &&
+	           g_currentFontCaller == FontCaller::SCRDrawPause) {
 		const float s = snapped_text_scale_active(fontScale);
 		if (s != 1.0f) {
 			const float textW = (float)(current_vid_w - 2 * screenX);
@@ -95,7 +98,8 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 			screenX -= (int)(textW * (s - 1.0f) * 0.5f);
 			screenY -= (int)(textH * (s - 1.0f) * 0.5f);
 		}
-	} else if (g_activeRenderType == uiRenderType::HudDmRanking) {
+	} else if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) &&
+	           g_activeRenderType == uiRenderType::HudDmRanking) {
 		const float hs = snapped_text_scale_active(hudScale);
 		int fontWidth = 12;
 		int offsetEdge = 40;
@@ -130,7 +134,8 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 			screenX = current_vid_w - offsetEdge * x_scale - 16 * hs - hs * fontWidth * strlen(text) / 2;
 		}
 
-	} else if (g_activeRenderType == uiRenderType::HudInventory) {
+	} else if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) &&
+	           g_activeRenderType == uiRenderType::HudInventory) {
 		// Match cropped pics (raw hudScale); glyph snap drifts text off the panels.
 		const float hs = hudScale;
 		if ( hudInventory_wasItem ) {
@@ -180,7 +185,8 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 				screenY = set_y;
 			}
 		}
-	} else if (g_currentFontCaller == FontCaller::PlayerInfoName) {
+	} else if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) &&
+	           g_currentFontCaller == FontCaller::PlayerInfoName) {
 		// Playername drawn by ref_gl Draw_PlayerInfo above a player. The caller centers the
 		// string with the unscaled width, and the glyph vertices below grow it rightward from
 		// the first char — so pre-shift left by half the expected growth to stay centered.

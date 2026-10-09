@@ -19,7 +19,8 @@ FEATURE_LIST_H = $(BDIR_GEN)/feature_list.inc
 DEFAULT_FEATURES_TXT = features/FEATURES.txt
 DEFAULT_FEATURE_LIST_H = $(BDIR_GEN)/default_feature_list.inc
 VERSION_FILE = VERSION
-VERSION_H = hdr/version.h
+VERSION_H = $(BDIR_GEN)/version.h
+LEGACY_VERSION_H = hdr/version.h
 DETOURS_YAML = detours.yaml
 GENERATED_DETOURS_H = $(BDIR_GEN)/generated_detours.h
 GENERATED_DETOURS_CPP = $(BDIR_GEN)/generated_detours.cpp
@@ -37,7 +38,7 @@ HOSTCFLAGS = -std=c++17 -O2
 
 # Compiler settings
 CC = i686-w64-mingw32-g++-posix
-INC = -I$(IDIR) -I$(SDIR) -I$(BDIR_GEN)
+INC = -I$(BDIR_GEN) -I$(IDIR) -I$(SDIR)
 COMMON_CFLAGS = -D_WIN32_WINNT=0x0501 -std=c++14
 DEPFLAGS = -MMD -MP
 LIBS = -lws2_32 -lwinmm -lshlwapi -lpsapi -ldbghelp -lwinhttp -lgdi32
@@ -187,7 +188,8 @@ $(DEFAULT_FEATURE_LIST_H): $(DEFAULT_FEATURES_TXT) $(MAKEFILE_LIST) | $(BDIR_GEN
 	@awk 'function emit(feature, enabled) { sub(/[[:space:]]+#.*/, "", feature); sub(/^[[:space:]]+/, "", feature); sub(/[[:space:]]+$$/, "", feature); if (feature !~ /^[a-z][a-z0-9_-]*$$/) return; entries[++count]="macro(\"" feature "\", " enabled ")" } { line=$$0; sub(/\r$$/,"",line); sub(/^[ \t]+/,"",line); sub(/[ \t]+$$/,"",line); if(line=="") next; if(substr(line,1,2)=="//") { emit(substr(line,3), 0); next } if(substr(line,1,1)=="#") { emit(substr(line,2), 0); next } emit(line, 1) } END { for (i=1; i<=count; i++) print entries[i] (i < count ? " \\" : "") }' $(DEFAULT_FEATURES_TXT) >> $@
 
 # Generate version header from VERSION file
-$(VERSION_H): $(VERSION_FILE)
+$(VERSION_H) $(LEGACY_VERSION_H): $(VERSION_FILE)
+	@mkdir -p $(dir $@)
 	@echo "Generating version header from $(VERSION_FILE)..."
 	@echo "Current version: $$(cat $(VERSION_FILE) | tr -d '\r\n')"
 	@echo '#pragma once' > $@
@@ -203,12 +205,9 @@ $(VERSION_H): $(VERSION_FILE)
 	@echo "Generated version header with version: $$(cat $(VERSION_FILE) | tr -d '\r\n')"
 
 # Generate hook headers from detours.yaml, FEATURES.txt, and hooks.json files
-$(GENERATED_DETOURS_H): $(DETOURS_YAML) $(FEATURES_TXT) $(GENERATE_HOOKS_PY) $(HOOKS_JSON) $(CALLBACKS_JSON) $(POINTERS_JSON) | $(BDIR_GEN)
+$(GENERATED_DETOURS_H): $(DETOURS_YAML) $(FEATURES_TXT) $(GENERATE_HOOKS_PY) $(HOOKS_JSON) $(CALLBACKS_JSON) $(POINTERS_JSON) $(MAKEFILE_LIST) | $(BDIR_GEN)
 	@echo "Generating hook headers from $(DETOURS_YAML)..."
-	@python3 $(GENERATE_HOOKS_PY) $(FEATURES_TXT)
-	@cp -f build/generated_detours.h $(GENERATED_DETOURS_H)
-	@cp -f build/generated_detours.cpp $(GENERATED_DETOURS_CPP)
-	@cp -f build/generated_registrations.h $(GENERATED_REGISTRATIONS_H)
+	@python3 $(GENERATE_HOOKS_PY) $(FEATURES_TXT) $(BDIR_GEN)
 
 $(GENERATED_REGISTRATIONS_H): $(GENERATED_DETOURS_H)
 $(GENERATED_DETOURS_CPP): $(GENERATED_DETOURS_H)
@@ -268,7 +267,7 @@ universal:
 
 # Clean
 clean:
-	rm -rf obj build $(OUT) $(UNIVERSAL_OUT)
+	rm -rf obj build/*/ $(OUT) $(UNIVERSAL_OUT)
 
 # Show configuration
 config:

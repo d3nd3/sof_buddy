@@ -877,6 +877,7 @@ void internal_menus_scr_updatescreen_post(bool force) {
 }
 
 void loading_show_ui(void) {
+    if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_INTERNAL_MENUS)) return;
     if (internal_menus_use_vanilla_loading_menu()) return;
     if (detour_M_PushMenu::oM_PushMenu) {
         internal_menus_sync_loading_network_ui();

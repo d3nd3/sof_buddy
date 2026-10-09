@@ -1,5 +1,22 @@
 # Changelog
 
+## v8.17
+
+### Universal runtime safety and parity
+
+- Fixed runtime-disabled feature paths for raw-mouse timing, HTTP loading menus,
+  console/HUD/menu scaling, VSync display updates, and HD texture initialization.
+- Prevented disabled scaling cvars from mutating active shared UI state.
+- Isolated generated build outputs so standard and universal builds do not
+  overwrite one another.
+
+### Universal packaging and Wine installation
+
+- Universal Windows and Linux/Wine packages now include both platform script
+  sets, while continuing to ship one universal DLL.
+- The installer can activate the DLL natively under Wine and preserves
+  `SoF.exe.bak` before patching.
+
 ## v8.16
 
 ### Installer directory selection

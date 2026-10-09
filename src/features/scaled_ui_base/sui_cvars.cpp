@@ -22,6 +22,7 @@
 #include "sof_buddy.h"
 #include "sof_compat.h"
 #include "generated_detours.h"
+#include "runtime_features.h"
 
 #if FEATURE_SCALED_CON
 cvar_t * _sofbuddy_font_scale = NULL;
@@ -73,6 +74,7 @@ static void migrate_legacy_scale_auto(cvar_t* scale, cvar_t* scale_auto, const c
 
 void create_scaled_ui_cvars(void) {
 #if FEATURE_SCALED_CON
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON)) {
     _sofbuddy_font_scale = detour_Cvar_Get::oCvar_Get("_sofbuddy_font_scale", "1", CVAR_SOFBUDDY_ARCHIVE, fontscale_change);
     _sofbuddy_font_scale_auto = detour_Cvar_Get::oCvar_Get("_sofbuddy_font_scale_auto", "1", CVAR_SOFBUDDY_ARCHIVE, font_scale_auto_change);
     migrate_legacy_scale_auto(_sofbuddy_font_scale, _sofbuddy_font_scale_auto, "_sb_internal_font_scale_auto_migrated");
@@ -80,8 +82,10 @@ void create_scaled_ui_cvars(void) {
     fontscale_change(_sofbuddy_font_scale);
     _sofbuddy_console_size = detour_Cvar_Get::oCvar_Get("_sofbuddy_console_size", "0.5", CVAR_SOFBUDDY_ARCHIVE, consolesize_change);
     detour_Cvar_Get::oCvar_Get("_sb_internal_font_scale_rounded", "1", 0, nullptr);
+    }
 #endif
 #if FEATURE_SCALED_HUD
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
     _sofbuddy_hud_scale = detour_Cvar_Get::oCvar_Get("_sofbuddy_hud_scale", "1", CVAR_SOFBUDDY_ARCHIVE, hudscale_change);
     _sofbuddy_hud_scale_auto = detour_Cvar_Get::oCvar_Get("_sofbuddy_hud_scale_auto", "1", CVAR_SOFBUDDY_ARCHIVE, hud_scale_auto_change);
     migrate_legacy_scale_auto(_sofbuddy_hud_scale, _sofbuddy_hud_scale_auto, "_sb_internal_hud_scale_auto_migrated");
@@ -93,9 +97,15 @@ void create_scaled_ui_cvars(void) {
     _sofbuddy_icons_autoscale = detour_Cvar_Get::oCvar_Get("_sofbuddy_icons_autoscale", "1", CVAR_SOFBUDDY_ARCHIVE, iconsautoscale_change);
     iconsautoscale_change(_sofbuddy_icons_autoscale);
     detour_Cvar_Get::oCvar_Get("_sb_internal_hud_scale_rounded", "1", 0, nullptr);
+    }
 #endif
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_scale_round_ratio", "0.25", CVAR_SOFBUDDY_ARCHIVE, scale_round_ratio_change);
-    detour_Cvar_Get::oCvar_Get("_sofbuddy_scale_round_auto", "0", CVAR_SOFBUDDY_ARCHIVE, scale_round_auto_change);
+#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON) ||
+        RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
+        detour_Cvar_Get::oCvar_Get("_sofbuddy_scale_round_ratio", "0.25", CVAR_SOFBUDDY_ARCHIVE, scale_round_ratio_change);
+        detour_Cvar_Get::oCvar_Get("_sofbuddy_scale_round_auto", "0", CVAR_SOFBUDDY_ARCHIVE, scale_round_auto_change);
+    }
+#endif
 }
 
 #endif // FEATURE_SCALED_CON || FEATURE_SCALED_HUD

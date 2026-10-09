@@ -19,7 +19,8 @@ void hkDraw_CharExtra(float x, float y, float scale, void* palette, int ch,
     // ref_gl ignores scale for quad size (fixed +8px); scale char positions instead.
     // Anchor Y to the last line. Preserve vanilla bottom margin as a 480p percentage
     // so scaled text stays on-screen at any resolution.
-    if (g_cinematicDrawDepth > 0 && fontScale != 1.0f) {
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) &&
+        g_cinematicDrawDepth > 0 && fontScale != 1.0f) {
         const float s = snap_font_scale_to_glyph_grid(fontScale, realFontSizes[REALFONT_MEDIUM]);
         if (g_cineTextBaseY < 0.0f) {
             g_cineTextBaseY = y;

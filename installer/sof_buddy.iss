@@ -1,5 +1,5 @@
 ; Generated from features/FEATURES.txt. Do not edit by hand.
-#define AppVersion "8.16"
+#define AppVersion "8.17"
 
 [Setup]
 AppId={{B0F7F5D4-4A1E-4F4A-A7B4-8CF2E7C9B1A6}}
@@ -9,6 +9,7 @@ AppPublisher=d3nd3
 DefaultDirName={autopf}\Soldier of Fortune
 AppendDefaultDirName=no
 DisableDirPage=no
+DirExistsWarning=no
 UsePreviousAppDir=no
 DefaultGroupName=SoF Buddy
 DisableProgramGroupPage=yes
@@ -19,6 +20,11 @@ OutputBaseFilename=sof_buddy_setup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
+
+[Messages]
+SelectDirDesc=Select the Soldier of Fortune folder
+SelectDirLabel3=SoF Buddy will be installed into the selected folder:
+SelectDirBrowseLabel=Choose the folder containing SoF.exe, then click Next.
 
 [Types]
 Name: "full"; Description: "Recommended feature set"
@@ -70,6 +76,7 @@ const
   LcgA = 214013;
   LcgC = 2531011;
   LcgModulus = 4294967296;
+  PatchOffset = $11AD72;
 
 function GetVolumeInformationW(RootPathName, VolumeNameBuffer: string; VolumeNameSize: Cardinal;
   var VolumeSerialNumber, MaximumComponentLength, FileSystemFlags: Cardinal;
@@ -167,6 +174,10 @@ var
   ResultCode: Integer;
   ScriptPath, Parameters: String;
 begin
+  if RegKeyExists(HKEY_CURRENT_USER, 'Software\Wine') then begin
+    Log('Skipping Windows compatibility fix under Wine.');
+    exit;
+  end;
   ScriptPath := ExpandConstant('{app}\sof_buddy\patch_windows_compat.ps1');
   Parameters := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptPath +
     '" -ExecutablePath "' + ExpandConstant('{app}\SoF.exe') + '"';
@@ -176,11 +187,41 @@ begin
       mbError, MB_OK);
 end;
 
+function IsWine: Boolean;
+begin
+  Result := RegKeyExists(HKEY_CURRENT_USER, 'Software\Wine');
+end;
+
+function ApplyWineDllPatch: Boolean;
+var
+  ExePath, BackupPath: String;
+  Data, Link: AnsiString;
+  I: Integer;
+begin
+  Result := False;
+  ExePath := ExpandConstant('{app}\SoF.exe');
+  BackupPath := ExePath + '.bak';
+  if not FileExists(BackupPath) then
+    if not FileCopy(ExePath, BackupPath, False) then exit;
+  if not LoadStringFromFile(ExePath, Data) then exit;
+  Link := 'sof_buddy.dll' + #0;
+  if Length(Data) < PatchOffset + Length(Link) then exit;
+  for I := 1 to Length(Link) do
+    Data[PatchOffset + I] := Link[I];
+  Result := SaveStringToFile(ExePath, Data, False);
+end;
+
 procedure EnableSoFBuddy;
 var
   ResultCode: Integer;
   ScriptPath, Parameters: String;
 begin
+  if IsWine then begin
+    if not ApplyWineDllPatch then
+      MsgBox('Could not enable SoF Buddy automatically under Wine. Run sof_buddy/enable_sofplus_and_buddy.sh from the SoF folder.',
+        mbError, MB_OK);
+    exit;
+  end;
   ScriptPath := ExpandConstant('{app}\sof_buddy\enable_sofplus_and_buddy.cmd');
   Parameters := '/C ""' + ScriptPath + '" -NoPause"';
   if not Exec(ExpandConstant('{sys}\cmd.exe'), Parameters,

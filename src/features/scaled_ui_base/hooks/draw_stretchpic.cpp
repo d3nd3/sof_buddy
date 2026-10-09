@@ -7,6 +7,7 @@
 #include "generated_detours.h"
 #include "../../scaled_ui_base/shared.h"
 #include "debug/hook_callsite.h"
+#include "runtime_features.h"
 
 // #pragma GCC push_options
 // #pragma GCC optimize ("O0")
@@ -25,11 +26,13 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
         if (fnStart) g_currentStretchPicCaller = getStretchPicCallerFromRva(fnStart);
     }
     const bool consoleBackground =
-        g_currentStretchPicCaller == StretchPicCaller::CON_DrawConsole
-        #if FEATURE_SCALED_CON
-        || g_activeRenderType == uiRenderType::Console
-        #endif
-        ;
+#if FEATURE_SCALED_CON
+        RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON) &&
+        (g_currentStretchPicCaller == StretchPicCaller::CON_DrawConsole ||
+         g_activeRenderType == uiRenderType::Console);
+#else
+        false;
+#endif
     if (consoleBackground) {
         #if FEATURE_SCALED_CON
         extern float draw_con_frac;
@@ -41,8 +44,7 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
         y = -picH + (consoleHeight > 0 ? consoleHeight : 1);
         original(0, y, picW, picH, palette, name, flags);
         extern void( * orig_SRC_AddDirtyPoint)(int x, int y);
-        SOFBUDDY_ASSERT(orig_SRC_AddDirtyPoint != nullptr);
-        if (consoleHeight > 0) {
+        if (orig_SRC_AddDirtyPoint && consoleHeight > 0) {
             orig_SRC_AddDirtyPoint(0, 0);
             orig_SRC_AddDirtyPoint(picW - 1, consoleHeight - 1);
         }
@@ -60,25 +62,29 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
         #endif
     }
     
-    if (g_activeRenderType == uiRenderType::HudCtfFlag) {
-        SOFBUDDY_ASSERT(hudScale > 0.0f);
-        w = w * hudScale;
-        h = h * hudScale;
-    }
+#if FEATURE_SCALED_HUD
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
+        if (g_activeRenderType == uiRenderType::HudCtfFlag) {
+            SOFBUDDY_ASSERT(hudScale > 0.0f);
+            w = w * hudScale;
+            h = h * hudScale;
+        }
 
-    if (g_currentStretchPicCaller == StretchPicCaller::TeamIconDraw) {
-        // Team icon pic drawn by ref_gl Draw_PlayerInfo above a player. Scale with the
-        // HUD scale and recenter on the original quad so it stays over the player.
-        extern bool g_iconsAutoscale;
-        if (g_iconsAutoscale && hudScale > 0.0f && hudScale != 1.0f) {
-            const int nw = (w * hudScale >= 1.0f) ? (int)(w * hudScale) : 1;
-            const int nh = (h * hudScale >= 1.0f) ? (int)(h * hudScale) : 1;
-            x += (w - nw) / 2;
-            y += (h - nh) / 2;
-            w = nw;
-            h = nh;
+        if (g_currentStretchPicCaller == StretchPicCaller::TeamIconDraw) {
+            // Team icon pic drawn by ref_gl Draw_PlayerInfo above a player. Scale with the
+            // HUD scale and recenter on the original quad so it stays over the player.
+            extern bool g_iconsAutoscale;
+            if (g_iconsAutoscale && hudScale > 0.0f && hudScale != 1.0f) {
+                const int nw = (w * hudScale >= 1.0f) ? (int)(w * hudScale) : 1;
+                const int nh = (h * hudScale >= 1.0f) ? (int)(h * hudScale) : 1;
+                x += (w - nw) / 2;
+                y += (h - nh) / 2;
+                w = nw;
+                h = nh;
+            }
         }
     }
+#endif
 
     original(x, y, w, h, palette, name, flags);
     

@@ -9,7 +9,9 @@
 
 void hkCon_Init(detour_Con_Init::tCon_Init original) {
     PrintOut(PRINT_LOG, "scaled_ui_base: Registering CVars\n");
+#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD
     create_scaled_ui_cvars();
+#endif
     original();
 }
 

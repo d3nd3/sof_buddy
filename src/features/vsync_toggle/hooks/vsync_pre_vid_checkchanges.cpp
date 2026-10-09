@@ -5,9 +5,11 @@
 #include "sof_compat.h"
 #include "util.h"
 #include "../shared.h"
+#include "runtime_features.h"
 
 void vsync_pre_vid_checkchanges()
 {
+	if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_VSYNC_TOGGLE)) return;
 	// Trigger gl_swapinterval->modified for R_Init() -> GL_SetDefaultState()
     if (vid_ref && vid_ref->modified && gl_swapinterval) {
 		gl_swapinterval->modified = true;

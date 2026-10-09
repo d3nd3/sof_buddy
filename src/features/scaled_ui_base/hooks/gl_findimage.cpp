@@ -5,6 +5,7 @@
 #include "sof_compat.h"
 #include "util.h"
 #include "../../scaled_ui_base/shared.h"
+#include "runtime_features.h"
 
 void* gl_findimage_post_callback(void* result, char *filename, int imagetype, char mimap, char allowPicmip) {
     if (result) {
@@ -16,7 +17,7 @@ void* gl_findimage_post_callback(void* result, char *filename, int imagetype, ch
         } else 
         #endif
         if ( g_activeDrawCall == DrawRoutineType::Pic) {
-            if (mainMenuBgTiled) {
+            if (mainMenuBgTiled && RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
                 DrawPicWidth = *(short*)((char*)result + 0x44) * screen_y_scale;
                 DrawPicHeight = *(short*)((char*)result + 0x46) * screen_y_scale;
             } else {

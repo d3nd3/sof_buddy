@@ -16,12 +16,11 @@
 
 std::unordered_map<std::string, m32size> default_textures;
 
-static const bool s_default_textures_loaded = ([]() {
-	// Avoid repeated rehashing during static init (default_textures.h is ~4k entries).
+void hd_textures_load_default_data(void) {
+	if (!default_textures.empty()) return;
 	default_textures.reserve(4096);
 	#include "./default_textures.h"
-	return true;
-})();
+}
 
 
 #endif // FEATURE_HD_TEXTURES

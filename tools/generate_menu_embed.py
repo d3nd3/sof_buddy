@@ -2,7 +2,18 @@
 """Generate menu_data.cpp from src/features/internal_menus/menu_library/*/."""
 import os
 import sys
+import tempfile
 from pathlib import Path
+
+def write_atomic(path, content):
+    fd, temp_path = tempfile.mkstemp(prefix="menu_data.", suffix=".cpp", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(content)
+        os.replace(temp_path, path)
+    except Exception:
+        os.unlink(temp_path)
+        raise
 
 def main():
     script_dir = Path(__file__).parent
@@ -20,7 +31,7 @@ void internal_menus_load_library(void) { g_menu_internal_files.clear(); }
         out_cpp.parent.mkdir(parents=True, exist_ok=True)
         old_content = out_cpp.read_text() if out_cpp.exists() else None
         if old_content != content:
-            out_cpp.write_text(content)
+            write_atomic(out_cpp, content)
         return 0
 
     lines = [
@@ -53,7 +64,7 @@ void internal_menus_load_library(void) { g_menu_internal_files.clear(); }
     out_cpp.parent.mkdir(parents=True, exist_ok=True)
     old_content = out_cpp.read_text() if out_cpp.exists() else None
     if old_content != content:
-        out_cpp.write_text(content)
+        write_atomic(out_cpp, content)
     return 0
 
 if __name__ == '__main__':

@@ -18,7 +18,8 @@ void hkDraw_Pic(int x, int y, char const * imgname, int palette, detour_Draw_Pic
         uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("Draw_Pic");
         if (fnStart) g_currentPicCaller = getPicCallerFromRva(fnStart);
     }
-    if (imgname != nullptr) {
+    if (imgname != nullptr &&
+        RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
         const char* p = imgname;
         int slashes = 0;
         while (*p && slashes < 2) {

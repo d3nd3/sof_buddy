@@ -6,6 +6,7 @@
 #include "sof_compat.h"
 #include "generated_detours.h"
 #include "shared.h"
+#include "runtime_features.h"
 
 #if FEATURE_SCALED_CON
 extern cvar_t* _sofbuddy_font_scale;
@@ -61,10 +62,12 @@ float snap_ui_pixel(float v) {
 
 static void refresh_scale_rounding(void) {
 #if FEATURE_SCALED_CON
-	if (_sofbuddy_font_scale) fontscale_change(_sofbuddy_font_scale);
+	if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON) && _sofbuddy_font_scale)
+		fontscale_change(_sofbuddy_font_scale);
 #endif
 #if FEATURE_SCALED_HUD
-	if (_sofbuddy_hud_scale) hudscale_change(_sofbuddy_hud_scale);
+	if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) && _sofbuddy_hud_scale)
+		hudscale_change(_sofbuddy_hud_scale);
 #endif
 }
 

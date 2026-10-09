@@ -12,6 +12,7 @@
 #include "sof_compat.h"
 #include "crc32.h"
 #include "util.h"
+#include "runtime_features.h"
 #include "shared.h"
 #if FEATURE_INTERNAL_MENUS
 #include "features/internal_menus/shared.h"
@@ -1127,6 +1128,7 @@ static void http_maps_console_progress(float p, const char* map_bsp)
 static void http_maps_apply_progress_cvar(float p)
 {
 #if FEATURE_INTERNAL_MENUS
+	if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_INTERNAL_MENUS)) return;
 	if (!detour_Cvar_Set2::oCvar_Set2) return;
 	const float clamped = http_maps_clamp_progress(p);
 	char val[32];
@@ -1139,12 +1141,14 @@ static void http_maps_apply_progress_cvar(float p)
 #if FEATURE_INTERNAL_MENUS
 static void http_maps_set_loading_status(const char* status)
 {
+	if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_INTERNAL_MENUS)) return;
 	PrintOut(PRINT_DEV, "http_maps: UI _sb_internal_loading_status %s\n", status);
 	if (detour_Cvar_Set2::oCvar_Set2) detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_loading_status"), const_cast<char*>(status), true);
 }
 
 static void http_maps_loading_ui_show_map(const char* map_bsp_path)
 {
+	if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_INTERNAL_MENUS)) return;
 	PrintOut(PRINT_DEV, "http_maps: UI loading_show_ui; _sb_internal_loading_current %s\n", map_bsp_path && map_bsp_path[0] ? map_bsp_path : "?");
 	g_http_maps_state.loading_ui_active = true;
 	if (map_bsp_path && map_bsp_path[0])
@@ -1160,6 +1164,7 @@ static void http_maps_clear_loading_cvars(bool reset_status = true)
 	http_maps_clear_pending_ui_updates();
 	if (!detour_Cvar_Set2::oCvar_Set2) return;
 #if FEATURE_INTERNAL_MENUS
+	if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_INTERNAL_MENUS)) return;
 	PrintOut(PRINT_DEV, "http_maps: UI _sb_internal_loading_progress (clear)\n");
 	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_loading_progress"), const_cast<char*>(""), true);
 	PrintOut(PRINT_DEV, "http_maps: UI _sb_internal_loading_current (unknown)\n");
@@ -1536,8 +1541,13 @@ static void http_maps_start_worker(const std::string& map_bsp_path, detour_CL_Pr
 	g_http_maps_state.loading_ui_map = map_bsp_path;
 	http_maps_clear_pending_ui_updates();
 #if FEATURE_INTERNAL_MENUS
-	http_maps_apply_progress_cvar(0.0f);
-	http_maps_loading_ui_show_map(map_bsp_path.c_str());
+	if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_INTERNAL_MENUS)) {
+		http_maps_apply_progress_cvar(0.0f);
+		http_maps_loading_ui_show_map(map_bsp_path.c_str());
+	} else {
+		g_http_maps_state.loading_ui_active = false;
+		g_http_maps_state.loading_ui_map.clear();
+	}
 #endif
 	try {
 		std::thread(http_maps_download_worker, map_bsp_path, zip_rel_path, job_id).detach();
@@ -1624,8 +1634,10 @@ void http_maps_on_parse_configstring_post(void)
 	// immediately and skip early HTTP worker altogether.
 	if (http_maps_map_exists_via_engine(map_bsp_path)) {
 #if FEATURE_INTERNAL_MENUS
-		loading_set_current(map_bsp_path.c_str());
-		http_maps_set_loading_status("NOT NEEDED");
+		if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_INTERNAL_MENUS)) {
+			loading_set_current(map_bsp_path.c_str());
+			http_maps_set_loading_status("NOT NEEDED");
+		}
 #endif
 		g_http_maps_state.completed_map_bsp = map_bsp_path;
 		return;
@@ -1670,8 +1682,10 @@ void http_maps_try_begin_precache(detour_CL_Precache_f::tCL_Precache_f original)
 	if (!(g_http_maps_state.waiting && g_http_maps_state.pending_map_bsp == map_bsp_path) &&
 		http_maps_map_exists_via_engine(map_bsp_path)) {
 #if FEATURE_INTERNAL_MENUS
-		loading_set_current(map_bsp_path.c_str());
-		http_maps_set_loading_status("NOT NEEDED");
+		if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_INTERNAL_MENUS)) {
+			loading_set_current(map_bsp_path.c_str());
+			http_maps_set_loading_status("NOT NEEDED");
+		}
 #endif
 		g_http_maps_state.completed_map_bsp = map_bsp_path;
 		original();
@@ -1679,7 +1693,8 @@ void http_maps_try_begin_precache(detour_CL_Precache_f::tCL_Precache_f original)
 	}
 
 #if FEATURE_INTERNAL_MENUS
-	if (!(g_http_maps_state.waiting && g_http_maps_state.pending_map_bsp == map_bsp_path))
+	if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_INTERNAL_MENUS) &&
+	    !(g_http_maps_state.waiting && g_http_maps_state.pending_map_bsp == map_bsp_path))
 		http_maps_set_loading_status("CHECKING");
 #endif
 
@@ -1732,17 +1747,20 @@ bool http_maps_should_assist_connect(void)
 	if (static_cast<int>(_sofbuddy_http_maps->value) <= 0) return false;
 	if (http_maps_frame_work_pending()) return true;
 #if FEATURE_INTERNAL_MENUS
-	return internal_menus_deathmatch_mode_active();
-#else
+	if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_INTERNAL_MENUS))
+		return internal_menus_deathmatch_mode_active();
+#endif
 	if (!detour_Cvar_Get::oCvar_Get) return false;
 	cvar_t* dm = detour_Cvar_Get::oCvar_Get("deathmatch", "0", 0, nullptr);
 	return dm && dm->value != 0.0f;
-#endif
 }
 
 bool http_maps_wants_custom_loading_menu(void)
 {
 	if (!http_maps_is_enabled()) return false;
+#if FEATURE_INTERNAL_MENUS
+	if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_INTERNAL_MENUS)) return false;
+#endif
 	if (http_maps_frame_work_pending()) return true;
 	return g_http_maps_state.loading_ui_active;
 }
@@ -1758,6 +1776,7 @@ void http_maps_on_sp_local_map_load(void)
 void http_maps_refresh_loading_menu_labels(void)
 {
 #if FEATURE_INTERNAL_MENUS
+	if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_INTERNAL_MENUS)) return;
 	if (!http_maps_should_assist_connect()) return;
 	const char* map = nullptr;
 	if (!g_http_maps_state.loading_ui_map.empty())

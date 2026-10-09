@@ -12,6 +12,7 @@
 
 #include "features.h"
 #include "generated_detours.h"
+#include "runtime_features.h"
 using detour_R_DrawFont::oR_DrawFont;
 #include "shared.h"
 #include "util.h"
@@ -75,6 +76,11 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 	FontCaller caller = g_currentFontCaller;
 	switch (caller) {
 		case FontCaller::DMRankingCalcXY: {
+			if (!RuntimeFeatures::Enabled(
+			        RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
+				orig_glVertex2f(x, y);
+				break;
+			}
 			const float s = snapped_text_scale_active(hudScale);
 			SOFBUDDY_ASSERT(s > 0.0f);
 			if (scaleX) x = pivotx + (x - pivotx) * s;
@@ -83,6 +89,11 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 			break;
 		}
 		case FontCaller::Inventory2: {
+			if (!RuntimeFeatures::Enabled(
+			        RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
+				orig_glVertex2f(x, y);
+				break;
+			}
 			// Same scale as cropped inventory/ammo pics (no glyph snap).
 			const float s = hudScale;
 			SOFBUDDY_ASSERT(s > 0.0f);
@@ -97,6 +108,11 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 			break;
 			
 		case FontCaller::SCRDrawPause: {
+			if (!RuntimeFeatures::Enabled(
+			        RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON)) {
+				orig_glVertex2f(x, y);
+				break;
+			}
 			const float s = snapped_text_scale_active(fontScale);
 			if (s != 1.0f) {
 				if (scaleX) x = pivotx + (x - pivotx) * s;
@@ -109,6 +125,11 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 		}
 
 		case FontCaller::SCR_DrawCenterPrint: {
+			if (!RuntimeFeatures::Enabled(
+			        RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON)) {
+				orig_glVertex2f(x, y);
+				break;
+			}
 			const float s = snapped_text_scale_active(fontScale);
 			if (s != 1.0f && g_centerPrintAnchorSeq == g_lastCenterPrintSeq &&
 			    g_centerPrintAnchorY > 0.0f && g_lastCenterPrintLineCount > 0) {
@@ -125,6 +146,11 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 		}
 
 		case FontCaller::MissionStatus: {
+			if (!RuntimeFeatures::Enabled(
+			        RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON)) {
+				orig_glVertex2f(x, y);
+				break;
+			}
 			const float s = snapped_text_scale_active(fontScale);
 			if (s != 1.0f) {
 				if (scaleX) x = pivotx + (x - pivotx) * s;
@@ -143,7 +169,8 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 		case FontCaller::PlayerInfoName: {
 			// Playername above a player (ref_gl Draw_PlayerInfo). Same pivot-growth scheme as
 			// DMRanking; hkR_DrawFont pre-shifted screenX so the scaled string stays centered.
-			if (!g_iconsAutoscale) {
+			if (!RuntimeFeatures::Enabled(
+			        RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) || !g_iconsAutoscale) {
 				orig_glVertex2f(x, y);
 				break;
 			}
@@ -164,6 +191,11 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 		case FontCaller::LoadboxGetIndices:
 		case FontCaller::ServerboxDraw:
 		case FontCaller::TipRender:
+			if (!RuntimeFeatures::Enabled(
+			        RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
+				orig_glVertex2f(x, y);
+				break;
+			}
 			SOFBUDDY_ASSERT(screen_y_scale > 0.0f);
 			{
 			const float s = snapped_text_scale_active(screen_y_scale);

@@ -64,7 +64,9 @@ installations manually with the matching package once; subsequent updater runs
 will use the correct channel.
 
 The installer payload and the Windows universal package are the same universal
-channel. The updater does not compile a new DLL.
+channel. Universal packages and the installer payload bundle both Windows (`.cmd`, `.ps1`)
+and Linux/Wine (`.sh`) helper scripts, ensuring users have native scripts available whether
+running directly on Windows or under Wine/Proton. The updater does not compile a new DLL.
 
 Existing `base/sofbuddy.cfg` is retained during a normal update. On the next
 launch, a universal DLL reads its archived feature cvars and regenerates
@@ -78,10 +80,14 @@ precedence at the next startup by design.
 
 ## Automatic DLL activation
 
-After installation, Setup runs `sof_buddy/enable_sofplus_and_buddy.cmd` against the
-selected `SoF.exe`. The original executable is preserved as `SoF.exe.bak` before
-patching; an existing backup is never overwritten. If activation fails, run the
-same script manually from the SoF folder.
+On Windows, Setup runs `sof_buddy/enable_sofplus_and_buddy.cmd` against the
+selected `SoF.exe`. Under Wine, it applies the same patch natively instead of
+requiring Windows PowerShell. The original executable is preserved as
+`SoF.exe.bak` before patching; an existing backup is never overwritten. If
+activation fails, run the same script manually from the SoF folder.
+
+The Windows 10+ compatibility fix is skipped under Wine because it only applies
+to Windows' application-compatibility database.
 
 ## Optional installer actions
 

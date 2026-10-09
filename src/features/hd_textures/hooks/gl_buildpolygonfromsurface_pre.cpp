@@ -5,9 +5,10 @@
 #include "util.h"
 #include <cctype>
 #include "../shared.h"
+#include "runtime_features.h"
 
 void gl_buildpolygonfromsurface_pre_callback(void*& msurface_s) {
-	if (!msurface_s) return;
+	if (!msurface_s || !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_HD_TEXTURES)) return;
 	
 	unsigned int* mtexinfo_t = (unsigned int*)((char*)msurface_s + 0x34);
 	unsigned int* image_s = (unsigned int*)((char*)*mtexinfo_t + 0x2C);

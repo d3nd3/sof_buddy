@@ -4,6 +4,7 @@
 
 #include "shared.h"
 #include "util.h"
+#include "runtime_features.h"
 #include <windows.h>
 #include <mmsystem.h>
 #if FEATURE_MEDIA_TIMERS
@@ -144,7 +145,11 @@ static RAW_MOUSE_NOINLINE void QuitPath() {
 
 void raw_mouse_write_engine_frame_time() {
 #if FEATURE_MEDIA_TIMERS
-  *SysFrameTimePtr() = my_TimeGetTime();
+  if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_MEDIA_TIMERS)) {
+    *SysFrameTimePtr() = my_TimeGetTime();
+  } else {
+    *SysFrameTimePtr() = timeGetTime();
+  }
 #else
   *SysFrameTimePtr() = timeGetTime();
 #endif

@@ -8,6 +8,7 @@ formatted FEATURES.txt file with appropriate categorization.
 
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 # Feature categories and their order
@@ -196,8 +197,15 @@ def generate_features_txt(features_dir, output_path, preserve_disabled=True):
         lines.append("")
     
     # Write to file
-    with open(output_path, 'w', encoding='utf-8') as f:
-        f.write('\n'.join(lines))
+    output_path = Path(output_path)
+    fd, temp_path = tempfile.mkstemp(prefix='FEATURES.', suffix='.txt', dir=output_path.parent)
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(lines))
+        os.replace(temp_path, output_path)
+    except Exception:
+        os.unlink(temp_path)
+        raise
     
     print(f"Generated {output_path} with {len(found_features)} features")
     enabled = sum(1 for line in lines if line and not line.startswith('#') and not line.startswith('//'))

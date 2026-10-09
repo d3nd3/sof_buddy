@@ -735,7 +735,7 @@ def main():
     features_dir = project_root / 'src' / 'features'
     core_dir = project_root / 'src' / 'core'
     src_dir = project_root / 'src'
-    build_dir = project_root / 'build'
+    build_dir = Path(sys.argv[2]) if len(sys.argv) > 2 else project_root / 'build'
     build_dir.mkdir(exist_ok=True)
     
     detours_output = build_dir / 'generated_detours.h'

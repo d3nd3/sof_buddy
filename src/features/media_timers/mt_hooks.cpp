@@ -6,6 +6,7 @@
 #include "util.h"
 #include "sof_compat.h"
 #include "shared.h"
+#include "runtime_features.h"
 
 #include "customfloat.h"
 
@@ -203,6 +204,7 @@ static float cl_maxfps_ceil_step(float want)
 // paint already shows the settled value instead of the fallback label.
 void sofbuddy_quantize_cl_maxfps(void)
 {
+    if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_MEDIA_TIMERS)) return;
     if (!cl_maxfps || !cl_maxfps->string || !detour_Cvar_Set2::oCvar_Set2) return;
     float best = cl_maxfps_ceil_step(cl_maxfps->value);
     char buf[32];

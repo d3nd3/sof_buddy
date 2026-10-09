@@ -27,16 +27,8 @@ fi
 # Increment minor version
 NEW_MINOR=$((MINOR + 1))
 
-# Handle major version reset (e.g., 1.9 → 2.0)
-if [ "$NEW_MINOR" -gt 9 ]; then
-    NEW_MAJOR=$((MAJOR + 1))
-    NEW_MINOR=0
-else
-    NEW_MAJOR=$MAJOR
-fi
-
 # Create new version string
-NEW_VERSION="$NEW_MAJOR.$NEW_MINOR"
+NEW_VERSION="$MAJOR.$NEW_MINOR"
 
 # Write new version to file
 echo "$NEW_VERSION" > "$VERSION_FILE"

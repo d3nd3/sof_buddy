@@ -99,16 +99,13 @@ jobs:
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
           cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
-          cp bin/sof_buddy-universal.dll sof_buddy.dll
-          zip -r release_windows_universal.zip sof_buddy.dll sof_buddy/
-          cp release_windows_universal.zip sof_buddy_installer_payload.zip
-
-          rm -f sof_buddy/*.cmd sof_buddy/*.ps1
           cp rsrc/lin_scripts/enable_*.sh sof_buddy/
           cp rsrc/lin_scripts/patch_sof_binary.sh sof_buddy/
           cp rsrc/lin_scripts/update_from_zip.sh sof_buddy/
-          cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
-          zip -r release_linux_wine_universal.zip sof_buddy.dll sof_buddy/
+          cp bin/sof_buddy-universal.dll sof_buddy.dll
+          zip -r release_windows_universal.zip sof_buddy.dll sof_buddy/
+          cp release_windows_universal.zip release_linux_wine_universal.zip
+          cp release_windows_universal.zip sof_buddy_installer_payload.zip
 
           make clean
           make BUILD=xp

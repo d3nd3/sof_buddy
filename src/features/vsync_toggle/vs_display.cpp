@@ -14,6 +14,7 @@
 #include "util.h"
 #include "shared.h"
 #include "generated_detours.h"
+#include "runtime_features.h"
 
 #include <windows.h>
 #include <cstdio>
@@ -43,6 +44,7 @@ static int query_display_hz(void) {
 // RefDllLoaded), so first paint already shows live values. All pointers are lazily resolved
 // with engine-identical defaults, so call order against the renderer never matters.
 void sofbuddy_refresh_display_info(void) {
+	if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_VSYNC_TOGGLE)) return;
 	if (!detour_Cvar_Get::oCvar_Get || !detour_Cvar_Set2::oCvar_Set2) return;
 
 	if (!gl_displayrefresh)
