@@ -1,5 +1,28 @@
 # Changelog
 
+## v8.11
+
+### Universal feature selection
+
+- Added a dedicated **F12 → Features** tab with archived
+  `_sofbuddy_feature_<name>` On/Off controls and an explicit restart notice.
+- Feature selections persist through `base/sofbuddy.cfg` and are synchronized to
+  `sof_buddy/features.cfg` before startup hook registration.
+- Non-universal DLLs show features they do not contain as **Unavailable** and
+  refuse attempts to enable them.
+- Feature checks remain generated inline bit tests; changing a selection never
+  mutates the active hook mask mid-session.
+
+### Windows installer and update channels
+
+- Windows installer feature selection continues to use one universal DLL and now
+  documents the F12 runtime controls and persistence behavior.
+- Release packaging now separates compile-time/default assets from universal
+  assets: `release_windows.zip` versus
+  `release_windows_universal.zip`, with matching Linux/Wine packages.
+- The updater selects the package matching the build channel, preventing a
+  compile-time installation from silently becoming universal.
+
 ## v8.10
 
 ### Display refresh readout + cap check (F12 → CPU, in `vsync_toggle`)
