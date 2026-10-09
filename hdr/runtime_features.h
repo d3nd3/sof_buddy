@@ -17,6 +17,9 @@ enum class Feature : unsigned char {
 extern std::uint32_t g_enabled_mask;
 
 void Load();
+bool Compiled(Feature feature);
+Feature FromCvarName(const char* name);
+int SelectionValue(Feature feature);
 
 inline bool Enabled(Feature feature) {
     const unsigned index = static_cast<unsigned>(feature);

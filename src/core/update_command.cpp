@@ -27,6 +27,10 @@ constexpr const char* kUpdateApiUrlSofVault = "http://sofvault.org/sof_buddy/rel
 constexpr const char* kUpdateReleasesUrlSofVault = "http://sofvault.org/sof_buddy/releases/latest";
 constexpr const char* kUpdateSofVaultFilesBase = "http://sofvault.org/sof_buddy/releases/files/";
 constexpr const char* kUpdateSofVaultXpZipName = "release_windows_xp.zip";
+constexpr const char* kUpdateWindowsZipName = "release_windows.zip";
+constexpr const char* kUpdateWindowsUniversalZipName = "release_windows_universal.zip";
+constexpr const char* kUpdateLinuxZipName = "release_linux_wine.zip";
+constexpr const char* kUpdateLinuxUniversalZipName = "release_linux_wine_universal.zip";
 
 #if defined(SOFBUDDY_XP_BUILD)
 constexpr const char* kUpdateApiUrl = kUpdateApiUrlSofVault;
@@ -602,11 +606,15 @@ void preferred_release_zip_names(std::vector<std::string>& out) {
     out.clear();
 #if defined(SOFBUDDY_XP_BUILD)
     out.push_back("release_windows_xp.zip");
+#elif defined(SOFBUDDY_UNIVERSAL_BUILD)
+    out.push_back(prefer_linux_wine_release_zip()
+                      ? kUpdateLinuxUniversalZipName
+                      : kUpdateWindowsUniversalZipName);
 #else
     if (prefer_linux_wine_release_zip())
-        out.push_back("release_linux_wine.zip");
+        out.push_back(kUpdateLinuxZipName);
     else {
-        out.push_back("release_windows.zip");
+        out.push_back(kUpdateWindowsZipName);
         out.push_back("release_windows_xp.zip");
     }
 #endif

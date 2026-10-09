@@ -70,33 +70,48 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Current SoF Buddy version: $VERSION"
 
-      # Combined the two make steps into one for clarity
       - name: Compile Code
         run: |
           make clean
-          make universal
-
-      - name: Prepare Release
-        run: |
+          make BUILD=release
+          rm -rf sof_buddy
           mkdir -p sof_buddy/funcmaps
           cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
           cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
-          cp bin/sof_buddy-universal.dll sof_buddy.dll
+          cp bin/sof_buddy.dll sof_buddy.dll
           zip -r release_windows.zip sof_buddy.dll sof_buddy/
 
-          cp release_windows.zip sof_buddy_installer_payload.zip
-          make clean
           rm -f sof_buddy/*.cmd sof_buddy/*.ps1
           cp rsrc/lin_scripts/enable_*.sh sof_buddy/
           cp rsrc/lin_scripts/patch_sof_binary.sh sof_buddy/
           cp rsrc/lin_scripts/update_from_zip.sh sof_buddy/
           cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
           zip -r release_linux_wine.zip sof_buddy.dll sof_buddy/
-          
+
+          make clean
+          make universal
+          rm -f sof_buddy/*.cmd sof_buddy/*.sh sof_buddy/*.ps1
+          cp rsrc/win_scripts/enable_*.cmd sof_buddy/
+          cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
+          cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
+          cp bin/sof_buddy-universal.dll sof_buddy.dll
+          zip -r release_windows_universal.zip sof_buddy.dll sof_buddy/
+          cp release_windows_universal.zip sof_buddy_installer_payload.zip
+
+          rm -f sof_buddy/*.cmd sof_buddy/*.ps1
+          cp rsrc/lin_scripts/enable_*.sh sof_buddy/
+          cp rsrc/lin_scripts/patch_sof_binary.sh sof_buddy/
+          cp rsrc/lin_scripts/update_from_zip.sh sof_buddy/
+          cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
+          zip -r release_linux_wine_universal.zip sof_buddy.dll sof_buddy/
+
           make clean
           make BUILD=xp
+          rm -rf sof_buddy
+          mkdir -p sof_buddy/funcmaps
+          cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
           rm -f sof_buddy/*.sh
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
@@ -106,6 +121,9 @@ jobs:
           
           make clean
           make BUILD=debug
+          rm -rf sof_buddy
+          mkdir -p sof_buddy/funcmaps
+          cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
           rm -f sof_buddy/*.cmd sof_buddy/*.ps1
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
@@ -115,6 +133,9 @@ jobs:
           
           make clean
           make BUILD=xp-debug
+          rm -rf sof_buddy
+          mkdir -p sof_buddy/funcmaps
+          cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
           rm -f sof_buddy/*.cmd sof_buddy/*.ps1
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
@@ -130,11 +151,23 @@ jobs:
           name: release-windows-artifact
           path: release_windows.zip
 
+      - name: Upload Windows Universal Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows-universal-artifact
+          path: release_windows_universal.zip
+
       - name: Upload Linux Release Artifact
         uses: actions/upload-artifact@v4
         with:
           name: release-linux-artifact
           path: release_linux_wine.zip
+
+      - name: Upload Linux Universal Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-universal-artifact
+          path: release_linux_wine_universal.zip
 
       - name: Upload Windows XP Release Artifact
         uses: actions/upload-artifact@v4
@@ -217,11 +250,23 @@ jobs:
           name: release-windows-artifact
           path: windows_release
 
+      - name: Download Windows Universal Release Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-windows-universal-artifact
+          path: windows_universal_release
+
       - name: Download Linux Release Artifact
         uses: actions/download-artifact@v4
         with:
           name: release-linux-artifact
           path: linux_release
+
+      - name: Download Linux Universal Release Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-linux-universal-artifact
+          path: linux_universal_release
 
       - name: Download Windows XP Release Artifact
         uses: actions/download-artifact@v4
@@ -275,6 +320,16 @@ jobs:
           asset_name: release_windows.zip
           asset_content_type: application/zip
 
+      - name: Upload Windows Universal Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: windows_universal_release/release_windows_universal.zip
+          asset_name: release_windows_universal.zip
+          asset_content_type: application/zip
+
       - name: Upload Windows Installer Asset
         uses: actions/upload-release-asset@v1
         env:
@@ -293,6 +348,16 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: linux_release/release_linux_wine.zip
           asset_name: release_linux_wine.zip
+          asset_content_type: application/zip
+
+      - name: Upload Linux Universal Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: linux_universal_release/release_linux_wine_universal.zip
+          asset_name: release_linux_wine_universal.zip
           asset_content_type: application/zip
 
       - name: Upload Windows XP Release Asset
