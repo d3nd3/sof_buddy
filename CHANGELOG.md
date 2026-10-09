@@ -1,5 +1,12 @@
 # Changelog
 
+## v8.12
+
+### Windows installer release fix
+
+- Fixed the optional component flag in the generated Inno Setup script so the universal
+  Windows installer compiles and can be published with the universal release assets.
+
 ## v8.11
 
 ### Universal feature selection

@@ -73,7 +73,7 @@ def generate(features_path, output_path):
         'Name: "windows_compatibility"; Description: "Windows compatibility"; Types: full custom',
         'Name: "windows_compatibility\\appcompat_fix"; Description: "Ensure Windows 10+ Application Compatibility Fix Applied"; Types: full custom',
         'Name: "game_options"; Description: "Game options"; Types: full custom',
-        'Name: "game_options\\full_violence"; Description: "Enable full violence"; Types: full custom; Flags: notselected',
+        'Name: "game_options\\full_violence"; Description: "Enable full violence"; Types: full custom; Flags: unchecked',
     ]
 
     feature_components = []
@@ -88,7 +88,7 @@ def generate(features_path, output_path):
         for name, disabled in features:
             component = f"{category_path}\\{name}"
             flags = "fixed" if category.lower().startswith("core") else (
-                "notselected" if disabled else ""
+                "unchecked" if disabled else ""
             )
             suffix = f"; Flags: {flags}" if flags else ""
             lines.append(
