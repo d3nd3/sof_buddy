@@ -98,10 +98,44 @@ sofbuddy_apply_menu_hotkey
 
 ## Menu library
 
-**CPU tab** (`cpu_content.rmf`) holds the frame-pacing controls: a **Framerate** section with `cl_maxfps`
-(Unlimited / 30 … 300) and `gl_swapinterval` (VSync Off/On) plus a live `<ctext>` of each, an
-"Uncap Framerate" shortcut, and `cl_maxfps 30` / `gl_swapinterval 0` folded into "Restore Perf Defaults".
-`cl_maxfps` is registered by `media_timers`, so picking a cap also retargets the sleep/busy-wait budget.
+**CPU tab** (`cpu_content.rmf`) holds the frame-pacing controls: a **Framerate** section with a
+`cl_maxfps` `<list>` (`Auto` + `ceil(1000/n)` for `n = 1…16, 20, 25, 30, 40, 100ms`, `cvar` + `match`), with no
+display-refresh-specific FPS presets, plus a `gl_swapinterval` VSync `Off`/`On` list,
+and `cl_maxfps 30` / `gl_swapinterval 0` folded into "Restore Perf Defaults". Below VSync, a live `Display` readout refreshed on every CPU-page open by `vsync_toggle`
+shows a request picker generated from the modes the driver reports for the current
+resolution (`Requested Display Refresh Rate`, `Auto`/`0` first; selecting a rate runs
+`vid_restart`),
+then the measured system truth (`Actual Display Refresh Rate`, theme-accent readout tint since it
+is display-only); a static
+`Fullscreen` row (`vid_fullscreen`); a sofplus-only `Window Border` row (`_sp_cl_vid_border`,
+generated only when `findCvar` proves the cvar exists *and* the game is windowed — bible
+`<cinclude>` tests values, not existence, so it can't do this job); and a mismatch warning (orange, via RMF `<cinclude>` on a
+`_sb_internal_fps_cap_mismatch` flag) that appears only when VSync is on and the display could
+deliver more than the cap allows. `Auto` is match value `923`, a
+off-list value resolves to fallback index 0, the widget writes `"923"`, and `cl_maxfps_change`
+catches it and rounds the pre-reset value (still in `previous_cl_maxfps`) up to the smallest
+listed whole-ms cap that covers it (`142.453` becomes `143`, whose 6.993ms budget fits inside
+7ms) — and `923` can therefore never be held. The widget only resolves
+on re-layout (one step behind, so first paint briefly showed the fallback label), therefore
+opening `sof_buddy/cpu` also pre-quantizes eagerly via `sofbuddy_quantize_cl_maxfps()` before
+parse — first paint already settled, sentinel kept purely as backstop. Every entry is at or above the
+`10` floor. Deliberately no `<slider>` (decimals), no `<input>` (writes every keystroke), no menu
+path to `0`. `cl_maxfps` is registered by `media_timers`, so picking a cap also retargets
+the sleep/busy-wait budget.
+RMF reference used here is the community RMF bible: `list` + `match` (parallel value list) + `cvar`
+("associates a cvar with this area") is the correct form for a multi-valued cvar — with two hard
+constraints, both verified against the engine's `list_c` methods *and* against live `sbtest_*`
+experiments in `User/menus/`:
+- `cvari` must only be combined with `match` when values stay inside `0 … labelCount-1`. The
+  resolver returns the raw integer for `cvari` rows, but the normalize step still indexes
+  `match[]` with it — the v8.9 `cvari cl_maxfps` row read `match[30]` of 11 entries and crashed
+  the CPU tab. (`cvari` *without* `match` is safe: it falls into a clamped path. `cvar` +
+  `match` is safe: bounded `strcmp` scan, fallback index 0. Both proven by the sbtest pages.)
+- A `<list>` must only wrap a cvar whose value domain is confined to its `match` set. The
+  normalize step runs `Cvar_Set(name, match[index])` on layout, so opening the page can reset
+  off-list values; `cl_maxfps` is pre-quantized to a listed whole-ms cap before the page parses.
+  (Entry count itself is irrelevant: the scan is count-bounded, and 16-entry `cl_showfps` /
+  32-entry Crosshair ship.)
 
 Menus under `menu_library/<name>/` are embedded and served directly from memory via the filesystem hooks.
 
@@ -120,3 +154,9 @@ Menus under `menu_library/<name>/` are embedded and served directly from memory 
 
 - Frame-loaded page files should include `<stm> ... </stm>`.
 - `</vbar>` is not a valid closing token in this RMF dialect.
+- `<list>` value mapping: `cvari` uses the cvar's integer value **directly as the label index**,
+  so it is only safe when values stay inside `0 … labelCount-1` (all shipped `cvari` rows are
+  `Off`/`On` pairs, `0`/`1`, or `0`…`3`). Anything sparse (`cl_maxfps` values `0,30,60,…,300`;
+  `_sp_cl_vid_fov` values `0,1,90,…,111`) must use `cvar` + `match` instead, which looks the
+  cvar string up in the match list. Using `cvari` for a sparse cvar reads out of bounds and
+  crashes the page on open (this exact bug shipped once on the CPU tab's Framerate row).

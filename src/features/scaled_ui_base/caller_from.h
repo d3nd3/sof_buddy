@@ -24,7 +24,8 @@ enum class StretchPicCaller {
 	DrawStretchPic,
 	loadbox_c_GetIndices,
 	Draw_Line,
-	ScopeCalcXY
+	ScopeCalcXY,
+	TeamIconDraw // ref_gl Draw_PlayerInfo (0x3040): team icon pic above a player
 };
 
 StretchPicCaller getStretchPicCallerFrom(Module m, uint32_t fnStartRva);
@@ -106,7 +107,8 @@ enum class FontCaller {
 	LoadboxGetIndices,
 	ServerboxDraw,
 	TipRender,
-	DrawLine
+	DrawLine,
+	PlayerInfoName // ref_gl Draw_PlayerInfo (0x3040): playername text above a player
 };
 
 FontCaller getFontCallerFrom(Module m, uint32_t fnStartRva);

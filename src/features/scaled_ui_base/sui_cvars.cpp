@@ -10,6 +10,7 @@
 	- _sofbuddy_hud_scale: Manual HUD scale (default: 1.0)
 	- _sofbuddy_hud_scale_auto: Auto HUD scale from resolution (default: 1)
 	- _sofbuddy_crossh_scale: Scale factor for crosshair textures (default: 1.0)
+- _sofbuddy_icons_autoscale: Scale team icons + playernames with HUD scale (default: 1)
 	- _sofbuddy_scale_round_auto: Snap auto font/HUD scale to round steps (default: 0)
 	- _sofbuddy_scale_round_ratio: Round step for scale values (default: 0.25)
 */
@@ -32,6 +33,7 @@ cvar_t * _sofbuddy_hud_scale = NULL;
 cvar_t * _sofbuddy_hud_scale_auto = NULL;
 cvar_t * _sofbuddy_crossh_scale = NULL;
 cvar_t * _sofbuddy_scale_cinematic_pics = NULL;
+cvar_t * _sofbuddy_icons_autoscale = NULL;
 #endif
 
 #if FEATURE_SCALED_CON
@@ -46,6 +48,10 @@ extern void crosshairscale_change(cvar_t * cvar);
 extern bool g_scaleCinematicPics;
 static void scalecinematicpics_change(cvar_t * cvar) {
     g_scaleCinematicPics = cvar && cvar->value != 0.0f;
+}
+extern bool g_iconsAutoscale;
+static void iconsautoscale_change(cvar_t * cvar) {
+    g_iconsAutoscale = cvar && cvar->value != 0.0f;
 }
 #endif
 extern void scale_round_auto_change(cvar_t * cvar);
@@ -84,6 +90,8 @@ void create_scaled_ui_cvars(void) {
     _sofbuddy_crossh_scale = detour_Cvar_Get::oCvar_Get("_sofbuddy_crossh_scale", "1", CVAR_SOFBUDDY_ARCHIVE, crosshairscale_change);
     _sofbuddy_scale_cinematic_pics = detour_Cvar_Get::oCvar_Get("_sofbuddy_scale_cinematic_pics", "1", CVAR_SOFBUDDY_ARCHIVE, scalecinematicpics_change);
     scalecinematicpics_change(_sofbuddy_scale_cinematic_pics);
+    _sofbuddy_icons_autoscale = detour_Cvar_Get::oCvar_Get("_sofbuddy_icons_autoscale", "1", CVAR_SOFBUDDY_ARCHIVE, iconsautoscale_change);
+    iconsautoscale_change(_sofbuddy_icons_autoscale);
     detour_Cvar_Get::oCvar_Get("_sb_internal_hud_scale_rounded", "1", 0, nullptr);
 #endif
     detour_Cvar_Get::oCvar_Get("_sofbuddy_scale_round_ratio", "0.25", CVAR_SOFBUDDY_ARCHIVE, scale_round_ratio_change);

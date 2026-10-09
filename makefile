@@ -33,7 +33,7 @@ CC = i686-w64-mingw32-g++-posix
 INC = -I$(IDIR) -I$(SDIR) -I$(BDIR_GEN)
 COMMON_CFLAGS = -D_WIN32_WINNT=0x0501 -std=c++14
 DEPFLAGS = -MMD -MP
-LIBS = -lws2_32 -lwinmm -lshlwapi -lpsapi -ldbghelp -lwinhttp
+LIBS = -lws2_32 -lwinmm -lshlwapi -lpsapi -ldbghelp -lwinhttp -lgdi32
 
 # Detect number of CPU cores for parallel builds
 JOBS := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)

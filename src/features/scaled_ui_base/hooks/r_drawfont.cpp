@@ -174,6 +174,18 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 				screenY = set_y;
 			}
 		}
+	} else if (g_currentFontCaller == FontCaller::PlayerInfoName) {
+		// Playername drawn by ref_gl Draw_PlayerInfo above a player. The caller centers the
+		// string with the unscaled width, and the glyph vertices below grow it rightward from
+		// the first char — so pre-shift left by half the expected growth to stay centered.
+		extern bool g_iconsAutoscale;
+		if (g_iconsAutoscale && text) {
+			const float s = snapped_text_scale_active(hudScale);
+			if (s != 1.0f) {
+				const float w = (float)strlen(text) * (float)realFontSizes[realFont];
+				screenX -= (int)(w * (s - 1.0f) * 0.5f);
+			}
+		}
 	}
 	original(screenX, screenY, text, colorPalette, font, rememberLastColor);
 

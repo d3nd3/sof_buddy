@@ -23,6 +23,7 @@ StretchPicCaller getStretchPicCallerFrom(Module m, uint32_t fnStartRva) {
 		case Module::RefDll:
 			switch (fnStartRva) {
 				case 0x00002A40: return StretchPicCaller::Draw_Line;
+				case 0x00003040: return StretchPicCaller::TeamIconDraw;
 				default: return StretchPicCaller::Unknown;
 			}
 		case Module::PlayerDll:
@@ -215,6 +216,7 @@ FontCaller getFontCallerFrom(Module m, uint32_t fnStartRva) {
 		case Module::RefDll:
 			switch (fnStartRva) {
 				case 0x00002A40: return FontCaller::DrawLine;
+				case 0x00003040: return FontCaller::PlayerInfoName;
 				default: return FontCaller::Unknown;
 			}
 		case Module::PlayerDll:

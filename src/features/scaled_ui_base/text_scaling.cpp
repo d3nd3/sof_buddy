@@ -58,8 +58,11 @@ void applyBottomAnchoredScale(float& x, float& y, float bottomY, float targetBot
 
 inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool incrementChar) {
 	SOFBUDDY_ASSERT(orig_glVertex2f != nullptr);
-	
-	if (isDrawingTeamicons) {
+
+	// Playername/icon text drawn inside ref_gl Draw_PlayerInfo. Excluded from scaling unless
+	// the player asked for icon autoscale.
+	extern bool g_iconsAutoscale;
+	if (isDrawingTeamicons && !g_iconsAutoscale) {
 		orig_glVertex2f(x, y);
 		return;
 	}
@@ -131,6 +134,21 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 		case FontCaller::DrawLine:
 			orig_glVertex2f(x, y);
 			break;
+
+		case FontCaller::PlayerInfoName: {
+			// Playername above a player (ref_gl Draw_PlayerInfo). Same pivot-growth scheme as
+			// DMRanking; hkR_DrawFont pre-shifted screenX so the scaled string stays centered.
+			if (!g_iconsAutoscale) {
+				orig_glVertex2f(x, y);
+				break;
+			}
+			const float s = snapped_text_scale_active(hudScale);
+			SOFBUDDY_ASSERT(s > 0.0f);
+			if (scaleX) x = pivotx + (x - pivotx) * s;
+			if (scaleY) y = pivoty + (y - pivoty) * s;
+			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(s-1), y);
+			break;
+		}
 			
 #ifdef UI_MENU
 		case FontCaller::RectDrawTextItem:

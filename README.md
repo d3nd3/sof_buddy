@@ -30,14 +30,14 @@
 - 🖥️ **HUD Scaling** — Scale the HUD independently from the font for perfect UI balance. **Auto HUD Scale** (`_sofbuddy_hud_scale_auto 1`) uses the same resolution ratio; disable auto to pick a manual `_sofbuddy_hud_scale`.
 - 🎬 **Cinematic Image Scaling** — Credit/fade images (`SP_FLAG_CREDIT`) scale up from 640×480 to your resolution. Toggle with `_sofbuddy_scale_cinematic_pics` (`1` = on, `0` = off) or **Scale Cinematic Images** in F12 → UI Scale.
 - 🎯 **Crosshair Scaling** — Scale crosshair textures independently for improved visibility.
-- 🎯 **Restored `cl_maxfps` in Singleplayer** — Enjoy smooth, uncapped framerates without legacy workarounds. Editable from **F12 → CPU → Framerate** (cap + VSync), with a one-click **Uncap Framerate** shortcut.
+- 🎯 **Restored `cl_maxfps` in Singleplayer** — Enjoy smooth framerates without legacy workarounds. Editable from **F12 → CPU → Framerate** (whole-ms cap list + VSync).
 - ⚡ **Stable Framerate & CPU Saver** — Uses `QueryPerformanceCounter` for precise timing and energy savings. New cvar: `_sofbuddy_sleep`.
 - 🖱️ **Raw Mouse Input** — Direct hardware input bypassing Windows acceleration. All original sensitivity cvars still work!
-- 🏷️ **Widescreen Teamicons GlitchFix** — Team icons are always correctly positioned, even in widescreen.
+- 🏷️ **Widescreen Teamicons GlitchFix** — Team icons are always correctly positioned, even in widescreen. Team icons and playernames above players scale with the HUD — toggle with `_sofbuddy_icons_autoscale` or **Icons Autoscale** in F12 → UI Scale.
 - 🖼️ **HD Texture Support** — Native support for high-res `.m32` textures. [Learn more](https://www.sof1.org/viewtopic.php?p=45667)
 - 🌙 **Lighting Blend Mode Adjustment** — Experience WhiteMagicRaven's lighting tweaks (optional).
 - 🖲️ **Console Size Adjustment** — Set how much of the screen the console covers, for any setup.
-- 🔄 **VSync Reliability** — `gl_swapinterval` is applied on every `vid_restart` for hassle-free vsync.
+- 🔄 **VSync Reliability** — `gl_swapinterval` is applied on every `vid_restart` for hassle-free vsync. F12 → CPU shows the measured display refresh, a request picker built from your driver's actual modes, plus a cap check that warns when VSync could deliver more than the framerate cap allows.
 - 🛠️ **Sane Defaults on First Run** — Fixes bad config defaults after hardware changes.
 - 🛡️ **Console Overflow/Crash Fixes** — No more crashes from large pastes or ultra-wide resolutions.
 - 🧾 **Large `config.cfg` Exec Fix** — Avoid `Cbuf_AddText: overflow` when running `exec config.cfg` with very large configs.
@@ -210,6 +210,7 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 | `_sofbuddy_scale_round_ratio` | `0.25` | Snap increment used when round auto is on (`0.05`, `0.1`, `0.125`, `0.25`, `0.5`, `1`). Also applies to cinematic image scaling. F12 → UI Scale. |
 | `_sofbuddy_scale_cinematic_pics` | `1` | Scale cinematic credit/fade images (`SP_FLAG_CREDIT` / `SCR_DrawCinemaScope`) up from 640×480. `1` on, `0` off. F12 → UI Scale. |
 | `_sofbuddy_crossh_scale` | `1` | Crosshair size multiplier. F12 → UI Scale. |
+| `_sofbuddy_icons_autoscale` | `1` | Scale team icons and playernames drawn above players with the HUD scale. `1` on, `0` off. F12 → UI Scale. |
 | `_sofbuddy_console_size` | `0.5` | Console height as a fraction of screen height (`0`–`1`, `1` = fullscreen). F12 → UI Scale. |
 | `_sofbuddy_minfilter_unmipped` | `GL_LINEAR` | Min filter for sky and other unmipped textures. `GL_NEAREST` or `GL_LINEAR` (mipmap modes make textures incomplete). F12 → Texture. |
 | `_sofbuddy_magfilter_unmipped` | `GL_LINEAR` | Mag filter for sky and other unmipped textures. F12 → Texture. |

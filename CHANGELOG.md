@@ -1,5 +1,84 @@
 # Changelog
 
+## v8.10
+
+### Display refresh readout + cap check (F12 → CPU, in `vsync_toggle`)
+
+- The Framerate section now shows the measured display refresh next to the requested
+  `gl_displayrefresh` (`Display : 240 Hz (requested auto)`), read from the system via
+  `EnumDisplaySettings` (`GetDeviceCaps` fallback) and refreshed on every CPU-page open.
+  `gl_displayrefresh` verified in ref_gl (`R_Register` default `"0"`, archived; consumed in
+  `R_SetMode` via `dmDisplayFrequency`, `0` = auto) and resolved with the identical spec.
+- The request moved into its own row (`Requested Display Refresh Rate`): a picker generated
+  from the modes the driver reports
+  for the current resolution (`Auto`/`0` first, then ascending; takes effect on `vid_restart`),
+  inserted via `<includecvar>` like the updater's release list. The `Display` row now shows the
+  measured truth only. A static `Fullscreen` row (`vid_fullscreen`, verified in `VID_Init`)
+  and a sofplus-only `Window Border` row (`_sp_cl_vid_border`, generated only when `findCvar`
+  proves it exists *and* the game is windowed — bible conditionals test values, so they can't
+  gate on existence).
+- A mismatch warning appears only when it applies, via RMF `<cinclude>` on a
+  `_sb_internal_fps_cap_mismatch` flag: orange three-line
+  `cl_maxfps LESS THAN monitor Refresh Rate with VSYNC ON. Increase It?` when VSync is on
+  and the display could deliver more than the cap allows. `cl_maxfps` is resolved locally so
+  no cross-feature coupling. A `sofbuddy_display_refresh` command recomputes on demand and is
+  chained into every cap/VSync row (`...;sofbuddy_display_refresh;refresh`) so the warning
+  flips on the same click instead of lagging a page behind.
+- Verified `gl_displayrefresh` exists before referencing it from RMF (a missing cvar would be
+  silently created as a placebo by the menu parser).
+
+### Fix — CPU tab crash on open (Framerate row)
+
+- The v8.9 Framerate row used `cvari cl_maxfps` with a `match` list. That exact combination is
+  fatal for out-of-range values: the resolver returns the raw integer for `cvari` rows, but the
+  normalize step still indexes `match[]` with it — so `cl_maxfps 30` read `match[30]` of 11
+  entries. Every other `cvari` row only ever holds `0`/`1` (or `0`…`3`), which is why only this
+  row blew up.
+- Final shape: a `<list>` (`Auto` plus whole-ms caps from `ceil(1000/n)` for
+  `n = 1…16, 20, 25, 30, 40, 100ms`, using `cvar` + `match`). Display-refresh-specific
+  FPS presets and buttons are not listed; low-end choices include `10`, `25`, `34`, `40`,
+  and `50` FPS.
+  `Auto` is match value `923`, a reserved sentinel: off-list values fall back to index 0, the
+  widget writes `"923"`, and `cl_maxfps_change` quantizes the pre-reset value (kept in
+  `previous_cl_maxfps`) UP to the smallest entry covering it (`150` → `167`; `142.453` →
+  `143`, whose 6.993ms budget fits inside 7ms) — so the fallback auto-corrects instead
+  of resetting, and `923` can never be held. Because the widget only resolves on re-layout
+  (first paint briefly showed the fallback `Auto` label), opening the CPU tab now also
+  pre-quantizes eagerly before parse — first paint already settled. All entries and results stay
+  at or above the `10` floor. Still no `<slider>` (decimals), no `<input>` (writes every
+  keystroke), no menu path to `0`.
+- One engine behavior to know: a `<list>` normalizes via `Cvar_Set(name, match[index])` on
+  layout, so opening the tab can reset off-list values. `cl_maxfps` is pre-quantized to a
+  listed whole-ms cap before the page parses, avoiding that fallback on first paint.
+- The `cvar`-vs-`cvari` rule is now documented in `src/features/internal_menus/README.md`
+  so it can't be reintroduced.
+
+### New cvar — `_sofbuddy_icons_autoscale` (default `1`)
+
+Team icons and playernames drawn above players (the 2D sprites from ref_gl `Draw_PlayerInfo`) now
+scale with the HUD scale instead of staying tiny at high resolutions.
+
+- New **Icons Autoscale** row on **F12 → UI Scale** plus a raw entry on the **Cvars** tab.
+  **Restore Scaling Defaults** resets it to `1`.
+- How it works: `Draw_PlayerInfo` (ref_gl `0x3040`, the same function the `teamicons_offset`
+  `drawTeamIcons` hook targets) draws the name with `R_DrawFont` and the icon with
+  `Draw_StretchPic` using a distance-based falloff. The existing scale features already intercept
+  both calls, so the change adds caller detection (`TeamIconDraw` / `PlayerInfoName`) and:
+  - icon: multiply `w`/`h` by `hudScale` (same as the CTF flag) and recenter on the original quad;
+  - name: pivot-based glyph growth with `snapped_text_scale_active(hudScale)` plus a left
+    pre-shift in `hkR_DrawFont` so the scaled string stays centered over the player.
+- The old `isDrawingTeamicons` bypass in `handleFontVertex` (which skipped *all* teamicon
+  scaling) now only applies when the cvar is `0`.
+
+### Texture filtering and menu polish
+
+- After `vid_restart`, the texture feature reapplies native `GL_TextureMode` after reinstalling
+  its filter patches, so UI textures keep their configured `GL_NEAREST` filters.
+- The Texture tab's `gl_picmip` control is an integer slider from `-10` to `10`.
+- The Cvars tab is now a read-only reference with live values, defaults, and descriptions.
+  The Buddy loading-input tooltip explains that `Unlocked` permits opening the console while
+  loading, while `Locked` blocks it.
+
 ## v8.9
 
 ### Internal menus — `cl_maxfps` and VSync on the CPU tab

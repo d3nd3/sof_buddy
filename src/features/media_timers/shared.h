@@ -39,6 +39,7 @@ void mediaTimers_EarlyStartup(void);
 void mediaTimers_PostCvarInit(void);
 
 void cl_maxfps_change(cvar_t *cvar);
+void sofbuddy_quantize_cl_maxfps(void);
 void high_priority_change(cvar_t *cvar);
 void sleep_change(cvar_t *cvar);
 void sleep_jitter_change(cvar_t *cvar);

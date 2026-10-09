@@ -66,6 +66,20 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
         h = h * hudScale;
     }
 
+    if (g_currentStretchPicCaller == StretchPicCaller::TeamIconDraw) {
+        // Team icon pic drawn by ref_gl Draw_PlayerInfo above a player. Scale with the
+        // HUD scale and recenter on the original quad so it stays over the player.
+        extern bool g_iconsAutoscale;
+        if (g_iconsAutoscale && hudScale > 0.0f && hudScale != 1.0f) {
+            const int nw = (w * hudScale >= 1.0f) ? (int)(w * hudScale) : 1;
+            const int nh = (h * hudScale >= 1.0f) ? (int)(h * hudScale) : 1;
+            x += (w - nw) / 2;
+            y += (h - nh) / 2;
+            w = nw;
+            h = nh;
+        }
+    }
+
     original(x, y, w, h, palette, name, flags);
     
 

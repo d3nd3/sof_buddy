@@ -59,6 +59,9 @@ extern bool g_scaleCinematicPics;
 extern int menuLoadboxFirstItemX;
 extern int menuLoadboxFirstItemY;
 
+// Scale team icons + playernames (2D info above players) with the HUD scale.
+extern bool g_iconsAutoscale;
+
 // Shared variables
 extern float screen_y_scale;
 extern int current_vid_w;

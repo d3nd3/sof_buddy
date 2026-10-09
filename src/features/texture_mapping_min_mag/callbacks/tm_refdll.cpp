@@ -41,7 +41,16 @@ void setup_minmag_filters(char const* name) {
 	WriteE8Call(rvaToAbsRef((void*)0x000065B1), (void*)&orig_glTexParameterf_mag_ui);
 	WriteByte(rvaToAbsRef((void*)0x000065B6), 0x90);
 
-	if (_gl_texturemode) _gl_texturemode->modified = true;
+	if (_gl_texturemode) {
+		_gl_texturemode->modified = true;
+		// RefDllLoaded runs after R_Init()->GL_SetDefaultState(). Re-run the native
+		// texture walk now that GL_SetFilter is patched, before the first frame draws.
+		using gl_texturemode_fn = void(__cdecl*)(char*);
+		auto apply_filters = reinterpret_cast<gl_texturemode_fn>(
+			rvaToAbsRef((void*)0x000066D0));
+		if (apply_filters && _gl_texturemode->string)
+			apply_filters(_gl_texturemode->string);
+	}
 
 #if FEATURE_VSYNC_TOGGLE
 	gl_swapinterval = detour_Cvar_Get::oCvar_Get("gl_swapinterval","0",0,NULL);

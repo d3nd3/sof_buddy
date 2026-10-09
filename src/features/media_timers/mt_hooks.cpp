@@ -11,6 +11,9 @@
 
 #include <cmath>
 #include <cassert>
+#include <cstddef>
+#include <cstdio>
+#include <cstring>
 #include <mmsystem.h>
 
 bool sleep_mode = true;
@@ -170,9 +173,85 @@ void sleep_busyticks_change(cvar_t * cvar)
 	PrintOut(PRINT_DEV,"sleep_busyticks is now : %i\n",sleep_busyticks);
 }
 
+// Framerate steps mirrored from the Framerate Cap list in cpu_content.rmf (excluding the
+// 923 sentinel): ceil(1000/n) for n = 1..16, 20, 25, 30, 40, and 100ms. Keep the two in sync.
+static const float kFramerateSteps[] = {
+    10.0f, 25.0f, 34.0f, 40.0f, 50.0f, 63.0f, 67.0f, 72.0f,
+    77.0f, 84.0f, 91.0f, 100.0f, 112.0f, 125.0f, 143.0f, 167.0f,
+    200.0f, 250.0f, 334.0f, 500.0f, 1000.0f
+};
+static const size_t kFramerateStepCount = sizeof(kFramerateSteps) / sizeof(kFramerateSteps[0]);
+
+// Smallest step not below want. Rounds UP so the implied budget always fits inside the
+// millisecond quantum (1000/7 = 142.857, so 143 with its 6.993ms budget is correct for 7ms;
+// rounding down to 142 would need 7.042ms and overshoot it).
+static float cl_maxfps_ceil_step(float want)
+{
+    float best = kFramerateSteps[kFramerateStepCount - 1];
+    for (size_t i = 0; i < kFramerateStepCount; ++i) {
+        if (kFramerateSteps[i] >= want) {
+            best = kFramerateSteps[i];
+            break;
+        }
+    }
+    return best;
+}
+
+// Snap the live value to the first whole-ms step at or above it. String-compared
+// like the widget's own match scan, so float-formatted strings ("30.000000") get cleaned too.
+// Idempotent: in-list values produce no write. Called before the CPU page parses so first
+// paint already shows the settled value instead of the fallback label.
+void sofbuddy_quantize_cl_maxfps(void)
+{
+    if (!cl_maxfps || !cl_maxfps->string || !detour_Cvar_Set2::oCvar_Set2) return;
+    float best = cl_maxfps_ceil_step(cl_maxfps->value);
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%g", static_cast<double>(best));
+    if (strcmp(cl_maxfps->string, buf) != 0)
+        detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("cl_maxfps"), buf, true);
+}
+
 void cl_maxfps_change(cvar_t *cvar)
 {
     SOFBUDDY_ASSERT(cvar != nullptr);
+
+    // Re-entrant Sets below terminate: the engine skips callbacks when the new string equals
+    // the current one, every re-set lands on a value that passes straight through, and the
+    // guard bounds us to a single nested pass.
+    static bool s_settling = false;
+
+    // Reserved sentinel 923: the F12 Framerate list's first match entry. An off-list value
+    // resolves to fallback index 0 on page open, so the widget writes "923" - which lands
+    // here, where we round the PRE-reset value (still in previous_cl_maxfps) UP to the
+    // smallest list entry that covers it - so the implied budget always fits inside the
+    // millisecond quantum (1000/7 = 142.857, so 143 with its 6.993ms budget is correct).
+    // "923" can therefore never be held. Keep in sync with the Framerate Cap list in
+    // cpu_content.rmf (excluding the sentinel itself).
+    // NOTE: exact == is safe - our own normalize writes the literal string "923".
+    if (cvar->value == 923.0f && !s_settling) {
+        float want = previous_cl_maxfps;
+        float best = cl_maxfps_ceil_step(want);
+        PrintOut(PRINT_DEV, "cl_maxfps %f off-list, rounding up to step %f\n",
+                 static_cast<double>(want), static_cast<double>(best));
+        s_settling = true;
+        char buf[32];
+        snprintf(buf, sizeof(buf), "%g", static_cast<double>(best));
+        detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("cl_maxfps"), buf, true);
+        s_settling = false;
+        return;
+    }
+
+    // Floor the cap at 10fps. Anything lower is a slideshow and 0 uncaps entirely, which can
+    // freeze weak hardware - and menu <input> fields write every keystroke, so backspacing to
+    // "" would uncap mid-edit without this.
+    if (cvar->value < 10.0f && !s_settling) {
+        PrintOut(PRINT_DEV, "cl_maxfps %f below minimum, raising to 10\n",
+                 static_cast<double>(cvar->value));
+        s_settling = true;
+        detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("cl_maxfps"), const_cast<char*>("10"), true);
+        s_settling = false;
+        return;
+    }
 
     previous_cl_maxfps = cvar->value;
     g_cl_maxfps_target_msec = calc_target_msec(cvar->value);

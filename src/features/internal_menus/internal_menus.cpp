@@ -13,6 +13,14 @@
 #include "features/http_maps/shared.h"
 #endif
 
+#if FEATURE_MEDIA_TIMERS
+#include "features/media_timers/shared.h"
+#endif
+
+#if FEATURE_VSYNC_TOGGLE
+#include "features/vsync_toggle/shared.h"
+#endif
+
 #include <windows.h>
 #include <algorithm>
 #include <cctype>
@@ -766,6 +774,22 @@ void Cmd_SoFBuddy_Menu_f(void) {
     if (menu_to_push.rfind("sof_buddy/", 0) == 0) {
         internal_menus_remember_menu_page(menu_to_push.c_str());
     }
+
+#if FEATURE_MEDIA_TIMERS
+    // Settle cl_maxfps before the CPU page parses so first paint shows the real value, not
+    // the list fallback label. The widget only resolves on re-layout, which reads one step
+    // behind (visible "Auto" until refresh) - pre-quantizing here closes that gap. Idempotent.
+    if (menu_to_push == "sof_buddy/cpu") {
+        sofbuddy_quantize_cl_maxfps();
+    }
+#endif
+
+#if FEATURE_VSYNC_TOGGLE
+    // Same idea for the live display reading below the Framerate rows.
+    if (menu_to_push == "sof_buddy/cpu") {
+        sofbuddy_refresh_display_info();
+    }
+#endif
 
     if (is_loading_menu)
         loading_reset_current_map_unknown();

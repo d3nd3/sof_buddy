@@ -1,0 +1,11 @@
+<stm>
+<font type title tint orange atint orange>
+<center>
+"cl_maxfps LESS THAN monitor"
+<hbr>
+"Refresh Rate with VSYNC ON."
+<hbr>
+"Increase It?"
+<hbr>
+<font type title tint white atint white>
+</stm>

@@ -44,6 +44,7 @@ float g_cineTextBaseY = -1.0f;
 float g_cineTextBottomY = -1.0f;
 float g_cineTextTargetBottomY = -1.0f;
 bool g_scaleCinematicPics = true;
+bool g_iconsAutoscale = true;
 
 
 #include "debug/hook_callsite.h"

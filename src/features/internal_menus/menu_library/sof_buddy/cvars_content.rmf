@@ -31,13 +31,19 @@
 <hbr>
 <normal>
 <font type title tint gray atint gray>
-Raw editor for every user-facing sof_buddy cvar.
+Reference for every user-facing sof_buddy cvar.
 <hbr>
 <font type title tint gray atint gray>
-Type a new value and press Enter. Hover a row for details.
+Live value, default and description per row.
 <hbr>
 <font type title tint gray atint gray>
-Defaults shown below each row. Internal _sb_internal_ cvars are hidden.
+Values here display only. Change them on
+<hbr>
+<font type title tint gray atint gray>
+their feature tab, or set in the console.
+<hbr>
+<font type title tint gray atint gray>
+Internal _sb_internal_ cvars are hidden.
 <hbr>
 <center>
 <font type title tint sb_subtle atint sb_subtle>
@@ -128,6 +134,12 @@ Defaults shown below each row. Internal _sb_internal_ cvars are hidden.
 <ctext _sofbuddy_scale_round_ratio atext "_sofbuddy_scale_round_ratio : " noshade tip "Snap step when round auto is on. Default 0.25."><br>
 <font type title tint gray atint gray>
 "Default 0.25 - Round step for auto scale."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_icons_autoscale atext "_sofbuddy_icons_autoscale : " noshade tip "Scale team icons and playernames above players with HUD scale. Default 1."><br>
+<font type title tint gray atint gray>
+"Default 1 - Icons autoscale on."
 <hbr>
 
 <font type title tint sb_subtle atint sb_subtle>

@@ -43,8 +43,11 @@ Implements `cl_maxfps` for singleplayer with intelligent sleep/busy-wait hybrid:
 `cl_maxfps` is resolved by sof_buddy in `create_mediatimers_cvars()` (default `30`, the same value
 the engine later uses in `CL_InitLocal`) with `cl_maxfps_change` attached. That callback keeps the
 sleep/busy-wait frame budget (`g_cl_maxfps_target_msec`) in sync with whatever cap the player picks
-on **F12 → CPU → Framerate**; before this the budget stayed hardcoded at 33 ms (~30 fps) because
-nothing ever registered the cvar. `cl_maxfps 0` means uncapped and is treated as a 1 ms budget.
+on **F12 → CPU → Framerate**. It also floors the value at `10`: anything lower (including `0` and
+non-numeric strings, both of which read as `0.0`) is raised to `10`, since uncapped or single-digit
+caps freeze weak hardware — and menu `<input>` fields write every keystroke, so backspacing to `""`
+would otherwise uncap mid-edit. The re-set from inside the callback terminates: the engine skips
+callbacks on unchanged strings, and a guard bounds it to one extra pass landing on `10`.
 
 ### SoFPlus Integration
 Works seamlessly with SoFPlus addon system:

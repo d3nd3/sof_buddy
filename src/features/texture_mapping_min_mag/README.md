@@ -34,6 +34,24 @@ None
 2. **Unmipped Textures**: Sky, detail textures - no mipmapping
 3. **UI Textures**: Console, HUD elements - typically want sharp rendering
 
+### Engine Integration: `gl_texturemode`
+
+`gl_texturemode` is the renderer's native global filter cvar (default
+`GL_LINEAR_MIPMAP_LINEAR`, archived), not a seventh SoF Buddy filter setting:
+
+- Custom filter changes set `gl_texturemode->modified`.
+- On the next `R_BeginFrame`, the renderer calls `GL_TextureMode` and walks loaded images
+  through `GL_SetFilter`.
+- The six patched `GL_SetFilter` calls replace the native values with the six per-type
+  `_sofbuddy_*` values above. `gl_texturemode` is therefore the refresh trigger; those six
+  cvars are the actual filter settings.
+- A `vid_restart` first applies native state in `GL_SetDefaultState`; `RefDllLoaded` then
+  reinstalls the patches and immediately reruns `GL_TextureMode`, with the modified flag
+  retained as a next-frame safety pass.
+
+It is intentionally not exposed as a Texture-page control because its values are mostly
+superseded by the per-type overrides.
+
 ### Minification Filters (GL_TEXTURE_MIN_FILTER)
 
 Controls how textures are sampled when they appear smaller than their original size.

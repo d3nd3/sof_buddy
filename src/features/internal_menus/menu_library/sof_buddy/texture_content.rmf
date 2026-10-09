@@ -63,7 +63,7 @@
 "Mip / format"
 <font type title tint white atint white>
 <ctext gl_picmip atext "gl_picmip : " noshade><br>
-<slider cvar gl_picmip min -20 max 11 step 1><br>
+<slider cvari gl_picmip min -10 max 10 step 1><br>
 <list "Off,On" cvar gl_pictip atext "gl_pictip : " noshade tip "Low-polygon models and lower-resolution textures."><br>
 <list "0,1,2" match "0,1,2" cvar ghl_mip atext "ghl_mip : " noshade tip "Skin texture quality. 0=best, higher values reduce quality."><br>
 <list "SOLID,ALPHA" match "GL_SOLID_FORMAT,GL_ALPHA_FORMAT" cvar r_isf atext "r_isf : " noshade><br>
