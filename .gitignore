@@ -9,6 +9,8 @@
 bin/
 obj/
 build/*/
+installer/payload/
+installer/output/
 
 # Generated detour files
 hdr/detours_prebuild.h

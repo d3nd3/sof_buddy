@@ -57,27 +57,6 @@ bool isMenuSpmSettings = false;
 int menuLoadboxFirstItemX;
 int menuLoadboxFirstItemY;
 
-// Menu scaling function implementations
-const char* get_nth_entry(const char* str, int n) {
-    if (!str) return nullptr;
-    
-    const char* current = str;
-    int count = 0;
-    
-    while (*current && count < n) {
-        if (*current == '/') {
-            count++;
-        }
-        current++;
-    }
-    
-    if (count == n && *current) {
-        return current;
-    }
-    
-    return nullptr;
-}
-
 /*
     This function is called internally by:
     - cInterface::DrawNum()
@@ -90,6 +69,8 @@ const char* get_nth_entry(const char* str, int n) {
 */
 void my_Draw_GetPicSize(int *w, int *h, char *pic)
 {
+    if (!orig_Draw_GetPicSize) return;
+
     /*
         We are targetting specific menu only items here for now.   
     */
@@ -233,6 +214,7 @@ void mutateWidthTokeC_resize(void * toke_c) {
         return;
     }
     
+    if (!orig_new_std_string) return;
     char * new_string_data = (char*)orig_new_std_string(out_len + 1);
     if (new_string_data == NULL) {
         // orig_Com_Printf("ERROR: allocation failed!\n");
@@ -387,6 +369,7 @@ void mutateWidthTokeC_width_height(void * toke_c, char * match) {
     int out_len = out.length();
     
     
+    if (!orig_new_std_string) return;
     char * new_string_data = (char*)orig_new_std_string(out_len + 1);
     if (new_string_data == NULL) {
         // orig_Com_Printf("ERROR: allocation failed!\n");
@@ -507,6 +490,7 @@ void mutateBlankTokeC_width_height(void * toke_c) {
     }
 
     int out_len = out.length();
+    if (!orig_new_std_string) return;
     char* new_string_data = (char*)orig_new_std_string(out_len + 1);
     if (new_string_data == NULL) {
         return; // Allocation failed
@@ -555,7 +539,7 @@ Repositions the slider with Draw_StretchPic
 We were double scaling this, because Draw_GetPicSize is being used for this. duh.
 */
 void __thiscall my_slider_c_Draw(void * self) {
-    orig_slider_c_Draw(self);
+    if (orig_slider_c_Draw) orig_slider_c_Draw(self);
 }
 
 /*
@@ -563,7 +547,7 @@ Was going to try and scale the loadGame screenshots,
 but seems too hard atm. Disabled
 */
 void __thiscall my_loadbox_c_Draw(void * self) {
-    orig_loadbox_c_Draw(self);
+    if (orig_loadbox_c_Draw) orig_loadbox_c_Draw(self);
 }
 /*
 Disabled currently, but enables custom control of this object.
@@ -575,6 +559,8 @@ void __thiscall my_vbar_c_Draw(void * self) {
 
 void __thiscall my_frame_c_Constructor(void* self, void * menu_c, char * width, char * height, void * frame_name)
 {
+    if (!orig_frame_c_Constructor) return;
+
     // orig_frame_c_Constructor(self,menu_c,width,height,frame_name);
     // return;
     #if 0
@@ -705,7 +691,7 @@ size_t m_capacity;      // The total size/capacity of the allocated buffer.
 */
 char * __thiscall hkstm_c_ParseStm(void *self_stm_c, void * toke_c)
 {
-    
+    if (!ostm_c_ParseStm) return nullptr;
     
     mutateWidthTokeC_resize(toke_c);
 
@@ -785,11 +771,11 @@ void my_M_PushMenu(const char * name, const char * frame, bool force)
     if ( !strcmp( name, "spm" ) || !strncmp(name,"spm_",4) ) {
         if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("Detected sofplus settings menu!\n");
         isMenuSpmSettings = true;
-        oM_PushMenu(name,frame,force);
+        detour_M_PushMenu::oM_PushMenu(name,frame,force);
         isMenuSpmSettings = false;
         return;
     }
-    oM_PushMenu(name,frame,force);
+    detour_M_PushMenu::oM_PushMenu(name,frame,force);
 }
 
 // Hook function for M_PushMenu

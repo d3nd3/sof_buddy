@@ -9,7 +9,8 @@
 void* gl_findimage_post_callback(void* result, char *filename, int imagetype, char mimap, char allowPicmip) {
     if (result) {
         #ifdef UI_MENU
-        if (g_currentPicCaller == PicCaller::Crosshair || g_currentPicCaller == PicCaller::ExecuteLayoutString ) {
+        if (g_currentPicCaller == PicCaller::SCR_DrawCrosshair ||
+            g_currentPicCaller == PicCaller::ExecuteLayoutString) {
             DrawPicWidth = *(short*)((char*)result + 0x44);
             DrawPicHeight = *(short*)((char*)result + 0x46);
         } else 

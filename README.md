@@ -69,6 +69,8 @@
   make debug-collect # Debug build with func_parents collection
   ```
   See [docs/DEBUGGING.md](docs/DEBUGGING.md) for details on build configurations.
+- **Option C (Windows):** Run `sof_buddy_setup.exe` from the release and choose your SoF
+  folder and features in the installer.
 
 ### 2. Prepare Your Game Folder
 
@@ -87,6 +89,22 @@
 - SoF Buddy auto-loads `spcl.dll` if present, so it works *with* SoF Plus.
 
 </details>
+
+### Windows installer features
+
+The Windows installer uses one universal DLL and writes the selected features to
+`sof_buddy/features.cfg`; it does not compile a custom DLL for each installation.
+Its initial selections are generated from `features/FEATURES.txt`. The file can be
+edited later (`feature` enables it, `// feature` disables it); restart SoF after changes.
+If `features.cfg` is missing, the universal DLL falls back to those same defaults.
+It also offers the checked-by-default **Ensure Windows 10+ Application Compatibility
+Fix Applied** option. This verifies the known SoF.exe PE layout, removes the
+`Raven Software` string at `0x2015F1C0`, and saves the original as
+`SoF.exe.sofbuddy.bak`; unsupported executables are left unchanged.
+The optional (off by default) **Enable full violence** setting writes the SoF parental-control
+values for the volume containing the selected game folder (using the password
+`sof`) for the current Windows user. These per-user settings are left intact if
+SoF Buddy is later uninstalled.
 
 ---
 

@@ -5,6 +5,7 @@
 #include "../shared.h"
 #include "generated_detours.h"
 #include "sof_compat.h"
+#include "runtime_features.h"
 #include <string.h>
 
 // centerprint_linecount @ SoF.exe+0x230310 (set by SCR_CenterPrint word-wrap pass)
@@ -100,6 +101,11 @@ static void wrap_centerprint_vanilla_like(const char* src, int max_chars_per_lin
 void hkSCR_CenterPrint(char * text, detour_SCR_CenterPrint::tSCR_CenterPrint original)
 {
     SOFBUDDY_ASSERT(original != nullptr);
+    if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) &&
+        !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
+        original(text);
+        return;
+    }
 
     g_centerPrintScaleSeq = 0;
     g_centerPrintLineStep = 0.0f;

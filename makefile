@@ -3,14 +3,21 @@
 
 # Directories
 BUILD ?= release
+FEATURE_SET ?= default
 SDIR = src
 ODIR = obj/$(BUILD)
 BDIR = bin
 IDIR = hdr
 BDIR_GEN = build/$(BUILD)
+ifeq ($(FEATURE_SET),all)
+FEATURES_TXT = $(BDIR_GEN)/FEATURES.txt
+else
 FEATURES_TXT = features/FEATURES.txt
+endif
 FEATURE_CONFIG_H = $(BDIR_GEN)/feature_config.h
 FEATURE_LIST_H = $(BDIR_GEN)/feature_list.inc
+DEFAULT_FEATURES_TXT = features/FEATURES.txt
+DEFAULT_FEATURE_LIST_H = $(BDIR_GEN)/default_feature_list.inc
 VERSION_FILE = VERSION
 VERSION_H = hdr/version.h
 DETOURS_YAML = detours.yaml
@@ -70,6 +77,7 @@ endif
 
 # Output
 OUT = $(BDIR)/sof_buddy.dll
+UNIVERSAL_OUT = $(BDIR)/sof_buddy-universal.dll
 DEF_FILE = rsrc/sof_buddy.def
 
 # Linker flags
@@ -97,7 +105,7 @@ CALLBACKS_JSON = $(shell find $(SDIR)/features $(SDIR)/core -name "callbacks.jso
 POINTERS_JSON = $(shell find $(SDIR)/features $(SDIR)/core -name "pointers.json" 2>/dev/null || true)
 
 # Default target
-all: $(MENU_DATA_CPP) $(FEATURES_TXT) $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(VERSION_H) $(GENERATED_DETOURS_H) $(GENERATED_DETOURS_CPP) $(GENERATED_REGISTRATIONS_H) $(OUT)
+all: $(MENU_DATA_CPP) $(FEATURES_TXT) $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(DEFAULT_FEATURE_LIST_H) $(VERSION_H) $(GENERATED_DETOURS_H) $(GENERATED_DETOURS_CPP) $(GENERATED_REGISTRATIONS_H) $(OUT)
 
 FORCE:
 
@@ -109,10 +117,15 @@ $(MENU_DATA_CPP): $(GENERATE_MENU_EMBED_PY) $(SOFBUDDY_RMF_FILES)
 $(BDIR_GEN):
 	@mkdir -p $(BDIR_GEN)
 
-# Auto-generate FEATURES.txt from feature directories
+ifeq ($(FEATURE_SET),all)
+$(FEATURES_TXT): $(GENERATE_FEATURES_TXT_PY) | $(BDIR_GEN)
+	@echo "Generating all-feature configuration..."
+	@python3 $(GENERATE_FEATURES_TXT_PY) --all --output $@
+else
 $(FEATURES_TXT): $(GENERATE_FEATURES_TXT_PY)
 	@echo "Auto-generating $(FEATURES_TXT) from feature directories..."
 	@python3 $(GENERATE_FEATURES_TXT_PY)
+endif
 
 # Generate feature configuration header from FEATURES.txt
 $(FEATURE_CONFIG_H): $(FEATURES_TXT) | $(BDIR_GEN)
@@ -148,7 +161,7 @@ $(FEATURE_CONFIG_H): $(FEATURES_TXT) | $(BDIR_GEN)
 	@echo "Generated feature configuration with $$(grep -c '^#define' $@) features"
 
 # Generate feature list helper from FEATURES.txt
-$(FEATURE_LIST_H): $(FEATURES_TXT) | $(BDIR_GEN)
+$(FEATURE_LIST_H): $(FEATURES_TXT) $(MAKEFILE_LIST) | $(BDIR_GEN)
 	@echo "Generating feature list helper from $(FEATURES_TXT)..."
 	@echo '/*' > $@
 	@echo '    Auto-generated feature list helper' >> $@
@@ -156,18 +169,18 @@ $(FEATURE_LIST_H): $(FEATURES_TXT) | $(BDIR_GEN)
 	@echo '    DO NOT EDIT - Generated from $(FEATURES_TXT)' >> $@
 	@echo '*/' >> $@
 	@echo '' >> $@
-	@echo '#define FEATURE_LIST(macro)' >> $@
-	@grep -v '^#' $(FEATURES_TXT) | grep -v '^$$' | while read line; do \
-		if echo "$$line" | grep -q '^//'; then \
-			feature=$$(echo "$$line" | sed 's|^//[[:space:]]*||'); \
-			macro=$$(echo "$$feature" | tr '[:lower:]' '[:upper:]' | tr '-' '_'); \
-			echo "macro(FEATURE_$$macro, \"$$feature\", \"$$feature\")" >> $@; \
-		else \
-			feature=$$line; \
-			macro=$$(echo "$$feature" | tr '[:lower:]' '[:upper:]' | tr '-' '_'); \
-			echo "macro(FEATURE_$$macro, \"$$feature\", \"$$feature\")" >> $@; \
-		fi; \
-	done
+	@echo '#ifndef SOFBUDDY_FEATURE_LIST_INC' >> $@
+	@echo '#define SOFBUDDY_FEATURE_LIST_INC' >> $@
+	@echo '#define FEATURE_LIST(macro) \' >> $@
+	@awk 'function emit(feature, macro) { sub(/[[:space:]]+#.*/, "", feature); sub(/^[[:space:]]+/, "", feature); sub(/[[:space:]]+$$/, "", feature); if (feature !~ /^[a-z][a-z0-9_-]*$$/) return; macro="FEATURE_" toupper(feature); gsub(/-/, "_", macro); entries[++count]="macro(" macro ", \"" feature "\", \"" feature "\")" } { line=$$0; sub(/\r$$/,"",line); sub(/^[ \t]+/,"",line); sub(/[ \t]+$$/,"",line); if(line=="") next; if(substr(line,1,2)=="//") { emit(substr(line,3)); next } if(substr(line,1,1)=="#") { emit(substr(line,2)); next } emit(line) } END { for (i=1; i<=count; i++) print entries[i] (i < count ? " \\" : "") }' $(FEATURES_TXT) >> $@
+	@echo '#endif' >> $@
+
+# Generate the default runtime selection separately from the compile-time set.
+$(DEFAULT_FEATURE_LIST_H): $(DEFAULT_FEATURES_TXT) $(MAKEFILE_LIST) | $(BDIR_GEN)
+	@echo "Generating default runtime feature list from $(DEFAULT_FEATURES_TXT)..."
+	@echo '/* Auto-generated from features/FEATURES.txt. */' > $@
+	@echo '#define DEFAULT_FEATURE_LIST(macro) \' >> $@
+	@awk 'function emit(feature, enabled) { sub(/[[:space:]]+#.*/, "", feature); sub(/^[[:space:]]+/, "", feature); sub(/[[:space:]]+$$/, "", feature); if (feature !~ /^[a-z][a-z0-9_-]*$$/) return; entries[++count]="macro(\"" feature "\", " enabled ")" } { line=$$0; sub(/\r$$/,"",line); sub(/^[ \t]+/,"",line); sub(/[ \t]+$$/,"",line); if(line=="") next; if(substr(line,1,2)=="//") { emit(substr(line,3), 0); next } if(substr(line,1,1)=="#") { emit(substr(line,2), 0); next } emit(line, 1) } END { for (i=1; i<=count; i++) print entries[i] (i < count ? " \\" : "") }' $(DEFAULT_FEATURES_TXT) >> $@
 
 # Generate version header from VERSION file
 $(VERSION_H): $(VERSION_FILE)
@@ -188,7 +201,7 @@ $(VERSION_H): $(VERSION_FILE)
 # Generate hook headers from detours.yaml, FEATURES.txt, and hooks.json files
 $(GENERATED_DETOURS_H): $(DETOURS_YAML) $(FEATURES_TXT) $(GENERATE_HOOKS_PY) $(HOOKS_JSON) $(CALLBACKS_JSON) $(POINTERS_JSON) | $(BDIR_GEN)
 	@echo "Generating hook headers from $(DETOURS_YAML)..."
-	@python3 $(GENERATE_HOOKS_PY)
+	@python3 $(GENERATE_HOOKS_PY) $(FEATURES_TXT)
 	@cp -f build/generated_detours.h $(GENERATED_DETOURS_H)
 	@cp -f build/generated_detours.cpp $(GENERATED_DETOURS_CPP)
 	@cp -f build/generated_registrations.h $(GENERATED_REGISTRATIONS_H)
@@ -217,6 +230,10 @@ $(OUT): $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(GENERATED_DETOURS_H) $(GENERATED
 	$(CC) $(LFLAGS) $(DEF_FILE) $(OBJECTS) $(ODIR)/generated_detours.o -o $(OUT) $(LIBS)
 
 # Object file rules - all depend on feature config, feature list, version header, and generated hook headers
+$(ODIR)/core/runtime_features.o: $(DEFAULT_FEATURE_LIST_H)
+
+$(ODIR)/core/runtime_features.d: $(DEFAULT_FEATURE_LIST_H)
+
 $(ODIR)/%.o: $(SDIR)/%.cpp $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(VERSION_H) $(GENERATED_DETOURS_H) $(GENERATED_REGISTRATIONS_H)
 	@mkdir -p $(dir $@)
 	$(CC) -c $(INC) $(DEPFLAGS) -o $@ $< $(CFLAGS)
@@ -241,9 +258,13 @@ xp:
 xp-debug:
 	$(MAKE) BUILD=xp-debug all
 
+universal:
+	$(MAKE) BUILD=release FEATURE_SET=all UI_MENU=1 \
+		BDIR_GEN=build/universal ODIR=obj/universal OUT=$(UNIVERSAL_OUT) all
+
 # Clean
 clean:
-	rm -rf obj build $(OUT)
+	rm -rf obj build $(OUT) $(UNIVERSAL_OUT)
 
 # Show configuration
 config:
@@ -254,7 +275,7 @@ config:
 	@echo "Sources found: $(words $(SOURCES))"
 	@echo "Target: $(OUT)"
 
-.PHONY: all debug debug-gdb debug-collect release xp xp-debug clean config features compdb symbols FORCE
+.PHONY: all debug debug-gdb debug-collect release xp xp-debug universal clean config features compdb symbols FORCE
 
 # ------------------------------
 # Tools (host-native utilities)

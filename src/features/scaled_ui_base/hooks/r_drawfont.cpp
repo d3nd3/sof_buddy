@@ -7,6 +7,7 @@
 #include "generated_detours.h"
 #include "../../scaled_ui_base/shared.h"
 #include "debug/hook_callsite.h"
+#include "runtime_features.h"
 #include <string.h>
 
 static bool s_dmRankingScorePhase = true;
@@ -38,6 +39,11 @@ static FontCaller fontCallerFromRenderType(uiRenderType rt)
 }
 
 void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor, detour_R_DrawFont::tR_DrawFont original) {
+    if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) &&
+        !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
+        original(screenX, screenY, text, colorPalette, font, rememberLastColor);
+        return;
+    }
     resetGlVertexQuadState();
     g_activeDrawCall = DrawRoutineType::Font;
     if (g_currentFontCaller == FontCaller::Unknown) {

@@ -18,6 +18,10 @@ Published tags look like **`v8.1-build189`**.
 2. A **GitHub Release** is created **only when `VERSION` changed** in that commit.
    - Same `VERSION` + new push → build runs, **no** new GitHub release.
    - Bumped `VERSION` + push → build runs, **new** release `vX.Y-build<N>`.
+   - The release also includes `sof_buddy_setup.exe`, which installs the Windows
+     package, writes the selected feature set to `sof_buddy/features.cfg`, and
+     offers the Windows 10+ application-compatibility patch and optional full-violence
+     registry setup.
 3. On a `VERSION` bump, CI checks that `CHANGELOG.md` has a `## vX.Y` section.
 
 See current releases: https://github.com/d3nd3/sof_buddy/releases

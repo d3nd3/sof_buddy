@@ -5,6 +5,7 @@
 
 #include "sof_compat.h"
 #include "shared_hook_manager.h"
+#include "runtime_features.h"
 #include "util.h"
 
 extern qboolean cbuf_addlatecommands_override_callback(detour_Cbuf_AddLateCommands::tCbuf_AddLateCommands original);
@@ -83,60 +84,27 @@ extern void vsync_on_postcvarinit(char const* name);
 extern void vsync_pre_vid_checkchanges();
 
 inline void RegisterAllFeatureHooks() {
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_CL_MAXFPS_SINGLEPLAYER)) {
     SharedHookManager::Instance().RegisterCallback(
         "EarlyStartup", "cl_maxfps_singleplayer", "cl_maxfps_EarlyStartup",
         []() { cl_maxfps_EarlyStartup(); }, 70, SharedHookPhase::Post);
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_CONSOLE_PROTECTION)) {
     SharedHookManager::Instance().RegisterCallback(
         "EarlyStartup", "console_protection", "console_protection_EarlyStartup",
         []() { console_protection_EarlyStartup(); }, 80, SharedHookPhase::Post);
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_HD_TEXTURES)) {
     SharedHookManager::Instance().RegisterCallback<char const*>(
         "RefDllLoaded", "hd_textures", "hd_textures_RefDllLoaded",
         std::function<void(char const*)>([](char const* name) { hd_textures_RefDllLoaded(name); }), 70, SharedHookPhase::Post);
-    SharedHookManager::Instance().RegisterCallback(
-        "PostCvarInit", "lighting_blend", "lightblend_PostCvarInit",
-        []() { lightblend_PostCvarInit(); }, 50, SharedHookPhase::Post);
-    SharedHookManager::Instance().RegisterCallback<char const*>(
-        "RefDllLoaded", "lighting_blend", "lightblend_RefDllLoaded",
-        std::function<void(char const*)>([](char const* name) { lightblend_RefDllLoaded(name); }), 60, SharedHookPhase::Post);
-    SharedHookManager::Instance().RegisterCallback(
-        "EarlyStartup", "media_timers", "mediaTimers_EarlyStartup",
-        []() { mediaTimers_EarlyStartup(); }, 70, SharedHookPhase::Post);
-    SharedHookManager::Instance().RegisterCallback(
-        "PostCvarInit", "media_timers", "mediaTimers_PostCvarInit",
-        []() { mediaTimers_PostCvarInit(); }, 70, SharedHookPhase::Post);
-    SharedHookManager::Instance().RegisterCallback(
-        "EarlyStartup", "new_system_bug", "new_system_bug_EarlyStartup",
-        []() { new_system_bug_EarlyStartup(); }, 60, SharedHookPhase::Post);
-    SharedHookManager::Instance().RegisterCallback(
-        "EarlyStartup", "raw_mouse", "raw_mouse_EarlyStartup",
-        []() { raw_mouse_EarlyStartup(); }, 70, SharedHookPhase::Post);
-    SharedHookManager::Instance().RegisterCallback<char const*>(
-        "RefDllLoaded", "raw_mouse", "raw_mouse_RefDllLoaded",
-        std::function<void(char const*)>([](char const* name) { raw_mouse_RefDllLoaded(name); }), 70, SharedHookPhase::Post);
-    SharedHookManager::Instance().RegisterCallback(
-        "EarlyStartup", "scaled_con", "scaledCon_EarlyStartup",
-        []() { scaledCon_EarlyStartup(); }, 70, SharedHookPhase::Post);
-    SharedHookManager::Instance().RegisterCallback<char const*>(
-        "RefDllLoaded", "scaled_hud", "scaledHud_RefDllLoaded",
-        std::function<void(char const*)>([](char const* name) { scaledHud_RefDllLoaded(name); }), 60, SharedHookPhase::Post);
-    SharedHookManager::Instance().RegisterCallback<char const*>(
-        "RefDllLoaded", "scaled_ui_base", "scaledUIBase_RefDllLoaded",
-        std::function<void(char const*)>([](char const* name) { scaledUIBase_RefDllLoaded(name); }), 65, SharedHookPhase::Post);
-    SharedHookManager::Instance().RegisterCallback<char const*>(
-        "RefDllLoaded", "teamicons_offset", "teamicons_offset_RefDllLoaded",
-        std::function<void(char const*)>([](char const* name) { teamicons_offset_RefDllLoaded(name); }), 70, SharedHookPhase::Post);
-    SharedHookManager::Instance().RegisterCallback(
-        "PostCvarInit", "texture_mapping_min_mag", "texturemapping_PostCvarInit",
-        []() { texturemapping_PostCvarInit(); }, 50, SharedHookPhase::Post);
-    SharedHookManager::Instance().RegisterCallback<char const*>(
-        "RefDllLoaded", "texture_mapping_min_mag", "setup_minmag_filters",
-        std::function<void(char const*)>([](char const* name) { setup_minmag_filters(name); }), 70, SharedHookPhase::Post);
-    SharedHookManager::Instance().RegisterCallback<char const*>(
-        "RefDllLoaded", "vsync_toggle", "vsync_on_postcvarinit",
-        std::function<void(char const*)>([](char const* name) { vsync_on_postcvarinit(name); }), 50, SharedHookPhase::Post);
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_HTTP_MAPS)) {
     SharedHookManager::Instance().RegisterCallback(
         "PostCvarInit", "http_maps", "http_maps_PostCvarInit",
         []() { http_maps_PostCvarInit(); }, 60, SharedHookPhase::Post);
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_INTERNAL_MENUS)) {
     SharedHookManager::Instance().RegisterCallback(
         "EarlyStartup", "internal_menus", "internal_menus_EarlyStartup",
         []() { internal_menus_EarlyStartup(); }, 75, SharedHookPhase::Post);
@@ -149,6 +117,70 @@ inline void RegisterAllFeatureHooks() {
     SharedHookManager::Instance().RegisterCallback<void*>(
         "GameDllLoaded", "internal_menus", "internal_menus_GameDllLoaded",
         std::function<void(void*)>([](void* game_export) { internal_menus_GameDllLoaded(game_export); }), 70, SharedHookPhase::Post);
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_LIGHTING_BLEND)) {
+    SharedHookManager::Instance().RegisterCallback(
+        "PostCvarInit", "lighting_blend", "lightblend_PostCvarInit",
+        []() { lightblend_PostCvarInit(); }, 50, SharedHookPhase::Post);
+    SharedHookManager::Instance().RegisterCallback<char const*>(
+        "RefDllLoaded", "lighting_blend", "lightblend_RefDllLoaded",
+        std::function<void(char const*)>([](char const* name) { lightblend_RefDllLoaded(name); }), 60, SharedHookPhase::Post);
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_MEDIA_TIMERS)) {
+    SharedHookManager::Instance().RegisterCallback(
+        "EarlyStartup", "media_timers", "mediaTimers_EarlyStartup",
+        []() { mediaTimers_EarlyStartup(); }, 70, SharedHookPhase::Post);
+    SharedHookManager::Instance().RegisterCallback(
+        "PostCvarInit", "media_timers", "mediaTimers_PostCvarInit",
+        []() { mediaTimers_PostCvarInit(); }, 70, SharedHookPhase::Post);
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_NEW_SYSTEM_BUG)) {
+    SharedHookManager::Instance().RegisterCallback(
+        "EarlyStartup", "new_system_bug", "new_system_bug_EarlyStartup",
+        []() { new_system_bug_EarlyStartup(); }, 60, SharedHookPhase::Post);
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_RAW_MOUSE)) {
+    SharedHookManager::Instance().RegisterCallback(
+        "EarlyStartup", "raw_mouse", "raw_mouse_EarlyStartup",
+        []() { raw_mouse_EarlyStartup(); }, 70, SharedHookPhase::Post);
+    SharedHookManager::Instance().RegisterCallback<char const*>(
+        "RefDllLoaded", "raw_mouse", "raw_mouse_RefDllLoaded",
+        std::function<void(char const*)>([](char const* name) { raw_mouse_RefDllLoaded(name); }), 70, SharedHookPhase::Post);
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON)) {
+    SharedHookManager::Instance().RegisterCallback(
+        "EarlyStartup", "scaled_con", "scaledCon_EarlyStartup",
+        []() { scaledCon_EarlyStartup(); }, 70, SharedHookPhase::Post);
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
+    SharedHookManager::Instance().RegisterCallback<char const*>(
+        "RefDllLoaded", "scaled_hud", "scaledHud_RefDllLoaded",
+        std::function<void(char const*)>([](char const* name) { scaledHud_RefDllLoaded(name); }), 60, SharedHookPhase::Post);
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_UI_BASE)) {
+    SharedHookManager::Instance().RegisterCallback<char const*>(
+        "RefDllLoaded", "scaled_ui_base", "scaledUIBase_RefDllLoaded",
+        std::function<void(char const*)>([](char const* name) { scaledUIBase_RefDllLoaded(name); }), 65, SharedHookPhase::Post);
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_TEAMICONS_OFFSET)) {
+    SharedHookManager::Instance().RegisterCallback<char const*>(
+        "RefDllLoaded", "teamicons_offset", "teamicons_offset_RefDllLoaded",
+        std::function<void(char const*)>([](char const* name) { teamicons_offset_RefDllLoaded(name); }), 70, SharedHookPhase::Post);
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_TEXTURE_MAPPING_MIN_MAG)) {
+    SharedHookManager::Instance().RegisterCallback(
+        "PostCvarInit", "texture_mapping_min_mag", "texturemapping_PostCvarInit",
+        []() { texturemapping_PostCvarInit(); }, 50, SharedHookPhase::Post);
+    SharedHookManager::Instance().RegisterCallback<char const*>(
+        "RefDllLoaded", "texture_mapping_min_mag", "setup_minmag_filters",
+        std::function<void(char const*)>([](char const* name) { setup_minmag_filters(name); }), 70, SharedHookPhase::Post);
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_VSYNC_TOGGLE)) {
+    SharedHookManager::Instance().RegisterCallback<char const*>(
+        "RefDllLoaded", "vsync_toggle", "vsync_on_postcvarinit",
+        std::function<void(char const*)>([](char const* name) { vsync_on_postcvarinit(name); }), 50, SharedHookPhase::Post);
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_CL_MAXFPS_SINGLEPLAYER)) {
     {
         auto& mgr = detour_CinematicFreeze::GetManager();
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] CinematicFreeze manager at 0x%p\n", &mgr);
@@ -162,44 +194,14 @@ inline void RegisterAllFeatureHooks() {
         "cl_maxfps_singleplayer", "mfps_M_PushMenu_pre",
         [](char const*& menu_file, char const*& parentFrame, bool& lock_input) { mfps_M_PushMenu_pre(menu_file, parentFrame, lock_input); },
         85);
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_HD_TEXTURES)) {
     detour_GL_BuildPolygonFromSurface::GetManager().RegisterPreCallback(
         "hd_textures", "gl_buildpolygonfromsurface_pre_callback",
         [](void*& msurface_s) { gl_buildpolygonfromsurface_pre_callback(msurface_s); },
         100);
-    detour_R_BlendLightmaps::GetManager().RegisterPreCallback(
-        "lighting_blend", "r_blendlightmaps_pre_callback",
-        []() { r_blendlightmaps_pre_callback(); },
-        100);
-    {
-        auto& mgr = detour_R_BlendLightmaps::GetManager();
-        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] R_BlendLightmaps manager at 0x%p\n", &mgr);
-        mgr.RegisterPostCallback(
-            "lighting_blend", "r_blendlightmaps_post_callback",
-            []() { r_blendlightmaps_post_callback(); },
-            100);
-        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] R_BlendLightmaps post callbacks: %zu\n", mgr.GetPostCallbackCount());
     }
-    detour_GL_FindImage::GetManager().RegisterPostCallback(
-        "scaled_ui_base", "gl_findimage_post_callback",
-        [](void* result, char* filename, int imagetype, char mimap, char allowPicmip) { return gl_findimage_post_callback(result, filename, imagetype, mimap, allowPicmip); },
-        100);
-    {
-        auto& mgr = detour_VID_CheckChanges::GetManager();
-        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] VID_CheckChanges manager at 0x%p\n", &mgr);
-        mgr.RegisterPostCallback(
-            "scaled_ui_base", "vid_checkchanges_post",
-            []() { vid_checkchanges_post(); },
-            100);
-        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] VID_CheckChanges post callbacks: %zu\n", mgr.GetPostCallbackCount());
-    }
-    detour_drawTeamIcons::GetManager().RegisterPreCallback(
-        "teamicons_offset", "drawteamicons_pre_callback",
-        [](float*& targetPlayerOrigin, char*& playerName, char*& imageNameTeamIcon, int& redOrBlue) { drawteamicons_pre_callback(targetPlayerOrigin, playerName, imageNameTeamIcon, redOrBlue); },
-        100);
-    detour_VID_CheckChanges::GetManager().RegisterPreCallback(
-        "vsync_toggle", "vsync_pre_vid_checkchanges",
-        []() { vsync_pre_vid_checkchanges(); },
-        50);
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_HTTP_MAPS)) {
     detour_CL_ParseConfigString::GetManager().RegisterPreCallback(
         "http_maps", "http_maps_cl_parseconfigstring_pre_callback",
         []() { http_maps_cl_parseconfigstring_pre_callback(); },
@@ -230,6 +232,8 @@ inline void RegisterAllFeatureHooks() {
         "http_maps", "http_maps_reconnect_f_pre_callback",
         []() { http_maps_reconnect_f_pre_callback(); },
         80);
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_INTERNAL_MENUS)) {
     detour_M_PushMenu::GetManager().RegisterPreCallback(
         "internal_menus", "internal_menus_M_PushMenu_pre",
         [](char const*& menu_file, char const*& parentFrame, bool& lock_input) { internal_menus_M_PushMenu_pre(menu_file, parentFrame, lock_input); },
@@ -260,6 +264,57 @@ inline void RegisterAllFeatureHooks() {
             [](bool force) { internal_menus_scr_updatescreen_post(force); },
             90);
         PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] SCR_UpdateScreen post callbacks: %zu\n", mgr.GetPostCallbackCount());
+    }
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_LIGHTING_BLEND)) {
+    detour_R_BlendLightmaps::GetManager().RegisterPreCallback(
+        "lighting_blend", "r_blendlightmaps_pre_callback",
+        []() { r_blendlightmaps_pre_callback(); },
+        100);
+    {
+        auto& mgr = detour_R_BlendLightmaps::GetManager();
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] R_BlendLightmaps manager at 0x%p\n", &mgr);
+        mgr.RegisterPostCallback(
+            "lighting_blend", "r_blendlightmaps_post_callback",
+            []() { r_blendlightmaps_post_callback(); },
+            100);
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] R_BlendLightmaps post callbacks: %zu\n", mgr.GetPostCallbackCount());
+    }
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_MEDIA_TIMERS)) {
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_RAW_MOUSE)) {
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON)) {
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_UI_BASE)) {
+    detour_GL_FindImage::GetManager().RegisterPostCallback(
+        "scaled_ui_base", "gl_findimage_post_callback",
+        [](void* result, char* filename, int imagetype, char mimap, char allowPicmip) { return gl_findimage_post_callback(result, filename, imagetype, mimap, allowPicmip); },
+        100);
+    {
+        auto& mgr = detour_VID_CheckChanges::GetManager();
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] VID_CheckChanges manager at 0x%p\n", &mgr);
+        mgr.RegisterPostCallback(
+            "scaled_ui_base", "vid_checkchanges_post",
+            []() { vid_checkchanges_post(); },
+            100);
+        PrintOut(PRINT_LOG, "[RegisterAllFeatureHooks] VID_CheckChanges post callbacks: %zu\n", mgr.GetPostCallbackCount());
+    }
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_TEAMICONS_OFFSET)) {
+    detour_drawTeamIcons::GetManager().RegisterPreCallback(
+        "teamicons_offset", "drawteamicons_pre_callback",
+        [](float*& targetPlayerOrigin, char*& playerName, char*& imageNameTeamIcon, int& redOrBlue) { drawteamicons_pre_callback(targetPlayerOrigin, playerName, imageNameTeamIcon, redOrBlue); },
+        100);
+    }
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_VSYNC_TOGGLE)) {
+    detour_VID_CheckChanges::GetManager().RegisterPreCallback(
+        "vsync_toggle", "vsync_pre_vid_checkchanges",
+        []() { vsync_pre_vid_checkchanges(); },
+        50);
     }
     {
         auto& mgr = detour_SV_ShutdownGameProgs::GetManager();
