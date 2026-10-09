@@ -154,6 +154,7 @@ void (__thiscall *orig_loadbox_c_Draw)(void * self);
 void (__thiscall *orig_vbar_c_Draw)(void * self);
 void (__thiscall *orig_master_Draw)(void * rect_c_self);
 void (__thiscall *orig_frame_c_Constructor)(void* self, void * menu_c, char * width, char * height, void * frame_name) = NULL;
+char * (__thiscall *ostm_c_ParseStm)(void *self_stm_c, void * toke_c) = NULL;
 void (__thiscall *orig_stm_c_ParseBlank)(void *self_stm_c, void * toke_c);
 int (__thiscall *orig_toke_c_GetNTokens)(void * toke_c, int quantity) = NULL;
 char * (__thiscall *orig_toke_c_Token)(void * toke_c, int idx) = NULL;

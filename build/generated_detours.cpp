@@ -3,6 +3,7 @@
 
 #include "generated_detours.h"
 #include "generated_registrations.h"
+#include "runtime_features.h"
 #include "util.h"
 
 namespace detour_GL_BuildPolygonFromSurface {
@@ -943,6 +944,10 @@ namespace detour_CinematicFreeze {
 // Note: Override hooks with custom_detour: true are manually installed at runtime and not generated here
 namespace detour_CL_Precache_f {
     void __cdecl hkCL_Precache_f() {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_HTTP_MAPS)) {
+            if (oCL_Precache_f) oCL_Precache_f();
+            return;
+        }
         ::cl_precache_http_maps_override_callback(oCL_Precache_f);
     }
 }
@@ -955,60 +960,100 @@ namespace detour_Cbuf_AddLateCommands {
 
 namespace detour_Con_CheckResize {
     void __cdecl hkCon_CheckResize() {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON)) {
+            if (oCon_CheckResize) oCon_CheckResize();
+            return;
+        }
         ::hkCon_CheckResize(oCon_CheckResize);
     }
 }
 
 namespace detour_Con_DrawConsole {
     void __cdecl hkCon_DrawConsole(float frac) {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON)) {
+            if (oCon_DrawConsole) oCon_DrawConsole(frac);
+            return;
+        }
         ::hkCon_DrawConsole(frac, oCon_DrawConsole);
     }
 }
 
 namespace detour_Con_DrawNotify {
     void __cdecl hkCon_DrawNotify() {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON)) {
+            if (oCon_DrawNotify) oCon_DrawNotify();
+            return;
+        }
         ::hkCon_DrawNotify(oCon_DrawNotify);
     }
 }
 
 namespace detour_Con_Init {
     void __cdecl hkCon_Init() {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_UI_BASE)) {
+            if (oCon_Init) oCon_Init();
+            return;
+        }
         ::hkCon_Init(oCon_Init);
     }
 }
 
 namespace detour_DispatchMessageA {
     LRESULT __stdcall hkDispatchMessageA(const MSG* msg) {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_RAW_MOUSE)) {
+            if (oDispatchMessageA) return oDispatchMessageA(msg);
+            return {};
+        }
         return ::dispatchmessagea_override_callback(msg, oDispatchMessageA);
     }
 }
 
 namespace detour_Draw_CharExtra {
     void __cdecl hkDraw_CharExtra(float x, float y, float scale, void* palette, int ch) {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_UI_BASE)) {
+            if (oDraw_CharExtra) oDraw_CharExtra(x, y, scale, palette, ch);
+            return;
+        }
         ::hkDraw_CharExtra(x, y, scale, palette, ch, oDraw_CharExtra);
     }
 }
 
 namespace detour_Draw_CroppedPicOptions {
     void __cdecl hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, int palette, char* name) {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
+            if (oDraw_CroppedPicOptions) oDraw_CroppedPicOptions(x, y, c1x, c1y, c2x, c2y, palette, name);
+            return;
+        }
         ::hkDraw_CroppedPicOptions(x, y, c1x, c1y, c2x, c2y, palette, name, oDraw_CroppedPicOptions);
     }
 }
 
 namespace detour_Draw_Pic {
     void __cdecl hkDraw_Pic(int x, int y, char const* imgname, int palette) {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_UI_BASE)) {
+            if (oDraw_Pic) oDraw_Pic(x, y, imgname, palette);
+            return;
+        }
         ::hkDraw_Pic(x, y, imgname, palette, oDraw_Pic);
     }
 }
 
 namespace detour_Draw_PicOptions {
     void __cdecl hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int palette, char* name) {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
+            if (oDraw_PicOptions) oDraw_PicOptions(x, y, w_scale, h_scale, palette, name);
+            return;
+        }
         ::hkDraw_PicOptions(x, y, w_scale, h_scale, palette, name, oDraw_PicOptions);
     }
 }
 
 namespace detour_Draw_StretchPic {
     void __cdecl hkDraw_StretchPic(int x, int y, int w, int h, int palette, char* name, int flags) {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_UI_BASE)) {
+            if (oDraw_StretchPic) oDraw_StretchPic(x, y, w, h, palette, name, flags);
+            return;
+        }
         ::hkDraw_StretchPic(x, y, w, h, palette, name, flags, oDraw_StretchPic);
     }
 }
@@ -1021,60 +1066,100 @@ namespace detour_FS_InitFilesystem {
 
 namespace detour_FS_LoadFile {
     int __cdecl hkFS_LoadFile(char* path, void** buffer, bool override_pak) {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_INTERNAL_MENUS)) {
+            if (oFS_LoadFile) return oFS_LoadFile(path, buffer, override_pak);
+            return {};
+        }
         return ::internal_menus_fs_loadfile_override_callback(path, buffer, override_pak, oFS_LoadFile);
     }
 }
 
 namespace detour_GetCursorPos {
     BOOL __stdcall hkGetCursorPos(LPPOINT lpPoint) {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_RAW_MOUSE)) {
+            if (oGetCursorPos) return oGetCursorPos(lpPoint);
+            return {};
+        }
         return ::getcursorpos_override_callback(lpPoint, oGetCursorPos);
     }
 }
 
 namespace detour_R_DrawFont {
     void __cdecl hkR_DrawFont(int screenX, int screenY, char* text, int colorPalette, char* font, bool rememberLastColor) {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_UI_BASE)) {
+            if (oR_DrawFont) oR_DrawFont(screenX, screenY, text, colorPalette, font, rememberLastColor);
+            return;
+        }
         ::hkR_DrawFont(screenX, screenY, text, colorPalette, font, rememberLastColor, oR_DrawFont);
     }
 }
 
 namespace detour_SCR_CenterPrint {
     void __cdecl hkSCR_CenterPrint(char* str) {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_UI_BASE)) {
+            if (oSCR_CenterPrint) oSCR_CenterPrint(str);
+            return;
+        }
         ::hkSCR_CenterPrint(str, oSCR_CenterPrint);
     }
 }
 
 namespace detour_SCR_DrawCenterPrint {
     void __cdecl hkSCR_DrawCenterPrint() {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_UI_BASE)) {
+            if (oSCR_DrawCenterPrint) oSCR_DrawCenterPrint();
+            return;
+        }
         ::hkSCR_DrawCenterPrint(oSCR_DrawCenterPrint);
     }
 }
 
 namespace detour_SCR_DrawCinemaScope {
     void __cdecl hkSCR_DrawCinemaScope() {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_UI_BASE)) {
+            if (oSCR_DrawCinemaScope) oSCR_DrawCinemaScope();
+            return;
+        }
         ::hkSCR_DrawCinemaScope(oSCR_DrawCinemaScope);
     }
 }
 
 namespace detour_SCR_DrawCinematicString {
     void __cdecl hkSCR_DrawCinematicString(int speed, int x, int y) {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_UI_BASE)) {
+            if (oSCR_DrawCinematicString) oSCR_DrawCinematicString(speed, x, y);
+            return;
+        }
         ::hkSCR_DrawCinematicString(speed, x, y, oSCR_DrawCinematicString);
     }
 }
 
 namespace detour_SCR_DrawPause {
     void __cdecl hkSCR_DrawPause() {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_UI_BASE)) {
+            if (oSCR_DrawPause) oSCR_DrawPause();
+            return;
+        }
         ::hkSCR_DrawPause(oSCR_DrawPause);
     }
 }
 
 namespace detour_SCR_DrawPlayerInfo {
     void __cdecl hkSCR_DrawPlayerInfo() {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON)) {
+            if (oSCR_DrawPlayerInfo) oSCR_DrawPlayerInfo();
+            return;
+        }
         ::hkSCR_DrawPlayerInfo(oSCR_DrawPlayerInfo);
     }
 }
 
 namespace detour_SCR_ExecuteLayoutString {
     void __cdecl hkSCR_ExecuteLayoutString(char* text) {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
+            if (oSCR_ExecuteLayoutString) oSCR_ExecuteLayoutString(text);
+            return;
+        }
         ::hkSCR_ExecuteLayoutString(text, oSCR_ExecuteLayoutString);
     }
 }
@@ -1087,12 +1172,20 @@ namespace detour_Sys_GetGameApi {
 
 namespace detour_Sys_Milliseconds {
     int __cdecl hkSys_Milliseconds() {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_MEDIA_TIMERS)) {
+            if (oSys_Milliseconds) return oSys_Milliseconds();
+            return {};
+        }
         return ::sys_milliseconds_override_callback(oSys_Milliseconds);
     }
 }
 
 namespace detour_Sys_SendKeyEvents {
     void __cdecl hkSys_SendKeyEvents() {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_RAW_MOUSE)) {
+            if (oSys_SendKeyEvents) oSys_SendKeyEvents();
+            return;
+        }
         ::sys_sendkeyevents_override_callback(oSys_SendKeyEvents);
     }
 }
@@ -1105,30 +1198,50 @@ namespace detour_VID_LoadRefresh {
 
 namespace detour_cCtfFlag_Draw {
     void __thiscall hkcCtfFlag_Draw(void* self) {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
+            if (ocCtfFlag_Draw) ocCtfFlag_Draw(self);
+            return;
+        }
         ::hkcCtfFlag_Draw(self, ocCtfFlag_Draw);
     }
 }
 
 namespace detour_cDMRanking_Draw {
     void __thiscall hkcDMRanking_Draw(void* self) {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
+            if (ocDMRanking_Draw) ocDMRanking_Draw(self);
+            return;
+        }
         ::hkcDMRanking_Draw(self, ocDMRanking_Draw);
     }
 }
 
 namespace detour_cHealthArmor2_Draw {
     void __thiscall hkcHealthArmor2_Draw(void* self) {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
+            if (ocHealthArmor2_Draw) ocHealthArmor2_Draw(self);
+            return;
+        }
         ::hkcHealthArmor2_Draw(self, ocHealthArmor2_Draw);
     }
 }
 
 namespace detour_cInventory2_And_cGunAmmo2_Draw {
     void __thiscall hkcInventory2_And_cGunAmmo2_Draw(void* self) {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
+            if (ocInventory2_And_cGunAmmo2_Draw) ocInventory2_And_cGunAmmo2_Draw(self);
+            return;
+        }
         ::hkcInventory2_And_cGunAmmo2_Draw(self, ocInventory2_And_cGunAmmo2_Draw);
     }
 }
 
 namespace detour_cMissionStatus_Draw {
     void __thiscall hkcMissionStatus_Draw(void* self) {
+        if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
+            if (ocMissionStatus_Draw) ocMissionStatus_Draw(self);
+            return;
+        }
         ::hkcMissionStatus_Draw(self, ocMissionStatus_Draw);
     }
 }

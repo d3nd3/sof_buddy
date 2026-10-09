@@ -5,10 +5,16 @@
 #include "util.h"
 #include "generated_detours.h"
 #include "../shared.h"
+#include "runtime_features.h"
 
 void hkDraw_CharExtra(float x, float y, float scale, void* palette, int ch,
     detour_Draw_CharExtra::tDraw_CharExtra original) {
     SOFBUDDY_ASSERT(original != nullptr);
+    if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) &&
+        !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
+        original(x, y, scale, palette, ch);
+        return;
+    }
     // TYPEAMATIC / SP_FLAG_TYPEAMATIC -> SCR_DrawCinematicString -> Draw_CharExtra.
     // ref_gl ignores scale for quad size (fixed +8px); scale char positions instead.
     // Anchor Y to the last line. Preserve vanilla bottom margin as a 480p percentage

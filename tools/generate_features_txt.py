@@ -123,10 +123,11 @@ def generate_features_txt(features_dir, output_path, preserve_disabled=True):
     disabled_features = {}
     if preserve_disabled and os.path.exists(output_path):
         disabled_features = read_existing_features_txt(output_path)
-    # Merge with default disabled (but don't override manually disabled)
-    for feature, comment in DEFAULT_DISABLED.items():
-        if feature not in disabled_features:
-            disabled_features[feature] = comment
+    if preserve_disabled:
+        # Merge with default disabled (but don't override manually disabled)
+        for feature, comment in DEFAULT_DISABLED.items():
+            if feature not in disabled_features:
+                disabled_features[feature] = comment
     
     # Build feature list organized by categories
     categorized = {}
@@ -208,6 +209,13 @@ def main():
     project_root = script_dir.parent
     features_dir = project_root / "src" / "features"
     output_path = project_root / "features" / "FEATURES.txt"
+    all_features = "--all" in sys.argv[1:]
+    if "--output" in sys.argv[1:]:
+        index = sys.argv.index("--output")
+        if index + 1 >= len(sys.argv):
+            print("--output requires a path", file=sys.stderr)
+            return 2
+        output_path = Path(sys.argv[index + 1])
     
     if not features_dir.exists():
         print(f"Error: Features directory not found: {features_dir}", file=sys.stderr)
@@ -216,7 +224,7 @@ def main():
     # Create features directory if it doesn't exist
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
-    generate_features_txt(str(features_dir), str(output_path))
+    generate_features_txt(str(features_dir), str(output_path), preserve_disabled=not all_features)
     return 0
 
 if __name__ == "__main__":

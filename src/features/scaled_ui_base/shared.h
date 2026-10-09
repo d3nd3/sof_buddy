@@ -299,6 +299,10 @@ void mutateWidthTokeC_resize(void * toke_c);
 void mutateWidthTokeC_width_height(void * toke_c, char * match);
 void mutateBlankTokeC_width_height(void * toke_c);
 void __thiscall my_master_Draw(void * self);
+extern void (__thiscall *orig_slider_c_Draw)(void * self);
+extern void (__thiscall *orig_loadbox_c_Draw)(void * self);
+extern void (__thiscall *orig_frame_c_Constructor)(void* self, void * menu_c, char * width, char * height, void * frame_name);
+extern char * (__thiscall *ostm_c_ParseStm)(void *self_stm_c, void * toke_c);
 void __thiscall my_slider_c_Draw(void * self);
 void __thiscall my_loadbox_c_Draw(void * self);
 void __thiscall my_vbar_c_Draw(void * self);
@@ -306,7 +310,6 @@ void __thiscall my_frame_c_Constructor(void* self, void * menu_c, char * width, 
 char * __thiscall hkstm_c_ParseStm(void *self_stm_c, void * toke_c);
 char * __thiscall my_rect_c_Parse(void* toke_c, int idx);
 void __thiscall my_stm_c_ParseBlank(void *self_stm_c, void * toke_c);
-const char* get_nth_entry(const char* str, int n);
 #endif
 
 #endif // FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE

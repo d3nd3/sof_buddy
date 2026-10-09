@@ -22,6 +22,8 @@
 #include "generated_detours.h"
 #include "generated_registrations.h"
 #include "feature_config.h"
+#include "feature_list.inc"
+#include "runtime_features.h"
 #if !defined(NDEBUG) && defined(SOFBUDDY_ENABLE_CALLSITE_LOGGER)
 #include "debug/parent_recorder.h"
 #endif
@@ -91,142 +93,22 @@ qboolean cbuf_addlatecommands_override_callback(detour_Cbuf_AddLateCommands::tCb
 // Core hooks are now registered via hooks.json
 
 
-// Feature list command implementation
-// WARNING: When adding a new feature to features/FEATURES.txt, you MUST also
-// add a corresponding entry below (between lines ~60-145). Search for similar
-// entries and add your feature with the same pattern using FEATURE_XXX macro.
-// TODO: Automate this using X-macro pattern to prevent manual sync issues.
 void Cmd_SoFBuddy_ListFeatures_f(void) {
     if (!detour_Com_Printf::oCom_Printf) return;
     
-    PrintOut(PRINT_DEV, "=== SoF Buddy Compiled Features ===\n");
-    
-    // Include the feature config to check which features are enabled
-    #include "feature_config.h"
-    
+    PrintOut(PRINT_DEV, "=== SoF Buddy Features ===\n");
     int feature_count = 0;
     int total_features = 0;
-    
-    #if FEATURE_MEDIA_TIMERS
-    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "media_timers\n");
-    feature_count++;
-    #else
-    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "media_timers\n");
-    #endif
-    total_features++;
-    
-    #if FEATURE_TEXTURE_MAPPING_MIN_MAG
-    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "texture_mapping_min_mag\n");
-    feature_count++;
-    #else
-    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "texture_mapping_min_mag\n");
-    #endif
-    total_features++;
-    
-    #if FEATURE_SCALED_UI_BASE || FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
-    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "scaled_ui (base/con/hud/menu)\n");
-    feature_count++;
-    #else
-    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "scaled_ui (base/con/hud/menu)\n");
-    #endif
-    total_features++;
-    
-    #if FEATURE_HD_TEXTURES
-    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "hd_textures\n");
-    feature_count++;
-    #else
-    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "hd_textures\n");
-    #endif
-    total_features++;
-    
-    #if FEATURE_VSYNC_TOGGLE
-    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "vsync_toggle\n");
-    feature_count++;
-    #else
-    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "vsync_toggle\n");
-    #endif
-    total_features++;
-    
-    #if FEATURE_LIGHTING_BLEND
-    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "lighting_blend\n");
-    feature_count++;
-    #else
-    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "lighting_blend\n");
-    #endif
-    total_features++;
-    
-    #if FEATURE_TEAMICONS_OFFSET
-    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "teamicons_offset\n");
-    feature_count++;
-    #else
-    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "teamicons_offset\n");
-    #endif
-    total_features++;
+    #define PRINT_FEATURE(macro, name, label) do { \
+        const bool enabled = RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_##macro); \
+        PrintOut(PRINT_DEV, "%s[%s] " P_WHITE "%s\n", \
+                 enabled ? P_GREEN : P_RED, enabled ? "ON" : "OFF", name); \
+        feature_count += enabled ? 1 : 0; \
+        total_features++; \
+    } while (0);
+    FEATURE_LIST(PRINT_FEATURE)
+    #undef PRINT_FEATURE
 
-    #if FEATURE_ENTITY_VISUALIZER
-    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "entity_visualizer\n");
-    feature_count++;
-    #else
-    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "entity_visualizer\n");
-    #endif
-    total_features++;
-
-    #if FEATURE_HTTP_MAPS
-    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "http_maps\n");
-    feature_count++;
-    #else
-    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "http_maps\n");
-    #endif
-    total_features++;
-
-    #if FEATURE_INTERNAL_MENUS
-    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "internal_menus\n");
-    feature_count++;
-    #else
-    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "internal_menus\n");
-    #endif
-    total_features++;
-    
-    #if FEATURE_NEW_SYSTEM_BUG
-    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "new_system_bug\n");
-    feature_count++;
-    #else
-    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "new_system_bug\n");
-    #endif
-    total_features++;
-    
-    #if FEATURE_CONSOLE_PROTECTION
-    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "console_protection\n");
-    feature_count++;
-    #else
-    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "console_protection\n");
-    #endif
-    total_features++;
-    
-    #if FEATURE_CL_MAXFPS_SINGLEPLAYER
-    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "cl_maxfps_singleplayer\n");
-    feature_count++;
-    #else
-    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "cl_maxfps_singleplayer\n");
-    #endif
-    total_features++;
-
-    #if FEATURE_CBUF_LIMIT_INCREASE
-    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "cbuf_limit_increase\n");
-    feature_count++;
-    #else
-    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "cbuf_limit_increase\n");
-    #endif
-    total_features++;
-    
-    #if FEATURE_RAW_MOUSE
-    PrintOut(PRINT_DEV, P_GREEN "[ON] " P_WHITE "raw_mouse\n");
-    feature_count++;
-    #else
-    PrintOut(PRINT_DEV, P_RED "[OFF] " P_WHITE "raw_mouse\n");
-    #endif
-    total_features++;
-    
     PrintOut(PRINT_DEV, "Total: " P_GREEN "%d" P_WHITE " active, " P_RED "%d" P_WHITE " disabled (%d total)\n",
              feature_count, total_features - feature_count, total_features);
     PrintOut(PRINT_DEV, "===============================\n");
@@ -237,6 +119,8 @@ void Cmd_SoFBuddy_ListFeatures_f(void) {
 // Earliest initialization function called from DllMain
 void lifecycle_EarlyStartup(void)
 {
+    RuntimeFeatures::Load();
+
     #if defined(GDB) && !defined(NDEBUG)
     extern void sofbuddy_debug_breakpoint(void);
     sofbuddy_debug_breakpoint();

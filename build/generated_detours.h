@@ -13,7 +13,7 @@ namespace detour_GL_BuildPolygonFromSurface {
     extern tGL_BuildPolygonFromSurface oGL_BuildPolygonFromSurface;
     using ManagerType = TypedSharedHookManager<void, void*>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkGL_BuildPolygonFromSurface(void* msurface_s);
 }
 
@@ -40,7 +40,7 @@ namespace detour_R_BlendLightmaps {
     extern tR_BlendLightmaps oR_BlendLightmaps;
     using ManagerType = TypedSharedHookManager<void>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkR_BlendLightmaps();
 }
 
@@ -67,7 +67,7 @@ namespace detour_VID_CheckChanges {
     extern tVID_CheckChanges oVID_CheckChanges;
     using ManagerType = TypedSharedHookManager<void>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkVID_CheckChanges();
 }
 
@@ -94,7 +94,7 @@ namespace detour_FS_InitFilesystem {
     extern tFS_InitFilesystem oFS_InitFilesystem;
     using ManagerType = TypedSharedHookManager<void>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkFS_InitFilesystem();
 }
 
@@ -121,7 +121,7 @@ namespace detour_FS_LoadFile {
     extern tFS_LoadFile oFS_LoadFile;
     using ManagerType = TypedSharedHookManager<int, char*, void**, bool>;
     ManagerType& GetManager();
-    
+
     int __cdecl hkFS_LoadFile(char* path, void** buffer, bool override_pak);
 }
 
@@ -158,7 +158,7 @@ namespace detour_SCR_UpdateScreen {
     extern tSCR_UpdateScreen oSCR_UpdateScreen;
     using ManagerType = TypedSharedHookManager<void, bool>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkSCR_UpdateScreen(bool force);
 }
 
@@ -185,7 +185,7 @@ namespace detour_Cbuf_AddLateCommands {
     extern tCbuf_AddLateCommands oCbuf_AddLateCommands;
     using ManagerType = TypedSharedHookManager<qboolean>;
     ManagerType& GetManager();
-    
+
     qboolean __cdecl hkCbuf_AddLateCommands();
 }
 
@@ -272,7 +272,7 @@ namespace detour_Qcommon_Frame {
     extern tQcommon_Frame oQcommon_Frame;
     using ManagerType = TypedSharedHookManager<void, int>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkQcommon_Frame(int msec);
 }
 
@@ -299,7 +299,7 @@ namespace detour_CL_Precache_f {
     extern tCL_Precache_f oCL_Precache_f;
     using ManagerType = TypedSharedHookManager<void>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkCL_Precache_f();
 }
 
@@ -326,7 +326,7 @@ namespace detour_Reconnect_f {
     extern tReconnect_f oReconnect_f;
     using ManagerType = TypedSharedHookManager<void>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkReconnect_f();
 }
 
@@ -353,7 +353,7 @@ namespace detour_SCR_BeginLoadingPlaque {
     extern tSCR_BeginLoadingPlaque oSCR_BeginLoadingPlaque;
     using ManagerType = TypedSharedHookManager<void, qboolean>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkSCR_BeginLoadingPlaque(qboolean noPlaque);
 }
 
@@ -380,7 +380,7 @@ namespace detour_CL_ParseConfigString {
     extern tCL_ParseConfigString oCL_ParseConfigString;
     using ManagerType = TypedSharedHookManager<void>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkCL_ParseConfigString();
 }
 
@@ -407,7 +407,7 @@ namespace detour_CL_Shutdown {
     extern tCL_Shutdown oCL_Shutdown;
     using ManagerType = TypedSharedHookManager<void>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkCL_Shutdown();
 }
 
@@ -434,7 +434,7 @@ namespace detour_SV_ShutdownGameProgs {
     extern tSV_ShutdownGameProgs oSV_ShutdownGameProgs;
     using ManagerType = TypedSharedHookManager<void>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkSV_ShutdownGameProgs();
 }
 
@@ -461,7 +461,7 @@ namespace detour_Con_DrawNotify {
     extern tCon_DrawNotify oCon_DrawNotify;
     using ManagerType = TypedSharedHookManager<void>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkCon_DrawNotify();
 }
 
@@ -488,7 +488,7 @@ namespace detour_Con_DrawConsole {
     extern tCon_DrawConsole oCon_DrawConsole;
     using ManagerType = TypedSharedHookManager<void, float>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkCon_DrawConsole(float frac);
 }
 
@@ -515,7 +515,7 @@ namespace detour_SCR_DrawPlayerInfo {
     extern tSCR_DrawPlayerInfo oSCR_DrawPlayerInfo;
     using ManagerType = TypedSharedHookManager<void>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkSCR_DrawPlayerInfo();
 }
 
@@ -542,7 +542,7 @@ namespace detour_Con_CheckResize {
     extern tCon_CheckResize oCon_CheckResize;
     using ManagerType = TypedSharedHookManager<void>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkCon_CheckResize();
 }
 
@@ -569,7 +569,7 @@ namespace detour_Con_Init {
     extern tCon_Init oCon_Init;
     using ManagerType = TypedSharedHookManager<void>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkCon_Init();
 }
 
@@ -596,7 +596,7 @@ namespace detour_SCR_ExecuteLayoutString {
     extern tSCR_ExecuteLayoutString oSCR_ExecuteLayoutString;
     using ManagerType = TypedSharedHookManager<void, char*>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkSCR_ExecuteLayoutString(char* text);
 }
 
@@ -623,7 +623,7 @@ namespace detour_SCR_CenterPrint {
     extern tSCR_CenterPrint oSCR_CenterPrint;
     using ManagerType = TypedSharedHookManager<void, char*>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkSCR_CenterPrint(char* str);
 }
 
@@ -650,7 +650,7 @@ namespace detour_SCR_DrawPause {
     extern tSCR_DrawPause oSCR_DrawPause;
     using ManagerType = TypedSharedHookManager<void>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkSCR_DrawPause();
 }
 
@@ -677,7 +677,7 @@ namespace detour_SCR_DrawCenterPrint {
     extern tSCR_DrawCenterPrint oSCR_DrawCenterPrint;
     using ManagerType = TypedSharedHookManager<void>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkSCR_DrawCenterPrint();
 }
 
@@ -704,7 +704,7 @@ namespace detour_SCR_DrawCinematicString {
     extern tSCR_DrawCinematicString oSCR_DrawCinematicString;
     using ManagerType = TypedSharedHookManager<void, int, int, int>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkSCR_DrawCinematicString(int speed, int x, int y);
 }
 
@@ -731,7 +731,7 @@ namespace detour_SCR_DrawCinemaScope {
     extern tSCR_DrawCinemaScope oSCR_DrawCinemaScope;
     using ManagerType = TypedSharedHookManager<void>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkSCR_DrawCinemaScope();
 }
 
@@ -758,7 +758,7 @@ namespace detour_cInventory2_And_cGunAmmo2_Draw {
     extern tcInventory2_And_cGunAmmo2_Draw ocInventory2_And_cGunAmmo2_Draw;
     using ManagerType = TypedSharedHookManager<void, void*>;
     ManagerType& GetManager();
-    
+
     void __thiscall hkcInventory2_And_cGunAmmo2_Draw(void* self);
 }
 
@@ -785,7 +785,7 @@ namespace detour_cHealthArmor2_Draw {
     extern tcHealthArmor2_Draw ocHealthArmor2_Draw;
     using ManagerType = TypedSharedHookManager<void, void*>;
     ManagerType& GetManager();
-    
+
     void __thiscall hkcHealthArmor2_Draw(void* self);
 }
 
@@ -812,7 +812,7 @@ namespace detour_cMissionStatus_Draw {
     extern tcMissionStatus_Draw ocMissionStatus_Draw;
     using ManagerType = TypedSharedHookManager<void, void*>;
     ManagerType& GetManager();
-    
+
     void __thiscall hkcMissionStatus_Draw(void* self);
 }
 
@@ -839,7 +839,7 @@ namespace detour_cDMRanking_Draw {
     extern tcDMRanking_Draw ocDMRanking_Draw;
     using ManagerType = TypedSharedHookManager<void, void*>;
     ManagerType& GetManager();
-    
+
     void __thiscall hkcDMRanking_Draw(void* self);
 }
 
@@ -866,7 +866,7 @@ namespace detour_cCtfFlag_Draw {
     extern tcCtfFlag_Draw ocCtfFlag_Draw;
     using ManagerType = TypedSharedHookManager<void, void*>;
     ManagerType& GetManager();
-    
+
     void __thiscall hkcCtfFlag_Draw(void* self);
 }
 
@@ -893,7 +893,7 @@ namespace detour_Draw_CharExtra {
     extern tDraw_CharExtra oDraw_CharExtra;
     using ManagerType = TypedSharedHookManager<void, float, float, float, void*, int>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkDraw_CharExtra(float x, float y, float scale, void* palette, int ch);
 }
 
@@ -920,7 +920,7 @@ namespace detour_Draw_StretchPic {
     extern tDraw_StretchPic oDraw_StretchPic;
     using ManagerType = TypedSharedHookManager<void, int, int, int, int, int, char*, int>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkDraw_StretchPic(int x, int y, int w, int h, int palette, char* name, int flags);
 }
 
@@ -947,7 +947,7 @@ namespace detour_Draw_Pic {
     extern tDraw_Pic oDraw_Pic;
     using ManagerType = TypedSharedHookManager<void, int, int, char const*, int>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkDraw_Pic(int x, int y, char const* imgname, int palette);
 }
 
@@ -974,7 +974,7 @@ namespace detour_GL_FindImage {
     extern tGL_FindImage oGL_FindImage;
     using ManagerType = TypedSharedHookManager<void*, char*, int, char, char>;
     ManagerType& GetManager();
-    
+
     void* __cdecl hkGL_FindImage(char* filename, int imagetype, char mimap, char allowPicmip);
 }
 
@@ -1001,7 +1001,7 @@ namespace detour_Draw_PicOptions {
     extern tDraw_PicOptions oDraw_PicOptions;
     using ManagerType = TypedSharedHookManager<void, int, int, float, float, int, char*>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int palette, char* name);
 }
 
@@ -1028,7 +1028,7 @@ namespace detour_Draw_CroppedPicOptions {
     extern tDraw_CroppedPicOptions oDraw_CroppedPicOptions;
     using ManagerType = TypedSharedHookManager<void, int, int, int, int, int, int, int, char*>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, int palette, char* name);
 }
 
@@ -1055,7 +1055,7 @@ namespace detour_R_DrawFont {
     extern tR_DrawFont oR_DrawFont;
     using ManagerType = TypedSharedHookManager<void, int, int, char*, int, char*, bool>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkR_DrawFont(int screenX, int screenY, char* text, int colorPalette, char* font, bool rememberLastColor);
 }
 
@@ -1082,7 +1082,7 @@ namespace detour_drawTeamIcons {
     extern tdrawTeamIcons odrawTeamIcons;
     using ManagerType = TypedSharedHookManager<void, float*, char*, char*, int>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkdrawTeamIcons(float* targetPlayerOrigin, char* playerName, char* imageNameTeamIcon, int redOrBlue);
 }
 
@@ -1109,7 +1109,7 @@ namespace detour_M_PushMenu {
     extern tM_PushMenu oM_PushMenu;
     using ManagerType = TypedSharedHookManager<void, char const*, char const*, bool>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkM_PushMenu(char const* menu_file, char const* parentFrame, bool lock_input);
 }
 
@@ -1136,7 +1136,7 @@ namespace detour_CinematicFreeze {
     extern tCinematicFreeze oCinematicFreeze;
     using ManagerType = TypedSharedHookManager<void, bool>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkCinematicFreeze(bool bEnable);
 }
 
@@ -1163,7 +1163,7 @@ namespace detour_Sys_Milliseconds {
     extern tSys_Milliseconds oSys_Milliseconds;
     using ManagerType = TypedSharedHookManager<int>;
     ManagerType& GetManager();
-    
+
     int __cdecl hkSys_Milliseconds();
 }
 
@@ -1190,7 +1190,7 @@ namespace detour_VID_LoadRefresh {
     extern tVID_LoadRefresh oVID_LoadRefresh;
     using ManagerType = TypedSharedHookManager<qboolean, char const*>;
     ManagerType& GetManager();
-    
+
     qboolean __cdecl hkVID_LoadRefresh(char const* name);
 }
 
@@ -1217,7 +1217,7 @@ namespace detour_Sys_GetGameApi {
     extern tSys_GetGameApi oSys_GetGameApi;
     using ManagerType = TypedSharedHookManager<void*, void*>;
     ManagerType& GetManager();
-    
+
     void* __cdecl hkSys_GetGameApi(void* imports);
 }
 
@@ -1244,7 +1244,7 @@ namespace detour_Sys_SendKeyEvents {
     extern tSys_SendKeyEvents oSys_SendKeyEvents;
     using ManagerType = TypedSharedHookManager<void>;
     ManagerType& GetManager();
-    
+
     void __cdecl hkSys_SendKeyEvents();
 }
 
@@ -1311,7 +1311,7 @@ namespace detour_GetCursorPos {
     extern tGetCursorPos oGetCursorPos;
     using ManagerType = TypedSharedHookManager<BOOL, LPPOINT>;
     ManagerType& GetManager();
-    
+
     BOOL __stdcall hkGetCursorPos(LPPOINT lpPoint);
 }
 
@@ -1347,7 +1347,7 @@ namespace detour_DispatchMessageA {
     extern tDispatchMessageA oDispatchMessageA;
     using ManagerType = TypedSharedHookManager<LRESULT, const MSG*>;
     ManagerType& GetManager();
-    
+
     LRESULT __stdcall hkDispatchMessageA(const MSG* msg);
 }
 

@@ -74,7 +74,7 @@ jobs:
       - name: Compile Code
         run: |
           make clean
-          make
+          make universal
 
       - name: Prepare Release
         run: |
@@ -83,9 +83,11 @@ jobs:
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
           cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
-          cp bin/sof_buddy.dll sof_buddy.dll
+          cp bin/sof_buddy-universal.dll sof_buddy.dll
           zip -r release_windows.zip sof_buddy.dll sof_buddy/
-          
+
+          cp release_windows.zip sof_buddy_installer_payload.zip
+          make clean
           rm -f sof_buddy/*.cmd sof_buddy/*.ps1
           cp rsrc/lin_scripts/enable_*.sh sof_buddy/
           cp rsrc/lin_scripts/patch_sof_binary.sh sof_buddy/
@@ -152,10 +154,56 @@ jobs:
           name: debug-windows-xp-artifact
           path: debug_windows_xp.zip
 
+      - name: Upload Windows Installer Payload
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer-payload
+          path: sof_buddy_installer_payload.zip
+
+  installer:
+    needs: [build, version_gate]
+    if: needs.version_gate.outputs.version_changed == 'true'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Installer Payload
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installer-payload
+          path: installer_payload_artifact
+
+      - name: Extract Installer Payload
+        shell: pwsh
+        run: Expand-Archive -Path installer_payload_artifact\sof_buddy_installer_payload.zip -DestinationPath installer\payload -Force
+
+      - name: Set Up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Generate Installer Script
+        run: python tools/generate_installer.py
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress --yes
+
+      - name: Build Windows Installer
+        shell: pwsh
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\sof_buddy.iss'
+
+      - name: Upload Windows Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: installer/output/sof_buddy_setup.exe
+
   # The 'release' job does not need to run in the container.
   # It only handles artifacts, so using ubuntu-latest is fine and efficient.
   release:
-    needs: [build, version_gate]
+    needs: [build, installer, version_gate]
     if: needs.version_gate.outputs.version_changed == 'true'
     runs-on: ubuntu-latest
 
@@ -193,6 +241,12 @@ jobs:
           name: debug-windows-xp-artifact
           path: windows_xp_debug
 
+      - name: Download Windows Installer
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+          path: windows_installer
+
       - name: Read Version
         id: version
         run: |
@@ -220,6 +274,16 @@ jobs:
           asset_path: windows_release/release_windows.zip
           asset_name: release_windows.zip
           asset_content_type: application/zip
+
+      - name: Upload Windows Installer Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: windows_installer/sof_buddy_setup.exe
+          asset_name: sof_buddy_setup.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload Linux Release Asset
         uses: actions/upload-release-asset@v1

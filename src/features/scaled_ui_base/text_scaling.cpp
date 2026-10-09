@@ -30,6 +30,11 @@ int characterIndex = 0;
 
 FontCaller g_currentFontCaller = FontCaller::Unknown;
 
+#ifdef UI_MENU
+int (*oR_Strlen)(char*, char*) = nullptr;
+int (*oR_StrHeight)(char*) = nullptr;
+#endif
+
 void computeTextBottomAnchor(float topLineY, int lineCount, float lineHeight,
     float& bottomY, float& targetBottomY)
 {

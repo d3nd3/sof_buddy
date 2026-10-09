@@ -6,6 +6,7 @@
 #include "generated_detours.h"
 #include "sof_compat.h"
 #include "../shared.h"
+#include "runtime_features.h"
 
 // SCR_DrawCinematicString typematic text buffer (byte_2022FF10 @ SoF.exe+0x22FF10)
 static const void* kCineTypematicBufRva = (const void*)0x0022FF10;
@@ -21,6 +22,11 @@ static int countCineLines(const char* s) {
 
 void hkSCR_DrawCinematicString(int speed, int x, int y, detour_SCR_DrawCinematicString::tSCR_DrawCinematicString original) {
     SOFBUDDY_ASSERT(original != nullptr);
+    if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) &&
+        !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
+        original(speed, x, y);
+        return;
+    }
 
     resetGlVertexQuadState();
     g_activeRenderType = uiRenderType::Cinematic;

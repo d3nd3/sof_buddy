@@ -5,9 +5,15 @@
 #include "util.h"
 #include "generated_detours.h"
 #include "../shared.h"
+#include "runtime_features.h"
 
 void hkSCR_DrawCinemaScope(detour_SCR_DrawCinemaScope::tSCR_DrawCinemaScope original) {
     SOFBUDDY_ASSERT(original != nullptr);
+    if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) &&
+        !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
+        original();
+        return;
+    }
 
     resetGlVertexQuadState();
     g_currentPicCaller = PicCaller::SCR_DrawCinemaScope;

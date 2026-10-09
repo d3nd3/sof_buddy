@@ -8,6 +8,7 @@
 #include "shared.h"
 #include "generated_detours.h"
 #include "generated_registrations.h"
+#include "runtime_features.h"
 
 #if FEATURE_HTTP_MAPS
 #include "features/http_maps/shared.h"
@@ -676,7 +677,7 @@ void internal_menus_PostCvarInit(void) {
     // instead of rendering blank <ctext> rows for unregistered cvars.
     // NOTE: <cinclude> includes when the cvar is non-zero; <cninclude> is its inverse.
     detour_Cvar_Get::oCvar_Get("_sb_internal_feature_entity_visualizer",
-                               FEATURE_ENTITY_VISUALIZER ? "1" : "0", 0, nullptr);
+                               RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_ENTITY_VISUALIZER) ? "1" : "0", 0, nullptr);
 
     create_loading_cvars();
     create_layout_cvars();
