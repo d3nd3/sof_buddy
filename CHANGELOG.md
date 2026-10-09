@@ -1,5 +1,13 @@
 # Changelog
 
+## v8.15
+
+### Installer activation
+
+- The installer now uses the selected SoF directory exactly, automatically runs
+  `enable_sofplus_and_buddy.cmd`, and preserves the original as `SoF.exe.bak`
+  before patching.
+
 ## v8.14
 
 ### Universal Windows installer compiler fix
