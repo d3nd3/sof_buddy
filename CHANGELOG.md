@@ -1,13 +1,19 @@
 # Changelog
 
+## v8.14
+
+### Universal Windows installer compiler fix
+
+- Fixed the generated installer’s Pascal Script constants and binary-string encoding
+  so Inno Setup can compile the universal Windows installer.
+
 ## v8.13
 
 ### Universal Windows installer
 
 - Fixed the generated Inno Setup component defaults so optional features are unchecked
   in the recommended installation while remaining available through custom selection.
-- Replaced unsupported component flags so the universal Windows installer compiles and
-  can be published with the universal release assets.
+- Replaced unsupported component flags with valid Inno Setup component type semantics.
 
 ## v8.11
 

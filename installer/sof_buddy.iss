@@ -1,5 +1,5 @@
 ; Generated from features/FEATURES.txt. Do not edit by hand.
-#define AppVersion "8.13"
+#define AppVersion "8.14"
 
 [Setup]
 AppId={{B0F7F5D4-4A1E-4F4A-A7B4-8CF2E7C9B1A6}}
@@ -66,7 +66,7 @@ const
   FullViolencePassword = 'sof';
   LcgA = 214013;
   LcgC = 2531011;
-  LcgModulus = 4294967296L;
+  LcgModulus = 4294967296;
 
 function GetVolumeInformationW(RootPathName, VolumeNameBuffer: string; VolumeNameSize: Cardinal;
   var VolumeSerialNumber, MaximumComponentLength, FileSystemFlags: Cardinal;
@@ -114,12 +114,12 @@ begin
     if I = Length(FullViolencePassword) then Plain := 0
     else Plain := Ord(FullViolencePassword[I + 1]);
     Ob := (Plain + Integer((Int64(Key) shr ((I and 7) * 8)) and $FF)) and $FF;
-    Result := Result + AnsiChar(Ob);
+    Result := Result + Chr(Ob);
     Hash := (Hash * 2 + Ob) mod LcgModulus;
   end;
   Hash := Hash xor Int64(Key);
   for I := 0 to 3 do
-    Result := Result + AnsiChar(Integer((Hash shr (I * 8)) and $FF));
+    Result := Result + Chr(Integer((Hash shr (I * 8)) and $FF));
 end;
 
 function WriteFullViolence(Serial: Cardinal): Boolean;
