@@ -7,6 +7,7 @@ AppName=SoF Buddy
 AppVersion={#AppVersion}
 AppPublisher=d3nd3
 DefaultDirName={autopf}\Soldier of Fortune
+AppendDefaultDirName=no
 DefaultGroupName=SoF Buddy
 DisableProgramGroupPage=yes
 LicenseFile=..\LICENSE
@@ -173,6 +174,19 @@ begin
       mbError, MB_OK);
 end;
 
+procedure EnableSoFBuddy;
+var
+  ResultCode: Integer;
+  ScriptPath, Parameters: String;
+begin
+  ScriptPath := ExpandConstant('{app}\sof_buddy\enable_sofplus_and_buddy.cmd');
+  Parameters := '/C ""' + ScriptPath + '" -NoPause"';
+  if not Exec(ExpandConstant('{sys}\cmd.exe'), Parameters,
+    ExpandConstant('{app}\sof_buddy'), SW_HIDE, ewWaitUntilTerminated, ResultCode) or (ResultCode <> 0) then
+    MsgBox('Could not enable SoF Buddy automatically. Run enable_sofplus_and_buddy.cmd from the SoF folder.',
+      mbError, MB_OK);
+end;
+
 procedure WriteFeatureConfig;
 var
   Config: String;
@@ -214,6 +228,7 @@ end;
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then begin
+    EnableSoFBuddy;
     WriteFeatureConfig;
     if WizardIsComponentSelected('game_options\full_violence') then
       ApplyFullViolence;

@@ -76,6 +76,13 @@ The update ZIP is applied while SoF is closed. If `features.cfg` is edited
 manually, it is used until saved feature cvars are present; those cvars take
 precedence at the next startup by design.
 
+## Automatic DLL activation
+
+After installation, Setup runs `sof_buddy/enable_sofplus_and_buddy.cmd` against the
+selected `SoF.exe`. The original executable is preserved as `SoF.exe.bak` before
+patching; an existing backup is never overwritten. If activation fails, run the
+same script manually from the SoF folder.
+
 ## Optional installer actions
 
 ### Windows 10+ Application Compatibility Fix

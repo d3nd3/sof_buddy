@@ -1,3 +1,10 @@
+# Arguments: DLL name to load, optionally -NoPause for unattended callers.
+param(
+    [Parameter(Mandatory = $true, Position = 0)]
+    [string]$DllName,
+    [switch]$NoPause
+)
+
 # Function to convert ASCII string to byte array
 function Convert-StringToBytes($asciiString) {
     $encoding = [System.Text.Encoding]::ASCII
@@ -14,13 +21,7 @@ function Write-HexBytes($filePath, $offset, $hexBytes) {
     [IO.File]::WriteAllBytes($filePath, $fileContent)
 }
 
-# must supply a string
-if (-not $args) {
-    Write-Output "Error: string to write is required."
-    Exit 1
-}
-
-Write-Output "Linking SoF.exe to $($args[0])"
+Write-Output "Linking SoF.exe to $DllName"
 
 # Get the script directory using a compatible method
 $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Definition
@@ -37,12 +38,19 @@ if (Test-Path "$binaryFilePath" -PathType Leaf) {
 
 
 $offset = 0x11AD72
-$userAsciiString = $args[0]
+$userAsciiString = $DllName
 $userByteArray = Convert-StringToBytes $userAsciiString
 $userByteArray += 0x00
+
+if (-not (Test-Path "$binaryFilePath.bak" -PathType Leaf)) {
+    Copy-Item -LiteralPath $binaryFilePath -Destination "$binaryFilePath.bak" -ErrorAction Stop
+    Write-Output "Saved original executable to $binaryFilePath.bak"
+}
 
 Write-HexBytes "$binaryFilePath" $offset $userByteArray
 
 Write-Output "Patching completed."
 
-Read-Host -Prompt "Press Enter to exit"
+if (-not $NoPause) {
+    Read-Host -Prompt "Press Enter to exit"
+}

@@ -65,7 +65,8 @@ extraction or feature-enable scripts are needed.
 1. [Download the latest Windows installer](https://github.com/d3nd3/sof_buddy/releases) (`sof_buddy_setup.exe`).
 2. Run it and select the SoF folder containing `SoF.exe`.
 3. Keep **Recommended feature set** or choose **Custom feature selection**, then finish setup.
-4. Launch SoF.
+4. Setup automatically enables SoF Buddy and saves the original as `SoF.exe.bak`.
+5. Launch SoF.
 
 ### Manual installation (Windows/Linux/Wine)
 
