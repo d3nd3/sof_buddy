@@ -55,6 +55,8 @@ def generate(features_path, output_path):
         "AppPublisher=d3nd3",
         "DefaultDirName={autopf}\\Soldier of Fortune",
         "AppendDefaultDirName=no",
+        "DisableDirPage=no",
+        "UsePreviousAppDir=no",
         "DefaultGroupName=SoF Buddy",
         "DisableProgramGroupPage=yes",
         "LicenseFile=..\\LICENSE",

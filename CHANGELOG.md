@@ -1,5 +1,12 @@
 # Changelog
 
+## v8.16
+
+### Installer directory selection
+
+- The installer now always shows the SoF directory picker and no longer reuses a
+  previous installation path automatically.
+
 ## v8.15
 
 ### Installer activation

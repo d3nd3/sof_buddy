@@ -1,5 +1,5 @@
 ; Generated from features/FEATURES.txt. Do not edit by hand.
-#define AppVersion "8.15"
+#define AppVersion "8.16"
 
 [Setup]
 AppId={{B0F7F5D4-4A1E-4F4A-A7B4-8CF2E7C9B1A6}}
@@ -8,6 +8,8 @@ AppVersion={#AppVersion}
 AppPublisher=d3nd3
 DefaultDirName={autopf}\Soldier of Fortune
 AppendDefaultDirName=no
+DisableDirPage=no
+UsePreviousAppDir=no
 DefaultGroupName=SoF Buddy
 DisableProgramGroupPage=yes
 LicenseFile=..\LICENSE
