@@ -56,9 +56,22 @@
 <details>
 <summary><b>Click to expand</b></summary>
 
-### 1. Get SoF Buddy
+### Recommended: Windows installer (easiest)
 
-- **Option A:** [Download pre-compiled release](https://github.com/d3nd3/sof_buddy/releases)
+For Windows, the installer is the most effortless way to install SoF Buddy: it installs the
+universal DLL, lets you choose features, and writes the runtime selection for you. No manual
+extraction or feature-enable scripts are needed.
+
+1. [Download the latest Windows installer](https://github.com/d3nd3/sof_buddy/releases) (`sof_buddy_setup.exe`).
+2. Run it and select the SoF folder containing `SoF.exe`.
+3. Keep **Recommended feature set** or choose **Custom feature selection**, then finish setup.
+4. Launch SoF.
+
+### Manual installation (Windows/Linux/Wine)
+
+#### 1. Get SoF Buddy
+
+- **Option A:** [Download a pre-compiled release](https://github.com/d3nd3/sof_buddy/releases)
 - **Option B:** Compile from source:
   ```sh
   make               # Release build (optimized)
@@ -69,8 +82,6 @@
   make debug-collect # Debug build with func_parents collection
   ```
   See [docs/DEBUGGING.md](docs/DEBUGGING.md) for details on build configurations.
-- **Option C (Windows):** Run `sof_buddy_setup.exe` from the release and choose your SoF
-  folder and features in the installer.
 
 ### 2. Prepare Your Game Folder
 
@@ -87,8 +98,6 @@
   - `**enable_vanilla.cmd`** → Loads `WSOCK32.dll` (vanilla SoF, no mods)
   - `**update_from_zip.cmd**` → Extract newest downloaded SoF Buddy update zip (`sof_buddy/update/*.zip`) into SoF root
 - SoF Buddy auto-loads `spcl.dll` if present, so it works *with* SoF Plus.
-
-</details>
 
 ### Windows installer features
 
@@ -117,6 +126,8 @@ The optional (off by default) **Enable full violence** setting writes the SoF pa
 values for the volume containing the selected game folder (using the password
 `sof`) for the current Windows user. These per-user settings are left intact if
 SoF Buddy is later uninstalled.
+
+</details>
 
 ---
 
