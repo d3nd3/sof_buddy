@@ -3,6 +3,7 @@
 
 # Directories
 BUILD ?= release
+SOFBUDDY_BUILD_NUMBER ?= local
 FEATURE_SET ?= default
 SDIR = src
 ODIR = obj/$(BUILD)
@@ -16,6 +17,7 @@ FEATURES_TXT = features/FEATURES.txt
 endif
 FEATURE_CONFIG_H = $(BDIR_GEN)/feature_config.h
 FEATURE_LIST_H = $(BDIR_GEN)/feature_list.inc
+BUILD_INFO_H = $(BDIR_GEN)/build_info.h
 DEFAULT_FEATURES_TXT = features/FEATURES.txt
 DEFAULT_FEATURE_LIST_H = $(BDIR_GEN)/default_feature_list.inc
 VERSION_FILE = VERSION
@@ -112,7 +114,7 @@ CALLBACKS_JSON = $(shell find $(SDIR)/features $(SDIR)/core -name "callbacks.jso
 POINTERS_JSON = $(shell find $(SDIR)/features $(SDIR)/core -name "pointers.json" 2>/dev/null || true)
 
 # Default target
-all: $(MENU_DATA_CPP) $(FEATURES_TXT) $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(DEFAULT_FEATURE_LIST_H) $(VERSION_H) $(GENERATED_DETOURS_H) $(GENERATED_DETOURS_CPP) $(GENERATED_REGISTRATIONS_H) $(OUT)
+all: $(MENU_DATA_CPP) $(FEATURES_TXT) $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(DEFAULT_FEATURE_LIST_H) $(VERSION_H) $(BUILD_INFO_H) $(GENERATED_DETOURS_H) $(GENERATED_DETOURS_CPP) $(GENERATED_REGISTRATIONS_H) $(OUT)
 
 FORCE:
 
@@ -208,6 +210,9 @@ $(VERSION_H) $(LEGACY_VERSION_H): $(VERSION_FILE)
 	@echo '#define SOFBUDDY_VERSION "'$$(cat $(VERSION_FILE) | tr -d '\r\n')'"' >> $@
 	@echo "Generated version header with version: $$(cat $(VERSION_FILE) | tr -d '\r\n')"
 
+$(BUILD_INFO_H): FORCE | $(BDIR_GEN)
+	@tmp=$@.tmp; { echo '#pragma once'; echo '#define SOFBUDDY_BUILD_NUMBER "$(SOFBUDDY_BUILD_NUMBER)"'; } > $$tmp; if cmp -s $$tmp $@; then rm $$tmp; else mv $$tmp $@; fi
+
 # Generate hook headers from detours.yaml, FEATURES.txt, and hooks.json files
 $(GENERATED_DETOURS_H): $(DETOURS_YAML) $(FEATURES_TXT) $(GENERATE_HOOKS_PY) $(HOOKS_JSON) $(CALLBACKS_JSON) $(POINTERS_JSON) $(MAKEFILE_LIST) | $(BDIR_GEN)
 	@echo "Generating hook headers from $(DETOURS_YAML)..."
@@ -241,11 +246,11 @@ $(ODIR)/core/runtime_features.o: $(DEFAULT_FEATURE_LIST_H)
 
 $(ODIR)/core/runtime_features.d: $(DEFAULT_FEATURE_LIST_H)
 
-$(ODIR)/%.o: $(SDIR)/%.cpp $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(VERSION_H) $(GENERATED_DETOURS_H) $(GENERATED_REGISTRATIONS_H)
+$(ODIR)/%.o: $(SDIR)/%.cpp $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(VERSION_H) $(BUILD_INFO_H) $(GENERATED_DETOURS_H) $(GENERATED_REGISTRATIONS_H)
 	@mkdir -p $(dir $@)
 	$(CC) -c $(INC) $(DEPFLAGS) -o $@ $< $(CFLAGS)
 
-$(ODIR)/%.d: $(SDIR)/%.cpp $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(VERSION_H) $(GENERATED_DETOURS_H) $(GENERATED_REGISTRATIONS_H)
+$(ODIR)/%.d: $(SDIR)/%.cpp $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(VERSION_H) $(BUILD_INFO_H) $(GENERATED_DETOURS_H) $(GENERATED_REGISTRATIONS_H)
 	@mkdir -p $(dir $@)
 	@$(CC) -MM $(INC) $(CFLAGS) -MP -MT $(ODIR)/$*.o -MF $@ $<
 

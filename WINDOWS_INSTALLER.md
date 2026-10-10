@@ -9,9 +9,12 @@ selected runtime feature set to:
 ```
 
 The initial selections mirror `features/FEATURES.txt`: uncommented feature names
-are enabled and commented feature names are disabled. The installer custom setup
-page exposes the same list. The recommended setup uses the repository defaults;
-the custom setup lets the user choose individual features.
+are enabled and commented feature names are disabled. The custom setup page keeps
+the recommended/tested and un-recommended/unstable split, then groups features
+by type (for example Security Fixes, Bug Fixes, Graphics, Input, and
+Networking). Each type is also a checkbox, while individual features remain
+selectable below it. The recommended setup uses the repository defaults; the
+custom setup lets the user choose categories or individual features.
 
 ## Runtime feature selection
 
@@ -89,12 +92,13 @@ activation fails, run the same script manually from the SoF folder.
 The Windows 10+ compatibility fix is skipped under Wine because it only applies
 to Windows' application-compatibility database.
 
-## Optional installer actions
+## Installation options
 
 ### Windows 10+ Application Compatibility Fix
 
-The checked-by-default **Ensure Windows 10+ Application Compatibility Fix Applied**
-component runs `sof_buddy/patch_windows_compat.ps1` after installation. The
+The checked-by-default **Apply Windows 10+ Application Compatibility fix**
+option on the installer's separate **Select Additional Tasks** page runs
+`sof_buddy/patch_windows_compat.ps1` after installation. The
 script validates that `SoF.exe` is a 32-bit PE with image base `0x20000000`,
 maps virtual address `0x2015F1C0` to the file, verifies the expected
 `Raven Software` string, and zeroes that string. This prevents the Windows
@@ -107,16 +111,18 @@ automatically restore the backup when uninstalled.
 
 ### Full violence
 
-The optional **Enable full violence** component writes the current user's SoF
+The checked-by-default **Unlock full violence** option on the installer's
+separate **Select Additional Tasks** page writes the current user's SoF
 parental-control registry values under:
 
 ```text
 HKCU\Software\Raven Software\SoF
 ```
 
-It derives the values from the volume serial of the selected installation drive
-and uses the password `sof`. The operation is independent of DLL feature
-selection and is not removed by uninstall.
+It is highly recommended when not using SoFPlus's `spcl.dll`. The option derives the
+values from the volume serial of the selected installation drive and uses the
+password `sof`. The operation is independent of DLL feature selection and is
+not removed by uninstall.
 
 ## Building and packaging
 

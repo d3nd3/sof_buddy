@@ -3,8 +3,17 @@
 # Uncommented lines = enabled features  
 # Commented lines (with //) = disabled features
 
-# Core Features (always enabled)
+# Core / Performance Features (always enabled)
 media_timers
+
+# Security Fixes
+console_protection
+
+# Bug Fixes
+new_system_bug
+cl_maxfps_singleplayer
+list_match_fix
+# cbuf_limit_increase  # Deprecated: sofbuddy.cfg persistence replaced config.cfg Cbuf workaround
 
 # Graphics Features
 texture_mapping_min_mag
@@ -15,22 +24,15 @@ hd_textures
 vsync_toggle
 lighting_blend
 
-# Game Features
+# Gameplay Features
 teamicons_offset
 # entity_visualizer  # Map entity tools / wireframes; enable for map study builds
 
-# Network Features
+# Networking Features
 http_maps
 
 # Menu Features
 internal_menus
-list_match_fix
-
-# Bug fixes
-new_system_bug
-console_protection
-cl_maxfps_singleplayer
-# cbuf_limit_increase  # Deprecated: sofbuddy.cfg persistence replaced config.cfg Cbuf workaround
 
 # Input Features
 raw_mouse

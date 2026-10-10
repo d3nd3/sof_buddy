@@ -119,14 +119,15 @@ shown as **Unavailable** when the installed non-universal DLL does not contain a
 feature, and take effect after restarting SoF. On startup, those saved selections
 are read before hooks are registered and synchronized back to
 `sof_buddy/features.cfg`; that file remains the early-startup source of truth.
-It also offers the checked-by-default **Ensure Windows 10+ Application Compatibility
-Fix Applied** option. This verifies the known SoF.exe PE layout, removes the
-`Raven Software` string at `0x2015F1C0`, and saves the original as
-`SoF.exe.sofbuddy.bak`; unsupported executables are left unchanged.
-The optional (off by default) **Enable full violence** setting writes the SoF parental-control
-values for the volume containing the selected game folder (using the password
-`sof`) for the current Windows user. These per-user settings are left intact if
-SoF Buddy is later uninstalled.
+It also offers a separate **Installation options** checkbox page. The checked-by-default
+**Apply Windows 10+ Application Compatibility fix** option verifies the known
+SoF.exe PE layout, removes the `Raven Software` string at `0x2015F1C0`, and
+saves the original as `SoF.exe.sofbuddy.bak`; unsupported executables are left
+unchanged. **Unlock full violence** is also checked by default and is highly
+recommended when not using SoFPlus's `spcl.dll`; it writes the SoF parental-control values
+for the volume containing the selected game folder (using the password `sof`)
+for the current Windows user. These per-user settings are left intact if SoF
+Buddy is later uninstalled.
 
 </details>
 
@@ -298,6 +299,15 @@ them.
 
 - See [OpenGL glBlendFunc docs](https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glBlendFunc.xhtml) for blend values.
 - Cvars with `CVAR_SOFBUDDY_ARCHIVE` persist to `base/sofbuddy.cfg` and are reapplied on startup.
+
+### Server-visible client info
+
+| Cvar | Purpose |
+| ---- | ------- |
+| `_sp_cl_info_sofbuddy` | `windows-<version>-<build>`, `wine-<version>-<build>`, or `universal-<version>-<build>`, sent with client userinfo so a server can identify the SoF Buddy channel. |
+
+The build number is the GitHub Actions run number; local builds use `local`.
+This is informational client metadata, not an anti-cheat signal.
 
 ### Internal (`_sb_internal_`)
 

@@ -1,5 +1,5 @@
 ; Generated from features/FEATURES.txt. Do not edit by hand.
-#define AppVersion "8.17"
+#define AppVersion "8.19"
 
 [Setup]
 AppId={{B0F7F5D4-4A1E-4F4A-A7B4-8CF2E7C9B1A6}}
@@ -32,34 +32,46 @@ Name: "custom"; Description: "Custom feature selection"; Flags: iscustom
 
 [Components]
 Name: "features"; Description: "SoF Buddy features"; Types: full custom; Flags: fixed
-Name: "windows_compatibility"; Description: "Windows compatibility"; Types: full custom
-Name: "windows_compatibility\appcompat_fix"; Description: "Ensure Windows 10+ Application Compatibility Fix Applied"; Types: full custom
-Name: "game_options"; Description: "Game options"; Types: full custom
-Name: "game_options\full_violence"; Description: "Configure SoF parental controls (full violence unlock)"; Types: full custom
 Name: "features\recommended"; Description: "Recommended / tested features"; Types: full custom
-Name: "features\recommended\media_timers"; Description: "Media Timers"; Types: full custom; Flags: fixed
-Name: "features\recommended\texture_mapping_min_mag"; Description: "Texture Mapping Min Mag (Graphics Features)"; Types: full custom
-Name: "features\recommended\scaled_con"; Description: "Scaled Con (Graphics Features)"; Types: full custom
-Name: "features\recommended\scaled_hud"; Description: "Scaled Hud (Graphics Features)"; Types: full custom
-Name: "features\recommended\hd_textures"; Description: "Hd Textures (Graphics Features)"; Types: full custom
-Name: "features\recommended\vsync_toggle"; Description: "Vsync Toggle (Graphics Features)"; Types: full custom
-Name: "features\recommended\lighting_blend"; Description: "Lighting Blend (Graphics Features)"; Types: full custom
-Name: "features\recommended\teamicons_offset"; Description: "Teamicons Offset (Game Features)"; Types: full custom
-Name: "features\recommended\http_maps"; Description: "Http Maps (Network Features)"; Types: full custom
-Name: "features\recommended\internal_menus"; Description: "Internal Menus (Menu Features)"; Types: full custom
-Name: "features\recommended\new_system_bug"; Description: "New System Bug (Bug fixes)"; Types: full custom
-Name: "features\recommended\console_protection"; Description: "Console Protection (Bug fixes)"; Types: full custom
-Name: "features\recommended\cl_maxfps_singleplayer"; Description: "Cl Maxfps Singleplayer (Bug fixes)"; Types: full custom
-Name: "features\recommended\raw_mouse"; Description: "Raw Mouse (Input Features)"; Types: full custom
-Name: "features\optional"; Description: "Un-recommended / unstable features"; Types: full custom; Flags: checkablealone
-Name: "features\optional\scaled_menu"; Description: "Scaled Menu (Graphics Features)"; Types: custom
-Name: "features\optional\entity_visualizer"; Description: "Entity Visualizer (Game Features)"; Types: custom
-Name: "features\optional\cbuf_limit_increase"; Description: "Cbuf Limit Increase (Bug fixes)"; Types: custom
+Name: "features\recommended\core_performance_features_always_enabled"; Description: "Core / Performance Features"; Types: full custom; Flags: fixed
+Name: "features\recommended\core_performance_features_always_enabled\media_timers"; Description: "Media Timers"; Types: full custom; Flags: fixed
+Name: "features\recommended\security_fixes"; Description: "Security Fixes"; Types: full custom
+Name: "features\recommended\security_fixes\console_protection"; Description: "Console Protection"; Types: full custom
+Name: "features\recommended\bug_fixes"; Description: "Bug Fixes"; Types: full custom
+Name: "features\recommended\bug_fixes\new_system_bug"; Description: "New System Bug"; Types: full custom
+Name: "features\recommended\bug_fixes\cl_maxfps_singleplayer"; Description: "Cl Maxfps Singleplayer"; Types: full custom
+Name: "features\recommended\bug_fixes\list_match_fix"; Description: "List Match Fix"; Types: full custom
+Name: "features\recommended\graphics_features"; Description: "Graphics Features"; Types: full custom
+Name: "features\recommended\graphics_features\texture_mapping_min_mag"; Description: "Texture Mapping Min Mag"; Types: full custom
+Name: "features\recommended\graphics_features\scaled_con"; Description: "Scaled Con"; Types: full custom
+Name: "features\recommended\graphics_features\scaled_hud"; Description: "Scaled Hud"; Types: full custom
+Name: "features\recommended\graphics_features\hd_textures"; Description: "Hd Textures"; Types: full custom
+Name: "features\recommended\graphics_features\vsync_toggle"; Description: "Vsync Toggle"; Types: full custom
+Name: "features\recommended\graphics_features\lighting_blend"; Description: "Lighting Blend"; Types: full custom
+Name: "features\recommended\gameplay_features"; Description: "Gameplay Features"; Types: full custom
+Name: "features\recommended\gameplay_features\teamicons_offset"; Description: "Teamicons Offset"; Types: full custom
+Name: "features\recommended\networking_features"; Description: "Networking Features"; Types: full custom
+Name: "features\recommended\networking_features\http_maps"; Description: "Http Maps"; Types: full custom
+Name: "features\recommended\menu_features"; Description: "Menu Features"; Types: full custom
+Name: "features\recommended\menu_features\internal_menus"; Description: "Internal Menus"; Types: full custom
+Name: "features\recommended\input_features"; Description: "Input Features"; Types: full custom
+Name: "features\recommended\input_features\raw_mouse"; Description: "Raw Mouse"; Types: full custom
+Name: "features\optional"; Description: "Un-recommended / unstable features"; Types: custom; Flags: checkablealone
+Name: "features\optional\bug_fixes"; Description: "Bug Fixes"; Types: custom
+Name: "features\optional\bug_fixes\cbuf_limit_increase"; Description: "Cbuf Limit Increase"; Types: custom
+Name: "features\optional\graphics_features"; Description: "Graphics Features"; Types: custom
+Name: "features\optional\graphics_features\scaled_menu"; Description: "Scaled Menu"; Types: custom
+Name: "features\optional\gameplay_features"; Description: "Gameplay Features"; Types: custom
+Name: "features\optional\gameplay_features\entity_visualizer"; Description: "Entity Visualizer"; Types: custom
+
+[Tasks]
+Name: "appcompat_fix"; Description: "Apply Windows 10+ Application Compatibility fix (recommended)"; GroupDescription: "Installation options:"
+Name: "full_violence"; Description: "Unlock full violence (highly recommended if not using SoFPlus spcl.dll)"; GroupDescription: "Installation options:"
 
 [Files]
 Source: "payload\sof_buddy.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "payload\sof_buddy\*"; DestDir: "{app}\sof_buddy"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\rsrc\win_scripts\patch_windows_compat.ps1"; DestDir: "{app}\sof_buddy"; Components: windows_compatibility\appcompat_fix; Flags: ignoreversion
+Source: "..\rsrc\win_scripts\patch_windows_compat.ps1"; DestDir: "{app}\sof_buddy"; Tasks: appcompat_fix; Flags: ignoreversion
 
 [UninstallDelete]
 Type: files; Name: "{app}\sof_buddy\features.cfg"
@@ -77,7 +89,6 @@ var
   FullViolencePage: TInputQueryWizardPage;
   FullViolenceModePage: TInputOptionWizardPage;
   FullViolenceSerial: Cardinal;
-  ViolenceDefaultApplied: Boolean;
 
 function GetVolumeInformationW(RootPathName, VolumeNameBuffer: string; VolumeNameSize: Cardinal;
   var VolumeSerialNumber, MaximumComponentLength, FileSystemFlags: Cardinal;
@@ -289,21 +300,9 @@ begin
     MsgBox('SoF parental settings were written to this Windows/Wine user registry. Restart SoF, open the console at startup, type userinfo, and confirm cl_violence is 0.', mbInformation, MB_OK);
 end;
 
-procedure SelectFullViolenceComponent;
-begin
-  WizardSelectComponents('game_options\full_violence');
-end;
-
-procedure TypesComboChange(Sender: TObject);
-begin
-  if WizardCurPageID = wpSelectComponents then
-    SelectFullViolenceComponent;
-end;
-
 procedure InitializeWizard;
 begin
-  ViolenceDefaultApplied := False;
-  FullViolencePage := CreateInputQueryPage(wpSelectComponents, 'Full Violence',
+  FullViolencePage := CreateInputQueryPage(wpSelectTasks, 'Full Violence',
     'SoF parental controls', 'Enter the password and optional game-drive serial. The registry values are written to the same Windows or Wine user running Setup.');
   FullViolencePage.Add('Password (0 to 31 ASCII characters)', True);
   FullViolencePage.Values[0] := 'sof';
@@ -316,22 +315,12 @@ begin
   FullViolenceModePage.Add('Full violence (unlocked)');
   FullViolenceModePage.Add('Censored');
   FullViolenceModePage.SelectedValueIndex := 0;
-  WizardForm.TypesCombo.OnChange := @TypesComboChange;
-  SelectFullViolenceComponent;
-end;
-
-procedure CurPageChanged(CurPageID: Integer);
-begin
-  if (CurPageID = wpSelectComponents) and not ViolenceDefaultApplied then begin
-    SelectFullViolenceComponent;
-    ViolenceDefaultApplied := True;
-  end;
 end;
 
 function ShouldSkipPage(PageID: Integer): Boolean;
 begin
   Result := ((PageID = FullViolencePage.ID) or (PageID = FullViolenceModePage.ID)) and
-    not WizardIsComponentSelected('game_options\full_violence');
+    not WizardIsTaskSelected('full_violence');
 end;
 
 procedure AddFeatureLine(var Config: String; const Name, Component: String);
@@ -410,23 +399,24 @@ begin
   ForceDirectories(ExpandConstant('{app}\sof_buddy'));
   Config := '// Generated by SoF Buddy Setup.' + #13#10 +
             '// Active lines are enabled; // lines are disabled.' + #13#10#13#10;
-  AddFeatureLine(Config, 'media_timers', 'features\recommended\media_timers');
-  AddFeatureLine(Config, 'texture_mapping_min_mag', 'features\recommended\texture_mapping_min_mag');
-  AddFeatureLine(Config, 'scaled_con', 'features\recommended\scaled_con');
-  AddFeatureLine(Config, 'scaled_hud', 'features\recommended\scaled_hud');
-  AddFeatureLine(Config, 'hd_textures', 'features\recommended\hd_textures');
-  AddFeatureLine(Config, 'vsync_toggle', 'features\recommended\vsync_toggle');
-  AddFeatureLine(Config, 'lighting_blend', 'features\recommended\lighting_blend');
-  AddFeatureLine(Config, 'teamicons_offset', 'features\recommended\teamicons_offset');
-  AddFeatureLine(Config, 'http_maps', 'features\recommended\http_maps');
-  AddFeatureLine(Config, 'internal_menus', 'features\recommended\internal_menus');
-  AddFeatureLine(Config, 'new_system_bug', 'features\recommended\new_system_bug');
-  AddFeatureLine(Config, 'console_protection', 'features\recommended\console_protection');
-  AddFeatureLine(Config, 'cl_maxfps_singleplayer', 'features\recommended\cl_maxfps_singleplayer');
-  AddFeatureLine(Config, 'raw_mouse', 'features\recommended\raw_mouse');
-  AddFeatureLine(Config, 'scaled_menu', 'features\optional\scaled_menu');
-  AddFeatureLine(Config, 'entity_visualizer', 'features\optional\entity_visualizer');
-  AddFeatureLine(Config, 'cbuf_limit_increase', 'features\optional\cbuf_limit_increase');
+  AddFeatureLine(Config, 'media_timers', 'features\recommended\core_performance_features_always_enabled\media_timers');
+  AddFeatureLine(Config, 'console_protection', 'features\recommended\security_fixes\console_protection');
+  AddFeatureLine(Config, 'new_system_bug', 'features\recommended\bug_fixes\new_system_bug');
+  AddFeatureLine(Config, 'cl_maxfps_singleplayer', 'features\recommended\bug_fixes\cl_maxfps_singleplayer');
+  AddFeatureLine(Config, 'list_match_fix', 'features\recommended\bug_fixes\list_match_fix');
+  AddFeatureLine(Config, 'texture_mapping_min_mag', 'features\recommended\graphics_features\texture_mapping_min_mag');
+  AddFeatureLine(Config, 'scaled_con', 'features\recommended\graphics_features\scaled_con');
+  AddFeatureLine(Config, 'scaled_hud', 'features\recommended\graphics_features\scaled_hud');
+  AddFeatureLine(Config, 'hd_textures', 'features\recommended\graphics_features\hd_textures');
+  AddFeatureLine(Config, 'vsync_toggle', 'features\recommended\graphics_features\vsync_toggle');
+  AddFeatureLine(Config, 'lighting_blend', 'features\recommended\graphics_features\lighting_blend');
+  AddFeatureLine(Config, 'teamicons_offset', 'features\recommended\gameplay_features\teamicons_offset');
+  AddFeatureLine(Config, 'http_maps', 'features\recommended\networking_features\http_maps');
+  AddFeatureLine(Config, 'internal_menus', 'features\recommended\menu_features\internal_menus');
+  AddFeatureLine(Config, 'raw_mouse', 'features\recommended\input_features\raw_mouse');
+  AddFeatureLine(Config, 'cbuf_limit_increase', 'features\optional\bug_fixes\cbuf_limit_increase');
+  AddFeatureLine(Config, 'scaled_menu', 'features\optional\graphics_features\scaled_menu');
+  AddFeatureLine(Config, 'entity_visualizer', 'features\optional\gameplay_features\entity_visualizer');
   if not SaveStringToFile(ExpandConstant('{app}\sof_buddy\features.cfg'), Config, False) then
     MsgBox('Could not save the selected feature settings.', mbError, MB_OK);
 end;
@@ -439,7 +429,7 @@ begin
       MsgBox('Choose the Soldier of Fortune folder containing SoF.exe.', mbError, MB_OK);
       Result := False;
     end;
-  if (CurPageID = FullViolencePage.ID) and WizardIsComponentSelected('game_options\full_violence') then begin
+  if (CurPageID = FullViolencePage.ID) and WizardIsTaskSelected('full_violence') then begin
     if not IsValidViolencePassword(FullViolencePage.Values[0]) then begin
       MsgBox('The password must contain 0 to 31 printable ASCII characters.', mbError, MB_OK);
       Result := False;
@@ -457,9 +447,9 @@ begin
   if CurStep = ssPostInstall then begin
     EnableSoFBuddy;
     WriteFeatureConfig;
-    if WizardIsComponentSelected('game_options\full_violence') then
+    if WizardIsTaskSelected('full_violence') then
       ApplyFullViolence;
-    if WizardIsComponentSelected('windows_compatibility\appcompat_fix') then
+    if WizardIsTaskSelected('appcompat_fix') then
       ApplyCompatibilityFix;
   end;
 end;

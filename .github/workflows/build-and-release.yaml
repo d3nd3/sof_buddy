@@ -48,6 +48,8 @@ jobs:
     # Define the container to use for this job's steps
     container:
       image: ubuntu:24.10
+    env:
+      SOFBUDDY_BUILD_NUMBER: ${{ github.run_number }}
 
     steps:
       - name: Install Dependencies

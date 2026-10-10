@@ -9,17 +9,19 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "src/features/internal_menus/menu_library/sof_buddy/features_rows.rmf"
 
 SECTIONS = [
-    ("Core", ["media_timers"]),
+    ("Core / Performance", ["media_timers"]),
+    ("Security Fixes", ["console_protection"]),
+    ("Bug Fixes", [
+        "new_system_bug", "cl_maxfps_singleplayer", "list_match_fix",
+        "cbuf_limit_increase",
+    ]),
     ("Graphics", [
         "texture_mapping_min_mag", "scaled_con", "scaled_hud", "scaled_menu",
         "hd_textures", "vsync_toggle", "lighting_blend",
     ]),
-    ("Game", ["teamicons_offset", "entity_visualizer"]),
-    ("Network", ["http_maps"]),
-    ("Menu", ["internal_menus"]),
-    ("Bug Fixes", [
-        "new_system_bug", "console_protection", "cl_maxfps_singleplayer", "cbuf_limit_increase",
-    ]),
+    ("Gameplay", ["teamicons_offset", "entity_visualizer"]),
+    ("Networking", ["http_maps"]),
+    ("Menus", ["internal_menus"]),
     ("Input", ["raw_mouse"]),
 ]
 

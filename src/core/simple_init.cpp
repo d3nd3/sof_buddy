@@ -13,10 +13,11 @@
 #include "detours.h"
 #include "util.h"
 #include "sof_buddy.h"
-#include <windows.h>
+#include <cstdio>
 
 #include "debug/callsite_classifier.h"
 #include "version.h"
+#include "build_info.h"
 #include "update_command.h"
 #include "sofbuddy_cfg.h"
 #include "generated_detours.h"
@@ -29,6 +30,19 @@
 #endif
 
 void Cmd_SoFBuddy_ListFeatures_f(void);
+
+namespace {
+const char* sofbuddy_client_info(void) {
+#if defined(SOFBUDDY_UNIVERSAL_BUILD)
+    const char* channel = "universal";
+#else
+    const char* channel = is_running_under_wine() ? "wine" : "windows";
+#endif
+    static char value[96];
+    std::snprintf(value, sizeof(value), "%s-%s-%s", channel, SOFBUDDY_VERSION, SOFBUDDY_BUILD_NUMBER);
+    return value;
+}
+}
 
 // Override callback for FS_InitFilesystem (PreCvarInit lifecycle)
 void fs_initfilesystem_override_callback(detour_FS_InitFilesystem::tFS_InitFilesystem original) {
@@ -73,6 +87,16 @@ qboolean cbuf_addlatecommands_override_callback(detour_Cbuf_AddLateCommands::tCb
         detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_version"), const_cast<char*>(SOFBUDDY_VERSION), true);
     }
     PrintOut(PRINT_DEV, "Registered _sb_internal_version cvar with value: %s\n", SOFBUDDY_VERSION);
+
+    const char* client_info = sofbuddy_client_info();
+    cvar_t* client_info_cvar = detour_Cvar_Get::oCvar_Get(
+        "_sp_cl_info_sofbuddy", client_info, CVAR_USERINFO | CVAR_NOSET, NULL);
+    if (client_info_cvar) {
+        client_info_cvar->flags |= CVAR_USERINFO | CVAR_NOSET;
+        detour_Cvar_Set2::oCvar_Set2(
+            const_cast<char*>("_sp_cl_info_sofbuddy"), const_cast<char*>(client_info), true);
+    }
+    PrintOut(PRINT_DEV, "Registered _sp_cl_info_sofbuddy cvar with value: %s\n", client_info);
 
     PrintOut(PRINT_DEV, "Registering updater state cvars...\n");
     sofbuddy_update_init();

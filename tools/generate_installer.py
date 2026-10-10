@@ -41,6 +41,14 @@ def feature_label(name):
     return name.replace("_", " ").title()
 
 
+def component_label(category):
+    return category.split(" (", 1)[0]
+
+
+def component_name(category):
+    return re.sub(r"[^a-z0-9]+", "_", category.lower()).strip("_")
+
+
 def generate(features_path, output_path):
     categories = read_features(features_path)
     version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
@@ -79,11 +87,6 @@ def generate(features_path, output_path):
         "",
         "[Components]",
         'Name: "features"; Description: "SoF Buddy features"; Types: full custom; Flags: fixed',
-        'Name: "windows_compatibility"; Description: "Windows compatibility"; Types: full custom',
-        'Name: "windows_compatibility\\appcompat_fix"; Description: "Ensure Windows 10+ Application Compatibility Fix Applied"; Types: full custom',
-        'Name: "game_options"; Description: "Game options"; Types: full custom',
-        'Name: "game_options\\full_violence"; Description: "Configure SoF parental controls (full violence unlock)"; '
-        "Types: full custom",
     ]
 
     recommended = []
@@ -94,45 +97,68 @@ def generate(features_path, output_path):
             if core or not disabled:
                 recommended.append((name, category, core))
             else:
-                optional.append((name, category))
+                optional.append((name, category, False))
 
-    lines += [
-        'Name: "features\\recommended"; Description: "Recommended / tested features"; '
-        "Types: full custom",
-    ]
     feature_components = []
-    for name, category, core in recommended:
-        component = f"features\\recommended\\{name}"
-        flags = "; Flags: fixed" if core else ""
-        desc = feature_label(name)
-        if not core:
-            desc = f"{desc} ({category})"
-        lines.append(
-            f'Name: "{component}"; Description: "{desc}"; Types: full custom{flags}'
-        )
-        feature_components.append((name, component))
 
-    if optional:
+    def add_groups(root, description, entries, types, optional_groups=False):
+        if not entries:
+            return
         lines.append(
-            'Name: "features\\optional"; Description: "Un-recommended / unstable features"; '
-            "Types: full custom; Flags: checkablealone"
+            f'Name: "{root}"; Description: "{description}"; Types: {types}'
+            + ("; Flags: checkablealone" if optional_groups else "")
         )
-        for name, category in optional:
-            component = f"features\\optional\\{name}"
-            desc = f"{feature_label(name)} ({category})"
+        groups = []
+        for entry in entries:
+            category = entry[1]
+            if not groups or groups[-1][0] != category:
+                groups.append((category, []))
+            groups[-1][1].append(entry)
+        for category, group_entries in groups:
+            group = f"{root}\\{component_name(category)}"
+            group_flags = "; Flags: fixed" if all(item[-1] for item in group_entries) else ""
             lines.append(
-                f'Name: "{component}"; Description: "{desc}"; Types: custom'
+                f'Name: "{group}"; Description: "{component_label(category)}"; '
+                f"Types: {types}{group_flags}"
             )
-            feature_components.append((name, component))
+            for entry in group_entries:
+                name, _, core = entry
+                component = f"{group}\\{name}"
+                flags = "; Flags: fixed" if core else ""
+                lines.append(
+                    f'Name: "{component}"; Description: "{feature_label(name)}"; '
+                    f"Types: {types}{flags}"
+                )
+                feature_components.append((name, component))
+
+    add_groups(
+        "features\\recommended",
+        "Recommended / tested features",
+        recommended,
+        "full custom",
+    )
+    add_groups(
+        "features\\optional",
+        "Un-recommended / unstable features",
+        optional,
+        "custom",
+        optional_groups=True,
+    )
 
     lines += [
+        "",
+        "[Tasks]",
+        'Name: "appcompat_fix"; Description: "Apply Windows 10+ Application Compatibility fix (recommended)"; '
+        'GroupDescription: "Installation options:"',
+        'Name: "full_violence"; Description: "Unlock full violence (highly recommended if not using SoFPlus spcl.dll)"; '
+        'GroupDescription: "Installation options:"',
         "",
         "[Files]",
         'Source: "payload\\sof_buddy.dll"; DestDir: "{app}"; Flags: ignoreversion',
         'Source: "payload\\sof_buddy\\*"; DestDir: "{app}\\sof_buddy"; '
         "Flags: ignoreversion recursesubdirs createallsubdirs",
         'Source: "..\\rsrc\\win_scripts\\patch_windows_compat.ps1"; '
-        'DestDir: "{app}\\sof_buddy"; Components: windows_compatibility\\appcompat_fix; '
+        'DestDir: "{app}\\sof_buddy"; Tasks: appcompat_fix; '
         "Flags: ignoreversion",
         "",
         "[UninstallDelete]",
@@ -151,7 +177,6 @@ def generate(features_path, output_path):
         "  FullViolencePage: TInputQueryWizardPage;",
         "  FullViolenceModePage: TInputOptionWizardPage;",
         "  FullViolenceSerial: Cardinal;",
-        "  ViolenceDefaultApplied: Boolean;",
         "",
         "function GetVolumeInformationW(RootPathName, VolumeNameBuffer: string; VolumeNameSize: Cardinal;",
         "  var VolumeSerialNumber, MaximumComponentLength, FileSystemFlags: Cardinal;",
@@ -363,21 +388,9 @@ def generate(features_path, output_path):
         "    MsgBox('SoF parental settings were written to this Windows/Wine user registry. Restart SoF, open the console at startup, type userinfo, and confirm cl_violence is 0.', mbInformation, MB_OK);",
         "end;",
         "",
-        "procedure SelectFullViolenceComponent;",
-        "begin",
-        "  WizardSelectComponents('game_options\\full_violence');",
-        "end;",
-        "",
-        "procedure TypesComboChange(Sender: TObject);",
-        "begin",
-        "  if WizardCurPageID = wpSelectComponents then",
-        "    SelectFullViolenceComponent;",
-        "end;",
-        "",
         "procedure InitializeWizard;",
         "begin",
-        "  ViolenceDefaultApplied := False;",
-        "  FullViolencePage := CreateInputQueryPage(wpSelectComponents, 'Full Violence',",
+        "  FullViolencePage := CreateInputQueryPage(wpSelectTasks, 'Full Violence',",
         "    'SoF parental controls', 'Enter the password and optional game-drive serial. The registry values are written to the same Windows or Wine user running Setup.');",
         "  FullViolencePage.Add('Password (0 to 31 ASCII characters)', True);",
         "  FullViolencePage.Values[0] := 'sof';",
@@ -390,22 +403,12 @@ def generate(features_path, output_path):
         "  FullViolenceModePage.Add('Full violence (unlocked)');",
         "  FullViolenceModePage.Add('Censored');",
         "  FullViolenceModePage.SelectedValueIndex := 0;",
-        "  WizardForm.TypesCombo.OnChange := @TypesComboChange;",
-        "  SelectFullViolenceComponent;",
-        "end;",
-        "",
-        "procedure CurPageChanged(CurPageID: Integer);",
-        "begin",
-        "  if (CurPageID = wpSelectComponents) and not ViolenceDefaultApplied then begin",
-        "    SelectFullViolenceComponent;",
-        "    ViolenceDefaultApplied := True;",
-        "  end;",
         "end;",
         "",
         "function ShouldSkipPage(PageID: Integer): Boolean;",
         "begin",
         "  Result := ((PageID = FullViolencePage.ID) or (PageID = FullViolenceModePage.ID)) and",
-        "    not WizardIsComponentSelected('game_options\\full_violence');",
+        "    not WizardIsTaskSelected('full_violence');",
         "end;",
         "",
         "procedure AddFeatureLine(var Config: String; const Name, Component: String);",
@@ -500,7 +503,7 @@ def generate(features_path, output_path):
         "      MsgBox('Choose the Soldier of Fortune folder containing SoF.exe.', mbError, MB_OK);",
         "      Result := False;",
         "    end;",
-        "  if (CurPageID = FullViolencePage.ID) and WizardIsComponentSelected('game_options\\full_violence') then begin",
+        "  if (CurPageID = FullViolencePage.ID) and WizardIsTaskSelected('full_violence') then begin",
         "    if not IsValidViolencePassword(FullViolencePage.Values[0]) then begin",
         "      MsgBox('The password must contain 0 to 31 printable ASCII characters.', mbError, MB_OK);",
         "      Result := False;",
@@ -518,9 +521,9 @@ def generate(features_path, output_path):
         "  if CurStep = ssPostInstall then begin",
         "    EnableSoFBuddy;",
         "    WriteFeatureConfig;",
-        "    if WizardIsComponentSelected('game_options\\full_violence') then",
+        "    if WizardIsTaskSelected('full_violence') then",
         "      ApplyFullViolence;",
-        "    if WizardIsComponentSelected('windows_compatibility\\appcompat_fix') then",
+        "    if WizardIsTaskSelected('appcompat_fix') then",
         "      ApplyCompatibilityFix;",
         "  end;",
         "end;",

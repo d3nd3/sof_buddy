@@ -42,16 +42,22 @@ static void new_system_bug_InitDefaults(void)
 	SOFBUDDY_ASSERT(detour_Cmd_ExecuteString::oCmd_ExecuteString != nullptr);
 	
 	PrintOut(PRINT_LOG, "New System Bug Fix: Applying optimal defaults...\n");
-	
-	// Override with highest quality settings
-	detour_Cmd_ExecuteString::oCmd_ExecuteString("exec drivers/highest.cfg\n");
-	
-	// Fix 1024 high value of fx_maxdebrisonscreen, hurts CPU performance
-	detour_Cmd_ExecuteString::oCmd_ExecuteString("set fx_maxdebrisonscreen 128\n");
-	
-	// Fix compression as default for some GPUs
-	detour_Cmd_ExecuteString::oCmd_ExecuteString("set r_isf GL_SOLID_FORMAT\n");
-	detour_Cmd_ExecuteString::oCmd_ExecuteString("set r_iaf GL_ALPHA_FORMAT\n");
+
+	// R_Init is still building its command buffer here. Append the profile and
+	// overrides together so exec inserts highest.cfg before the safe values.
+	using ref_cmd_execute_text_t = void (__cdecl *)(int, char*);
+	ref_cmd_execute_text_t* cmd_execute_text =
+		reinterpret_cast<ref_cmd_execute_text_t*>(rvaToAbsRef((void*)0x0008FDE4));
+	if (cmd_execute_text && *cmd_execute_text) {
+		char commands[] =
+			"exec drivers/highest.cfg\n"
+			"set fx_maxdebrisonscreen 128\n"
+			"set r_isf GL_SOLID_FORMAT\n"
+			"set r_iaf GL_ALPHA_FORMAT\n";
+		(*cmd_execute_text)(2, commands); // EXEC_APPEND
+	} else {
+		PrintOut(PRINT_BAD, "New System Bug Fix: ref Cmd_ExecuteText unavailable\n");
+	}
 
 	PrintOut(PRINT_DEV, "New System Bug Fix: Optimal defaults applied\n");
 }

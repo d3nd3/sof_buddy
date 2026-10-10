@@ -54,10 +54,14 @@ Game starts
   → Detects "new" hardware (differs from config.cfg)
   → Loads ref.dll
   → new_sys_bug_LoadLibraryRef() intercepts
-  → Executes drivers/highest.cfg
-  → Applies performance fixes
+  → Appends drivers/highest.cfg and the performance fixes in order
+  → Applies the safe overrides after highest.cfg
   → Game runs with optimal settings
 ```
+
+The hook runs while `R_Init` is building the command buffer, so the commands
+must be appended as one ordered block. Otherwise `highest.cfg` can execute
+after an immediate `set fx_maxdebrisonscreen 128` and restore its `1024` value.
 
 ## Configuration
 No CVars - fix is automatically applied when enabled.

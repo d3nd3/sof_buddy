@@ -1,5 +1,29 @@
 # Changelog
 
+## v8.19
+
+### Menu and bug fixes
+
+- Added `list_match_fix`, preserving off-list `<list match>` cvar values
+  instead of resetting them to the first menu entry. The live value is shown
+  and left/right navigation selects the nearest matching value.
+- Classified `list_match_fix` under **Bug Fixes** in the installer and
+  in-game Features menu.
+- Fixed first-run driver defaults so `drivers/highest.cfg` is applied before
+  the safe `fx_maxdebrisonscreen` and renderer overrides.
+
+### Build and installer
+
+- Added `_sp_cl_info_sofbuddy` userinfo metadata in the
+  `windows-<version>-<build>`, `wine-<version>-<build>`, or
+  `universal-<version>-<build>` format.
+- Added GitHub Actions build-number propagation; local builds report `local`.
+- Grouped installer features by purpose inside the recommended/tested and
+  un-recommended/unstable sections.
+- Moved compatibility and full-violence controls to a separate installation
+  options page. Full violence is checked by default and now reports the
+  `userinfo`/`cl_violence 0` verification step.
+
 ## v8.18
 
 ### In-game Features menu

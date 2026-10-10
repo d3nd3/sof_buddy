@@ -14,7 +14,16 @@ from pathlib import Path
 # Feature categories and their order
 # Note: Features ending with _base are automatically excluded (infrastructure features)
 CATEGORIES = {
-    "Core Features (always enabled)": ["media_timers"],
+    "Core / Performance Features (always enabled)": ["media_timers"],
+    "Security Fixes": [
+        "console_protection",
+    ],
+    "Bug Fixes": [
+        "new_system_bug",
+        "cl_maxfps_singleplayer",
+        "list_match_fix",
+        "cbuf_limit_increase",
+    ],
     "Graphics Features": [
         "texture_mapping_min_mag",
         "scaled_con",
@@ -24,21 +33,15 @@ CATEGORIES = {
         "vsync_toggle",
         "lighting_blend",
     ],
-    "Game Features": [
+    "Gameplay Features": [
         "teamicons_offset",
         "entity_visualizer",
     ],
-    "Network Features": [
+    "Networking Features": [
         "http_maps",
     ],
     "Menu Features": [
         "internal_menus",
-    ],
-    "Bug fixes": [
-        "new_system_bug",
-        "console_protection",
-        "cl_maxfps_singleplayer",
-        "cbuf_limit_increase",
     ],
     "Input Features": [
         "raw_mouse",
