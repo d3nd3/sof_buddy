@@ -111,15 +111,20 @@ is display-only); a static
 generated only when `findCvar` proves the cvar exists *and* the game is windowed — bible
 `<cinclude>` tests values, not existence, so it can't do this job); and a mismatch warning (orange, via RMF `<cinclude>` on a
 `_sb_internal_fps_cap_mismatch` flag) that appears only when VSync is on and the display could
-deliver more than the cap allows. `Auto` is match value `923`, a
-off-list value resolves to fallback index 0, the widget writes `"923"`, and `cl_maxfps_change`
-catches it and rounds the pre-reset value (still in `previous_cl_maxfps`) up to the smallest
-listed whole-ms cap that covers it (`142.453` becomes `143`, whose 6.993ms budget fits inside
-7ms) — and `923` can therefore never be held. The widget only resolves
-on re-layout (one step behind, so first paint briefly showed the fallback label), therefore
-opening `sof_buddy/cpu` also pre-quantizes eagerly via `sofbuddy_quantize_cl_maxfps()` before
-parse — first paint already settled, sentinel kept purely as backstop. Every entry is at or above the
-`10` floor. Deliberately no `<slider>` (decimals), no `<input>` (writes every keystroke), no menu
+deliver more than the cap allows. `Auto` is match value `923`.
+With `list_match_fix` on (default), off-list values are preserved: the row
+shows the live cvar string, left-click goes to the next-highest match entry,
+right-click to the next-lowest (numeric leading-double order, else
+case-insensitive lex; wrap at the ends) — so `142.453` shows as-is, left
+goes to `143` (whose 6.993ms budget fits inside 7ms), right to `125`.
+Without the fix, off-list values resolved to fallback index 0, the widget
+wrote `"923"`, and `cl_maxfps_change` rounded the pre-reset value (still in
+`previous_cl_maxfps`) up to the smallest listed whole-ms cap that covers it,
+so `923` could never be held; opening `sof_buddy/cpu` also pre-quantized
+eagerly via `sofbuddy_quantize_cl_maxfps()` before parse so first paint
+showed the settled value instead of the fallback label (still the path when
+the fix is runtime-disabled). Every entry is at or above the `10` floor.
+Deliberately no `<slider>` (decimals), no `<input>` (writes every keystroke), no menu
 path to `0`. `cl_maxfps` is registered by `media_timers`, so picking a cap also retargets
 the sleep/busy-wait budget.
 RMF reference used here is the community RMF bible: `list` + `match` (parallel value list) + `cvar`
@@ -130,12 +135,17 @@ experiments in `User/menus/`:
   resolver returns the raw integer for `cvari` rows, but the normalize step still indexes
   `match[]` with it — the v8.9 `cvari cl_maxfps` row read `match[30]` of 11 entries and crashed
   the CPU tab. (`cvari` *without* `match` is safe: it falls into a clamped path. `cvar` +
-  `match` is safe: bounded `strcmp` scan, fallback index 0. Both proven by the sbtest pages.)
-- A `<list>` must only wrap a cvar whose value domain is confined to its `match` set. The
-  normalize step runs `Cvar_Set(name, match[index])` on layout, so opening the page can reset
-  off-list values; `cl_maxfps` is pre-quantized to a listed whole-ms cap before the page parses.
+  `match` is safe: bounded `strcmp` scan, fallback index 0 without the fix, `-1`
+  (preserved, shown, no `Cvar_Set`) with `list_match_fix`. Both proven by the sbtest pages.)
+- Without `list_match_fix`, a `<list>` must only wrap a cvar whose value domain is
+  confined to its `match` set: the normalize step runs `Cvar_Set(name, match[index])`
+  on layout, so opening the page can reset off-list values to `match[0]`
+  (`cl_maxfps` was pre-quantized to a listed whole-ms cap before the page parsed
+  for exactly this reason). With the fix, off-list `cvar`/`cvari` + `match`
+  values are preserved (`GetMatchedValue` → `-1`, `SetValue` skips,
+  `Draw` shows the live string, `Handle` goes to next-highest/lowest).
   (Entry count itself is irrelevant: the scan is count-bounded, and 16-entry `cl_showfps` /
-  32-entry Crosshair ship.)
+  32-entry Crosshair ship.) See `src/features/list_match_fix/README.md`.
 
 Menus under `menu_library/<name>/` are embedded and served directly from memory via the filesystem hooks.
 

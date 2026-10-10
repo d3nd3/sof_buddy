@@ -1067,3 +1067,54 @@ functions:
         name: wMsgFilterMin
       - type: UINT
         name: wMsgFilterMax
+
+  # ---------------------------------------------------------------------------
+  # list_c menu <list match> unmatched-value preservation (SoF.exe menu lists)
+  # list_c layout (MSVC, SoF.exe 2001, ImageBase 0x20000000):
+  #   +0x50 cvar_t* | +0x9C curIndex (int, -1 = unmatched) | +0xA8 bitmask
+  #   +0xB0/+0xB4 display vector First/Last | +0xC0/+0xC4 match vector First/Last
+  #   element stride 0x10, char* at +4. cvar_t: +0 name, +4 string, +0x18 value.
+  # GetMatchedValue 0x200D3830, SetValue 0x200D3640, Handle 0x200D39E0,
+  # Draw 0x200D3AE0. See src/features/list_match_fix/README.md.
+  # ---------------------------------------------------------------------------
+  - name: List_GetMatchedValue
+    module: SofExe
+    identifier: "0x200D3830"
+    return_type: int
+    calling_convention: __thiscall
+    detour_len: 0
+    params:
+      - type: void*
+        name: self
+
+  - name: List_SetValue
+    module: SofExe
+    identifier: "0x200D3640"
+    return_type: void
+    calling_convention: __thiscall
+    detour_len: 0
+    params:
+      - type: void*
+        name: self
+
+  - name: List_Handle
+    module: SofExe
+    identifier: "0x200D39E0"
+    return_type: int
+    calling_convention: __thiscall
+    detour_len: 0
+    params:
+      - type: void*
+        name: self
+      - type: int
+        name: param
+
+  - name: List_Draw
+    module: SofExe
+    identifier: "0x200D3AE0"
+    return_type: void
+    calling_convention: __thiscall
+    detour_len: 0
+    params:
+      - type: void*
+        name: self

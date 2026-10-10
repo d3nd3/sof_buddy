@@ -820,11 +820,19 @@ void Cmd_SoFBuddy_Menu_f(void) {
     }
 
 #if FEATURE_MEDIA_TIMERS
-    // Settle cl_maxfps before the CPU page parses so first paint shows the real value, not
-    // the list fallback label. The widget only resolves on re-layout, which reads one step
-    // behind (visible "Auto" until refresh) - pre-quantizing here closes that gap. Idempotent.
+    // Pre-quantize cl_maxfps before the CPU page parses (legacy path when
+    // list_match_fix is off: off-list values would otherwise fall back to
+    // index 0/"Auto" and reset to 923). With list_match_fix on, unmatched
+    // values are preserved and shown as-is, so skip the forced quantize.
     if (menu_to_push == "sof_buddy/cpu") {
+#if FEATURE_LIST_MATCH_FIX
+        if (!RuntimeFeatures::Enabled(
+                RuntimeFeatures::Feature::RUNTIME_FEATURE_LIST_MATCH_FIX)) {
+            sofbuddy_quantize_cl_maxfps();
+        }
+#else
         sofbuddy_quantize_cl_maxfps();
+#endif
     }
 #endif
 

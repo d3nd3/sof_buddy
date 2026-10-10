@@ -24,6 +24,7 @@ http_maps
 
 # Menu Features
 internal_menus
+list_match_fix
 
 # Bug fixes
 new_system_bug
