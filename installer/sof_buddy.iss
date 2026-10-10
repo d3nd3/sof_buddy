@@ -35,31 +35,26 @@ Name: "features"; Description: "SoF Buddy features"; Types: full custom; Flags: 
 Name: "windows_compatibility"; Description: "Windows compatibility"; Types: full custom
 Name: "windows_compatibility\appcompat_fix"; Description: "Ensure Windows 10+ Application Compatibility Fix Applied"; Types: full custom
 Name: "game_options"; Description: "Game options"; Types: full custom
-Name: "game_options\full_violence"; Description: "Enable full violence"; Types: custom
-Name: "features\core_features_always_enabled"; Description: "Core Features (always enabled)"; Types: full custom; Flags: fixed
-Name: "features\core_features_always_enabled\media_timers"; Description: "Media Timers"; Types: full custom; Flags: fixed
-Name: "features\graphics_features"; Description: "Graphics Features"; Types: full custom
-Name: "features\graphics_features\texture_mapping_min_mag"; Description: "Texture Mapping Min Mag"; Types: full custom
-Name: "features\graphics_features\scaled_con"; Description: "Scaled Con"; Types: full custom
-Name: "features\graphics_features\scaled_hud"; Description: "Scaled Hud"; Types: full custom
-Name: "features\graphics_features\scaled_menu"; Description: "Scaled Menu"; Types: custom
-Name: "features\graphics_features\hd_textures"; Description: "Hd Textures"; Types: full custom
-Name: "features\graphics_features\vsync_toggle"; Description: "Vsync Toggle"; Types: full custom
-Name: "features\graphics_features\lighting_blend"; Description: "Lighting Blend"; Types: full custom
-Name: "features\game_features"; Description: "Game Features"; Types: full custom
-Name: "features\game_features\teamicons_offset"; Description: "Teamicons Offset"; Types: full custom
-Name: "features\game_features\entity_visualizer"; Description: "Entity Visualizer"; Types: custom
-Name: "features\network_features"; Description: "Network Features"; Types: full custom
-Name: "features\network_features\http_maps"; Description: "Http Maps"; Types: full custom
-Name: "features\menu_features"; Description: "Menu Features"; Types: full custom
-Name: "features\menu_features\internal_menus"; Description: "Internal Menus"; Types: full custom
-Name: "features\bug_fixes"; Description: "Bug fixes"; Types: full custom
-Name: "features\bug_fixes\new_system_bug"; Description: "New System Bug"; Types: full custom
-Name: "features\bug_fixes\console_protection"; Description: "Console Protection"; Types: full custom
-Name: "features\bug_fixes\cl_maxfps_singleplayer"; Description: "Cl Maxfps Singleplayer"; Types: full custom
-Name: "features\bug_fixes\cbuf_limit_increase"; Description: "Cbuf Limit Increase"; Types: custom
-Name: "features\input_features"; Description: "Input Features"; Types: full custom
-Name: "features\input_features\raw_mouse"; Description: "Raw Mouse"; Types: full custom
+Name: "game_options\full_violence"; Description: "Configure SoF parental controls (full violence unlock)"; Types: full custom
+Name: "features\recommended"; Description: "Recommended / tested features"; Types: full custom
+Name: "features\recommended\media_timers"; Description: "Media Timers"; Types: full custom; Flags: fixed
+Name: "features\recommended\texture_mapping_min_mag"; Description: "Texture Mapping Min Mag (Graphics Features)"; Types: full custom
+Name: "features\recommended\scaled_con"; Description: "Scaled Con (Graphics Features)"; Types: full custom
+Name: "features\recommended\scaled_hud"; Description: "Scaled Hud (Graphics Features)"; Types: full custom
+Name: "features\recommended\hd_textures"; Description: "Hd Textures (Graphics Features)"; Types: full custom
+Name: "features\recommended\vsync_toggle"; Description: "Vsync Toggle (Graphics Features)"; Types: full custom
+Name: "features\recommended\lighting_blend"; Description: "Lighting Blend (Graphics Features)"; Types: full custom
+Name: "features\recommended\teamicons_offset"; Description: "Teamicons Offset (Game Features)"; Types: full custom
+Name: "features\recommended\http_maps"; Description: "Http Maps (Network Features)"; Types: full custom
+Name: "features\recommended\internal_menus"; Description: "Internal Menus (Menu Features)"; Types: full custom
+Name: "features\recommended\new_system_bug"; Description: "New System Bug (Bug fixes)"; Types: full custom
+Name: "features\recommended\console_protection"; Description: "Console Protection (Bug fixes)"; Types: full custom
+Name: "features\recommended\cl_maxfps_singleplayer"; Description: "Cl Maxfps Singleplayer (Bug fixes)"; Types: full custom
+Name: "features\recommended\raw_mouse"; Description: "Raw Mouse (Input Features)"; Types: full custom
+Name: "features\optional"; Description: "Un-recommended / unstable features"; Types: full custom; Flags: checkablealone
+Name: "features\optional\scaled_menu"; Description: "Scaled Menu (Graphics Features)"; Types: custom
+Name: "features\optional\entity_visualizer"; Description: "Entity Visualizer (Game Features)"; Types: custom
+Name: "features\optional\cbuf_limit_increase"; Description: "Cbuf Limit Increase (Bug fixes)"; Types: custom
 
 [Files]
 Source: "payload\sof_buddy.dll"; DestDir: "{app}"; Flags: ignoreversion
@@ -72,11 +67,17 @@ Type: files; Name: "{app}\sof_buddy\features.cfg"
 [Code]
 const
   SoFRegistryKey = 'Software\Raven Software\SoF';
-  FullViolencePassword = 'sof';
   LcgA = 214013;
   LcgC = 2531011;
+  LcgInverse = $B9B33155;
   LcgModulus = 4294967296;
   PatchOffset = $11AD72;
+
+var
+  FullViolencePage: TInputQueryWizardPage;
+  FullViolenceModePage: TInputOptionWizardPage;
+  FullViolenceSerial: Cardinal;
+  ViolenceDefaultApplied: Boolean;
 
 function GetVolumeInformationW(RootPathName, VolumeNameBuffer: string; VolumeNameSize: Cardinal;
   var VolumeSerialNumber, MaximumComponentLength, FileSystemFlags: Cardinal;
@@ -113,16 +114,26 @@ begin
   Result := Cardinal(Int64(HighWord) * 65536 + LowWord);
 end;
 
-function EncodeFullViolencePassword(Key: Cardinal): AnsiString;
+function ExpectedParentalValue(Serial: Cardinal; Index: Integer; Censored: Boolean): Cardinal;
+var
+  FirstOutput: Integer;
+begin
+  if Index = 6 then FirstOutput := 26
+  else FirstOutput := Index * 4;
+  if Censored then FirstOutput := FirstOutput + 2;
+  Result := DwordFromWords(LcgOutput(Serial, FirstOutput), LcgOutput(Serial, FirstOutput + 1));
+end;
+
+function EncodeFullViolencePassword(const Password: AnsiString; Key: Cardinal): AnsiString;
 var
   I, Plain, Ob: Integer;
   Hash: Int64;
 begin
   Result := '';
   Hash := 0;
-  for I := 0 to Length(FullViolencePassword) do begin
-    if I = Length(FullViolencePassword) then Plain := 0
-    else Plain := Ord(FullViolencePassword[I + 1]);
+  for I := 0 to Length(Password) do begin
+    if I = Length(Password) then Plain := 0
+    else Plain := Ord(Password[I + 1]);
     Ob := (Plain + Integer((Int64(Key) shr ((I and 7) * 8)) and $FF)) and $FF;
     Result := Result + Chr(Ob);
     Hash := (Hash * 2 + Ob) mod LcgModulus;
@@ -132,33 +143,195 @@ begin
     Result := Result + Chr(Integer((Hash shr (I * 8)) and $FF));
 end;
 
-function WriteFullViolence(Serial: Cardinal): Boolean;
+function WriteFullViolence(Serial: Cardinal; const Password: AnsiString; Censored: Boolean): Boolean;
 var
   Key: Cardinal;
   Blob: AnsiString;
 begin
   Key := DwordFromWords(LcgOutput(Serial, 24), LcgOutput(Serial, 25));
-  Blob := EncodeFullViolencePassword(Key);
+  Blob := EncodeFullViolencePassword(Password, Key);
   if not RegWriteBinaryValue(HKEY_CURRENT_USER, SoFRegistryKey, 'Server', Blob) then begin Result := False; exit; end;
-  if not RegWriteDWordValue(HKEY_CURRENT_USER, SoFRegistryKey, 'Graphics', DwordFromWords(LcgOutput(Serial, 4), LcgOutput(Serial, 5))) then begin Result := False; exit; end;
-  if not RegWriteDWordValue(HKEY_CURRENT_USER, SoFRegistryKey, 'Sound', DwordFromWords(LcgOutput(Serial, 8), LcgOutput(Serial, 9))) then begin Result := False; exit; end;
-  if not RegWriteDWordValue(HKEY_CURRENT_USER, SoFRegistryKey, 'Input', DwordFromWords(LcgOutput(Serial, 12), LcgOutput(Serial, 13))) then begin Result := False; exit; end;
-  if not RegWriteDWordValue(HKEY_CURRENT_USER, SoFRegistryKey, 'Networking', DwordFromWords(LcgOutput(Serial, 16), LcgOutput(Serial, 17))) then begin Result := False; exit; end;
-  if not RegWriteDWordValue(HKEY_CURRENT_USER, SoFRegistryKey, 'Performance', DwordFromWords(LcgOutput(Serial, 20), LcgOutput(Serial, 21))) then begin Result := False; exit; end;
-  Result := RegWriteDWordValue(HKEY_CURRENT_USER, SoFRegistryKey, 'Optimizations', 0);
+  if not RegWriteDWordValue(HKEY_CURRENT_USER, SoFRegistryKey, 'Graphics', ExpectedParentalValue(Serial, 1, Censored)) then begin Result := False; exit; end;
+  if not RegWriteDWordValue(HKEY_CURRENT_USER, SoFRegistryKey, 'Sound', ExpectedParentalValue(Serial, 2, Censored)) then begin Result := False; exit; end;
+  if not RegWriteDWordValue(HKEY_CURRENT_USER, SoFRegistryKey, 'Input', ExpectedParentalValue(Serial, 3, Censored)) then begin Result := False; exit; end;
+  if not RegWriteDWordValue(HKEY_CURRENT_USER, SoFRegistryKey, 'Networking', ExpectedParentalValue(Serial, 4, Censored)) then begin Result := False; exit; end;
+  if not RegWriteDWordValue(HKEY_CURRENT_USER, SoFRegistryKey, 'Performance', ExpectedParentalValue(Serial, 5, Censored)) then begin Result := False; exit; end;
+  Result := RegWriteDWordValue(HKEY_CURRENT_USER, SoFRegistryKey, 'Optimizations', ExpectedParentalValue(Serial, 6, Censored));
+end;
+
+function TryParseVolumeSerial(const Value: String; var Serial: Cardinal): Boolean;
+var
+  HexValue: String;
+  LowWord, HighWord: Integer;
+begin
+  Result := False;
+  HexValue := Uppercase(Trim(Value));
+  if (Length(HexValue) = 9) and (HexValue[5] = '-') then
+    HexValue := Copy(HexValue, 1, 4) + Copy(HexValue, 6, 4);
+  if Length(HexValue) <> 8 then exit;
+  try
+    LowWord := StrToInt('$' + Copy(HexValue, 5, 4));
+    HighWord := StrToInt('$' + Copy(HexValue, 1, 4));
+  except
+    exit;
+  end;
+  Serial := Cardinal(Int64(HighWord) * 65536 + LowWord);
+  Result := True;
+end;
+
+function TryParseHexDword(const Value: String; var Number: Cardinal): Boolean;
+var
+  HexValue: String;
+  LowWord, HighWord: Integer;
+begin
+  Result := False;
+  HexValue := Uppercase(Trim(Value));
+  if (Length(HexValue) >= 2) and (Copy(HexValue, 1, 2) = '0X') then
+    HexValue := Copy(HexValue, 3, Length(HexValue) - 2);
+  if Length(HexValue) <> 8 then exit;
+  try
+    LowWord := StrToInt('$' + Copy(HexValue, 5, 4));
+    HighWord := StrToInt('$' + Copy(HexValue, 1, 4));
+  except
+    exit;
+  end;
+  Number := Cardinal(Int64(HighWord) * 65536 + LowWord);
+  Result := True;
+end;
+
+function IsValidViolencePassword(const Password: String): Boolean;
+var
+  I, Ch: Integer;
+begin
+  Result := False;
+  if Length(Password) > 31 then exit;
+  for I := 1 to Length(Password) do begin
+    Ch := Ord(Password[I]);
+    if (Ch < 32) or (Ch > 126) then exit;
+  end;
+  Result := True;
+end;
+
+function ReverseLcgStep(State: Cardinal): Cardinal;
+var
+  Value, LowProduct, HighProduct: Int64;
+begin
+  Value := (Int64(State) - LcgC + LcgModulus) mod LcgModulus;
+  LowProduct := (Value and $FFFF) * (LcgInverse and $FFFF);
+  HighProduct := (((Value and $FFFF) * (LcgInverse shr 16) +
+    (Value shr 16) * (LcgInverse and $FFFF)) and $FFFF) * 65536;
+  Result := Cardinal((LowProduct + HighProduct) mod LcgModulus);
+end;
+
+function TrySeedFromKey(Key: Cardinal; var Seed: Cardinal; var CandidateCount: Integer): Boolean;
+var
+  LowWord: Integer;
+  KeyLow, KeyHigh, State, NextState, Candidate: Cardinal;
+  I: Integer;
+begin
+  CandidateCount := 0;
+  KeyLow := Key and $FFFF;
+  KeyHigh := (Key shr 16) and $FFFF;
+  for LowWord := 0 to $FFFF do begin
+    State := DwordFromWords(LowWord, KeyLow);
+    NextState := Cardinal((Int64(State) * LcgA + LcgC) mod LcgModulus);
+    if ((NextState shr 16) and $FFFF) = KeyHigh then begin
+      Candidate := State;
+      for I := 1 to 25 do Candidate := ReverseLcgStep(Candidate);
+      Inc(CandidateCount);
+      if CandidateCount = 1 then Seed := Candidate;
+    end;
+  end;
+  Result := CandidateCount > 0;
+end;
+
+function TryResolveFullViolenceSerial(var Serial: Cardinal): Boolean;
+var
+  OverrideValue, KeyValue: String;
+  Key: Cardinal;
+  CandidateCount: Integer;
+begin
+  OverrideValue := Trim(FullViolencePage.Values[1]);
+  if OverrideValue <> '' then begin
+    Result := TryParseVolumeSerial(OverrideValue, Serial);
+    if not Result then
+      MsgBox('Enter the volume serial as XXXX-XXXX, for example 4300-0000.', mbError, MB_OK);
+    exit;
+  end;
+  if GetGameVolumeSerial(Serial) then begin
+    Result := True;
+    exit;
+  end;
+  KeyValue := Trim(FullViolencePage.Values[2]);
+  if KeyValue = '' then begin Result := False; exit; end;
+  if not TryParseHexDword(KeyValue, Key) then begin
+    MsgBox('Enter the SoF.exe -cs key as 8 hexadecimal digits.', mbError, MB_OK);
+    Result := False;
+    exit;
+  end;
+  Result := TrySeedFromKey(Key, Serial, CandidateCount);
+  if Result then begin
+    Log(Format('SoF parental settings: key %8.8x recovered %d serial candidate(s); using %8.8x.', [Key, CandidateCount, Serial]));
+    if CandidateCount > 1 then Log('The -cs key is ambiguous; enter the exact volume serial to select the correct seed.');
+  end;
 end;
 
 procedure ApplyFullViolence;
 var
-  Serial: Cardinal;
+  Password: AnsiString;
+  Censored: Boolean;
 begin
-  if not GetGameVolumeSerial(Serial) then begin
-    MsgBox('Could not read the volume serial for the selected SoF folder; full violence was not applied.',
-      mbError, MB_OK);
-    exit;
+  Password := AnsiString(FullViolencePage.Values[0]);
+  Censored := FullViolenceModePage.SelectedValueIndex = 1;
+  if not WriteFullViolence(FullViolenceSerial, Password, Censored) then
+    MsgBox('Could not write the SoF parental-control registry values.', mbError, MB_OK)
+  else
+    MsgBox('SoF parental settings were written to this Windows/Wine user registry. Restart SoF, open the console at startup, type userinfo, and confirm cl_violence is 0.', mbInformation, MB_OK);
+end;
+
+procedure SelectFullViolenceComponent;
+begin
+  WizardSelectComponents('game_options\full_violence');
+end;
+
+procedure TypesComboChange(Sender: TObject);
+begin
+  if WizardCurPageID = wpSelectComponents then
+    SelectFullViolenceComponent;
+end;
+
+procedure InitializeWizard;
+begin
+  ViolenceDefaultApplied := False;
+  FullViolencePage := CreateInputQueryPage(wpSelectComponents, 'Full Violence',
+    'SoF parental controls', 'Enter the password and optional game-drive serial. The registry values are written to the same Windows or Wine user running Setup.');
+  FullViolencePage.Add('Password (0 to 31 ASCII characters)', True);
+  FullViolencePage.Values[0] := 'sof';
+  FullViolencePage.Add('Volume serial (XXXX-XXXX; blank detects the game drive, then uses the -cs key)', False);
+  FullViolencePage.Values[1] := '';
+  FullViolencePage.Add('SoF.exe -cs key (8 hex digits; fallback if serial detection fails)', False);
+  FullViolencePage.Values[2] := '';
+  FullViolenceModePage := CreateInputOptionPage(FullViolencePage.ID, 'Violence Level',
+    'SoF parental controls', 'Choose the parental-control state to write.', True, False);
+  FullViolenceModePage.Add('Full violence (unlocked)');
+  FullViolenceModePage.Add('Censored');
+  FullViolenceModePage.SelectedValueIndex := 0;
+  WizardForm.TypesCombo.OnChange := @TypesComboChange;
+  SelectFullViolenceComponent;
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if (CurPageID = wpSelectComponents) and not ViolenceDefaultApplied then begin
+    SelectFullViolenceComponent;
+    ViolenceDefaultApplied := True;
   end;
-  if not WriteFullViolence(Serial) then
-    MsgBox('Could not write the SoF parental-control registry values.', mbError, MB_OK);
+end;
+
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := ((PageID = FullViolencePage.ID) or (PageID = FullViolenceModePage.ID)) and
+    not WizardIsComponentSelected('game_options\full_violence');
 end;
 
 procedure AddFeatureLine(var Config: String; const Name, Component: String);
@@ -237,23 +410,23 @@ begin
   ForceDirectories(ExpandConstant('{app}\sof_buddy'));
   Config := '// Generated by SoF Buddy Setup.' + #13#10 +
             '// Active lines are enabled; // lines are disabled.' + #13#10#13#10;
-  AddFeatureLine(Config, 'media_timers', 'features\core_features_always_enabled\media_timers');
-  AddFeatureLine(Config, 'texture_mapping_min_mag', 'features\graphics_features\texture_mapping_min_mag');
-  AddFeatureLine(Config, 'scaled_con', 'features\graphics_features\scaled_con');
-  AddFeatureLine(Config, 'scaled_hud', 'features\graphics_features\scaled_hud');
-  AddFeatureLine(Config, 'scaled_menu', 'features\graphics_features\scaled_menu');
-  AddFeatureLine(Config, 'hd_textures', 'features\graphics_features\hd_textures');
-  AddFeatureLine(Config, 'vsync_toggle', 'features\graphics_features\vsync_toggle');
-  AddFeatureLine(Config, 'lighting_blend', 'features\graphics_features\lighting_blend');
-  AddFeatureLine(Config, 'teamicons_offset', 'features\game_features\teamicons_offset');
-  AddFeatureLine(Config, 'entity_visualizer', 'features\game_features\entity_visualizer');
-  AddFeatureLine(Config, 'http_maps', 'features\network_features\http_maps');
-  AddFeatureLine(Config, 'internal_menus', 'features\menu_features\internal_menus');
-  AddFeatureLine(Config, 'new_system_bug', 'features\bug_fixes\new_system_bug');
-  AddFeatureLine(Config, 'console_protection', 'features\bug_fixes\console_protection');
-  AddFeatureLine(Config, 'cl_maxfps_singleplayer', 'features\bug_fixes\cl_maxfps_singleplayer');
-  AddFeatureLine(Config, 'cbuf_limit_increase', 'features\bug_fixes\cbuf_limit_increase');
-  AddFeatureLine(Config, 'raw_mouse', 'features\input_features\raw_mouse');
+  AddFeatureLine(Config, 'media_timers', 'features\recommended\media_timers');
+  AddFeatureLine(Config, 'texture_mapping_min_mag', 'features\recommended\texture_mapping_min_mag');
+  AddFeatureLine(Config, 'scaled_con', 'features\recommended\scaled_con');
+  AddFeatureLine(Config, 'scaled_hud', 'features\recommended\scaled_hud');
+  AddFeatureLine(Config, 'hd_textures', 'features\recommended\hd_textures');
+  AddFeatureLine(Config, 'vsync_toggle', 'features\recommended\vsync_toggle');
+  AddFeatureLine(Config, 'lighting_blend', 'features\recommended\lighting_blend');
+  AddFeatureLine(Config, 'teamicons_offset', 'features\recommended\teamicons_offset');
+  AddFeatureLine(Config, 'http_maps', 'features\recommended\http_maps');
+  AddFeatureLine(Config, 'internal_menus', 'features\recommended\internal_menus');
+  AddFeatureLine(Config, 'new_system_bug', 'features\recommended\new_system_bug');
+  AddFeatureLine(Config, 'console_protection', 'features\recommended\console_protection');
+  AddFeatureLine(Config, 'cl_maxfps_singleplayer', 'features\recommended\cl_maxfps_singleplayer');
+  AddFeatureLine(Config, 'raw_mouse', 'features\recommended\raw_mouse');
+  AddFeatureLine(Config, 'scaled_menu', 'features\optional\scaled_menu');
+  AddFeatureLine(Config, 'entity_visualizer', 'features\optional\entity_visualizer');
+  AddFeatureLine(Config, 'cbuf_limit_increase', 'features\optional\cbuf_limit_increase');
   if not SaveStringToFile(ExpandConstant('{app}\sof_buddy\features.cfg'), Config, False) then
     MsgBox('Could not save the selected feature settings.', mbError, MB_OK);
 end;
@@ -266,6 +439,17 @@ begin
       MsgBox('Choose the Soldier of Fortune folder containing SoF.exe.', mbError, MB_OK);
       Result := False;
     end;
+  if (CurPageID = FullViolencePage.ID) and WizardIsComponentSelected('game_options\full_violence') then begin
+    if not IsValidViolencePassword(FullViolencePage.Values[0]) then begin
+      MsgBox('The password must contain 0 to 31 printable ASCII characters.', mbError, MB_OK);
+      Result := False;
+    end else if not TryResolveFullViolenceSerial(FullViolenceSerial) then begin
+      if Trim(FullViolencePage.Values[1]) = '' then
+        MsgBox('Could not detect the selected game-drive serial. Under Wine, enter the serial shown by wine cmd /c vol C: (use the same WINEPREFIX as Setup).',
+          mbError, MB_OK);
+      Result := False;
+    end;
+  end;
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

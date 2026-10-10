@@ -20,6 +20,7 @@ rsrc/detours_prebuild.txt
 # Generated version header
 hdr/version.h
 src/features/internal_menus/menu_data.cpp
+src/features/internal_menus/menu_library/sof_buddy/features_rows.rmf
 
 # SDK submodules (these are tracked by git)
 # SDK/

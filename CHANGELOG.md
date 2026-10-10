@@ -1,5 +1,23 @@
 # Changelog
 
+## v8.18
+
+### In-game Features menu
+
+- The Features tab lists only features compiled into the DLL (from
+  `FEATURES.txt`), removing empty layout gaps and the misleading
+  “unavailable features” notice.
+- Feature rows are generated at build time via `tools/generate_features_menu.py`.
+
+### Windows installer
+
+- Parental-control / full-violence setup is selected by default on the
+  components page (still optional).
+- Success text tells users to run `userinfo` at startup and confirm
+  `cl_violence` is `0`.
+- Feature components are grouped into **Recommended / tested** vs
+  **Un-recommended / unstable** (commented-out `FEATURES.txt` entries).
+
 ## v8.17
 
 ### Universal runtime safety and parity

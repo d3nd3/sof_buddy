@@ -28,8 +28,10 @@ GENERATED_REGISTRATIONS_H = $(BDIR_GEN)/generated_registrations.h
 GENERATE_HOOKS_PY = tools/generate_hooks.py
 GENERATE_FEATURES_TXT_PY = tools/generate_features_txt.py
 GENERATE_MENU_EMBED_PY = tools/generate_menu_embed.py
+GENERATE_FEATURES_MENU_PY = tools/generate_features_menu.py
 MENU_DATA_CPP = $(SDIR)/features/internal_menus/menu_data.cpp
 MENU_LIBRARY_DIR = $(SDIR)/features/internal_menus/menu_library
+FEATURES_ROWS_RMF = $(MENU_LIBRARY_DIR)/sof_buddy/features_rows.rmf
 
 # Host toolchain for native utilities (not cross-compiled)
 HOSTCC = g++
@@ -115,7 +117,9 @@ all: $(MENU_DATA_CPP) $(FEATURES_TXT) $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(DE
 FORCE:
 
 SOFBUDDY_RMF_FILES = $(shell find $(MENU_LIBRARY_DIR) -name '*.rmf' 2>/dev/null || true)
-$(MENU_DATA_CPP): $(GENERATE_MENU_EMBED_PY) $(SOFBUDDY_RMF_FILES)
+$(FEATURES_ROWS_RMF): $(FEATURES_TXT) $(GENERATE_FEATURES_MENU_PY)
+	@python3 $(GENERATE_FEATURES_MENU_PY) $(FEATURES_TXT)
+$(MENU_DATA_CPP): $(GENERATE_MENU_EMBED_PY) $(FEATURES_ROWS_RMF) $(SOFBUDDY_RMF_FILES)
 	@python3 $(GENERATE_MENU_EMBED_PY)
 
 # Create build directory

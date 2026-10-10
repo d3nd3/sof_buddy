@@ -25,56 +25,15 @@
 <font type title tint white atint white>
 <text "SOF BUDDY: FEATURES">
 <center>
+<font type title tint cyan atint cyan>
+"_____________________________"
+<hbr>
+<hbr>
 <font type title tint orange atint orange>
 "Restart SoF to apply changes."
-<font type title tint sb_subtle atint sb_subtle>
-"Unavailable features are not included in this DLL."
 <hbr>
-
-<font type title tint cyan atint cyan>
-"Core"
-<font type title tint white atint white>
-<list "Off,On,Unavailable" match "0,1,2" cvar _sofbuddy_feature_media_timers atext "Media Timers : " noshade><br>
-
-<font type title tint cyan atint cyan>
-"Graphics"
-<font type title tint white atint white>
-<list "Off,On,Unavailable" match "0,1,2" cvar _sofbuddy_feature_texture_mapping_min_mag atext "Texture Mapping : " noshade><br>
-<list "Off,On,Unavailable" match "0,1,2" cvar _sofbuddy_feature_scaled_con atext "Scaled Console : " noshade><br>
-<list "Off,On,Unavailable" match "0,1,2" cvar _sofbuddy_feature_scaled_hud atext "Scaled HUD : " noshade><br>
-<list "Off,On,Unavailable" match "0,1,2" cvar _sofbuddy_feature_scaled_menu atext "Scaled Menu : " noshade><br>
-<list "Off,On,Unavailable" match "0,1,2" cvar _sofbuddy_feature_hd_textures atext "HD Textures : " noshade><br>
-<list "Off,On,Unavailable" match "0,1,2" cvar _sofbuddy_feature_vsync_toggle atext "VSync Toggle : " noshade><br>
-<list "Off,On,Unavailable" match "0,1,2" cvar _sofbuddy_feature_lighting_blend atext "Lighting Blend : " noshade><br>
-
-<font type title tint cyan atint cyan>
-"Game"
-<font type title tint white atint white>
-<list "Off,On,Unavailable" match "0,1,2" cvar _sofbuddy_feature_teamicons_offset atext "Team Icons Offset : " noshade><br>
-<list "Off,On,Unavailable" match "0,1,2" cvar _sofbuddy_feature_entity_visualizer atext "Entity Visualizer : " noshade><br>
-
-<font type title tint cyan atint cyan>
-"Network"
-<font type title tint white atint white>
-<list "Off,On,Unavailable" match "0,1,2" cvar _sofbuddy_feature_http_maps atext "HTTP Maps : " noshade><br>
-
-<font type title tint cyan atint cyan>
-"Menu"
-<font type title tint white atint white>
-<list "Off,On,Unavailable" match "0,1,2" cvar _sofbuddy_feature_internal_menus atext "Internal Menus : " noshade><br>
-
-<font type title tint cyan atint cyan>
-"Bug Fixes"
-<font type title tint white atint white>
-<list "Off,On,Unavailable" match "0,1,2" cvar _sofbuddy_feature_new_system_bug atext "New System Bug Fix : " noshade><br>
-<list "Off,On,Unavailable" match "0,1,2" cvar _sofbuddy_feature_console_protection atext "Console Protection : " noshade><br>
-<list "Off,On,Unavailable" match "0,1,2" cvar _sofbuddy_feature_cl_maxfps_singleplayer atext "Singleplayer Max FPS : " noshade><br>
-<list "Off,On,Unavailable" match "0,1,2" cvar _sofbuddy_feature_cbuf_limit_increase atext "Cbuf Limit Increase : " noshade><br>
-
-<font type title tint cyan atint cyan>
-"Input"
-<font type title tint white atint white>
-<list "Off,On,Unavailable" match "0,1,2" cvar _sofbuddy_feature_raw_mouse atext "Raw Mouse : " noshade><br>
+<normal>
+<include sof_buddy/features_rows>
 
 <hbr>
 <text "Close" key mouse1 "popmenu" border 8 1 cyan regular align center>
