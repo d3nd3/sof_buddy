@@ -1,5 +1,17 @@
 # Changelog
 
+## v8.20
+
+### Installer clarity and security
+
+- Marked compatibility and full-violence installation tasks explicitly
+  **[OPTIONAL]**, including the task group and every full-violence input.
+- Full-violence password now defaults to blank; volume serial and `-cs` key
+  fields remain optional with automatic serial detection.
+- Made Core / Performance and Security Fixes fixed installer categories.
+  Security fixes, including `console_protection`, can no longer be unchecked
+  in the feature selection list.
+
 ## v8.19
 
 ### Menu and bug fixes

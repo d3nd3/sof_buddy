@@ -12,9 +12,11 @@ The initial selections mirror `features/FEATURES.txt`: uncommented feature names
 are enabled and commented feature names are disabled. The custom setup page keeps
 the recommended/tested and un-recommended/unstable split, then groups features
 by type (for example Security Fixes, Bug Fixes, Graphics, Input, and
-Networking). Each type is also a checkbox, while individual features remain
-selectable below it. The recommended setup uses the repository defaults; the
-custom setup lets the user choose categories or individual features.
+Networking). Core / Performance and Security Fixes are always selected and
+cannot be unchecked; other types are checkboxes with individually selectable
+features below them. The recommended setup uses the repository defaults; the
+custom setup lets the user choose the optional categories or individual
+features.
 
 ## Runtime feature selection
 
@@ -111,18 +113,20 @@ automatically restore the backup when uninstalled.
 
 ### Full violence
 
-The checked-by-default **Unlock full violence** option on the installer's
-separate **Select Additional Tasks** page writes the current user's SoF
+The checked-by-default **[OPTIONAL] Unlock full violence** option on the
+installer's separate **Select Additional Tasks** page, under the
+**Optional installation options** group, writes the current user's SoF
 parental-control registry values under:
 
 ```text
 HKCU\Software\Raven Software\SoF
 ```
 
-It is highly recommended when not using SoFPlus's `spcl.dll`. The option derives the
-values from the volume serial of the selected installation drive and uses the
-password `sof`. The operation is independent of DLL feature selection and is
-not removed by uninstall.
+It is highly recommended when not using SoFPlus's `spcl.dll`. The password,
+volume serial, and `-cs` key fields are all optional; the password now defaults
+to blank, and the installer detects the game-drive serial automatically when
+possible. The operation is independent of DLL feature selection and is not
+removed by uninstall.
 
 ## Building and packaging
 

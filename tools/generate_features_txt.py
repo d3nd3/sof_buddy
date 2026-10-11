@@ -15,7 +15,7 @@ from pathlib import Path
 # Note: Features ending with _base are automatically excluded (infrastructure features)
 CATEGORIES = {
     "Core / Performance Features (always enabled)": ["media_timers"],
-    "Security Fixes": [
+    "Security Fixes (always enabled)": [
         "console_protection",
     ],
     "Bug Fixes": [

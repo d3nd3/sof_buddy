@@ -119,15 +119,17 @@ shown as **Unavailable** when the installed non-universal DLL does not contain a
 feature, and take effect after restarting SoF. On startup, those saved selections
 are read before hooks are registered and synchronized back to
 `sof_buddy/features.cfg`; that file remains the early-startup source of truth.
-It also offers a separate **Installation options** checkbox page. The checked-by-default
-**Apply Windows 10+ Application Compatibility fix** option verifies the known
+It also offers a separate **Select Additional Tasks** page with an
+**Optional installation options** group. The checked-by-default
+**[OPTIONAL] Apply Windows 10+ Application Compatibility fix** option verifies the known
 SoF.exe PE layout, removes the `Raven Software` string at `0x2015F1C0`, and
 saves the original as `SoF.exe.sofbuddy.bak`; unsupported executables are left
-unchanged. **Unlock full violence** is also checked by default and is highly
-recommended when not using SoFPlus's `spcl.dll`; it writes the SoF parental-control values
-for the volume containing the selected game folder (using the password `sof`)
-for the current Windows user. These per-user settings are left intact if SoF
-Buddy is later uninstalled.
+unchanged. **[OPTIONAL] Unlock full violence** is also checked by default and
+is highly recommended when not using SoFPlus's `spcl.dll`; its password,
+volume-serial, and `-cs` key fields are all optional. It writes the SoF
+parental-control values for the volume containing the selected game folder for
+the current Windows user. These per-user settings are left intact if SoF Buddy
+is later uninstalled.
 
 </details>
 

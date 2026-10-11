@@ -49,6 +49,10 @@ def component_name(category):
     return re.sub(r"[^a-z0-9]+", "_", category.lower()).strip("_")
 
 
+def required_category(category):
+    return "(always enabled)" in category.lower()
+
+
 def generate(features_path, output_path):
     categories = read_features(features_path)
     version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
@@ -92,10 +96,10 @@ def generate(features_path, output_path):
     recommended = []
     optional = []
     for category, features in categories:
-        core = category.lower().startswith("core")
+        required = required_category(category)
         for name, disabled in features:
-            if core or not disabled:
-                recommended.append((name, category, core))
+            if required or not disabled:
+                recommended.append((name, category, required))
             else:
                 optional.append((name, category, False))
 
@@ -148,10 +152,10 @@ def generate(features_path, output_path):
     lines += [
         "",
         "[Tasks]",
-        'Name: "appcompat_fix"; Description: "Apply Windows 10+ Application Compatibility fix (recommended)"; '
-        'GroupDescription: "Installation options:"',
-        'Name: "full_violence"; Description: "Unlock full violence (highly recommended if not using SoFPlus spcl.dll)"; '
-        'GroupDescription: "Installation options:"',
+        'Name: "appcompat_fix"; Description: "[OPTIONAL] Apply Windows 10+ Application Compatibility fix (recommended)"; '
+        'GroupDescription: "Optional installation options:"',
+        'Name: "full_violence"; Description: "[OPTIONAL] Unlock full violence (highly recommended if not using SoFPlus spcl.dll)"; '
+        'GroupDescription: "Optional installation options:"',
         "",
         "[Files]",
         'Source: "payload\\sof_buddy.dll"; DestDir: "{app}"; Flags: ignoreversion',
@@ -390,16 +394,16 @@ def generate(features_path, output_path):
         "",
         "procedure InitializeWizard;",
         "begin",
-        "  FullViolencePage := CreateInputQueryPage(wpSelectTasks, 'Full Violence',",
-        "    'SoF parental controls', 'Enter the password and optional game-drive serial. The registry values are written to the same Windows or Wine user running Setup.');",
-        "  FullViolencePage.Add('Password (0 to 31 ASCII characters)', True);",
-        "  FullViolencePage.Values[0] := 'sof';",
-        "  FullViolencePage.Add('Volume serial (XXXX-XXXX; blank detects the game drive, then uses the -cs key)', False);",
+        "  FullViolencePage := CreateInputQueryPage(wpSelectTasks, 'OPTIONAL full-violence details',",
+        "    'OPTIONAL settings', 'Every field below is optional. Leave fields blank unless you need to override automatic detection.');",
+        "  FullViolencePage.Add('[OPTIONAL] Password (0 to 31 ASCII characters)', True);",
+        "  FullViolencePage.Values[0] := '';",
+        "  FullViolencePage.Add('[OPTIONAL] Volume serial (XXXX-XXXX; blank detects the game drive, then uses the -cs key)', False);",
         "  FullViolencePage.Values[1] := '';",
-        "  FullViolencePage.Add('SoF.exe -cs key (8 hex digits; fallback if serial detection fails)', False);",
+        "  FullViolencePage.Add('[OPTIONAL] SoF.exe -cs key (8 hex digits; only needed if serial detection fails)', False);",
         "  FullViolencePage.Values[2] := '';",
-        "  FullViolenceModePage := CreateInputOptionPage(FullViolencePage.ID, 'Violence Level',",
-        "    'SoF parental controls', 'Choose the parental-control state to write.', True, False);",
+        "  FullViolenceModePage := CreateInputOptionPage(FullViolencePage.ID, 'OPTIONAL violence level',",
+        "    'OPTIONAL settings', 'Choose the optional parental-control state to write.', True, False);",
         "  FullViolenceModePage.Add('Full violence (unlocked)');",
         "  FullViolenceModePage.Add('Censored');",
         "  FullViolenceModePage.SelectedValueIndex := 0;",
