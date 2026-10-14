@@ -52,6 +52,14 @@ void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int pal, char
 
         if (secondDigit) secondDigit = false;
         else secondDigit = true;
+    } else if (g_currentPicOptionsCaller == PicOptionsCaller::spcl_DrawFPS) {
+        float fx = static_cast<float>(x);
+        float fy = static_cast<float>(y);
+        scale_hud_from_top_right(fx, fy, hudScale);
+        x = static_cast<int>(fx);
+        y = static_cast<int>(fy);
+        w_scale = hudScale;
+        h_scale = hudScale;
     }
 
     original(x, y, w_scale, h_scale, pal, name);

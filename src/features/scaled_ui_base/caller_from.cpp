@@ -83,7 +83,10 @@ PicOptionsCaller getPicOptionsCallerFrom(Module m, uint32_t fnStartRva) {
 			}
 		case Module::SpclDll:
 			switch (fnStartRva) {
-				case 0x00003420: return PicOptionsCaller::spcl_DrawFPS;
+				// my_SCR_DrawInterface (SoFPlus OSD FPS digits via specialFontPrint / Draw_PicOptions)
+				case 0x00004130:
+				case 0x00003420:
+					return PicOptionsCaller::spcl_DrawFPS;
 				default: return PicOptionsCaller::Unknown;
 			}
 		case Module::RefDll:

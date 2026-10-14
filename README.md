@@ -287,7 +287,7 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 | `_sofbuddy_update_check_startup` | `1` | Run the updater check at startup and open the internal prompt when a newer release is found. |
 | `_sofbuddy_update_api_url` | build-dependent | Updater JSON feed URL. XP builds default to the sofvault mirror, non-XP to the GitHub API. |
 | `_sofbuddy_update_releases_url` | build-dependent | Human release page URL shown in updater status/help. |
-| `_sofbuddy_update_target_tag` | `latest` | Release tag to install. Refresh the list on the Updates tab after changing. |
+| `_sofbuddy_update_target_tag` | `latest` | Release tag to install. Run `sofbuddy_update releases` to refresh the tag list after changing. |
 | `_sofbuddy_menu_theme` | `0` | Menu color preset (`0` … `37`). Reopen the menu to apply. |
 | `_sofbuddy_loading_lock_input` | `0` | Lock game input while the loading screen is up. `1` locked, `0` unlocked. |
 | `_sofbuddy_loading_show_mapname` | `1` | Show the current map name on the loading screen header. `1` on, `0` off. |
@@ -322,7 +322,7 @@ Written by sof_buddy itself. Values are recomputed each launch, so editing them 
 
 | Cvar | Purpose |
 | ---- | ------- |
-| `_sb_internal_version` | Build version string, reported on the Home tab. |
+| `_sb_internal_version` | Build version string, reported on the Version tab. |
 | `_sb_internal_build_flavour` | Release channel label (Universal, Windows, Linux / Wine, Windows XP, Debug, …). |
 | `_sb_internal_build_number` | CI build number from `SOFBUDDY_BUILD_NUMBER`. |
 | `_sb_internal_tab` / `_sb_internal_menu_last_page` | Remembered tab index and last opened page. |
@@ -333,7 +333,7 @@ Written by sof_buddy itself. Values are recomputed each launch, so editing them 
 | `_sb_internal_font_scale_auto_migrated` / `_sb_internal_hud_scale_auto_migrated` | One-shot guards so the legacy `-1` auto-scale migration runs once. |
 | `_sb_internal_loading_progress` / `_sb_internal_loading_current` / `_sb_internal_loading_status` / `_sb_internal_loading_network` | Runtime loading-screen state and status text. |
 | `_sb_internal_loading_zip_indicator` | Pic path for the loading-screen download indicator. |
-| `_sb_internal_update_status` / `_sb_internal_update_latest` / `_sb_internal_update_download_path` / `_sb_internal_update_downloaded_asset` / `_sb_internal_update_checked_utc` | Updater progress read-outs shown on the Updates tab. |
+| `_sb_internal_update_status` / `_sb_internal_update_latest` / `_sb_internal_update_download_path` / `_sb_internal_update_downloaded_asset` / `_sb_internal_update_checked_utc` | Updater progress read-outs (Version tab and startup prompt). |
 | `_sb_internal_update_release_list_rmf` / `_sb_internal_update_release_list_status` | Generated RMF markup for the release list, plus its load status. |
 | `_sb_internal_feature_entity_visualizer` | Compile-time build flag (`1`/`0`) used by `<cinclude>` to hide menu sections whose feature is not compiled in. |
 | `_sb_internal_feature_master_server_fallback` | Runtime menu gate for the GameSpy master selection control. |

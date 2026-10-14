@@ -2,6 +2,23 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.37
+
+### F12 menu
+
+- Renamed tabs (Version, Cpu, Graphics, Gameplay, WebLinks, General); removed the Updates tab.
+- Features tab section headers layout; Profile GUID tab label fits the tab bar.
+- Web Links: **Server List megalag** and **Server List 333Net**; installer docs wording updates.
+
+### Graphics and HUD
+
+- SoFPlus top-right FPS counter follows **Auto HUD Scale** / `_sofbuddy_hud_scale` when SoFPlus is loaded.
+- Fresh installs (or deleted `config.cfg`) default `gl_mode` to **0** instead of **3** to avoid the community-edition refresh glitch.
+
+### Project
+
+- GitHub issue forms require `_sp_cl_info_sofbuddy` and OS version; repo layout cleanup (`config/`, `scripts/`, `docs/`).
+
 ## v8.36
 
 ### Build and updater

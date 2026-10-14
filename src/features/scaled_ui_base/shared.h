@@ -64,6 +64,16 @@ extern bool g_iconsAutoscale;
 
 // Shared variables
 extern float screen_y_scale;
+
+#if FEATURE_SCALED_HUD
+// Scale HUD coords anchored to the top-right (SoFPlus FPS counter).
+inline void scale_hud_from_top_right(float& x, float& y, float scale) {
+    if (scale == 1.0f) return;
+    const float vw = static_cast<float>(current_vid_w > 0 ? current_vid_w : 640);
+    x = vw - (vw - x) * scale;
+    y = y * scale;
+}
+#endif
 extern int current_vid_w;
 extern int current_vid_h;
 extern int* viddef_width;

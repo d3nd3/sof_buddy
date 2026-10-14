@@ -216,6 +216,11 @@ static void handleDrawPicOptionsVertex(float x, float y) {
         scaleVertexFromScreenCenter(x, y, crosshairScale);
         return;
     }
+    if (g_currentPicOptionsCaller == PicOptionsCaller::spcl_DrawFPS) {
+        scale_hud_from_top_right(x, y, hudScale);
+        orig_glVertex2f(x, y);
+        return;
+    }
     orig_glVertex2f(x, y);
 }
 

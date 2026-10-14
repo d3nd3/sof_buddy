@@ -102,7 +102,7 @@ Callers of `Draw_PicOptions` - used for scaled images with options:
 | `cInterface_DrawNum` | Interface numbers | `0x000065E0` | SoF.exe | Numeric displays |
 | `cDMRanking_CalcXY` | Deathmatch ranking | `0x00007AF0` | SoF.exe | DM scoreboard elements |
 | `SCR_DrawCrosshair` | Crosshair (alternate) | `0x00015DA0` | SoF.exe | Crosshair variant |
-| `spcl_DrawFPS` | FPS counter | `0x00003420` | spcl.dll | FPS display |
+| `spcl_DrawFPS` | FPS counter | `0x00004130` (`my_SCR_DrawInterface`) | spcl.dll | SoFPlus OSD FPS digits |
 
 **Related Files:**
 - `caller_from.h` - Enum definition

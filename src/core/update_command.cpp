@@ -873,7 +873,7 @@ std::string escape_rmf_text_line(std::string line) {
 std::string build_update_prompt_notes_rmf(const std::string& notes_text) {
     std::string rmf = "<font type title tint gray atint gray>";
     if (notes_text.empty()) {
-        rmf += "\"(No release notes in the feed. Open the Updates tab after install for details.)\"<hbr>";
+        rmf += "\"(No release notes in the feed. See Version tab or GitHub releases after install.)\"<hbr>";
         return rmf;
     }
 
@@ -1158,7 +1158,7 @@ void refresh_release_list() {
 
     set_update_status("release list refreshed");
     PrintOut(PRINT_DEV, "Loaded %zu GitHub releases for install-version picker.\n", tags.size());
-    PrintOut(PRINT_DEV, "Run `refresh` in the Updates menu if the list control did not update.\n");
+    PrintOut(PRINT_DEV, "Run `sofbuddy_update releases` if the release list did not update.\n");
 }
 
 bool fetch_target_release(ReleaseInfo& out, std::string& error) {

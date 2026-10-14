@@ -17,6 +17,20 @@ functions:
     detour_len: 0
     params: []
 
+  - name: R_Init
+    module: RefDll
+    identifier: "0x0000F550"
+    return_type: int
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: void*
+        name: hinstance
+      - type: void*
+        name: hWnd
+      - type: void*
+        name: unknown
+
   - name: IN_MouseMove
     module: SofExe
     identifier: "0x0004A1F0"

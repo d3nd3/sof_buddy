@@ -343,7 +343,7 @@ Internal _sb_internal_ cvars are hidden.
 <hbr>
 <hbr>
 <font type title tint white atint white>
-<ctext _sofbuddy_update_target_tag atext "_sofbuddy_update_target_tag : " noshade tip "Install version tag or latest. Refresh list on Updates tab. Default latest."><br>
+<ctext _sofbuddy_update_target_tag atext "_sofbuddy_update_target_tag : " noshade tip "Install version tag or latest. Run sofbuddy_update releases to refresh tags. Default latest."><br>
 <font type title tint gray atint gray>
 "Default latest - Version to install."
 <hbr>

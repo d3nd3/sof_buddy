@@ -444,7 +444,8 @@ void internal_menus_refresh_vid_mode_list_rmf(void) {
         return;
     }
 
-    detour_Cvar_Get::oCvar_Get("gl_mode", "3", 0, nullptr);
+    // Match ref_gl_defaults: default 0, not 3 (community-edition refresh glitch).
+    detour_Cvar_Get::oCvar_Get("gl_mode", "0", 0, nullptr);
 
     std::string rmf = "<list \"";
     rmf += labels;

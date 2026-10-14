@@ -69,16 +69,26 @@ def row(name: str) -> str:
     )
 
 
+def section_header(title: str, first: bool) -> list[str]:
+    out: list[str] = []
+    if not first:
+        out.append("<hbr>")
+    out.append('<font type title tint cyan atint cyan>')
+    out.append(f'<text "{title}" align center border 0 0><hbr>')
+    out.append('<font type title tint white atint white>')
+    return out
+
+
 def generate(features_path: Path) -> str:
     enabled = enabled_features(features_path)
-    lines = []
+    lines: list[str] = []
+    first_section = True
     for section, names in SECTIONS:
         section_rows = [row(n) for n in names if n in enabled]
         if not section_rows:
             continue
-        lines.append('<font type title tint cyan atint cyan>')
-        lines.append(f'"{section}"')
-        lines.append("<font type title tint white atint white>")
+        lines.extend(section_header(section, first_section))
+        first_section = False
         lines.extend(section_rows)
     return "\n".join(lines) + "\n"
 

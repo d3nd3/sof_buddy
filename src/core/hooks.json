@@ -15,6 +15,12 @@
     "override": true
   },
   {
+    "function": "R_Init",
+    "callback": "ref_gl_r_init_pre",
+    "phase": "Pre",
+    "priority": 100
+  },
+  {
     "function": "Sys_GetGameApi",
     "callback": "sys_getgameapi_override_callback",
     "override": true

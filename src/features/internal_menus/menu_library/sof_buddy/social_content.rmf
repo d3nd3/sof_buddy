@@ -23,7 +23,7 @@
 <hbr>
 <hbr>
 <font type title tint white atint white>
-<text "SOF BUDDY: SOCIAL">
+<text "SOF BUDDY: WEB LINKS">
 <center>
 <font type title tint cyan atint cyan>
 "_____________________________"
@@ -35,7 +35,8 @@
 <text "GitHub Issues / Requests" key mouse1 "sofbuddy_openurl https://github.com/d3nd3/sof_buddy/issues" tip "Report bugs or request features." border 8 1 cyan regular align center><br>
 <text "Discord Invite" key mouse1 "sofbuddy_openurl https://discord.com/invite/zZjnsRKPEJ" tip "Join the community Discord." border 8 1 cyan regular align center><br>
 <text "SoF1 Forums" key mouse1 "sofbuddy_openurl https://www.sof1.org/" tip "Community forum hub." border 8 1 cyan regular align center><br>
-<text "Server List" key mouse1 "sofbuddy_openurl https://sof1.megalag.org/server/" tip "Find active multiplayer servers." border 8 1 cyan regular align center><br>
+<text "Server List megalag" key mouse1 "sofbuddy_openurl https://sof1.megalag.org/server/" tip "Find active multiplayer servers (megalag)." border 8 1 cyan regular align center><br>
+<text "Server List 333Net" key mouse1 "sofbuddy_openurl https://master.333networks.com/s/sofretail" tip "333networks retail server browser." border 8 1 cyan regular align center><br>
 
 <font type title tint sb_subtle atint sb_subtle>
 "_____________________________"
