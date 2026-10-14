@@ -40,7 +40,7 @@ detours.yaml    hooks.json files    callbacks.json files    generate_hooks.py
 
 ### Data Files
 
-**`detours.yaml`** - Central registry of all hookable functions
+**`config/detours.yaml`** - Central registry of all hookable functions
 - Defines function signatures, addresses, modules, calling conventions
 - Single source of truth for all detours
 

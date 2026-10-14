@@ -78,7 +78,7 @@ jobs:
       - name: Hash compiler-cache inputs
         id: ccache_inputs
         run: |
-          hash=$(sha256sum makefile detours.yaml features/FEATURES.txt tools/generate_hooks.py \
+          hash=$(sha256sum makefile config/detours.yaml features/FEATURES.txt tools/generate_hooks.py \
             rsrc/win_updater/Makefile rsrc/win_updater/sof_buddy_update.cpp \
             | sha256sum | awk '{print substr($1,1,16)}')
           echo "hash=$hash" >> "$GITHUB_OUTPUT"

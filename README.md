@@ -8,8 +8,8 @@
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey.svg?style=for-the-badge" alt="Platform">
 </p>
 
-![HTTP map download - missing maps fetched on demand](http.png)
-![SoF Buddy in-game menu (F12)](menu.png)
+![HTTP map download - missing maps fetched on demand](docs/images/http.png)
+![SoF Buddy in-game menu (F12)](docs/images/menu.png)
 
 > **A modern enhancement suite for Soldier of Fortune 1 — scaling, fixes, and quality-of-life improvements for the best SoF experience.**
 
@@ -103,7 +103,7 @@ extraction or feature-enable scripts are needed.
 
 ### Windows installer features
 
-See [WINDOWS_INSTALLER.md](WINDOWS_INSTALLER.md) for the complete packaging,
+See [WINDOWS_INSTALLER.md](docs/WINDOWS_INSTALLER.md) for the complete packaging,
 runtime-selection, and updater behavior.
 
 The Windows installer uses one universal DLL and writes the selected features to
@@ -120,17 +120,19 @@ shown as **Unavailable** when the installed non-universal DLL does not contain a
 feature, and take effect after restarting SoF. On startup, those saved selections
 are read before hooks are registered and synchronized back to
 `sof_buddy/features.cfg`; that file remains the early-startup source of truth.
-It also offers a separate **Select Additional Tasks** page with an
-**Optional installation options** group. The checked-by-default
-**[OPTIONAL] Apply Windows 10+ Application Compatibility fix** option verifies the known
-SoF.exe PE layout, removes the `Raven Software` string at `0x2015F1C0`, and
-saves the original as `SoF.exe.sofbuddy.bak`; unsupported executables are left
-unchanged. **[OPTIONAL] Unlock full violence** is also checked by default and
-is highly recommended when not using SoFPlus's `spcl.dll`; its password,
-volume-serial, and `-cs` key fields are all optional. It writes the SoF
-parental-control values for the volume containing the selected game folder for
-the current Windows user. These per-user settings are left intact if SoF Buddy
-is later uninstalled.
+It also offers a **Select Additional Tasks** page with **Optional installation
+options**. Both are checked by default:
+
+- **[OPTIONAL] Apply Windows 10+ Application Compatibility fix** — For a
+  recognized `SoF.exe`, applies the same PE change GOG uses so the game behaves
+  under Windows 10+ application compatibility. The original is saved as
+  `SoF.exe.sofbuddy.bak`. Unrecognized executables are not modified.
+
+- **[OPTIONAL] Unlock full violence** — Recommended when you are not using
+  SoFPlus's `spcl.dll`. Password, volume serial, and `-cs` key are optional.
+  The installer sets SoF parental-control values for the volume that contains
+  the chosen game folder, for the current Windows user only. Uninstalling SoF
+  Buddy does not remove those per-user settings.
 
 </details>
 
@@ -343,7 +345,7 @@ Written by sof_buddy itself. Values are recomputed each launch, so editing them 
 
 ## Releasing (maintainers)
 
-See **[RELEASE_INSTRUCTIONS.md](RELEASE_INSTRUCTIONS.md)** for the full manual guide.
+See **[RELEASE_INSTRUCTIONS.md](docs/RELEASE_INSTRUCTIONS.md)** for the full manual guide.
 
 SoF Buddy uses two version numbers:
 

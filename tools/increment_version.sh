@@ -3,7 +3,8 @@
 # SoF Buddy Version Increment Script
 # Automatically increments the minor version in VERSION file
 
-VERSION_FILE="VERSION"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+VERSION_FILE="$ROOT/VERSION"
 
 # Check if VERSION file exists
 if [ ! -f "$VERSION_FILE" ]; then
@@ -35,7 +36,7 @@ echo "$NEW_VERSION" > "$VERSION_FILE"
 
 echo "Version incremented: $CURRENT_VERSION → $NEW_VERSION"
 echo "Updated $VERSION_FILE"
-if [[ -x ./tools/new_release.sh ]]; then
-  last=$(./tools/new_release.sh --last-release 2>/dev/null || true)
+if [[ -x "$ROOT/tools/new_release.sh" ]]; then
+  last=$("$ROOT/tools/new_release.sh" --last-release 2>/dev/null || true)
   [[ -n "$last" ]] && echo "Latest GitHub release: $last → next tag will be v${NEW_VERSION}-build<N>"
 fi

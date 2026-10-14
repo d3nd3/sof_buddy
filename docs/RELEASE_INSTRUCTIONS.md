@@ -108,7 +108,7 @@ Add a new section at the **top** of `CHANGELOG.md`:
 1. Bump `VERSION`:
 
    ```sh
-   ./increment_version.sh
+   ./tools/increment_version.sh
    ```
 
    Or edit `VERSION` by hand (format `MAJOR.MINOR`, e.g. `8.2`).
@@ -154,7 +154,7 @@ Release helper: `./tools/new_release.sh`.
 
 | Symptom | Fix |
 |---------|-----|
-| `--check`: `VERSION is still X.Y` | Run `new_release.sh` with no args, or `./increment_version.sh`, before `--check` |
+| `--check`: `VERSION is still X.Y` | Run `new_release.sh` with no args, or `./tools/increment_version.sh`, before `--check` |
 | `--check`: `CHANGELOG.md missing section ## vX.Y` | Add `## vX.Y` at top of `CHANGELOG.md` matching `VERSION` |
 | `--check`: `VERSION must be greater than latest release` | Bump `VERSION` again — that version is already published |
 | Pushed but no new GitHub release | `VERSION` did not change in that commit; bump + changelog, push again |

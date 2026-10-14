@@ -1,4 +1,6 @@
 #!/bin/bash
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
 cp "bin/sof_buddy.dll" "${SOFDIR}"
 mkdir -p "${SOFDIR}/sof_buddy/funcmaps"
 cp rsrc/funcmaps/*.json "${SOFDIR}/sof_buddy/funcmaps/" 2>/dev/null || true

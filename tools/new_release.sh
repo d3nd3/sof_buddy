@@ -58,7 +58,7 @@ run_release_check() {
   if [[ -z "$CI_MODE" ]]; then
     head_ver=$(git show HEAD:"$VERSION_FILE" 2>/dev/null | tr -d '\r\n' || true)
     if [[ -n "$head_ver" && "$new_ver" == "$head_ver" ]]; then
-      echo "check: VERSION is still $new_ver (bump VERSION before release; run without args or ./increment_version.sh)"
+      echo "check: VERSION is still $new_ver (bump VERSION before release; run without args or ./tools/increment_version.sh)"
       return 1
     fi
   fi
@@ -109,8 +109,8 @@ if [[ -n "$OVERRIDE_VERSION" ]]; then
   echo "$OVERRIDE_VERSION" > "$VERSION_FILE"
   echo "Set VERSION to $OVERRIDE_VERSION"
 else
-  [[ -f ./increment_version.sh ]] || { echo "increment_version.sh not found"; exit 1; }
-  ./increment_version.sh
+  [[ -f ./tools/increment_version.sh ]] || { echo "tools/increment_version.sh not found"; exit 1; }
+  ./tools/increment_version.sh
 fi
 
 make "$VERSION_H"

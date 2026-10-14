@@ -1,5 +1,7 @@
 #!/bin/bash
 set -e
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
 : "${SOFDIR:?Set SOFDIR to the SoF directory}"
 
 dll="bin/sof_buddy-universal.dll"

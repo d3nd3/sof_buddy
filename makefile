@@ -23,7 +23,7 @@ DEFAULT_FEATURE_LIST_H = $(BDIR_GEN)/default_feature_list.inc
 VERSION_FILE = VERSION
 VERSION_H = $(BDIR_GEN)/version.h
 LEGACY_VERSION_H = hdr/version.h
-DETOURS_YAML = detours.yaml
+DETOURS_YAML = config/detours.yaml
 GENERATED_DETOURS_H = $(BDIR_GEN)/generated_detours.h
 GENERATED_DETOURS_CPP = $(BDIR_GEN)/generated_detours.cpp
 GENERATED_REGISTRATIONS_H = $(BDIR_GEN)/generated_registrations.h
@@ -217,7 +217,7 @@ $(VERSION_H) $(LEGACY_VERSION_H): $(VERSION_FILE)
 	@echo '    SoF Buddy Version Information' >> $@
 	@echo '    ' >> $@
 	@echo '    Auto-generated from $(VERSION_FILE)' >> $@
-	@echo '    Increment version using: ./increment_version.sh' >> $@
+	@echo '    Increment version using: ./tools/increment_version.sh' >> $@
 	@echo '*/' >> $@
 	@echo '' >> $@
 	@echo '#define SOFBUDDY_VERSION "'$$(cat $(VERSION_FILE) | tr -d '\r\n')'"' >> $@

@@ -58,7 +58,7 @@ User-facing highlights. Older detail is summarized at the bottom.
 
 ## v8.27
 
-- `cptosof-universal` copies the universal build and bundled helper files to a game folder safely.
+- `scripts/cptosof-universal` copies the universal build and bundled helper files to a game folder safely.
 
 ## v8.26 – v8.20
 

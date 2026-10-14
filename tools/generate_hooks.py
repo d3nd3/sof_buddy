@@ -730,7 +730,7 @@ def main():
     script_dir = Path(__file__).parent
     project_root = script_dir.parent
     
-    yaml_path = project_root / 'detours.yaml'
+    yaml_path = project_root / 'config' / 'detours.yaml'
     features_txt_path = Path(sys.argv[1]) if len(sys.argv) > 1 else project_root / 'features' / 'FEATURES.txt'
     features_dir = project_root / 'src' / 'features'
     core_dir = project_root / 'src' / 'core'
