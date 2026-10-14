@@ -24,6 +24,8 @@
 
 namespace {
 
+bool ensure_parent_dirs(const std::string& file_path);
+
 constexpr const char* kUpdateApiUrlGitHub = "https://api.github.com/repos/d3nd3/sof_buddy/releases/latest";
 constexpr const char* kUpdateReleasesUrlGitHub = "https://github.com/d3nd3/sof_buddy/releases/latest";
 constexpr const char* kUpdateApiUrlSofVault = "http://sofvault.org/sof_buddy/releases/latest.json";

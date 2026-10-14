@@ -40,8 +40,11 @@ HOSTCC = g++
 HOSTINC = -Isrc
 HOSTCFLAGS = -std=c++17 -O2
 
-# Compiler settings (CC may be set by CI, e.g. ccache i686-w64-mingw32-g++-posix)
-CC ?= i686-w64-mingw32-g++-posix
+# Compiler settings (CI may set CC to ccache + mingw; ignore host CC=g++ from the environment)
+DEFAULT_MINGW_CC := i686-w64-mingw32-g++-posix
+ifeq ($(findstring mingw,$(CC)),)
+CC := $(DEFAULT_MINGW_CC)
+endif
 INC = -I$(BDIR_GEN) -I$(IDIR) -I$(SDIR)
 COMMON_CFLAGS = -D_WIN32_WINNT=0x0501 -std=c++14
 DEPFLAGS = -MMD -MP

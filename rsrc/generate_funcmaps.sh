@@ -9,27 +9,25 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 OUT_DIR_DEFAULT="$ROOT_DIR/rsrc/funcmaps"
 
-SOF_EXE_DEFAULT="$HOME/.wine/drive_c/users/dinda/Soldier of Fortune/SoF.exe"
-REF_GL_DLL_DEFAULT="$HOME/.wine/drive_c/users/dinda/Soldier of Fortune/ref_gl.dll"
-PLAYER_DLL_DEFAULT="$HOME/.wine/drive_c/users/dinda/Soldier of Fortune/Base/player.dll"
-GAMEX86_DLL_DEFAULT="$HOME/.wine/drive_c/users/dinda/Soldier of Fortune/Base/gamex86.dll"
-SPCL_DLL_DEFAULT="$HOME/.wine/drive_c/users/dinda/Soldier of Fortune/spcl.dll"
+SOF_ROOT="${SOF_INSTALL_DIR:-}"
+if [[ -z "$SOF_ROOT" && -n "${WINEPREFIX:-}" ]]; then
+  SOF_ROOT="$WINEPREFIX/drive_c/Program Files/Soldier of Fortune"
+fi
+SOF_EXE_DEFAULT="${SOF_ROOT:+$SOF_ROOT/SoF.exe}"
+REF_GL_DLL_DEFAULT="${SOF_ROOT:+$SOF_ROOT/ref_gl.dll}"
+PLAYER_DLL_DEFAULT="${SOF_ROOT:+$SOF_ROOT/Base/player.dll}"
+GAMEX86_DLL_DEFAULT="${SOF_ROOT:+$SOF_ROOT/Base/gamex86.dll}"
+SPCL_DLL_DEFAULT="${SOF_ROOT:+$SOF_ROOT/spcl.dll}"
 
 usage() {
     cat <<EOF
 Usage: $(basename "$0") [out_dir] [SoF.exe] [ref_gl.dll] [player.dll] [gamex86.dll] [spcl.dll]
 
-Defaults:
-  out_dir     = $OUT_DIR_DEFAULT
-  SoF.exe     = $SOF_EXE_DEFAULT
-  ref_gl.dll  = $REF_GL_DLL_DEFAULT
-  player.dll  = $PLAYER_DLL_DEFAULT
-  gamex86.dll = $GAMEX86_DLL_DEFAULT
-  spcl.dll    = $SPCL_DLL_DEFAULT
+Set SOF_INSTALL_DIR (game folder with SoF.exe) or pass paths as arguments.
 
 Examples:
-  $(basename "$0")
-  $(basename "$0") "$ROOT_DIR/rsrc/funcmaps" "$SOF_EXE_DEFAULT"
+  SOF_INSTALL_DIR=/path/to/SoF $(basename "$0")
+  $(basename "$0") "$ROOT_DIR/rsrc/funcmaps" /path/to/SoF.exe /path/to/ref_gl.dll ...
 EOF
 }
 
@@ -44,6 +42,20 @@ REF_GL_DLL="${3:-$REF_GL_DLL_DEFAULT}"
 PLAYER_DLL="${4:-$PLAYER_DLL_DEFAULT}"
 GAMEX86_DLL="${5:-$GAMEX86_DLL_DEFAULT}"
 SPCL_DLL="${6:-$SPCL_DLL_DEFAULT}"
+
+for spec in \
+  "SoF.exe:$SOF_EXE" \
+  "ref_gl.dll:$REF_GL_DLL" \
+  "player.dll:$PLAYER_DLL" \
+  "gamex86.dll:$GAMEX86_DLL" \
+  "spcl.dll:$SPCL_DLL"; do
+  label="${spec%%:*}"
+  path="${spec#*:}"
+  if [[ -z "$path" || ! -f "$path" ]]; then
+    echo "Error: missing $label (set SOF_INSTALL_DIR or pass paths)" >&2
+    exit 1
+  fi
+done
 
 echo "[funcmaps] Building generator..."
 make -C "$ROOT_DIR" --no-print-directory funcmap-gen

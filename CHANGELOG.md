@@ -11,7 +11,7 @@ User-facing highlights. Older detail is summarized at the bottom.
 ### Updater (Wine / Proton / universal)
 
 - In-game zip install extracts in-process on Wine/Proton before quit, with script fallbacks when needed.
-- Install context file for cross-platform update scripts; release zips include DLL replace helper where applicable.
+- Install context file for cross-platform update scripts; Windows installer can replace a locked DLL via its own helper script.
 - F12 **Flavour** shows **Universal (Proton)** or **Universal (Wine)** when detected; Home shows **Build** number.
 
 ## v8.33
@@ -50,7 +50,7 @@ User-facing highlights. Older detail is summarized at the bottom.
 
 ## v8.27
 
-- `cptosof-universal` copies universal build + funcmaps to a game folder safely.
+- `cptosof-universal` copies the universal build and bundled helper files to a game folder safely.
 
 ## v8.26 – v8.20
 

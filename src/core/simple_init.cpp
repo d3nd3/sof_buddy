@@ -60,14 +60,18 @@ const char* sofbuddy_build_flavour(void) {
 }
 
 const char* sofbuddy_client_info(void) {
+    const char* channel;
 #if defined(SOFBUDDY_UNIVERSAL_BUILD)
-    const char* channel = "universal";
+    channel = "universal";
 #elif defined(SOFBUDDY_XP_BUILD)
-    const char* channel = "xp";
-#elif is_running_under_proton()
-    const char* channel = "proton";
+    channel = "xp";
 #else
-    const char* channel = is_running_under_wine() ? "wine" : "windows";
+    if (is_running_under_proton())
+        channel = "proton";
+    else if (is_running_under_wine())
+        channel = "wine";
+    else
+        channel = "windows";
 #endif
     static char value[96];
     std::snprintf(value, sizeof(value), "%s-%s-%s", channel, SOFBUDDY_VERSION, SOFBUDDY_BUILD_NUMBER);
