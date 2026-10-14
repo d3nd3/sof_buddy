@@ -1,5 +1,12 @@
 # Changelog
 
+## v8.35
+
+### Release
+
+- First published build on the refreshed release track (includes v8.33–v8.34 updater, Proton/Wine zip
+  install, F12 flavour/build display, and VERSION-gated CI).
+
 ## v8.34
 
 ### Wine / Proton zip updates (incl. universal)
