@@ -2,6 +2,14 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.36
+
+### Build and updater
+
+- Fix release builds when the environment sets a native `CC` (always use MinGW for the DLL).
+- Fix compile errors in startup userinfo (`proton` / `wine` channel) and in-game zip extract (directory creation).
+- First GitHub release build after repository cleanup (no prior published tags).
+
 ## v8.35
 
 - Bundles recent updater, Proton/Wine zip install, F12 flavour/build display, and VERSION-gated CI releases.
