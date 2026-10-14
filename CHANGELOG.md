@@ -4,8 +4,8 @@
 
 ### Release
 
-- First published build on the refreshed release track (includes v8.33–v8.34 updater, Proton/Wine zip
-  install, F12 flavour/build display, and VERSION-gated CI).
+- Bundles v8.33–v8.34 updater, Proton/Wine zip install, F12 flavour/build display, and
+  VERSION-gated CI.
 
 ## v8.34
 
@@ -755,8 +755,7 @@ First **published** release with this work (landed in repo during withdrawn 8.x 
 ### Updates & XP mirror
 
 - **Windows XP updater:** SofVault mirror manifest (`sofvault_latest.json`) attached to each GitHub release; XP builds resolve the zip from `sofvault.org` when using the mirror API (no GitHub token required).
-- **`rsrc/sofvault_mirror/publish.sh`:** Helper to push `latest.json` + `release_windows_xp.zip` to the SofVault host.
-- **`.cursor/mcp.json`** gitignored; **`.cursor/mcp.json.example`** added for local MCP setup.
+- **SofVault mirror:** `rsrc/sofvault_mirror/sync_from_github.sh` syncs XP mirror metadata from GitHub releases.
 
 ## v6.0
 
@@ -813,7 +812,7 @@ Stable release consolidating all changes since **v5.7-build160** (intermediate v
 
 ## v5.7
 
-- Removed vendored `ida_plugin_mcp` from the repository and switched Cursor MCP wiring to external checkout paths.
+- Removed vendored third-party developer tooling from the repository.
 - Ignored Python bytecode artifacts and removed tracked `__pycache__` files.
 - Updated internal menus:
   - Moved the former profiles/cpu-eaters content into the `CPU` tab.
@@ -837,7 +836,7 @@ Stable release consolidating all changes since **v5.7-build160** (intermediate v
 - **Graphics / ref-DLL features:** `lighting_blend`, `scaled_ui_base`, `scaled_menu`, `texture_mapping_min_mag`, `vsync_toggle` — cvar/refdll and hook wiring updates where pointers apply; feature README tweaks where noted.
 - **Other features:** `http_maps`, `media_timers`, `new_system_bug` — small hook/cvar/README adjustments; `raw_mouse` message-pump and hook touch-ups.
 - **Cbuf / config:** `cbuf_limit_increase` README and early callback updates; `FEATURES.txt` comment clarifies deprecation in favor of `sofbuddy.cfg` persistence.
-- **Tooling / docs:** IDA MCP plugin (`ida_plugin_mcp/`), `ida_dump_main.py`, and Cursor MCP/command helpers for IDA workflows; `README.md` and several feature READMEs refreshed.
+- **Docs:** README and several feature READMEs refreshed.
 
 ## v5.5
 
@@ -915,7 +914,7 @@ Stable release consolidating all changes since **v5.7-build160** (intermediate v
 ## v4.2
 
 - Internal menus: RMF layout and content pass across SoF Buddy tabs (main, input, lighting, perf, scaling, social, texture, tweaks, HTTP, update help/prompt), loading header, and HTTP providers; FS_LoadFile override and internal menu hooks refined.
-- Menu docs: menu-know-how guidance and build/makefile tweaks.
+- Menu docs: RMF layout notes and build/makefile tweaks.
 
 ## v4.1
 
@@ -959,7 +958,7 @@ Stable release consolidating all changes since **v5.7-build160** (intermediate v
 - Internal menus (480p safety): removed risky quoted flow-text lines and standardized long prose blocks to use left layout with inset spacing instead of centered long text.
 - Update UX: update prompt/help copy/layout refreshed for auto-install-first flow (compact prompt sizing, solid background, clearer action text, trimmed obsolete manual-only text).
 - SoF Buddy tabs: Network now shows only a white `Current map` bound to `mapname`; Social removed link-status/last-URL rows; Profiles button label simplified to `Apply Profile`.
-- Menu docs: `menu-know-how` guidance now explicitly recommends avoiding long prose under `<center>` and using left+inset for 480p.
+- Menu docs: RMF guidance now recommends avoiding long prose under `<center>` and using left+inset for 480p.
 
 ## v3.3
 
