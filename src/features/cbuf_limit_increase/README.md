@@ -27,7 +27,7 @@ This does **not** literally resize the engine's fixed Cbuf. Instead it bypasses 
     - Detours `Cbuf_AddText` / `Cbuf_InsertText` (only special-cased while executing `config.cfg`)
     - Detours `Com_Printf` in debug builds only (diagnostic: detect/report overflow print callsite)
 
-## Addresses (IDA)
+## RVAs (SoF.exe)
 
 Hardcode these RVAs in `src/features/cbuf_limit_increase/callbacks/cbuf_limit_increase_early.cpp`:
 

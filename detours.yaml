@@ -709,7 +709,7 @@ functions:
       - type: int
         name: flags
 
-  # Resets quads/mark/debris pools (IDA: FX_ClearQuads__Fv @ 0x2003B360, Windows IDB) — pointer-only (wireframe redraw budget).
+  # Resets quads/mark/debris pools (FX_ClearQuads @ 0x2003B360) — pointer-only (wireframe redraw budget).
   - name: FX_ClearQuads
     module: SofExe
     identifier: "0x2003B360"

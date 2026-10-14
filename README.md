@@ -81,10 +81,8 @@ extraction or feature-enable scripts are needed.
   make BUILD=xp      # Windows XP-targeted build
   make debug         # Debug build (with logging)
   make BUILD=xp-debug # XP-targeted debug build
-  make debug-gdb     # Debug build with GDB breakpoint function
   make debug-collect # Debug build with func_parents collection
   ```
-  See [docs/DEBUGGING.md](docs/DEBUGGING.md) for details on build configurations.
 
 ### 2. Prepare Your Game Folder
 

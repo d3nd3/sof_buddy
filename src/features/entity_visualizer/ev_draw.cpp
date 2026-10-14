@@ -230,7 +230,7 @@ static char const* FxNowSourceLabel(uint32_t raw8c, uint32_t raw68) {
 }
 
 // Same FX sequence as client HandleTestLine (TE_TEST_LINE), without net_message.
-// IDA SoF.exe HandleTestLine__Fi: FX_SetQuadLineGenericInfo gets p2=p3=null, tail int=0; only the low
+// HandleTestLine: FX_SetQuadLineGenericInfo gets p2=p3=null, tail int=0; only the low
 // byte is written to cquad+0xD4 — passing lifetime as that int corrupts state (e.g. 10000 -> 0x10).
 static void EmitFxTestLine(float const* c1, float const* c2, unsigned packedColor, int lifetime,
                            char* shader_name, bool ev_dev_log_line) {
@@ -1053,7 +1053,7 @@ static void DebugDrawBoxAtPlayer(bool report) {
 }
 
 // Adds live edicts whose dedupe key is not already in uniq (spawn cache wins). No drawing here.
-// (IDA: no separate client entity list symbol in this IDB — server g_edicts + spawn cache merge is the stable model.)
+// Server g_edicts + spawn cache merge (no separate client entity list in the stable model).
 static void MergeLiveEdictsIntoWireframeMap(std::map<std::string, WireframeDrawCmd>* uniq, unsigned char* player) {
     if (!uniq) {
         return;

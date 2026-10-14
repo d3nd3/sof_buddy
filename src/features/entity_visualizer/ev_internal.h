@@ -223,7 +223,7 @@ void IntersectMergeCachedLevelRayHits(void* player_ent, float ox, float oy, floa
                                     float* inout_best_t, unsigned char** io_hit_live_ent, char* out_cache_classname,
                                     size_t out_cache_classname_bytes);
 
-// cquad_t — IDA: sizeof 0xDC (220); +0x00 entity_t*; +0xBC ghoulinst* (see FX_AddQuads branch using [quad+0BCh]).
+// cquad_t — sizeof 0xDC (220); +0x00 entity_t*; +0xBC ghoulinst* (FX_AddQuads uses [quad+0BCh]).
 // FX_AllocNewQuad stores &fxCurTime at +0x68 and again at +0x8C. Line-quad setup / FX_GenericQuadLineUpdate can
 // overwrite +0x68 with float bits (fadd (%reg) fault if mistaken for a pointer). Prefer reading live time via +0x8C
 // and only dereference if the dword lies in the SoF.exe mapping (see kSofExeLoad*).
