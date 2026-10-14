@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest an improvement or new behavior
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please include the required environment details below so we know which build and platform you use.
+
+  - type: input
+    attributes:
+      label: "_sp_cl_info_sofbuddy"
+      description: |
+        Start SoF with SoF Buddy loaded, open the console (`~`), and run `_sp_cl_info_sofbuddy`.
+        Paste the full value (for example `windows-8.36-42`, `wine-8.36-42`, or `universal-8.36-42`).
+      placeholder: windows-8.36-42
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Operating system
+      description: |
+        OS name and version. For Wine/Proton, include the host OS and Wine/Proton version if you know it.
+      placeholder: Windows 11 24H2
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Problem or goal
+      description: What you are trying to do, or what is awkward today?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Proposed solution
+      description: How you would like it to work (optional if you only have the goal above).
+    validations:
+      required: false

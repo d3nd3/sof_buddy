@@ -1,0 +1,59 @@
+name: Bug report
+description: Something is broken or not working as expected
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please include the required environment details below. They help us match your build channel and platform.
+
+  - type: input
+    attributes:
+      label: "_sp_cl_info_sofbuddy"
+      description: |
+        Start SoF with SoF Buddy loaded, open the console (`~`), and run `_sp_cl_info_sofbuddy`.
+        Paste the full value (for example `windows-8.36-42`, `wine-8.36-42`, or `universal-8.36-42`).
+      placeholder: windows-8.36-42
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Operating system
+      description: |
+        OS name and version. For Wine/Proton, include the host OS and Wine/Proton version if you know it.
+      placeholder: Windows 11 24H2
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: What you saw, including any error text or crash behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps so we can try the same thing.
+      placeholder: |
+        1. Install ...
+        2. Launch SoF ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Expected behavior
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Anything else?
+      description: Mods, SoFPlus, custom `features.cfg`, multiplayer server, screenshots, logs.
+    validations:
+      required: false
