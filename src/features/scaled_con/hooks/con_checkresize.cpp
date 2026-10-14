@@ -1,0 +1,28 @@
+#include "feature_config.h"
+
+#if FEATURE_SCALED_CON
+
+#include "sof_compat.h"
+#include "util.h"
+#include "generated_detours.h"
+#include "../../scaled_ui_base/shared.h"
+
+void hkCon_CheckResize(detour_Con_CheckResize::tCon_CheckResize original) {
+	SOFBUDDY_ASSERT(viddef_width != nullptr);
+	SOFBUDDY_ASSERT(fontScale > 0.0f);
+	SOFBUDDY_ASSERT(current_vid_w > 0);
+
+	const float cs = console_font_scale(fontScale);
+	
+	//This makes con.linewidth smaller in order to reduce the character count per line.
+	int viddef_before = current_vid_w;
+	*viddef_width = (int)(current_vid_w / cs);
+	
+	SOFBUDDY_ASSERT(*viddef_width > 0);
+	original();
+	
+	*viddef_width = viddef_before;
+}
+
+#endif // FEATURE_SCALED_CON
+

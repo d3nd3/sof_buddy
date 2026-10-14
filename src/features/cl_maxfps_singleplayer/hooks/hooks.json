@@ -1,0 +1,14 @@
+[
+  {
+    "function": "CinematicFreeze",
+    "callback": "cinematicfreeze_callback",
+    "phase": "Post",
+    "priority": 100
+  },
+  {
+    "function": "M_PushMenu",
+    "callback": "mfps_M_PushMenu_pre",
+    "phase": "Pre",
+    "priority": 85
+  }
+]

@@ -1,0 +1,16 @@
+<stm>
+<strings menu_generic>
+<cursor 0>
+<include tints>
+<backdrop bgcolor black>
+
+<font type title>
+<center>
+<hbr>
+<hbr>
+<font tint lblue atint lblue>
+"^MENU_GENERIC_LOADING^"<hbr>
+<hbr>
+<hbar "misc/l_clip" "misc/l_bullet" cvar menu_loading><hbr>
+<exinclude deathmatch loading/loading_network loading/loading_network_sp>
+</stm>

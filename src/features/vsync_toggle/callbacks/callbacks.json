@@ -1,0 +1,9 @@
+[
+  {
+    "hook": "RefDllLoaded",
+    "callback": "vsync_on_postcvarinit",
+    "priority": 50,
+    "phase": "Post"
+  }
+]
+

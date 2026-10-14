@@ -1,0 +1,9 @@
+[
+  {
+    "hook": "RefDllLoaded",
+    "callback": "scaledHud_RefDllLoaded",
+    "priority": 60,
+    "phase": "Post"
+  }
+]
+

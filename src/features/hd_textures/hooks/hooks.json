@@ -1,0 +1,9 @@
+[
+  {
+    "function": "GL_BuildPolygonFromSurface",
+    "callback": "gl_buildpolygonfromsurface_pre_callback",
+    "phase": "Pre",
+    "priority": 100
+  }
+]
+

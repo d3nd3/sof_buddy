@@ -1,0 +1,122 @@
+/*
+	Scaled UI - CVars
+	
+	This file contains all cvar declarations and registration for the scaled_ui feature.
+	
+	CVars:
+	- _sofbuddy_font_scale: Manual font scale (default: 1.0)
+	- _sofbuddy_font_scale_auto: Auto font scale from resolution (default: 1)
+	- _sofbuddy_console_size: Console size as fraction of screen (default: 0.5)
+	- _sofbuddy_hud_scale: Manual HUD scale (default: 1.0)
+	- _sofbuddy_hud_scale_auto: Auto HUD scale from resolution (default: 1)
+	- _sofbuddy_crossh_scale: Scale factor for crosshair textures (default: 1.0)
+- _sofbuddy_icons_autoscale: Scale team icons + playernames with HUD scale (default: 1)
+	- _sofbuddy_scale_round_auto: Snap auto font/HUD scale to round steps (default: 0)
+	- _sofbuddy_scale_round_ratio: Round step for scale values (default: 0.25)
+	- _sofbuddy_font_pack: Font mode (0=default, 1=force SoFPlus, 2=force vanilla)
+*/
+
+#include "feature_config.h"
+
+#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD
+
+#include "sof_buddy.h"
+#include "sof_compat.h"
+#include "generated_detours.h"
+#include "runtime_features.h"
+
+#if FEATURE_SCALED_CON
+cvar_t * _sofbuddy_font_scale = NULL;
+cvar_t * _sofbuddy_font_scale_auto = NULL;
+cvar_t * _sofbuddy_console_size = NULL;
+#endif
+#if FEATURE_SCALED_HUD
+cvar_t * _sofbuddy_hud_scale = NULL;
+cvar_t * _sofbuddy_hud_scale_auto = NULL;
+cvar_t * _sofbuddy_crossh_scale = NULL;
+cvar_t * _sofbuddy_scale_cinematic_pics = NULL;
+cvar_t * _sofbuddy_icons_autoscale = NULL;
+#endif
+#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD
+cvar_t * _sofbuddy_font_pack = NULL;
+#endif
+
+#if FEATURE_SCALED_CON
+extern void fontscale_change(cvar_t * cvar);
+extern void font_scale_auto_change(cvar_t * cvar);
+extern void consolesize_change(cvar_t * cvar);
+#endif
+#if FEATURE_SCALED_HUD
+extern void hudscale_change(cvar_t * cvar);
+extern void hud_scale_auto_change(cvar_t * cvar);
+extern void crosshairscale_change(cvar_t * cvar);
+extern bool g_scaleCinematicPics;
+static void scalecinematicpics_change(cvar_t * cvar) {
+    g_scaleCinematicPics = cvar && cvar->value != 0.0f;
+}
+extern bool g_iconsAutoscale;
+static void iconsautoscale_change(cvar_t * cvar) {
+    g_iconsAutoscale = cvar && cvar->value != 0.0f;
+}
+#endif
+extern void scale_round_auto_change(cvar_t * cvar);
+extern void scale_round_ratio_change(cvar_t * cvar);
+
+static void font_pack_change(cvar_t*) {
+    if (detour_Cmd_ExecuteString::oCmd_ExecuteString)
+        detour_Cmd_ExecuteString::oCmd_ExecuteString("vid_restart");
+}
+
+static void migrate_legacy_scale_auto(cvar_t* scale, cvar_t* scale_auto, const char* migrated_cvar) {
+	if (!scale || !scale_auto || !detour_Cvar_Set2::oCvar_Set2) return;
+	cvar_t* migrated = detour_Cvar_Get::oCvar_Get(migrated_cvar, "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+	if (migrated && migrated->value != 0.0f) return;
+
+	if (scale->value < 0.0f) {
+		detour_Cvar_Set2::oCvar_Set2(const_cast<char*>(scale->name), const_cast<char*>("1"), true);
+		detour_Cvar_Set2::oCvar_Set2(const_cast<char*>(scale_auto->name), const_cast<char*>("1"), true);
+	} else if (scale->value >= 0.25f && scale->value != 1.0f) {
+		detour_Cvar_Set2::oCvar_Set2(const_cast<char*>(scale_auto->name), const_cast<char*>("0"), true);
+	}
+	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>(migrated_cvar), const_cast<char*>("1"), true);
+}
+
+void create_scaled_ui_cvars(void) {
+#if FEATURE_SCALED_CON
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON)) {
+    _sofbuddy_font_scale = detour_Cvar_Get::oCvar_Get("_sofbuddy_font_scale", "1", CVAR_SOFBUDDY_ARCHIVE, fontscale_change);
+    _sofbuddy_font_scale_auto = detour_Cvar_Get::oCvar_Get("_sofbuddy_font_scale_auto", "1", CVAR_SOFBUDDY_ARCHIVE, font_scale_auto_change);
+    migrate_legacy_scale_auto(_sofbuddy_font_scale, _sofbuddy_font_scale_auto, "_sb_internal_font_scale_auto_migrated");
+    font_scale_auto_change(_sofbuddy_font_scale_auto);
+    fontscale_change(_sofbuddy_font_scale);
+    _sofbuddy_console_size = detour_Cvar_Get::oCvar_Get("_sofbuddy_console_size", "0.5", CVAR_SOFBUDDY_ARCHIVE, consolesize_change);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_font_scale_rounded", "1", 0, nullptr);
+    }
+#endif
+#if FEATURE_SCALED_HUD
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
+    _sofbuddy_hud_scale = detour_Cvar_Get::oCvar_Get("_sofbuddy_hud_scale", "1", CVAR_SOFBUDDY_ARCHIVE, hudscale_change);
+    _sofbuddy_hud_scale_auto = detour_Cvar_Get::oCvar_Get("_sofbuddy_hud_scale_auto", "1", CVAR_SOFBUDDY_ARCHIVE, hud_scale_auto_change);
+    migrate_legacy_scale_auto(_sofbuddy_hud_scale, _sofbuddy_hud_scale_auto, "_sb_internal_hud_scale_auto_migrated");
+    hud_scale_auto_change(_sofbuddy_hud_scale_auto);
+    hudscale_change(_sofbuddy_hud_scale);
+    _sofbuddy_crossh_scale = detour_Cvar_Get::oCvar_Get("_sofbuddy_crossh_scale", "1", CVAR_SOFBUDDY_ARCHIVE, crosshairscale_change);
+    _sofbuddy_scale_cinematic_pics = detour_Cvar_Get::oCvar_Get("_sofbuddy_scale_cinematic_pics", "1", CVAR_SOFBUDDY_ARCHIVE, scalecinematicpics_change);
+    scalecinematicpics_change(_sofbuddy_scale_cinematic_pics);
+    _sofbuddy_icons_autoscale = detour_Cvar_Get::oCvar_Get("_sofbuddy_icons_autoscale", "1", CVAR_SOFBUDDY_ARCHIVE, iconsautoscale_change);
+    iconsautoscale_change(_sofbuddy_icons_autoscale);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_hud_scale_rounded", "1", 0, nullptr);
+    }
+#endif
+#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON) ||
+        RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
+        _sofbuddy_font_pack = detour_Cvar_Get::oCvar_Get("_sofbuddy_font_pack", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+        if (_sofbuddy_font_pack) _sofbuddy_font_pack->command = font_pack_change;
+        detour_Cvar_Get::oCvar_Get("_sofbuddy_scale_round_ratio", "0.25", CVAR_SOFBUDDY_ARCHIVE, scale_round_ratio_change);
+        detour_Cvar_Get::oCvar_Get("_sofbuddy_scale_round_auto", "0", CVAR_SOFBUDDY_ARCHIVE, scale_round_auto_change);
+    }
+#endif
+}
+
+#endif // FEATURE_SCALED_CON || FEATURE_SCALED_HUD

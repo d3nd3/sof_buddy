@@ -1,0 +1,10 @@
+[
+  "Cvar_Get",
+  "Cvar_Set2",
+  "Cmd_AddCommand",
+  "Cmd_Argc",
+  "Cmd_Argv",
+  "Cmd_ExecuteString",
+  "SCR_UpdateScreen",
+  "Z_Malloc"
+]

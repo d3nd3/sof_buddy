@@ -1,0 +1,7 @@
+<font type title tint cyan atint cyan>
+"GameSpy Master Server"
+<font type title tint white atint white>
+<ctext _sp_cl_master_gamespy atext "_sp_cl_master_gamespy : " noshade tip "Selected GameSpy master server saved by SoFPlus."><br>
+<font type title tint gray atint gray>
+"Default: sof1master.sofvault.org"
+<hbr>

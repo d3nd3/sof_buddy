@@ -1,0 +1,46 @@
+*.o
+*.exe
+*.dll
+*.a
+*.lib
+*.obj
+
+.cache/
+bin/
+obj/
+build/*/
+installer/payload/
+installer/output/
+
+# Generated detour files
+hdr/detours_prebuild.h
+rsrc/detours_prebuild.md
+rsrc/detours_prebuild.txt
+
+# Generated version header
+hdr/version.h
+src/features/internal_menus/menu_data.cpp
+src/features/internal_menus/menu_library/sof_buddy/features_rows.rmf
+
+# Generated hook registration (make / generate_hooks.py)
+build/generated_detours.cpp
+build/generated_detours.h
+build/generated_registrations.h
+
+# Local IDE / agent tooling
+compile_commands.json
+.cursor/
+session-ses_*.md
+.claude/
+.venv/
+.venv-mcp/
+
+# Optional local SDK checkouts (not required to build)
+SDK/
+
+# Release artifacts (publish via GitHub Releases, not git)
+release_windows_xp.zip
+
+# Python bytecode
+__pycache__/
+*.py[cod]

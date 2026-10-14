@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+: "${SOFDIR:?Set SOFDIR to the SoF directory}"
+
+dll="bin/sof_buddy-universal.dll"
+version=$(tr -d '\r\n' < VERSION)
+if ! strings "$dll" | grep -Fxq "$version" || ! strings "$dll" | grep -Fq universal; then
+    echo "$dll is stale or not universal; run 'make universal' first." >&2
+    exit 1
+fi
+
+cp "$dll" "${SOFDIR}/sof_buddy.dll"
+mkdir -p "${SOFDIR}/sof_buddy/funcmaps"
+cp rsrc/funcmaps/*.json "${SOFDIR}/sof_buddy/funcmaps/" 2>/dev/null || true
+mkdir -p "${SOFDIR}/sof_buddy/func_parents"
+cp rsrc/func_parents/*.json "${SOFDIR}/sof_buddy/func_parents/" 2>/dev/null || true

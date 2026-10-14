@@ -1,0 +1,20 @@
+<stm>
+<strings menu_dm_generic>
+<include tints>
+<defaults noborder tipfont title>
+<backdrop bgcolor black>
+
+<font type title>
+<center>
+<hbr>
+<hbr>
+<font tint lblue atint lblue>
+<ctext cl_downloading invisible><hbr>
+<ctext cl_download_filename invisible><hbr>
+<hbr>
+<hbar "misc/l_clip" "misc/l_bullet" cvar cl_download_percent invisible><hbr>
+<hbr>
+<hbr>
+<font type title tint hgreen atint hilitetext>
+<text "^MENU_DM_GENERIC_DISCONNECT^" key mouse1 "disconnect;menuoff" border 16 1 gray><hbr>
+</stm>

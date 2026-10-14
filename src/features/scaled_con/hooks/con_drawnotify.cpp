@@ -1,0 +1,36 @@
+#include "feature_config.h"
+
+#if FEATURE_SCALED_CON
+
+#include "sof_compat.h"
+#include "util.h"
+#include "generated_detours.h"
+#include "../../scaled_ui_base/shared.h"
+#include "../../scaled_ui_base/ref_gl_state.h"
+
+void hkCon_DrawNotify(detour_Con_DrawNotify::tCon_DrawNotify original) {
+	SOFBUDDY_ASSERT(viddef_width != nullptr);
+	SOFBUDDY_ASSERT(fontScale > 0.0f);
+	SOFBUDDY_ASSERT(current_vid_w > 0);
+
+	const float cs = console_font_scale(fontScale);
+	
+	real_refdef_width = current_vid_w;
+
+	//fake the width
+	*viddef_width = (int)(current_vid_w / cs);
+	
+	SOFBUDDY_ASSERT(*viddef_width > 0);
+	resetGlVertexQuadState();
+	g_activeRenderType = uiRenderType::Console;
+	ref_gl_cache_disable_blend();
+	ref_gl_cache_sync();
+	original();
+	
+	//restore the width
+	*viddef_width = real_refdef_width;
+	g_activeRenderType = uiRenderType::None;
+	resetGlVertexQuadState();
+}
+
+#endif // FEATURE_SCALED_CON

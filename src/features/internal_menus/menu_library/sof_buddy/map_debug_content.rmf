@@ -1,0 +1,53 @@
+<stm>
+<include tints>
+{theme_tints}
+<key escape "sofbuddy_menu sof_buddy">
+<cursor 1>
+
+<vbar tint sb_accent>
+
+<defaults noborder tiptint normaltext tipbtint sb_panel tipfont title>
+<backdrop bgcolor sb_bg>
+
+<left>
+{content_inset_tall}
+<right>
+{content_inset_tall}
+<normal>
+
+<include sof_buddy/tabs/map_debug>
+
+<center>
+<font type title tint sb_accent atint sb_accent>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<text "MAP / ENTITY STUDY">
+<center>
+<font type title tint cyan atint cyan>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<list "None,Std,Assn,Ars,CTF,Real" match "0,1,2,3,4,5" cvar _sofbuddy_map_study_deathmatch atext "deathmatch : " noshade tip "games_t: sets engine deathmatch before map (default CTF=4)."><hbr>
+<font type title tint sb_subtle atint sb_subtle>
+"Map stem (no .bsp)"
+<hbr>
+<font type title tint white atint white>
+<input width 400 cvar _sofbuddy_map_debug_map border 8 1 gray maxchars 64 tip "e.g. moscow"><hbr>
+<font type title tint sb_subtle atint sb_subtle>
+"Load closes this menu first."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<text "Enable + load map" tip "killmenu then map" key mouse1 "killmenu;sofbuddy_map_study_load" border 8 1 cyan regular align center>
+<text "Draw wireframes" tip "killmenu then sofbuddy_entities_draw" key mouse1 "killmenu;sofbuddy_map_study_wireframes" border 8 1 cyan regular align center><hbr>
+
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<text "Close" key mouse1 "popmenu" border 8 1 cyan regular align center>
+</stm>

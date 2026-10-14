@@ -1,0 +1,15 @@
+[
+  "Cmd_ExecuteString",
+  "FS_FreeFile",
+  "Cvar_Get",
+  "Cvar_Set2",
+  "Cvar_SetInternal",
+  "Com_Printf",
+  "Com_DPrintf",
+  "Qcommon_Init",
+  "Cmd_AddCommand",
+  "Cmd_Argc",
+  "Cmd_Argv",
+  "Z_Free",
+  "CopyString"
+]

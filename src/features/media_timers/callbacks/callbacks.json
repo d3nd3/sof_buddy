@@ -1,0 +1,15 @@
+[
+  {
+    "hook": "EarlyStartup",
+    "callback": "mediaTimers_EarlyStartup",
+    "priority": 70,
+    "phase": "Post"
+  },
+  {
+    "hook": "PostCvarInit",
+    "callback": "mediaTimers_PostCvarInit",
+    "priority": 70,
+    "phase": "Post"
+  }
+]
+

@@ -1,0 +1,8 @@
+[
+  {
+    "hook": "EarlyStartup",
+    "callback": "cbuf_limit_increase_EarlyStartup",
+    "priority": 72,
+    "phase": "Post"
+  }
+]

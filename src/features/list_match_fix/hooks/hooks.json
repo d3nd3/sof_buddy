@@ -1,0 +1,22 @@
+[
+  {
+    "function": "List_GetMatchedValue",
+    "callback": "list_match_fix_getmatchedvalue",
+    "override": true
+  },
+  {
+    "function": "List_SetValue",
+    "callback": "list_match_fix_setvalue",
+    "override": true
+  },
+  {
+    "function": "List_Handle",
+    "callback": "list_match_fix_handle",
+    "override": true
+  },
+  {
+    "function": "List_Draw",
+    "callback": "list_match_fix_draw",
+    "override": true
+  }
+]

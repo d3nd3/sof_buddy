@@ -1,0 +1,8 @@
+[
+  {
+    "hook": "EarlyStartup",
+    "callback": "cl_maxfps_EarlyStartup",
+    "priority": 70,
+    "phase": "Post"
+  }
+]

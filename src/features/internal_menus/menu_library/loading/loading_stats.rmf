@@ -1,0 +1,10 @@
+<stm>
+<strings menu_stats>
+<include tints>
+
+<cursor 0>
+
+<backdrop bgcolor black>
+
+<cninclude menu_nostats m_endstats>
+</stm>

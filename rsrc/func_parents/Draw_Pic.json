@@ -1,0 +1,9 @@
+{
+  "child": "Draw_Pic",
+  "parents": [
+    { "module": "SoF.exe", "fnStart": 83216, "fnStartHex": "0x00014510", "moduleBaseHex": "0x20000000", "absStartHex": "0x20014510" },
+    { "module": "SoF.exe", "fnStart": 89504, "fnStartHex": "0x00015DA0", "moduleBaseHex": "0x20000000", "absStartHex": "0x20015da0" },
+    { "module": "SoF.exe", "fnStart": 91552, "fnStartHex": "0x000165A0", "moduleBaseHex": "0x20000000", "absStartHex": "0x200165a0" },
+    { "module": "SoF.exe", "fnStart": 821824, "fnStartHex": "0x000C8A40", "moduleBaseHex": "0x20000000", "absStartHex": "0x200c8a40" }
+  ]
+}

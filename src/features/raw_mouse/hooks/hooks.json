@@ -1,0 +1,17 @@
+[
+  {
+    "function": "GetCursorPos",
+    "callback": "getcursorpos_override_callback",
+    "override": true
+  },
+  {
+    "function": "DispatchMessageA",
+    "callback": "dispatchmessagea_override_callback",
+    "override": true
+  },
+  {
+    "function": "Sys_SendKeyEvents",
+    "callback": "sys_sendkeyevents_override_callback",
+    "override": true
+  }
+]

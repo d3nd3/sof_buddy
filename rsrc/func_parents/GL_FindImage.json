@@ -1,0 +1,15 @@
+{
+  "child": "GL_FindImage",
+  "parents": [
+    { "module": "ref_gl.dll", "fnStart": 6224, "fnStartHex": "0x00001850", "moduleBaseHex": "0x30000000", "absStartHex": "0x30001850" },
+    { "module": "ref_gl.dll", "fnStart": 7440, "fnStartHex": "0x00001D10", "moduleBaseHex": "0x30000000", "absStartHex": "0x30001d10" },
+    { "module": "ref_gl.dll", "fnStart": 10816, "fnStartHex": "0x00002A40", "moduleBaseHex": "0x30000000", "absStartHex": "0x30002a40" },
+    { "module": "ref_gl.dll", "fnStart": 27280, "fnStartHex": "0x00006A90", "moduleBaseHex": "0x30000000", "absStartHex": "0x30006a90" },
+    { "module": "ref_gl.dll", "fnStart": 29568, "fnStartHex": "0x00007380", "moduleBaseHex": "0x30000000", "absStartHex": "0x30007380" },
+    { "module": "ref_gl.dll", "fnStart": 30944, "fnStartHex": "0x000078E0", "moduleBaseHex": "0x30000000", "absStartHex": "0x300078e0" },
+    { "module": "ref_gl.dll", "fnStart": 45136, "fnStartHex": "0x0000B050", "moduleBaseHex": "0x30000000", "absStartHex": "0x3000b050" },
+    { "module": "ref_gl.dll", "fnStart": 51936, "fnStartHex": "0x0000CAE0", "moduleBaseHex": "0x30000000", "absStartHex": "0x3000cae0" },
+    { "module": "ref_gl.dll", "fnStart": 52960, "fnStartHex": "0x0000CEE0", "moduleBaseHex": "0x30000000", "absStartHex": "0x3000cee0" },
+    { "module": "ref_gl.dll", "fnStart": 103008, "fnStartHex": "0x00019260", "moduleBaseHex": "0x30000000", "absStartHex": "0x30019260" }
+  ]
+}

@@ -1,0 +1,6 @@
+<stm>
+<strings menu_generic>
+<include tints>
+<font type title tint lblue atint lblue>
+<ctext _sb_internal_loading_status atext "Download: "><hbr>
+</stm>

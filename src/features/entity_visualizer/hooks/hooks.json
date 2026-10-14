@@ -1,0 +1,35 @@
+[
+  {
+    "function": "Qcommon_Frame",
+    "callback": "entity_visualizer_qcommon_frame_post_callback",
+    "phase": "Post",
+    "priority": 50
+  },
+  {
+    "function": "SCR_BeginLoadingPlaque",
+    "callback": "entity_visualizer_SCR_BeginLoadingPlaque_pre",
+    "phase": "Pre",
+    "priority": 100
+  },
+  {
+    "function": "SCR_BeginLoadingPlaque",
+    "callback": "entity_visualizer_SCR_BeginLoadingPlaque_post",
+    "phase": "Post",
+    "priority": 100
+  },
+  {
+    "function": "ED_CallSpawn",
+    "callback": "entity_visualizer_ED_CallSpawn",
+    "override": true
+  },
+  {
+    "function": "G_FreeEdict",
+    "callback": "entity_visualizer_G_FreeEdict",
+    "override": true
+  },
+  {
+    "function": "ClientThink",
+    "callback": "entity_visualizer_ClientThink",
+    "override": true
+  }
+]

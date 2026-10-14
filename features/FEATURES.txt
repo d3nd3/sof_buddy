@@ -1,0 +1,39 @@
+# SoF Buddy Features Configuration
+# Lines starting with # are comments
+# Uncommented lines = enabled features  
+# Commented lines (with //) = disabled features
+
+# Core / Performance Features (always enabled)
+media_timers
+
+# Security Fixes (always enabled)
+console_protection
+
+# Bug Fixes
+new_system_bug
+cl_maxfps_singleplayer
+list_match_fix
+# cbuf_limit_increase  # Deprecated: sofbuddy.cfg persistence replaced config.cfg Cbuf workaround
+
+# Graphics Features
+texture_mapping_min_mag
+scaled_con
+scaled_hud
+# scaled_menu
+hd_textures
+vsync_toggle
+lighting_blend
+
+# Gameplay Features
+teamicons_offset
+# entity_visualizer  # Map entity tools / wireframes; enable for map study builds
+
+# Networking Features
+http_maps
+master_server_fallback
+
+# Menu Features
+internal_menus
+
+# Input Features
+raw_mouse

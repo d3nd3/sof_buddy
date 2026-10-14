@@ -1,0 +1,30 @@
+
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint cyan atint cyan>
+"Map Study"
+<font type title tint white atint white>
+<ctext _sofbuddy_entity_edit atext "_sofbuddy_entity_edit : " noshade tip "Enable entity tools and spawn cache. 1 on, 0 off. Default 0."><br>
+<font type title tint gray atint gray>
+"Default 0 - Map entity tools off."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_entities_draw_verbose atext "_sofbuddy_entities_draw_verbose : " noshade tip "Verbose per-entity log lines when drawing. 1 on. Default 0."><br>
+<font type title tint gray atint gray>
+"Default 0 - Quiet entity draw."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_map_debug_map atext "_sofbuddy_map_debug_map : " noshade tip "Map stem for load and record, no path or bsp. Example moscow. Default empty."><br>
+<font type title tint gray atint gray>
+"Default empty - Map stem like moscow."
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_map_study_deathmatch atext "_sofbuddy_map_study_deathmatch : " noshade tip "Deathmatch mode before map. 0 to 5, default 4 CTF. Default 4."><br>
+<font type title tint gray atint gray>
+"Default 4 - CTF deathmatch for study."
+<hbr>

@@ -1,0 +1,15 @@
+[
+  {
+    "function": "R_BlendLightmaps",
+    "callback": "r_blendlightmaps_pre_callback",
+    "phase": "Pre",
+    "priority": 100
+  },
+  {
+    "function": "R_BlendLightmaps",
+    "callback": "r_blendlightmaps_post_callback",
+    "phase": "Post",
+    "priority": 100
+  }
+]
+

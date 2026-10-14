@@ -1,0 +1,7 @@
+<stm>
+<strings menu_generic>
+<include tints>
+<font type title tint lblue atint lblue>
+<ctext _sb_internal_loading_current atext "Map: "><hbr>
+<hbr>
+</stm>

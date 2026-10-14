@@ -1,0 +1,1013 @@
+# Changelog
+
+## v8.34
+
+### Wine / Proton zip updates (incl. universal)
+
+- **`sofbuddy_update_install`** on Wine/Proton: extracts the downloaded zip **in-process** (miniz)
+  before quit; stages **`sof_buddy.dll.new`** and queues **`replace_sof_buddy_dll.cmd`** on winstart
+  so Proton/Steam are not dependent on host `unzip` or the GUI updater.
+- Writes **`sof_buddy/update/install_context.env`** (Wine/Proton flags, host paths for
+  `update_from_zip.sh`) for fallback installs.
+- **`update_from_zip.cmd`**: skips GUI on Wine/Proton; tries tar/7z, **`start /unix` host `.sh`**, then
+  winepath unzip; accepts `.dll.new` + replace script.
+- Release zips ship **`sof_buddy/replace_sof_buddy_dll.cmd`**.
+- **`is_running_under_proton()`** (Steam compat env); F12 **Flavour** shows **Universal (Proton)** /
+  **Universal (Wine)** when applicable; Home tab also shows **Build** (`_sb_internal_build_number`).
+
+## v8.33
+
+### Startup update prompt
+
+- Larger scrollable dialog when a newer release is found: **installed** version (incl. CI build
+  number), **available tag**, GitHub **release title**, zip asset name, and a **What's new** section
+  from the release body (fed via `_sb_internal_update_prompt_notes_rmf`).
+- Release `name` is parsed from the update API and stored in `pending_update.txt`.
+
+### CI / build
+
+- Fix default `make` target (`.DEFAULT_GOAL := all`) so universal DLL and `sof_buddy_update.exe`
+  build in CI.
+- Replace `hashFiles()` in the container job with a shell hash for the ccache key (avoids workflow
+  validation failures).
+
+## v8.32
+
+### F12 Texture — resolution
+
+- **Video → Resolution** list on the Texture tab: `gl_mode` picker built from SoFPlus
+  `_sp_cl_vid_mode_N` labels (fallback `_sp_cl_info_vid_modes`). Applies with `vid_restart`.
+
+### CI / build
+
+- GitHub Actions: **ccache** + `actions/cache` for faster repeat compiles; `make all` runs release,
+  universal, and win-updater sequentially; universal zip step ensures `sof_buddy_update.exe` exists.
+
+## v8.31
+
+### MP Profile Guid
+
+- New F12 tab **MP Profile Guid**: view, copy, and persist the multiplayer profile GUID
+  under Documents with SoF Buddy menu integration.
+
+### Graphical Windows updater
+
+- Added `sof_buddy/sof_buddy_update.exe` (Win32, XP+): progress bar, release notes, optional
+  fresh-settings checkbox, no console window. Wraps `update_from_zip.cmd` silently; logs to
+  `sof_buddy/update/.install.log`.
+- **Universal channel only:** GUI ships in `release_windows_universal.zip` and the installer
+  payload; `release_windows.zip` / XP / debug keep `update_from_zip.cmd`. `sofbuddy_update_install`
+  uses the GUI only for `SOFBUDDY_UNIVERSAL_BUILD` when the exe is present.
+- Release notes come from `sof_buddy/update/pending_update.txt` (written on in-game check/download).
+
+### GameSpy master default
+
+- Default `_sp_cl_master_gamespy` is `sof1master.sofvault.org` (PreCvarInit registration before
+  SoFPlus/spcl; F12 Network list order updated).
+
+### Windows installer
+
+- Staged `sof_buddy.dll.new` plus `replace_sof_buddy_dll.cmd` when the DLL is locked at install
+  time (Wine/Proton-friendly retry path).
+
+### Build
+
+- Default `make` builds release DLL, universal DLL, and `sof_buddy_update.exe` (not debug/XP).
+
+## v8.30
+
+### FPS and framerate persistence via SoFPlus
+
+- `cl_showfps` is no longer `CVAR_ARCHIVE`: with SoFPlus present it persists
+  through `User/sofplus/data/spm_settings.cfg` instead of `config.cfg`, ending
+  the two-file split for the FPS overlay.
+- On shutdown, SoF Buddy now runs SoFPlus's exact settings save
+  (`sp_sc_cvar_save spm_settings.cfg cl_maxfps cl_showfps _sp_cl_cpu_cool
+  _sp_cl_master_gamespy`), guarded so it only runs when SoFPlus is present.
+  Buddy menu changes to the FPS display, framerate cap, and master server now
+  survive clean exits.
+- Without SoFPlus (vanilla), `cl_showfps` and `cl_maxfps` are archived so
+  `config.cfg` keeps persisting them as before.
+
+## v8.29
+
+### Installer DLL verification
+
+- Installer now verifies the installed `sof_buddy.dll` against the packaged
+  SHA-256 and reports missing, unreadable, or unchanged files.
+- The error message points users to a likely SoF/Wine/Proton file lock.
+
+## v8.28
+
+### GameSpy master selection
+
+- Replaced automatic master probing and rotation with a Network-tab `<list>`
+  bound directly to SoFPlus's `_sp_cl_master_gamespy` cvar.
+- Known masters include MegaLag, 333Networks, SofVault, and Qtracker; the
+  default is `sof1master.megalag.org`.
+- SoFPlus continues persisting the selected master in
+  `User/sofplus/data/spm_settings.cfg`.
+
+## v8.27
+
+### Universal developer copy script
+
+- Added `cptosof-universal` to copy the universal DLL to a SoF installation
+  as `sof_buddy.dll`, including function maps and parent maps.
+- Rejects stale or non-universal DLLs before copying, preventing older builds
+  from silently missing newer commands such as the F12 menu binding.
+
+## v8.26
+
+### Windows installer
+
+- Installer filenames now include the SoF Buddy version, such as
+  `sof_buddy_setup_v8.26.exe`, making the downloaded release unambiguous.
+
+## v8.25
+
+### Bonus menu key
+
+- Added a clearly labelled additional menu shortcut while keeping F12 as the
+  permanent default.
+- Fixed key names rendering as blank or only `/`, and matched the vanilla key
+  menu layout so the binding and following section headings align correctly.
+
+## v8.24
+
+### GameSpy master fallback
+
+- Added a Network-tab master-server fallback list with a manual
+  **Try Next Master** action.
+- Health-checks masters with the Windows TCP 28900 GameSpy server-list
+  exchange, including challenge validation, before selecting one.
+- Automatically retries the next configured master when the active server
+  times out or returns an invalid/empty list, while keeping
+  `_sp_cl_master_gamespy` single-valued for SoFPlus.
+
+## v8.23
+
+### Font selection and scaling
+
+- Added **Default / Force SoFPlus / Force Vanilla** font selection to the UI
+  Scale tab.
+- Force Vanilla loads stock numbered PAK fonts and corrects scaled text
+  centering for the vanilla font's fixed-width glyphs.
+- Changing the font mode reloads the renderer without exiting the game.
+
+### CPU profiles
+
+- The CPU tab now detects which preset matches the profile-controlled cvars
+  and selects `Custom/Current` when none match.
+- Removed the duplicate current-value block and replaced the profile preview
+  heading with a single `In-Use:` block.
+
+### Menu fixes
+
+- Feature rows now display `Unavailable` instead of the raw disabled value
+  when a feature is not compiled into the DLL.
+- Standard and universal builds regenerate their feature rows independently.
+- Empty cvar values are no longer treated as unmatched `<list match>` values.
+
+## v8.22
+
+### Translation font compatibility
+
+- Fixed Vanilla font mode bypassing the engine's normal PAK priority, which
+  could replace translation-specific glyph mappings with the base font.
+- SoFPlus font assets are now overridden only when SoFPlus is explicitly
+  selected.
+
+## v8.21
+
+### HUD and fonts
+
+- Centered the HUD DM score using the active font's real glyph widths, fixing
+  misalignment with variable-width fonts and multi-digit scores.
+- Added a Scale-tab Font Pack selector for Vanilla and SoFPlus fonts.
+  The selection persists, loads the matching font assets from the game PAKs,
+  and takes effect after restarting SoF.
+
+## v8.20
+
+### Installer clarity and security
+
+- Marked compatibility and full-violence installation tasks explicitly
+  **[OPTIONAL]**, including the task group and every full-violence input.
+- Full-violence password now defaults to blank; volume serial and `-cs` key
+  fields remain optional with automatic serial detection.
+- Made Core / Performance and Security Fixes fixed installer categories.
+  Security fixes, including `console_protection`, can no longer be unchecked
+  in the feature selection list.
+
+## v8.19
+
+### Menu and bug fixes
+
+- Added `list_match_fix`, preserving off-list `<list match>` cvar values
+  instead of resetting them to the first menu entry. The live value is shown
+  and left/right navigation selects the nearest matching value.
+- Classified `list_match_fix` under **Bug Fixes** in the installer and
+  in-game Features menu.
+- Fixed first-run driver defaults so `drivers/highest.cfg` is applied before
+  the safe `fx_maxdebrisonscreen` and renderer overrides.
+
+### Build and installer
+
+- Added `_sp_cl_info_sofbuddy` userinfo metadata in the
+  `windows-<version>-<build>`, `wine-<version>-<build>`, or
+  `universal-<version>-<build>` format.
+- Added GitHub Actions build-number propagation; local builds report `local`.
+- Grouped installer features by purpose inside the recommended/tested and
+  un-recommended/unstable sections.
+- Moved compatibility and full-violence controls to a separate installation
+  options page. Full violence is checked by default and now reports the
+  `userinfo`/`cl_violence 0` verification step.
+
+## v8.18
+
+### In-game Features menu
+
+- The Features tab lists only features compiled into the DLL (from
+  `FEATURES.txt`), removing empty layout gaps and the misleading
+  “unavailable features” notice.
+- Feature rows are generated at build time via `tools/generate_features_menu.py`.
+
+### Windows installer
+
+- Parental-control / full-violence setup is selected by default on the
+  components page (still optional).
+- Success text tells users to run `userinfo` at startup and confirm
+  `cl_violence` is `0`.
+- Feature components are grouped into **Recommended / tested** vs
+  **Un-recommended / unstable** (commented-out `FEATURES.txt` entries).
+
+## v8.17
+
+### Universal runtime safety and parity
+
+- Fixed runtime-disabled feature paths for raw-mouse timing, HTTP loading menus,
+  console/HUD/menu scaling, VSync display updates, and HD texture initialization.
+- Prevented disabled scaling cvars from mutating active shared UI state.
+- Isolated generated build outputs so standard and universal builds do not
+  overwrite one another.
+
+### Universal packaging and Wine installation
+
+- Universal Windows and Linux/Wine packages now include both platform script
+  sets, while continuing to ship one universal DLL.
+- The installer can activate the DLL natively under Wine and preserves
+  `SoF.exe.bak` before patching.
+
+## v8.16
+
+### Installer directory selection
+
+- The installer now always shows the SoF directory picker and no longer reuses a
+  previous installation path automatically.
+
+## v8.15
+
+### Installer activation
+
+- The installer now uses the selected SoF directory exactly, automatically runs
+  `enable_sofplus_and_buddy.cmd`, and preserves the original as `SoF.exe.bak`
+  before patching.
+
+## v8.14
+
+### Universal Windows installer compiler fix
+
+- Fixed the generated installer’s Pascal Script constants and binary-string encoding
+  so Inno Setup can compile the universal Windows installer.
+
+## v8.13
+
+### Universal Windows installer
+
+- Fixed the generated Inno Setup component defaults so optional features are unchecked
+  in the recommended installation while remaining available through custom selection.
+- Replaced unsupported component flags with valid Inno Setup component type semantics.
+
+## v8.11
+
+### Universal feature selection
+
+- Added a dedicated **F12 → Features** tab with archived
+  `_sofbuddy_feature_<name>` On/Off controls and an explicit restart notice.
+- Feature selections persist through `base/sofbuddy.cfg` and are synchronized to
+  `sof_buddy/features.cfg` before startup hook registration.
+- Non-universal DLLs show features they do not contain as **Unavailable** and
+  refuse attempts to enable them.
+- Feature checks remain generated inline bit tests; changing a selection never
+  mutates the active hook mask mid-session.
+
+### Windows installer and update channels
+
+- Windows installer feature selection continues to use one universal DLL and now
+  documents the F12 runtime controls and persistence behavior.
+- Release packaging now separates compile-time/default assets from universal
+  assets: `release_windows.zip` versus
+  `release_windows_universal.zip`, with matching Linux/Wine packages.
+- The updater selects the package matching the build channel, preventing a
+  compile-time installation from silently becoming universal.
+
+## v8.10
+
+### Display refresh readout + cap check (F12 → CPU, in `vsync_toggle`)
+
+- The Framerate section now shows the measured display refresh next to the requested
+  `gl_displayrefresh` (`Display : 240 Hz (requested auto)`), read from the system via
+  `EnumDisplaySettings` (`GetDeviceCaps` fallback) and refreshed on every CPU-page open.
+  `gl_displayrefresh` verified in ref_gl (`R_Register` default `"0"`, archived; consumed in
+  `R_SetMode` via `dmDisplayFrequency`, `0` = auto) and resolved with the identical spec.
+- The request moved into its own row (`Requested Display Refresh Rate`): a picker generated
+  from the modes the driver reports
+  for the current resolution (`Auto`/`0` first, then ascending; takes effect on `vid_restart`),
+  inserted via `<includecvar>` like the updater's release list. The `Display` row now shows the
+  measured truth only. A static `Fullscreen` row (`vid_fullscreen`, verified in `VID_Init`)
+  and a sofplus-only `Window Border` row (`_sp_cl_vid_border`, generated only when `findCvar`
+  proves it exists *and* the game is windowed — bible conditionals test values, so they can't
+  gate on existence).
+- A mismatch warning appears only when it applies, via RMF `<cinclude>` on a
+  `_sb_internal_fps_cap_mismatch` flag: orange three-line
+  `cl_maxfps LESS THAN monitor Refresh Rate with VSYNC ON. Increase It?` when VSync is on
+  and the display could deliver more than the cap allows. `cl_maxfps` is resolved locally so
+  no cross-feature coupling. A `sofbuddy_display_refresh` command recomputes on demand and is
+  chained into every cap/VSync row (`...;sofbuddy_display_refresh;refresh`) so the warning
+  flips on the same click instead of lagging a page behind.
+- Verified `gl_displayrefresh` exists before referencing it from RMF (a missing cvar would be
+  silently created as a placebo by the menu parser).
+
+### Fix — CPU tab crash on open (Framerate row)
+
+- The v8.9 Framerate row used `cvari cl_maxfps` with a `match` list. That exact combination is
+  fatal for out-of-range values: the resolver returns the raw integer for `cvari` rows, but the
+  normalize step still indexes `match[]` with it — so `cl_maxfps 30` read `match[30]` of 11
+  entries. Every other `cvari` row only ever holds `0`/`1` (or `0`…`3`), which is why only this
+  row blew up.
+- Final shape: a `<list>` (`Auto` plus whole-ms caps from `ceil(1000/n)` for
+  `n = 1…16, 20, 25, 30, 40, 100ms`, using `cvar` + `match`). Display-refresh-specific
+  FPS presets and buttons are not listed; low-end choices include `10`, `25`, `34`, `40`,
+  and `50` FPS.
+  `Auto` is match value `923`, a reserved sentinel: off-list values fall back to index 0, the
+  widget writes `"923"`, and `cl_maxfps_change` quantizes the pre-reset value (kept in
+  `previous_cl_maxfps`) UP to the smallest entry covering it (`150` → `167`; `142.453` →
+  `143`, whose 6.993ms budget fits inside 7ms) — so the fallback auto-corrects instead
+  of resetting, and `923` can never be held. Because the widget only resolves on re-layout
+  (first paint briefly showed the fallback `Auto` label), opening the CPU tab now also
+  pre-quantizes eagerly before parse — first paint already settled. All entries and results stay
+  at or above the `10` floor. Still no `<slider>` (decimals), no `<input>` (writes every
+  keystroke), no menu path to `0`.
+- One engine behavior to know: a `<list>` normalizes via `Cvar_Set(name, match[index])` on
+  layout, so opening the tab can reset off-list values. `cl_maxfps` is pre-quantized to a
+  listed whole-ms cap before the page parses, avoiding that fallback on first paint.
+- The `cvar`-vs-`cvari` rule is now documented in `src/features/internal_menus/README.md`
+  so it can't be reintroduced.
+
+### New cvar — `_sofbuddy_icons_autoscale` (default `1`)
+
+Team icons and playernames drawn above players (the 2D sprites from ref_gl `Draw_PlayerInfo`) now
+scale with the HUD scale instead of staying tiny at high resolutions.
+
+- New **Icons Autoscale** row on **F12 → UI Scale** plus a raw entry on the **Cvars** tab.
+  **Restore Scaling Defaults** resets it to `1`.
+- How it works: `Draw_PlayerInfo` (ref_gl `0x3040`, the same function the `teamicons_offset`
+  `drawTeamIcons` hook targets) draws the name with `R_DrawFont` and the icon with
+  `Draw_StretchPic` using a distance-based falloff. The existing scale features already intercept
+  both calls, so the change adds caller detection (`TeamIconDraw` / `PlayerInfoName`) and:
+  - icon: multiply `w`/`h` by `hudScale` (same as the CTF flag) and recenter on the original quad;
+  - name: pivot-based glyph growth with `snapped_text_scale_active(hudScale)` plus a left
+    pre-shift in `hkR_DrawFont` so the scaled string stays centered over the player.
+- The old `isDrawingTeamicons` bypass in `handleFontVertex` (which skipped *all* teamicon
+  scaling) now only applies when the cvar is `0`.
+
+### Texture filtering and menu polish
+
+- After `vid_restart`, the texture feature reapplies native `GL_TextureMode` after reinstalling
+  its filter patches, so UI textures keep their configured `GL_NEAREST` filters.
+- The Texture tab's `gl_picmip` control is an integer slider from `-10` to `10`.
+- The Cvars tab is now a read-only reference with live values, defaults, and descriptions.
+  The Buddy loading-input tooltip explains that `Unlocked` permits opening the console while
+  loading, while `Locked` blocks it.
+
+## v8.9
+
+### Internal menus — `cl_maxfps` and VSync on the CPU tab
+
+Closes [#21](https://github.com/d3nd3/sof_buddy/issues/21) — framerate cap had no menu control anywhere in F12.
+- New **Framerate** section on **F12 → CPU**: `cl_maxfps` as a list (`Unlimited`, 30, 60, 72, 100, 120, 144, 165, 200, 240, 300) and `gl_swapinterval` as `Off`/`On`, each with a live `<ctext>` readout of the raw value.
+- New **Uncap Framerate** button that sets `cl_maxfps 0` and `gl_swapinterval 0` together.
+- **Restore Perf Defaults** now also resets `cl_maxfps 30` and `gl_swapinterval 0`.
+
+### media_timers — actually track `cl_maxfps`
+
+- `cl_maxfps` was declared but never registered, so `cl_maxfps_change()` was dead code and the sleep/busy-wait frame budget (`g_cl_maxfps_target_msec`) stayed pinned at 33 ms (~30 fps) no matter what the player set.
+- `create_mediatimers_cvars()` now resolves `cl_maxfps` (default `30`, matching `CL_InitLocal`) with the callback attached, so picking a cap on the CPU tab retargets the frame budget.
+- `cl_maxfps 0` (uncapped) is treated as a 1 ms budget instead of falling back to the old 33 ms.
+- Dropped the `SOFBUDDY_ASSERT(cvar->value > 0.0f)` that would have fired on the legitimate `0` case, and added a one-line log of the new budget.
+
+## v8.8
+
+### Internal menus — actually fix the blank Map Study rows on the Cvars tab
+
+- v8.7 claimed to fix this and did not. The section was still rendered because the gate used the wrong conditional tag.
+- Root cause: `<cninclude>` includes when the cvar is **zero** and `<cinclude>` includes when it is **non-zero** — the two are inverses. v8.7 used `<cninclude _sb_internal_feature_entity_visualizer ...>`, and since that build flag is `0` when `entity_visualizer` is disabled, the section was included precisely when it should have been skipped.
+- Fix: switched the gate to `<cinclude>`.
+- Reference cases that settle the polarity: `ui_scale_content.rmf` gates `ui_scale_round_ratio` behind `<cinclude _sofbuddy_scale_round_auto>` (row belongs on screen when auto round is **on**, default `0`), and `ui_scale_font_manual` behind `<cninclude _sofbuddy_font_scale_auto>` (row belongs on screen when auto font scale is **off**, default `1`).
+- Defaults were never wrong; only the page listed cvars the running build did not register.
+
+## v8.7
+
+### Internal menus — fix blank Map Study rows on the Cvars tab
+
+- v8.6 shipped the new **Cvars** tab with a **Map Study** section listing `_sofbuddy_entity_edit`, `_sofbuddy_entities_draw_verbose`, `_sofbuddy_map_debug_map`, and `_sofbuddy_map_study_deathmatch`.
+- Those cvars belong to the `entity_visualizer` feature, which is **disabled by default** in `features/FEATURES.txt`. The feature is compiled out, so the cvars are never registered and the rows rendered an empty live value next to a `Default 0` line — which read like a broken default.
+- The section is now gated behind a new internal build flag cvar, `_sb_internal_feature_entity_visualizer`, set from `FEATURE_ENTITY_VISUALIZER`. It is hidden in default builds and reappears automatically if the feature is enabled.
+- Defaults themselves were never wrong — only the page listed cvars the running build did not register.
+
+### Cvars
+
+- No other cvar changes. Enable `entity_visualizer` in `features/FEATURES.txt` to get the map study cvars back.
+
+## v8.6
+
+### Internal menus — new **Cvars** tab
+
+- **Raw cvar editor** reachable from the F12 tab bar (next to **Buddy**): every user-facing `_sofbuddy_*` cvar in one scrollable page.
+- Each row shows the live value, the default, and a description, with the full text also available as a hover tooltip.
+- Values are edited in place — `<ctext>` for scalars, text fields for the provider and updater URLs. Press Enter to apply.
+- Grouped by area (Performance / Timers, UI Scale, Texture Filtering, Lighting, Input, Network, Updater, Menu / Loading, Map Study).
+- Internal bookkeeping cvars are deliberately not listed here; see the internal table in the README.
+
+### Cvars — `_sb_internal_` prefix for internal cvars
+
+- sof_buddy's own bookkeeping cvars (menu layout math, scale migration guards, loading and updater status read-outs) were renamed from `_sofbuddy_*` to `_sb_internal_*`.
+- 40 cvars renamed, e.g. `_sofbuddy_menu_vid_w` → `_sb_internal_menu_vid_w`, `_sofbuddy_update_status` → `_sb_internal_update_status`, `_sofbuddy_profile_target_*` → `_sb_internal_profile_target_*`.
+- Makes it obvious at a glance in the console which cvars are yours to set. Nothing user-facing changed name — every cvar on the Cvars tab keeps its old name.
+
+### README — cvar reference refreshed
+
+- Corrected wrong defaults: `_sofbuddy_console_size` (`0.35` → `0.5`), `_sofbuddy_update_check_startup` (`0` → `1`), the six texture filter defaults (were blank), and the HTTP provider URLs (slot 1 is the sofvault mirror, slot 2 the plowsof mirror).
+- Corrected `_sofbuddy_perf_profile` to document all four modes.
+- Added the previously undocumented `_sofbuddy_menu_theme`, `_sofbuddy_update_target_tag`, `_sofbuddy_loading_show_mapname`, `_sofbuddy_loading_show_download`, `_sofbuddy_entities_draw_verbose`, `_sofbuddy_map_debug_map`, and `_sofbuddy_map_study_deathmatch`.
+- Dropped entries for `_sofbuddy_classic_timer` and `sofbuddy_menu_internal`, which no longer exist.
+- Split internal cvars into their own table instead of mixing them into the user-facing list.
+
+### Upgrade note
+
+- An existing `base/sofbuddy.cfg` still contains the old internal cvar names. They are recreated as inert leftovers on the next launch and can be removed by deleting the file; the scale migration guards simply re-run once and converge.
+
+## v8.5
+
+Clean release after withdrawing v8.1–v8.4 (those builds shipped experimental `wine_focus`, now removed). **Version 8.5** ensures the in-game updater offers an upgrade to anyone still on withdrawn 8.x builds (8.1 would compare older than 8.4).
+
+### wine_focus — removed
+
+- Alt-tab gray-screen workaround deleted; issue is outside SoF Buddy (Proton/Wayland/NVIDIA).
+
+### media_timers — QPC clock hardening
+
+First **published** release with this work (landed in repo during withdrawn 8.x builds, not in v8.0-build189).
+
+- **Sys_Milliseconds** uses `QueryPerformanceCounter` with safer wrap/rebase handling (`uint32_t` ms, ready-flag origin, last-elapsed fallback on failed reads).
+- **Wine:** double `QueryPerformanceCounter` on XP-class paths per Microsoft guidance.
+
+### Loading menu — default unlocked input
+
+- **`_sofbuddy_loading_lock_input`** default is `0` (unlocked).
+- **Buddy tab:** Loading-screen toggles moved above the menu theme block.
+- **Restore defaults** resets loading lock to `0`.
+
+### Internal menus — Lighting layout
+
+- **Lightblend** warning on its own line below the section heading.
+
+### Releases — publish only on VERSION bumps
+
+- GitHub Releases only when `VERSION` changes; `new_release.sh --check` validates changelog.
+
+## v8.0
+
+### Texture filtering — prevent UI/unmipped MIPMAP lockout
+
+- **Menu:** UI and Unmipped Min lists limited to `NEAREST`/`LINEAR` (MIPMAP options removed; world Mipped Min unchanged).
+- **Clamp:** `minfilter_change` rejects MIPMAP for `_sofbuddy_minfilter_ui` and `_sofbuddy_minfilter_unmipped` (no mip levels → incomplete textures / unreadable fonts).
+- **Poison reset:** Invalid or rejected filter cvar strings are rewritten to the last valid value so archived configs cannot keep a stuck MIPMAP setting.
+
+## v7.9
+
+### Internal menus — Video/FPS cleanup
+
+- **Removed `debuggraph` control** from the Video/FPS tab and dropped its `CVAR_ARCHIVE` hook (v7.8 added it; FPS graph is already covered via `cl_showfps`).
+
+## v7.8
+
+### Internal menus — more cvar persistence
+
+- **Early cvars:** `cl_gun`, `cl_quads`, `cl_freezequads`, and `debuggraph` now OR `CVAR_ARCHIVE` at registration so F12 menu changes persist.
+- **Deferred cvars:** `gl_dynamic` archives after `ref_gl.dll` loads; `mskins_expression_limit` and `mskins_variety_limit` archive after the game DLL loads (these register later than `PostCvarInit`).
+
+## v7.7
+
+### Internal menus — cvar persistence
+
+- **`cl_showfps`, `m_yaw`, `m_pitch`:** OR `CVAR_ARCHIVE` at registration so FPS overlay and mouse sensitivity settings from the Buddy menus persist to `config.cfg` (vanilla registers these without archive flags).
+
+## v7.6
+
+### Internal menus — theme palette expansion & list injection
+
+- **38 themes (was 31):** Added Kanagawa, Horizon, Oxocarbon, Moonlight, Ember, Candy, Frost; expanded `MenuTheme` to 10 tint slots (tip, hili, accent, subtle, heading, muted, active) with per-theme active-tab hues.
+- **`{menu_theme_list}`:** Buddy tab injects the full `<list …>` tag at load time via `internal_menus_get_theme_list_rmf()` so labels stay under the 239-char quoted-string cap as the theme count grows.
+- **RMF docs:** Clearer §8 note on `<list>` size limit — only characters inside each `"..."`, with a short example.
+
+## v7.5
+
+### Internal menus — Buddy tab theme list fixes
+
+- **Hang fix:** Menu theme `<list>` labels shortened to fit SoF.exe’s **240-byte** comma-split stack buffer (`sub_200C92D0`); the v7.4 31-name string (277 chars) overflowed and could freeze the game when opening the Buddy tab.
+- **Layout fix:** Theme list uses inline short labels in RMF (not `{placeholders}` inside quotes) so the engine parses a real `<list>` control instead of dumping `cvar` / `atext` / `key` tokens as raw text.
+- **Right-click apply:** Added `key mouse2` reload on the theme list so right-click previous entry applies tints the same as left-click next (`list_c` only fires `key mouse1` bindings on button 1).
+- **Plumbing:** `kMenuThemeListLabels[]` plus `internal_menus_get_theme_list_labels_rmf()` / `_match_rmf()` for generated list strings; `FS_LoadFile` can substitute `{menu_theme_labels}` / `{menu_theme_match}` when used outside quotes.
+- **RMF reference:** Documented the 240-byte list string limit and the no-placeholders-in-quotes rule.
+
+## v7.4
+
+### Internal menus — themed SoF Buddy settings shell
+
+- **Menu themes:** Added `_sofbuddy_menu_theme` with 31 editor-inspired color presets; RMF files now use `{theme_tints}` so theme colors are injected at load time.
+- **Buddy settings page:** New **Buddy** tab (`sofbuddy.rmf` / `sofbuddy_content.rmf`) for menu theme, tooltip duration, hotkey display, loading-screen options, startup update check, and restore defaults.
+- **Tab layout:** SoF Buddy tabs moved into `sof_buddy/tabs/*.rmf`, with fixed-width three-column rows and a shared `{tabs_row_prefix}` placeholder. Old standalone `*_content.rmf` pages for Input / Profiles / Video were removed where the tab content is now folded into the unified layout.
+- **Layout cvars:** Default tab content width is now 384px for both rows; row prefix calculation uses the full 640px center panel with a small left nudge for balanced tab rows.
+
+### Loading screen options
+
+- **`_sofbuddy_loading_show_mapname`** and **`_sofbuddy_loading_show_download`** let users hide the map name or download status rows independently.
+- **`loading_network_map.rmf`** and **`loading_network_download.rmf`** split the loading header rows so the new cvars can gate each row.
+- Loading map display strips leading `maps/` from paths before writing `_sofbuddy_loading_current`.
+
+### Internal menu plumbing
+
+- `FS_LoadFile` placeholder substitution now supports `{tabs_row_prefix}` and `{theme_tints}`.
+- `tools/generate_menu_embed.py` now embeds nested menu folders (for example `sof_buddy/tabs/*.rmf`) using the full relative menu path.
+- `fx_maxdebrisonscreen` is registered with `CVAR_ARCHIVE` so CPU/profile menu changes persist.
+
+## v7.3
+
+### Internal menus — deathmatch-only loading rule
+
+- **Removed cls/connect-flow latch** (`Qcommon_Frame` Post, plaque context, savegame/`sv.loadgame` heuristics) — vanilla vs custom loading now follows stock **`deathmatch` `exinclude`** timing only.
+- **`internal_menus_use_vanilla_loading_menu()`:** `deathmatch==0` → pak `loading.rmf`; `deathmatch!=0` → Buddy custom loading menu.
+- **Loading header:** `<exinclude deathmatch>` picks **`loading_network`** (map + download status) in DM or empty **`loading_network_sp`** in SP — replaces `_sofbuddy_loading_network` `cninclude`.
+- **`SCR_BeginLoadingPlaque`:** skip redundant second plaque only when still on the **vanilla** path; never skip when switching to custom MP loading (e.g. deathmatch set after first plaque).
+
+### HTTP maps
+
+- **Connect assist** gated on latched **`deathmatch`** only (removed MP connect-flow check).
+
+## v7.2
+
+### Internal menus — loading context & connect-flow fixes
+
+- **Loading plaque context:** `begin/end_loading_plaque_context` tracks savegame loads (`sv.loadgame`) and SP local map loads so vanilla vs custom loading UI is chosen per plaque, not from stale latch state.
+- **MP connect latch:** Requires **two consecutive `ca_disconnected` frames** in deathmatch before clearing (avoids one-frame cls glitches during MP map load). SP `newgame.cfg` disconnect+map scripts clear immediately.
+- **`ca_active` → `ca_connected`:** Treated as SP local reload (mission/quickload), not MP connect — clears connect latch and HTTP maps loading state.
+- **Savegame loads:** Always use vanilla pak `loading.rmf`; network status panel hidden.
+
+### HTTP maps — loading UI state
+
+- **`http_maps_on_sp_local_map_load()`:** Clears cached loading UI / map labels when SP loads a local map.
+- **`http_maps_refresh_loading_menu_labels()`:** Updates map name on the existing loading menu when the second `SCR_BeginLoadingPlaque` is skipped (no killmenu flash).
+- **Network panel:** `_sofbuddy_loading_network` is on only during **MP connect + HTTP maps assist**, not savegame or SP local loads.
+- **Loading UI show:** Sets `loading_ui_active` / map path before `loading_show_ui()`; `http_maps_should_assist_connect` exported in `shared.h`.
+
+## v7.1
+
+### cl_maxfps singleplayer — simplify freeze sync
+
+- **Removed SV/CL throttle pairing** (`Qcommon_Frame` Pre + `SV_Frame` override) and **ExitLevel** / **GameDllLoaded** lifecycle hooks — freeze-flag sync alone fixes the post-cinematic black screen.
+- **Kept:** `CL_Frame` NOP patch, sofplus `sp_Sys_Mil` detour, **CinematicFreeze** mirror to exe, **M_PushMenu** Pre clear when game freeze is already off.
+- **README:** Documents root cause — throttled `CL_Frame` lets `intermission` run at `Qcommon_Frame` top `Cbuf_Execute` while exe `cinematicfreeze` is still set.
+
+### Internal menus — loading screen & HTTP maps
+
+- **Vanilla `loading.rmf`** for all local loads; custom Buddy loading UI only during **MP connect** or **HTTP maps** download.
+- **`loading_network.rmf`:** conditional map/download status panel in loading header via `_sofbuddy_loading_network` (`cninclude` on vanilla loading).
+- **`SCR_BeginLoadingPlaque`:** skip redundant second plaque push during HTTP precache (avoids killmenu flash / client instability before spawn); `killmenu` only on custom loading path.
+
+## v7.0
+
+### Scaled UI — per-font glyph snap & XP alignment fixes
+
+- **Per-font glyph grid:** `snap_font_scale_to_glyph_grid(s, glyphPx)` uses each font’s `realFontSizes` entry; helpers `snapped_text_scale_active()`, `console_font_scale()`, and `font_glyph_px()`.
+- **Raw scale at cvar, snap at draw:** `fontScale` / `hudScale` stay on the resolution ratio at the cvar; glyph snap applies on text draw/layout paths only — HUD sprites and cropped pics keep raw `hudScale`.
+- **Console (XP):** `Con_DrawConsole`, `Con_CheckResize`, `Con_DrawNotify`, and console `Draw_Char` vertices all use `console_font_scale()` (8px medium grid) so layout and glyphs stay aligned.
+- **Mission status:** pivot-based per-font glyph scaling plus `R_DrawFont` horizontal compensation for centered red objective text.
+- **Center print:** restored bottom-anchored multi-line scaling (reverts v6.9 screen-center vertex model).
+- **DM ranking:** `R_DrawFont` entry offsets and font vertices both use the same snapped text scale.
+- **Inventory / ammo HUD:** ammo and item count text uses raw `hudScale` to match cropped panel pics (glyph snap drifted labels off the art on XP).
+- **Cinematic typematic:** char positions and quads use per-font glyph snap; removed per-vertex `snap_ui_pixel` rounding.
+- **Menu text:** server box / tip render paths use snapped `screen_y_scale` per active font.
+
+## v6.9
+
+### Scaled UI — center print scaling (screen-center model)
+
+- **Center print / yellow subtitles:** Scale uniformly from **screen center (X)** and the **first-line Y anchor** (`g_centerPrintAnchorY`) — matches how center-print lines use absolute Y, not pause-style inset/pivot.
+- **Removed `R_DrawFont` screenX pre-compensation** for center print; glyph positions are handled entirely in the vertex scaler.
+
+## v6.8
+
+### Scaled UI — center print scaling fix
+
+- **Center print / yellow subtitles:** Reverted the v6.7 bottom-anchor path to standard **pivot-based X/Y scaling** (same model as pause text) — fixes misaligned or drifting multi-line center-print blocks.
+- **`R_DrawFont`:** Center-print horizontal compensation no longer pixel-snaps `screenX`; `screenY` is treated as absolute line Y, not a pause-style inset.
+
+## v6.7
+
+### Updates — SofVault release list & per-tag manifests (XP)
+
+- **`sync_from_github.sh`:** Cron sync now also writes **`list.json`** (GitHub release list) and **`by_tag/<tag>.json`** manifests for the install-version picker; only the latest tag gets a mirror **`zip_url`**.
+- **XP updater:** When `_sofbuddy_update_api_url` points at the sofvault mirror, **Refresh Release List** reads `list.json` and **check/download by tag** uses `by_tag/<tag>.json`.
+- **Docs:** `rsrc/sofvault_mirror/README.md` documents `list.json`, `by_tag/`, and mirror download limits for older tags.
+
+### Scaled UI — glyph-grid snap & center print
+
+- **`snap_font_scale_to_glyph_grid()`:** Snaps font scale so 8px reference glyphs land on whole pixels (e.g. 768p auto `1.6` → `1.625`).
+- **`snap_ui_pixel()`:** Rounds scaled UI coordinates to the nearest pixel; used for cinematic typematic char quads and center-print text.
+- **Cinematic typematic:** `Draw_Char` vertices in cinematic scope now scale with font scale (char positions were already scaled in `Draw_CharExtra`).
+- **Center print:** Reworked multi-line yellow subtitle / center-print scaling — pause-screen-style horizontal pivot, bottom-anchored Y, and `R_DrawFont` X compensation for centered blocks.
+
+## v6.6
+
+### Updates — SofVault XP mirror (cron pull)
+
+- **`rsrc/sofvault_mirror/sync_from_github.sh`:** Server-side cron script polls GitHub’s latest release API, downloads `release_windows_xp.zip` when the tag changes, and writes `latest.json` for XP in-game updater checks.
+- **Removed `publish.sh`:** No SSH push from GitHub Actions; sofvault syncs from GitHub like the sof1maps mirror.
+- **CI:** Dropped redundant `sofvault_latest.json` generate/upload release-asset steps.
+- **Docs:** `rsrc/sofvault_mirror/README.md` and README XP section note the cron pull model.
+
+## v6.5
+
+### CallsiteClassifier — funcmap parser fix
+
+- **Bug:** Since v6.0, `SoF.exe.json` was minified to a single line (~45 KB). `CallsiteClassifier` parsed funcmaps with `fgets` and assumed one function entry per line, so only **~23 of 2611** `SoF.exe` function starts were loaded at runtime.
+- **Impact:** Scaled UI/HUD caller detection (`caller_from`, hook callsite classification) failed for almost all `SoF.exe` call sites — wrong scaling paths and crashes on XP and other builds shipping `sof_buddy/funcmaps/`.
+- **Fix:** Load the whole funcmap file and scan for every `"rva"` entry regardless of JSON formatting (pretty-printed or minified).
+- **Data:** Re-pretty-printed `rsrc/funcmaps/SoF.exe.json` to match `pe_funcmap_gen` output.
+
+## v6.4
+
+### Internal menus — UI Scale round-step layout
+
+- **Auto Round Step** moved back to a conditional sub-page (`ui_scale_round_ratio.rmf`) via `cinclude` — shown only when **Auto Round Scale** is on, matching the font/HUD manual-scale pattern.
+- **Auto Round Scale** toggle refreshes the UI Scale page so the step list appears or hides immediately.
+
+## v6.3
+
+### Updater — install-version picker & downgrades
+
+- **`_sofbuddy_update_target_tag`:** pick **Latest** or a specific GitHub release tag before checking or downloading.
+- **`sofbuddy_update releases`** (alias `list`): fetches all release tags and builds the in-menu install-version list (`_sofbuddy_update_release_list_rmf`).
+- **Download flow:** selecting a specific tag always downloads that zip (downgrade-friendly); **Latest** keeps the existing “only if newer” behavior unless `download force` is used.
+- **F12 → Updates:** **Refresh Release List**, **Install version** picker, renamed **Download Selected Zip**, and updated step-by-step help.
+
+### Scaled UI — dedicated auto-scale cvars
+
+- **`_sofbuddy_font_scale_auto`** / **`_sofbuddy_hud_scale_auto`** replace the old **`-1` = Auto** convention on `_sofbuddy_font_scale` / `_sofbuddy_hud_scale`.
+- **Legacy migration:** configs with `-1` are converted to auto on + manual scale `1` on first load; non-default manual values disable auto automatically.
+- **F12 → UI Scale:** separate **Auto Font Scale** / **Auto HUD Scale** toggles; manual scale lists (`ui_scale_font_manual`, `ui_scale_hud_manual`) appear only when auto is off.
+- **Auto Round Step** is inline on the main UI Scale page (removed separate `ui_scale_round_ratio` sub-page).
+
+### Internal menus — MP connect loading UI
+
+- **`internal_menus_update_connect_flow()`** tracks `cls_state` during server connect (`ca_connecting` … `ca_won_receive_challenge1`).
+- **`Qcommon_Frame` Post** hook keeps connect-flow state current each frame.
+- Custom Buddy loading UI is shown during **MP connect/map load**, not only when `deathmatch` is latched — SP local loads still use vanilla pak `loading.rmf`.
+
+### HTTP maps
+
+- Connect assist also activates during the **MP connect flow** (not only latched deathmatch).
+
+### Internal menus — Video FPS controls
+
+- **`video_fps.rmf`:** labeled **Show FPS** list for `cl_showfps` bit combinations plus `debuggraph` hint text (replaces raw numeric FPS bits row).
+
+### README
+
+- Documented new auto-scale cvars, round-step cvars, and updated F12 UI Scale / updater behavior.
+
+## v6.2
+
+### cl_maxfps singleplayer — paired SV/CL throttle
+
+- **Replaced `CL_Frame` Pre hook** with **`Qcommon_Frame` Pre** + **`SV_Frame` override**: when `cl_maxfps` would render-throttle a frame, the server tick is skipped too so AI/cinematic sim does not outrun the capped client frame rate.
+- Removed the old throttle-tick path (`CL_ReadPackets` + `Cbuf_Execute` on skipped draw frames); SV/CL pairing replaces it.
+
+### Internal menus — SP vanilla loading screen
+
+- **Singleplayer** uses the **vanilla pak `loading.rmf`** again (deathmatch `exinclude` / `menu_nostats` stats gating). Buddy custom loading UI is reserved for **deathmatch** and **HTTP maps** connect flows.
+- **`loading_stats.rmf`:** new bottom panel for SP loading (stats layout); MP keeps **`loading_files`**.
+- **`SCR_BeginLoadingPlaque`:** SP path pushes vanilla `loading` without `killmenu` churn so blankscreen/outfit interstitials are not cleared early.
+- **`FS_LoadFile` override** and **`loading_show_ui`** respect the vanilla-vs-custom loading decision.
+
+### HTTP maps — DM-only connect assist
+
+- Map download / precache assist runs only in **deathmatch** mode (or while HTTP maps frame work is already pending), so SP level loads are not intercepted.
+- **`http_maps_wants_custom_loading_menu()`** coordinates when Buddy should show the custom loading UI vs vanilla SP loading.
+
+### Scaled UI — configurable scale rounding
+
+- **`_sofbuddy_scale_round_auto`:** when on, auto font/HUD scale snaps to round steps instead of a continuous `vid_h/480` ratio.
+- **`_sofbuddy_scale_round_ratio`:** step size for manual and auto rounding (default **0.25**).
+- **`round_scale_value()`** / **`effective_auto_scale()`** centralize rounding for font scale, HUD scale, and cinematic image scaling.
+- **F12 → UI Scale:** **Auto Round Scale** toggle plus **Round Ratio** sub-page; Restore Defaults resets both new cvars.
+
+### Scaled UI — ref.dll GL blend hygiene
+
+- **`ref_gl_state`:** resolves ref.dll's GL context and calls its disable-cap vtable to turn off **GL_BLEND** without a global `glDisable` detour.
+- **Console notify, scoreboard layout, scoreboard `Draw_Pic`:** sync blend state before/after draw so scoreboard text does not render inconsistently soft when `Draw_Pic` leaves blend enabled.
+
+## v6.1
+
+### cl_maxfps singleplayer — black screen after cinematics
+
+- **`cl_maxfps` in SP:** CL_Frame render throttle now stays active during listen-server singleplayer (existing NOP patch). On throttled frames, a **CL_Frame Pre** hook still runs `CL_ReadPackets` + `Cbuf_Execute` so client sim stays in sync with `SV_Frame` when draw is skipped.
+- **Cinematic freeze sync:** Hooks `CinematicFreeze`, `M_PushMenu` (Pre), and `ExitLevel` (Post) keep the exe `cinematicfreeze` flag aligned with `game.dll` — fixes black fade / stuck intermission after mission-end cinematics (e.g. tsr1 `endcin.ds` → tsr2) when `cl_maxfps` is enabled.
+- **Lifecycle:** Clear stale exe freeze on `GameDllLoaded` and `SV_ShutdownGameProgs`.
+- Fixes [#3](https://github.com/d3nd3/sof_buddy/issues/3) and related SP level-transition hangs with frame limiting on.
+
+### Scaled UI — ref.dll vertex hooks (E8 patches)
+
+- **Removed global `glVertex2f` detour** on ref.dll; replaced with per-routine **E8 call-site patches** for `Draw_Char`, `Draw_StretchPic`, `Draw_Pic`, `Draw_PicOptions`, `DrawFont`, and `Draw_CroppedPicOptions`.
+- **CroppedPic HUD scaling:** All 16 `glVertex2f` sites in `Draw_CroppedPicOptions` patched; shared vertex-index counter with `resetGlVertexQuadState()` at draw boundaries.
+- **Center print (multi-line):** `R_DrawFont` keeps `FontCaller::SCR_DrawCenterPrint` across lines so wrapped yellow subtitles / center-print text scale on every line, not just the first.
+- **Console notify:** `glDisable(GL_BLEND)` before `Con_DrawNotify` to avoid blend-state artifacts on the notify overlay.
+
+### Updates & XP mirror
+
+- **Windows XP updater:** SofVault mirror manifest (`sofvault_latest.json`) attached to each GitHub release; XP builds resolve the zip from `sofvault.org` when using the mirror API (no GitHub token required).
+- **`rsrc/sofvault_mirror/publish.sh`:** Helper to push `latest.json` + `release_windows_xp.zip` to the SofVault host.
+- **`.cursor/mcp.json`** gitignored; **`.cursor/mcp.json.example`** added for local MCP setup.
+
+## v6.0
+
+Stable release consolidating all changes since **v5.7-build160** (intermediate v5.8/v5.9 builds were withdrawn).
+
+### Scaled UI — auto resolution scaling
+
+- **`_sofbuddy_font_scale -1` (Auto):** Negative value enables auto mode — scale tracks `vid_h / 480` and updates on resolution changes (`vid_restart`, `vid_checkchanges`). Default is **`-1`**.
+- **`_sofbuddy_hud_scale -1` (Auto):** Same auto ratio for HUD elements. Default is **`-1`**.
+- **F12 → UI Scale:** Font Scale and HUD Scale lists include **Auto** as the first option (writes `-1`). Restore Defaults resets both to Auto.
+- **`_sofbuddy_scale_cinematic_pics`:** New cvar (default **`1` = on**) scales cinematic credit/fade images (`SP_FLAG_CREDIT` / `SCR_DrawCinemaScope`) from 640×480 to your resolution. Toggle in F12 → UI Scale → **Scale Cinematic Images**.
+
+### Scaled UI — scoreboard (CTF / DM)
+
+- **Hybrid scoreboard scaling:** Scoreboard layout text scales with `_sofbuddy_font_scale`; scoreboard images/icons scale with `_sofbuddy_hud_scale` (via `hkglVertex2f` scoreboard path using screen-center pivot).
+- **Quad-state hygiene:** `resetGlVertexQuadState()` at draw-hook boundaries (`Draw_Pic`, `Draw_StretchPic`, `Draw_PicOptions`, `R_DrawFont`, console, scoreboard layout) fixes sticky vertex counters that caused mis-scaled or garbled quads.
+- **CTF player list:** Fixed regression where DM-ranking font repositioning was applied to scoreboard player names — removed erroneous `HudDmRanking → DMRankingCalcXY` mapping from render-type caller detection.
+
+### Scaled UI — cinematic text & images
+
+- **Typematic / cinematic subtitles:** Hook `SCR_DrawCinematicString` + `Draw_CharExtra` — green bottom-left typewriter text scales with `_sofbuddy_font_scale` (including Auto). Uses `g_cinematicDrawDepth` scope guard so HUD `hud_scale` text paths are not affected.
+- **Bottom-anchored text scaling:** Typematic and yellow subtitle/center-print text preserve 480p bottom-margin percentage when scaled (`computeTextBottomAnchor` / `applyBottomAnchoredScale`).
+- **Cinematic credit images:** Hook `SCR_DrawCinemaScope` with scope-based `PicCaller::SCR_DrawCinemaScope`; `glVertex2f` scales the fade/credit quad when `_sofbuddy_scale_cinematic_pics` is on. Renamed mislabeled `NetworkDisconnectIcon` caller entry.
+
+### Scaled UI — mission status, pause, center print
+
+- **Mission status text** (`cMissionStatus::Draw` @ `0x9250`): Scope hook sets `FontCaller::MissionStatus`; scales with **`fontScale`** (not `hudScale`) via `scaleCenterAnchoredText` — fixes red upper-center messages like “Mission Objectives Updated” / “Mission Failed” at wrong size and off-center. Added `0x9250` to SoF.exe funcmap.
+- **“Paused” text** (`SCR_DrawPause` @ `0x13710`): Scope hook + `fontScale` center compensation in `hkR_DrawFont` and per-glyph vertex scaling.
+- **Center print** (`SCR_DrawCenterPrint` @ `0x163C0`): Scope hook replaces fragile text-matching fallback; merged v5.7 word-wrap with bottom-margin scaling for yellow subtitles and center-print lines.
+
+### Scaled UI — DM ranking HUD
+
+- Restored v5.7 `hudDmRanking_wasImage` + `scorePhase` alternation for frag count vs ping/limit lines under team chevrons.
+- `resetDmRankingFontPhase()` at each `cDMRanking_Draw` frame start — prevents line overlap from stale phase state.
+- `FontCaller::DMRankingCalcXY` set from `HudDmRanking` render scope (no fragile per-call-site RVA checks through ref.dll).
+
+### Scaled UI — console & menu caller detection
+
+- **Console repaint:** `Draw_StretchPic` treats `g_activeRenderType == Console` as console background — dirty-rect marking no longer depends solely on stack caller detection (fixes backspace / stale pixel artifacts).
+- **`visitExternalCallers`:** Safe stack walk picks the first *known* `FontCaller` (e.g. `RectDrawTextItem` for F12 menu rows), skipping unknown frames like `R_DrawFont` itself.
+- **Wine crash fix:** Hardened EBP chain walk in `hook_callsite.cpp` (`plausibleFramePtr`, bounded frame advance) — fixes page fault when classifying callers on Wine.
+- **F12 menu bug fix:** Changing Font Scale no longer mis-scales the HUD Scale value below it (removed center-print substring fallback; menu text resolves to `RectDrawTextItem` etc. using `screen_y_scale`).
+
+### Core & Linux scripts
+
+- **`video_state_fallback.cpp`:** Resolves `current_vid_w` / `viddef_*` when all scaled UI features are disabled (needed by internal menus).
+- **Linux `enable_*.sh`:** Patch scripts resolve paths relative to script location (works from any cwd).
+
+### README & docs
+
+- Restored badges and hero screenshots; collapsible `<details>` sections; static Discord join badge.
+- Documented **Auto (`-1`)** for `_sofbuddy_font_scale` and `_sofbuddy_hud_scale`, plus `_sofbuddy_scale_cinematic_pics`.
+- Credit for Acadie; removed map-entity feature from advertised list.
+
+## v5.7
+
+- Removed vendored `ida_plugin_mcp` from the repository and switched Cursor MCP wiring to external checkout paths.
+- Ignored Python bytecode artifacts and removed tracked `__pycache__` files.
+- Updated internal menus:
+  - Moved the former profiles/cpu-eaters content into the `CPU` tab.
+  - Removed the standalone profile tab navigation.
+  - Added profile preview block with `Will set...` target values and `Custom/Current` view mode.
+  - Simplified profile apply flow to a single `Apply Profile` action.
+  - Updated tab/page labels from `Profiles` to `CpuEaters` where applicable.
+  - Removed `Map study` from menu navigation tabs.
+- Lighting menu controls:
+  - Enforced integer slider behavior for `_sofbuddy_lighting_cutoff`.
+  - Enforced integer slider behavior for `_sofbuddy_water_size`.
+- UI scaling/runtime updates:
+  - Included recent tweaks in `scaled_con`, `scaled_hud`, and `scaled_ui_base` cvar handling.
+
+## v5.6
+
+- **Detours / codegen:** Expanded `detours.yaml` and `tools/generate_hooks.py` for pointer-backed hook targets; `rsrc/funcmaps/SoF.exe.json` and per-feature `hooks/pointers.json` (plus `src/core/pointers.json`); `docs/DETOUR_SYSTEM.md` and `hdr/detours.h` updates; `DetourXS` and core detour registration (`detours.cpp`, `shared_hook_manager.cpp`) aligned with the new flow.
+- **Core:** Init and loader path work (`simple_init.cpp`, `module_loaders.cpp`, `wsock_entry.cpp`, `update_command.cpp`, `sofbuddy_cfg.cpp`) so startup and update behavior match the hook system changes.
+- **entity_visualizer (new, optional):** Map-study tooling (spawn/draw, cvars, QCommon frame and loading hooks). Still **off by default** in `features/FEATURES.txt` alongside other experimental toggles; enable by uncommenting the feature line for local builds.
+- **Internal menus:** Map debug RMF assets (`map_debug.rmf`, `map_debug_content.rmf`); tab content and loading/menu hook follow-ups; `hooks/pointers.json` for internal menu hooks.
+- **Graphics / ref-DLL features:** `lighting_blend`, `scaled_ui_base`, `scaled_menu`, `texture_mapping_min_mag`, `vsync_toggle` — cvar/refdll and hook wiring updates where pointers apply; feature README tweaks where noted.
+- **Other features:** `http_maps`, `media_timers`, `new_system_bug` — small hook/cvar/README adjustments; `raw_mouse` message-pump and hook touch-ups.
+- **Cbuf / config:** `cbuf_limit_increase` README and early callback updates; `FEATURES.txt` comment clarifies deprecation in favor of `sofbuddy.cfg` persistence.
+- **Tooling / docs:** IDA MCP plugin (`ida_plugin_mcp/`), `ida_dump_main.py`, and Cursor MCP/command helpers for IDA workflows; `README.md` and several feature READMEs refreshed.
+
+## v5.5
+
+- Build defaults: `entity_visualizer` remains under Game Features but is **commented out by default** in auto-generated `features/FEATURES.txt` (`tools/generate_features_txt.py`). Default-disabled features are `scaled_menu`, `cbuf_limit_increase`, and `entity_visualizer` (map entity / wireframe tools).
+- HTTP maps: stabilize deferred precache and loading-status flow; harden HTTPS, size fallbacks, loading status, and logging (`http_maps.cpp`, README).
+- Internal menus: restore early loading UI with a pak-aware fast path; harden loading menu behavior in unlock mode; loading safe RMF updates; `SCR_BeginLoadingPlaque` post-hook adjustments.
+
+## v5.4
+
+- Raw mouse: removed the `IN_MenuMouse` engine hook (SofExe `0x4A420`), Pre/Post callbacks, and `in_menumouse.cpp`. `GetCursorPos` no longer takes a special “real API” path while menu-mouse runs; with raw mouse enabled it always drains pending mickeys and reports the synthetic cursor position like other code paths.
+
+## v5.3
+
+- Raw mouse: if `RegisterRawInputDevices` returns `ERROR_INVALID_PARAMETER` (87) for focus-following registration (`hwndTarget=NULL`), retry once with an explicit same-process top-level HWND (resolved via `cl_hwnd`, window heuristics, or foreground when it belongs to the game process). Non-null `hwndTarget` must be owned by the calling process; comments in `raw_shared.cpp` document that Win32 rule.
+- Raw mouse: `DispatchMessageA` calls `raw_mouse_ensure_registered` while `_sofbuddy_rawmouse` is on and registration is not complete yet, so enable still settles if the first attempt runs before the pump has ticked.
+- Raw mouse: `RegisterRawInputDevices` may still be invoked from the cvar path or other threads (same as v5.2); raw input registration is per-process and must not be restricted to the window thread only.
+
+## v5.2
+
+- Raw mouse: stop binding normal foreground raw input registration to a specific HWND. `RegisterRawInputDevices` now uses focus-following mode (`hwndTarget = NULL`), while window resolution is kept only for cursor clip/focus decisions. This avoids `ERROR_INVALID_PARAMETER` 87 from bad or overlay-polluted HWNDs and lets registration succeed earlier in startup.
+- Raw mouse: prefer the engine’s real `cl_hwnd` (RVA `0x403564`) as the game window, with `ActiveApp` (RVA `0x40351C`) as another guard before draining raw input. Heuristic fallback still exists, but same-process helper/tool windows now score much lower and class `"Quake 2"` scores higher.
+- Raw mouse: add richer registration diagnostics, including candidate window dumps and `GetRegisteredRawInputDevices` state, to make injected-overlay conflicts (for example ShadowPlay) much easier to spot.
+
+## v5.1
+
+- Raw mouse: hook `IN_MenuMouse` (SofExe `0x4A420`) with Pre/Post callbacks; while inside it, `GetCursorPos` uses the real API so menu cursor motion matches the OS (avoids synthetic cursor lag on connect / low FPS). `detours.yaml` uses `cvar_t*` parameters; `hooks.json` registers Pre/Post; new `in_menumouse.cpp` tracks scope with a depth counter.
+- Raw mouse: fold pending mickeys at read time — `GetCursorPos` calls `raw_mouse_drain_pending_raw_for_cursor()` (shared `GetRawInputBuffer` drain with bounded multi-batch emptying) so the virtual cursor stays fresh without waiting on the next pump boundary.
+- Raw mouse: `Sys_SendKeyEvents` only resets deltas (`consume_deltas`); raw queue draining is no longer done there — only the `GetCursorPos` path drains (plus lazy registration when not yet registered). Removed `raw_processed_this_frame` / `raw_mouse_on_peek_returned_no_message`; `raw_mouse_process_raw_mouse()` forwards to the same drain helper.
+- Raw mouse: registration cleanup — `RawMouseDropRegistration()`, single `RawMouseCommitRawInputRegistration()` for Win32 register + validation; `raw_mouse_ensure_registered` fast-paths when already registered for the same root (skips heavy window resolution on common `DispatchMessageA` calls). Dropped public `raw_mouse_register_input` (only `ensure_registered` needed it).
+- Raw mouse: message pump default `MAX_MSG_PER_FRAME` set to **10** with a short comment on the vanilla full-drain vs capped tradeoff.
+
+## v5.0
+
+- Raw mouse: message pump no longer removes `WM_INPUT` from the queue (avoids high-frequency peel cost on high-poll mice). Uses filtered `PeekMessage` bands around `WM_INPUT` when it blocks the head; otherwise `GetMessage` for strict FIFO. When both low-ID and high-ID candidates exist, orders by `MSG.time` with high-band tie-break for mouse/client messages. Raises per-pump cap to 10 dispatched messages; updates `sys_msg_time` and centralizes quit/dispatch in `DispatchOneMsg`.
+- Raw mouse: fix enabling `_sofbuddy_rawmouse` when the engine runs the cvar change callback before `Cvar_Get` returns — set `in_mouse_raw = cvar` at the start of `raw_mouse_on_change`; drop redundant second `raw_mouse_on_change` after registration (avoids false “not enabled” / “registration failed” pairs and duplicate “ENABLED” logs).
+- Raw mouse: optional dev logging when `raw_mouse_ensure_registered` is asked to log — “not enabled or API not supported”, “already registered for this window”; `raw_mouse_register_input` logs “Raw input registration succeeded” when registration completes.
+
+## v4.9
+
+- Raw mouse: register raw input only with HWNDs owned by the game process (`GetWindowThreadProcessId` vs `GetCurrentProcessId`). Resolve the window via `GetGUIThreadInfo`, then `GetActiveWindow` / `GetForegroundWindow` only when they are local, plus `EnumThreadWindows` fallback—fixes `RegisterRawInputDevices` failing with error 87 (`ERROR_INVALID_PARAMETER`) when foreground belonged to another app or at startup. Cvar enable uses the same `raw_mouse_ensure_registered` path as the message pump; clearer log lines for invalid HWND and for error 87.
+- Raw mouse: the “Wine/X11 raw input” hint is shown only when actually running under Wine/Proton (`is_running_under_wine()`), not on native Windows failures.
+- Core: `is_running_under_wine()` implementation moved to `src/utils/util.cpp` with declaration in `hdr/util.h` (shared helper for updater and raw mouse).
+
+## v4.8
+
+- Updater: refactored zip selection to strict priority order (`preferred_release_zip_names`, `pick_best_zip_url`) instead of scoring; native Windows prefers `release_windows.zip` then `release_windows_xp.zip` when the main zip is missing (fixes Windows 7 receiving wine_linux build). Wine detection hardened (validate `wine_get_version` return).
+- Update scripts: clarified prompts in `update_from_zip.sh` and `update_from_zip.cmd` for user input options when applying fresh settings.
+
+## v4.7
+
+- Raw mouse: SetCursorPos hook now always calls the original so the OS cursor is warped when the game recenters, fixing dual-monitor focus loss (e.g. left edge on Wine/Kubuntu).
+
+## v4.6
+
+- Raw mouse: message-pump–based flow. Replaced engine-frame hooks (IN_MouseMove, IN_MenuMouse, PeekMessageA, GetMessageA) with Sys_SendKeyEvents replacement and dedicated capped two-range pump so WM_INPUT is never peeked or delivered. One GetRawInputBuffer per frame in Sys_SendKeyEvents path; DispatchMessageA only handles window events (registration/clip). Virtual cursor via GetCursorPos/SetCursorPos. WOW64: buffer size×8 and RAWMOUSE at offset 24. Single cvar 0=off, non-zero=on. README updated.
+- Media timers: Sys_SendKeyEvents call site (exe 0x65D5E) now uses my_TimeGetTime (QPC) instead of my_Sys_Milliseconds for consistent frame timing.
+
+## v4.5
+
+- Raw mouse: reimplemented with single setting (0=off, non-zero=on). PH3-style only: two-range PeekMessageA so WM_INPUT is never seen; GetMessageA swallows WM_INPUT (no GetRawInputData); one GetRawInputBuffer per frame in IN_MouseMove/IN_MenuMouse Pre; DispatchMessageA returns 0 for WM_INPUT. No per-message processing or drain-from-handle.
+- Internal menus: SoF Buddy RMF assets renamed from sb_* to shorter names (e.g. sb_perf → cpu, sb_input → input, sb_http → network, sb_tweaks_perf → profiles, sb_scaling → ui_scale).
+- Docs: README menu.png hero image; raw_mouse and internal_menus README updates. Update-from-zip scripts (Windows/Linux) refinements.
+
+## v4.4
+
+- Raw mouse: reworked raw input pipeline to buffer and drain high-Hz `WM_INPUT` via `GetRawInputBuffer`, skip zero-delta packets, and keep the game's original mouse cvars/flow intact while sourcing movement from hardware deltas instead of OS cursor position.
+- Raw mouse: hardened window/foreground and clip handling (no cursor warping on clip refresh, proper unregister on failure/teardown, disabled-path hooks now pure passthrough with no side effects when `_sofbuddy_rawmouse` is 0).
+- Raw mouse docs: expanded feature README with callback/override details, disabled-path behavior, jitter/high-polling guidance, and configuration notes so users understand how and when to enable it.
+- Docs: README now surfaces a prominent “#1 thing you need to know” section and in-game command docs that emphasize `F12` / `sofbuddy_menu sof_buddy` as the primary entry point into SoF Buddy.
+
+## v4.3
+
+- Docs: add http.png hero image to README.
+
+## v4.2
+
+- Internal menus: RMF layout and content pass across SoF Buddy tabs (main, input, lighting, perf, scaling, social, texture, tweaks, HTTP, update help/prompt), loading header, and HTTP providers; FS_LoadFile override and internal menu hooks refined.
+- Menu docs: menu-know-how guidance and build/makefile tweaks.
+
+## v4.1
+
+- Windows updater UX polish: silenced noisy extractor stderr/stdout (`tar`, `7z`, PowerShell fallback) in `update_from_zip.cmd` so successful fallback installs do not show misleading error spam.
+
+## v4.0
+
+- Windows updater launch fix: switched queued installer script path to Windows separators (`sof_buddy\update_from_zip.cmd`) so post-exit `cmd.exe` execution no longer misparses the script path on Win10/11.
+
+## v3.9
+
+- Windows updater path handling: canonicalized `%ZIP_PATH%` to full absolute form before existence/extract checks, preventing malformed Wine path edge-cases.
+- VBScript fallback noise cleanup: removed a fragile redirection from `.vbs` generation in `update_from_zip.cmd` to avoid spurious `'2' is not recognized` console errors.
+
+## v3.8
+
+- Linux/Wine package completeness: `release_linux_wine.zip` now includes `update_from_zip.cmd` in CI packaging, matching the current auto-install launch path.
+- Windows updater script hardening: normalized relative zip paths to absolute/backslash form for extraction/deletion reliability under Wine cmd.
+- Extraction command robustness: `update_from_zip.cmd` now calls `tar.exe`/`7z.exe` explicitly and hardens VBScript fallback temp-file creation + `cscript.exe` probing.
+
+## v3.7
+
+- Misc tab UX: updated labels to show actual cvar names (matching Profiles tab style) for faster config auditing and copy/paste workflows.
+
+## v3.6
+
+- Wine/Proton updater downloads: runtime Wine detection now biases asset selection toward `release_linux_wine.zip` during `sofbuddy_update download` (non-XP builds).
+- Auto-install launch hardening: reverted Wine `/unix` launch path and standardized `winstart` install command to `update_from_zip.cmd` to avoid repeated `Invalid Name` dialogs from `start` wrapper parsing.
+- Installer scripts: `update_from_zip.cmd` now prefers non-PowerShell extractors first (`tar`, `7z`, VBScript) and uses PowerShell only as fallback.
+- Post-install cleanup: both Windows and Linux/Wine update scripts now delete the extracted zip on successful install to prevent `sof_buddy/update/` accumulation.
+
+## v3.5
+
+- Updater install: `sofbuddy_update_install` now detects Wine (`wine_get_version`) and prefers `sof_buddy/update_from_zip.sh` under Wine/Proton.
+- Shutdown launch path: Wine install commands are queued in `winstart` as `/unix "<script>" "<zip>"`, with fallback to `.cmd` when `.sh` is unavailable.
+- Native Windows behavior remains unchanged (`update_from_zip.cmd`) while still using direct `winstart` buffer queueing.
+
+## v3.4
+
+- Updater install: `sofbuddy_update_install` now writes the `winstart` command buffer directly (no `start` command seeding), improving reliability for auto-install on shutdown.
+- Internal menus (480p safety): removed risky quoted flow-text lines and standardized long prose blocks to use left layout with inset spacing instead of centered long text.
+- Update UX: update prompt/help copy/layout refreshed for auto-install-first flow (compact prompt sizing, solid background, clearer action text, trimmed obsolete manual-only text).
+- SoF Buddy tabs: Network now shows only a white `Current map` bound to `mapname`; Social removed link-status/last-URL rows; Profiles button label simplified to `Apply Profile`.
+- Menu docs: `menu-know-how` guidance now explicitly recommends avoiding long prose under `<center>` and using left+inset for 480p.
+
+## v3.3
+
+- Updater: added `sofbuddy_update_install` to queue install command through the engine `winstart` pointer (`0x40353C`) and quit for fully automatic post-exit update flow.
+- Updater install targeting: `sofbuddy_update_install` now passes the exact `_sofbuddy_update_download_path` zip into `update_from_zip.cmd`, avoiding wrong-zip selection when multiple zips exist.
+- Internal menus: update prompt/help actions now support one-click download+install+exit flow.
+- Build hygiene: `src/features/internal_menus/menu_data.cpp` is now ignored and untracked as generated output to avoid recurring dirty status.
+
+## v3.2
+
+- http_maps: when a map is downloaded/extracted, loading status stays at "HTTP Downloading..." (MAP PRESENT is only used when no HTTP download was needed).
+- Core: `sofbuddy_list_features` now logs via PRINT_DEV instead of the normal console, keeping the feature listing in the dev log channel.
+
+## v3.1
+
+- Internal menus: startup update prompt now triggers on menu disclaimer (root `disclaimer`) instead of `start`; README and docs use "menu disclaimer" naming.
+
+## v3.0
+
+- Internal menus (loading): engine loading UI is disabled via NOPs at exe 0x13AC7 (menu push) and 0x13ACE (SCR_UpdateScreen call); we push `loading/loading` and call SCR_UpdateScreen(true) in SCR_BeginLoadingPlaque Post hook. SCR_UpdateScreen at exe 0x15FA0. Additional 2-byte NOP at 0x13AAA so the plaque shows when the console is open.
+- Internal menus: Reconnect_f hooks removed; loading trigger is SCR_BeginLoadingPlaque only. M_PushMenu Pre simplified (start/update-prompt only). FS_LoadFile override and READMEs updated.
+
+## v2.9
+
+- Updater: default `_sofbuddy_update_check_startup` is now enabled (`1`) so new installs check for updates on startup automatically.
+
+## v2.8
+
+- Build system: removed `http_maps` from `tools/generate_features_txt.py` default-disabled set, so `make`/CI auto-generation no longer silently disables it in `features/FEATURES.txt`.
+
+## v2.7
+
+- HTTP maps: removed experimental/default-disabled note from docs; feature is now treated as normal.
+- Updater: startup update prompt now pre-intercepts menu disclaimer (start menu) flow; redundant post-hook injection removed.
+- Updater downloads: zip asset selection tightened for build target (Windows vs Windows XP, Linux/Wine fallback penalties), with stricter fallback filtering.
+- Updater UX: selected/downloaded release asset filename is now printed via `PRINT_DEV` and surfaced in update prompt/help menus.
+
+## v2.6
+
+- HTTP maps: reconnect-stage hook path added, frame/config handling tightened, and provider/update wiring refined.
+- Internal menus: SoF Buddy RMF tab/content layout pass, loading screen variants added, and FS load override integrated.
+- Update flow: update command and zip-update scripts hardened for Linux/Windows and compatibility glue cleaned up.
+- Build/docs: detour registrations regenerated and feature READMEs/root docs refreshed.
+
+## v2.5
+
+- Internal menus: loading screen RMF consolidated (loading_recent/loading_status removed; loading, loading_files, loading_header reworked); SoF Buddy tabs (main, input, HTTP content) layout tweaks; internal_menus/menu_data/README cleanup.
+- HTTP maps: code simplification and trim.
+
+## v2.4
+
+- Internal menus: SoF Buddy in-game tabs (main, input, lighting, perf, scaling, social, texture, tweaks), loading screens, RMF layout rework.
+- HTTP maps: download/install maps from URLs; console progress; provider config.
+- sofbuddy config file and update-from-zip flow (Linux/Windows scripts).
+- Perf: reduced hook hot-path overhead and stutter.
+- raw_mouse: keep engine cursor centering to avoid edge-of-screen issues.
+- cbuf overflow bypass; internal_menus/http_maps/cbuf_limit_increase docs.
+- SoF Buddy side-frame backfill centering fix; lighting blend null checks.

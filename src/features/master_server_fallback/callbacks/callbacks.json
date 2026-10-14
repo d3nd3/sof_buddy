@@ -1,0 +1,4 @@
+[
+  {"hook":"PreCvarInit","callback":"master_server_fallback_PreCvarInit","priority":10,"phase":"Post"},
+  {"hook":"PostCvarInit","callback":"master_server_fallback_PostCvarInit","priority":70,"phase":"Post"}
+]

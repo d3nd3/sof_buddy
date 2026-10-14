@@ -1,0 +1,421 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+
+jobs:
+  version_gate:
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.gate.outputs.changed }}
+      version: ${{ steps.gate.outputs.version }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect VERSION bump
+        id: gate
+        run: |
+          VERSION=$(cat VERSION | tr -d '\r\n')
+          PREV=$(git show HEAD~1:VERSION 2>/dev/null | tr -d '\r\n' || true)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ -z "$PREV" || "$VERSION" != "$PREV" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "VERSION changed: ${PREV:-<none>} -> $VERSION (will publish GitHub release)"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "VERSION unchanged ($VERSION); skipping build and release"
+          fi
+
+      - name: Validate release metadata
+        if: steps.gate.outputs.changed == 'true'
+        run: ./tools/new_release.sh --check --ci
+
+  build:
+    needs: version_gate
+    if: needs.version_gate.outputs.version_changed == 'true'
+    # The job still runs on a standard GitHub-hosted runner,
+    # but the steps will execute inside the container specified below.
+    runs-on: ubuntu-latest
+
+    # Define the container to use for this job's steps
+    container:
+      image: ubuntu:24.10
+    env:
+      SOFBUDDY_BUILD_NUMBER: ${{ github.run_number }}
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 2G
+      CCACHE_COMPRESS: "true"
+      CCACHE_COMPILERCHECK: content
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CC: ccache i686-w64-mingw32-g++-posix
+
+    steps:
+      - name: Install Dependencies
+        run: |
+          rm -rf /etc/apt/sources.list* /etc/apt/sources.list.d/* /var/lib/apt/lists/*
+          cat > /etc/apt/sources.list <<'EOF'
+          deb http://old-releases.ubuntu.com/ubuntu/ oracular main restricted universe multiverse
+          deb http://old-releases.ubuntu.com/ubuntu/ oracular-updates main restricted universe multiverse
+          deb http://old-releases.ubuntu.com/ubuntu/ oracular-backports main restricted universe multiverse
+          deb http://old-releases.ubuntu.com/ubuntu/ oracular-security main restricted universe multiverse
+          EOF
+          apt-get update -o Acquire::Check-Valid-Until=false 2>&1 || true
+          apt-get install -y git build-essential g++-mingw-w64-i686 mingw-w64-i686-dev zip python3 python3-yaml ccache
+          i686-w64-mingw32-g++-posix --version || (echo "Compiler not found" && exit 1)
+          ccache --version
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Hash compiler-cache inputs
+        id: ccache_inputs
+        run: |
+          hash=$(sha256sum makefile detours.yaml features/FEATURES.txt tools/generate_hooks.py \
+            rsrc/win_updater/Makefile rsrc/win_updater/sof_buddy_update.cpp \
+            | sha256sum | awk '{print substr($1,1,16)}')
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+
+      - name: Restore compiler cache
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-mingw-i686-${{ steps.ccache_inputs.outputs.hash }}-${{ github.sha }}
+          restore-keys: |
+            ccache-mingw-i686-${{ steps.ccache_inputs.outputs.hash }}-
+            ccache-mingw-i686-
+
+      - name: Read Version
+        id: version
+        run: |
+          VERSION=$(cat VERSION | tr -d '\r\n')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current SoF Buddy version: $VERSION"
+
+      - name: Compile Code
+        run: |
+          ccache -z || true
+          make all
+          rm -rf sof_buddy
+          mkdir -p sof_buddy/funcmaps
+          cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
+          cp rsrc/win_scripts/enable_*.cmd sof_buddy/
+          cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
+          cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
+          cp bin/sof_buddy.dll sof_buddy.dll
+          zip -r release_windows.zip sof_buddy.dll sof_buddy/
+
+          rm -f sof_buddy/*.cmd sof_buddy/*.ps1
+          cp rsrc/lin_scripts/enable_*.sh sof_buddy/
+          cp rsrc/lin_scripts/patch_sof_binary.sh sof_buddy/
+          cp rsrc/lin_scripts/update_from_zip.sh sof_buddy/
+          cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
+          zip -r release_linux_wine.zip sof_buddy.dll sof_buddy/
+
+          rm -f sof_buddy/*.cmd sof_buddy/*.sh sof_buddy/*.ps1
+          cp rsrc/win_scripts/enable_*.cmd sof_buddy/
+          cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
+          cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
+          test -f bin/sof_buddy-universal.dll || make universal
+          test -f bin/sof_buddy_update.exe || make win-updater
+          cp bin/sof_buddy_update.exe sof_buddy/
+          cp rsrc/lin_scripts/enable_*.sh sof_buddy/
+          cp rsrc/lin_scripts/patch_sof_binary.sh sof_buddy/
+          cp rsrc/lin_scripts/update_from_zip.sh sof_buddy/
+          cp bin/sof_buddy-universal.dll sof_buddy.dll
+          zip -r release_windows_universal.zip sof_buddy.dll sof_buddy/
+          cp release_windows_universal.zip release_linux_wine_universal.zip
+          cp release_windows_universal.zip sof_buddy_installer_payload.zip
+
+          make clean
+          make BUILD=xp
+          rm -rf sof_buddy
+          mkdir -p sof_buddy/funcmaps
+          cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
+          rm -f sof_buddy/*.sh
+          cp rsrc/win_scripts/enable_*.cmd sof_buddy/
+          cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
+          cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
+          cp bin/sof_buddy.dll sof_buddy.dll
+          zip -r release_windows_xp.zip sof_buddy.dll sof_buddy/
+          
+          make clean
+          make BUILD=debug
+          rm -rf sof_buddy
+          mkdir -p sof_buddy/funcmaps
+          cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
+          rm -f sof_buddy/*.cmd sof_buddy/*.ps1
+          cp rsrc/win_scripts/enable_*.cmd sof_buddy/
+          cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
+          cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
+          cp bin/sof_buddy.dll sof_buddy.dll
+          zip -r debug_windows.zip sof_buddy.dll sof_buddy/
+          
+          make clean
+          make BUILD=xp-debug
+          rm -rf sof_buddy
+          mkdir -p sof_buddy/funcmaps
+          cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
+          rm -f sof_buddy/*.cmd sof_buddy/*.ps1
+          cp rsrc/win_scripts/enable_*.cmd sof_buddy/
+          cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
+          cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
+          cp bin/sof_buddy.dll sof_buddy.dll
+          zip -r debug_windows_xp.zip sof_buddy.dll sof_buddy/
+
+          echo "--- ccache statistics ---"
+          ccache -s || true
+        # The working-directory is not strictly necessary here as it's the default, but it's good for clarity.
+        working-directory: ${{ github.workspace }}
+
+      - name: Upload Windows Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows-artifact
+          path: release_windows.zip
+
+      - name: Upload Windows Universal Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows-universal-artifact
+          path: release_windows_universal.zip
+
+      - name: Upload Linux Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-artifact
+          path: release_linux_wine.zip
+
+      - name: Upload Linux Universal Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-universal-artifact
+          path: release_linux_wine_universal.zip
+
+      - name: Upload Windows XP Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows-xp-artifact
+          path: release_windows_xp.zip
+
+      - name: Upload Windows Debug Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-windows-artifact
+          path: debug_windows.zip
+
+      - name: Upload Windows XP Debug Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-windows-xp-artifact
+          path: debug_windows_xp.zip
+
+      - name: Upload Windows Installer Payload
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer-payload
+          path: sof_buddy_installer_payload.zip
+
+  installer:
+    needs: [build, version_gate]
+    if: needs.version_gate.outputs.version_changed == 'true'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Installer Payload
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installer-payload
+          path: installer_payload_artifact
+
+      - name: Extract Installer Payload
+        shell: pwsh
+        run: Expand-Archive -Path installer_payload_artifact\sof_buddy_installer_payload.zip -DestinationPath installer\payload -Force
+
+      - name: Set Up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Generate Installer Script
+        run: python tools/generate_installer.py
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress --yes
+
+      - name: Build Windows Installer
+        shell: pwsh
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\sof_buddy.iss'
+
+      - name: Upload Windows Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: installer/output/sof_buddy_setup_v${{ needs.version_gate.outputs.version }}.exe
+
+  # The 'release' job does not need to run in the container.
+  # It only handles artifacts, so using ubuntu-latest is fine and efficient.
+  release:
+    needs: [build, installer, version_gate]
+    if: needs.version_gate.outputs.version_changed == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Windows Release Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-windows-artifact
+          path: windows_release
+
+      - name: Download Windows Universal Release Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-windows-universal-artifact
+          path: windows_universal_release
+
+      - name: Download Linux Release Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-linux-artifact
+          path: linux_release
+
+      - name: Download Linux Universal Release Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-linux-universal-artifact
+          path: linux_universal_release
+
+      - name: Download Windows XP Release Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-windows-xp-artifact
+          path: windows_xp_release
+
+      - name: Download Windows Debug Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: debug-windows-artifact
+          path: windows_debug
+
+      - name: Download Windows XP Debug Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: debug-windows-xp-artifact
+          path: windows_xp_debug
+
+      - name: Download Windows Installer
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+          path: windows_installer
+
+      - name: Read Version
+        id: version
+        run: |
+          VERSION=$(cat VERSION | tr -d '\r\n')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current SoF Buddy version: $VERSION"
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.version }}-build${{ github.run_number }}
+          release_name: Release v${{ steps.version.outputs.version }} (Build ${{ github.run_number }})
+          draft: false
+          prerelease: false
+
+      - name: Upload Windows Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: windows_release/release_windows.zip
+          asset_name: release_windows.zip
+          asset_content_type: application/zip
+
+      - name: Upload Windows Universal Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: windows_universal_release/release_windows_universal.zip
+          asset_name: release_windows_universal.zip
+          asset_content_type: application/zip
+
+      - name: Upload Windows Installer Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: windows_installer/sof_buddy_setup_v${{ steps.version.outputs.version }}.exe
+          asset_name: sof_buddy_setup_v${{ steps.version.outputs.version }}.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
+
+      - name: Upload Linux Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: linux_release/release_linux_wine.zip
+          asset_name: release_linux_wine.zip
+          asset_content_type: application/zip
+
+      - name: Upload Linux Universal Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: linux_universal_release/release_linux_wine_universal.zip
+          asset_name: release_linux_wine_universal.zip
+          asset_content_type: application/zip
+
+      - name: Upload Windows XP Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: windows_xp_release/release_windows_xp.zip
+          asset_name: release_windows_xp.zip
+          asset_content_type: application/zip
+
+      - name: Upload Windows Debug Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: windows_debug/debug_windows.zip
+          asset_name: debug_windows.zip
+          asset_content_type: application/zip
+
+      - name: Upload Windows XP Debug Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: windows_xp_debug/debug_windows_xp.zip
+          asset_name: debug_windows_xp.zip
+          asset_content_type: application/zip

@@ -1,0 +1,8 @@
+<font type title tint cyan atint cyan>
+"GameSpy Master Server"
+<normal>
+<font type title tint gray atint gray>
+Choose the master server used by SoFPlus for Internet server lists. The selected
+host is saved by SoFPlus and remains active across launches.<hbr>
+<font type title tint white atint white>
+<list "sof1master.sofvault.org,sof1master.megalag.org,master.333networks.com,gsm.qtracker.com,master2.qtracker.com" match "sof1master.sofvault.org,sof1master.megalag.org,master.333networks.com,gsm.qtracker.com,master2.qtracker.com" cvar _sp_cl_master_gamespy atext "Master : " noshade tip "Select the GameSpy master server. The choice is saved by SoFPlus."><hbr>

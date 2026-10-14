@@ -1,0 +1,15 @@
+[
+  {
+    "hook": "PostCvarInit",
+    "callback": "texturemapping_PostCvarInit",
+    "priority": 50,
+    "phase": "Post"
+  },
+  {
+    "hook": "RefDllLoaded",
+    "callback": "setup_minmag_filters",
+    "priority": 70,
+    "phase": "Post"
+  }
+]
+

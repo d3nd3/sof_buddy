@@ -1,0 +1,64 @@
+[
+  {
+    "function": "Con_Init",
+    "callback": "hkCon_Init",
+    "override": true
+  },
+  {
+    "function": "Draw_StretchPic",
+    "callback": "hkDraw_StretchPic",
+    "override": true
+  },
+  {
+    "function": "Draw_Pic",
+    "callback": "hkDraw_Pic",
+    "override": true
+  },
+  {
+    "function": "GL_FindImage",
+    "callback": "gl_findimage_post_callback",
+    "phase": "Post",
+    "priority": 100
+  },
+  {
+    "function": "VID_CheckChanges",
+    "callback": "vid_checkchanges_post",
+    "phase": "Post",
+    "priority": 100
+  },
+  {
+    "function": "R_DrawFont",
+    "callback": "hkR_DrawFont",
+    "override": true
+  },
+  {
+    "function": "SCR_CenterPrint",
+    "callback": "hkSCR_CenterPrint",
+    "override": true
+  },
+  {
+    "function": "SCR_DrawPause",
+    "callback": "hkSCR_DrawPause",
+    "override": true
+  },
+  {
+    "function": "SCR_DrawCenterPrint",
+    "callback": "hkSCR_DrawCenterPrint",
+    "override": true
+  },
+  {
+    "function": "Draw_CharExtra",
+    "callback": "hkDraw_CharExtra",
+    "override": true
+  },
+  {
+    "function": "SCR_DrawCinematicString",
+    "callback": "hkSCR_DrawCinematicString",
+    "override": true
+  },
+  {
+    "function": "SCR_DrawCinemaScope",
+    "callback": "hkSCR_DrawCinemaScope",
+    "override": true
+  }
+]

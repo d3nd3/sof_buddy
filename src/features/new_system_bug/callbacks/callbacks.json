@@ -1,0 +1,9 @@
+[
+  {
+    "hook": "EarlyStartup",
+    "callback": "new_system_bug_EarlyStartup",
+    "priority": 60,
+    "phase": "Post"
+  }
+]
+

@@ -1,0 +1,15 @@
+[
+  {
+    "hook": "PostCvarInit",
+    "callback": "lightblend_PostCvarInit",
+    "priority": 50,
+    "phase": "Post"
+  },
+  {
+    "hook": "RefDllLoaded",
+    "callback": "lightblend_RefDllLoaded",
+    "priority": 60,
+    "phase": "Post"
+  }
+]
+

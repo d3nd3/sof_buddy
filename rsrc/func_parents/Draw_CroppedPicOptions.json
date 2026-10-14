@@ -1,0 +1,6 @@
+{
+  "child": "Draw_CroppedPicOptions",
+  "parents": [
+    { "module": "SoF.exe", "fnStart": 33376, "fnStartHex": "0x00008260", "moduleBaseHex": "0x20000000", "absStartHex": "0x20008260" }
+  ]
+}

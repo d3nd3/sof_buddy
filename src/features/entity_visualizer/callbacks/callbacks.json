@@ -1,0 +1,14 @@
+[
+  {
+    "hook": "PostCvarInit",
+    "callback": "entity_visualizer_PostCvarInit",
+    "priority": 55,
+    "phase": "Post"
+  },
+  {
+    "hook": "GameDllLoaded",
+    "callback": "entity_visualizer_GameDllLoaded",
+    "priority": 50,
+    "phase": "Post"
+  }
+]

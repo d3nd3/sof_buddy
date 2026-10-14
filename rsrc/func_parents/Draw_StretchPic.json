@@ -1,0 +1,9 @@
+{
+  "child": "Draw_StretchPic",
+  "parents": [
+    { "module": "SoF.exe", "fnStart": 28096, "fnStartHex": "0x00006DC0", "moduleBaseHex": "0x20000000", "absStartHex": "0x20006dc0" },
+    { "module": "SoF.exe", "fnStart": 135056, "fnStartHex": "0x00020F90", "moduleBaseHex": "0x20000000", "absStartHex": "0x20020f90" },
+    { "module": "SoF.exe", "fnStart": 821600, "fnStartHex": "0x000C8960", "moduleBaseHex": "0x20000000", "absStartHex": "0x200c8960" },
+    { "module": "ref_gl.dll", "fnStart": 10816, "fnStartHex": "0x00002A40", "moduleBaseHex": "0x30000000", "absStartHex": "0x30002a40" }
+  ]
+}
