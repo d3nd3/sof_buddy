@@ -4,6 +4,8 @@ User-facing highlights. Older detail is summarized at the bottom.
 
 ## v8.41
 
+First stable release in this line; **v8.39** and **v8.40** GitHub builds were withdrawn (broken).
+
 ### Bug fixes
 
 - **Load/save slots empty** ([#24](https://github.com/d3nd3/sof_buddy/issues/24)): mount `sof_buddy/*.pak` during filesystem init **after** `basedir/base` and **before** the `user` directory, so the `user` search path stays on top and saves remain visible.
