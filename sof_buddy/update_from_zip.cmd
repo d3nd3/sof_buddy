@@ -97,12 +97,12 @@ if /i "%SOFBUDDY_UPDATER_FRESH%"=="1" (
 ) else if not defined SOFBUDDY_UPDATER_SILENT (
     echo.
     set "FRESH=N"
-    set /p "FRESH=Start with fresh settings? [y/N]: "
+    set /p "FRESH=Start with fresh settings (y/N^): "
     if /i "!FRESH!"=="y" call :prune_sofbuddy_cfg
 )
 call :report_progress 100 "Done"
-if exist "%UPDATE_DIR%\pending_update.txt" del /f /q "%UPDATE_DIR%\pending_update.txt" >nul 2>&1
-if exist "%UPDATE_DIR%\install_context.env" del /f /q "%UPDATE_DIR%\install_context.env" >nul 2>&1
+call :delete_if_exists "%UPDATE_DIR%\pending_update.txt"
+call :delete_if_exists "%UPDATE_DIR%\install_context.env"
 if not defined SOFBUDDY_UPDATER_SILENT (
     echo.
     echo You can now launch SoF normally.
@@ -272,6 +272,11 @@ exit /b 1
 if not defined SOFBUDDY_UPDATER_SILENT exit /b 0
 if not defined PROGRESS_FILE exit /b 0
 >"%PROGRESS_FILE%" echo %~1|%~2
+exit /b 0
+
+:delete_if_exists
+if not exist "%~1" exit /b 0
+del /f /q "%~1" >nul 2>&1
 exit /b 0
 
 :prune_sofbuddy_cfg

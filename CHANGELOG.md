@@ -2,6 +2,13 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.41
+
+### Bug fixes
+
+- **Crash on startup (v8.40):** `FS_AddGameDirectory` hook now uses automatic detour length so the engine prologue is not split (fixes immediate crash after filesystem init).
+- **Wine updater script:** `update_from_zip.cmd` no longer mis-parses the “fresh settings” prompt (`:` in `set /p`); cleanup of `install_context.env` works under Wine `cmd`.
+
 ## v8.40
 
 ### Bug fixes

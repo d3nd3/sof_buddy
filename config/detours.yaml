@@ -62,7 +62,7 @@ functions:
     identifier: "0x20025540"
     return_type: void
     calling_convention: __cdecl
-    detour_len: 5
+    detour_len: 0
     params:
       - type: char*
         name: dir
