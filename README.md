@@ -246,63 +246,218 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 
 ### User-facing
 
-<div style="overflow-x: auto" markdown="1">
+<table style="width:100%;max-width:838px;table-layout:fixed;border-collapse:collapse">
+<colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+<thead><tr>
+<th style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d">Cvar</th><th style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d">Description</th>
+</tr></thead><tbody>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_high_priority</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Set process priority to HIGH (<code>0</code> = NORMAL). F12 → CPU.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_sleep</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. CPU-saving sleep between frames. F12 → CPU.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_sleep_jitter</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Frame time borrowing. Experimental; can worsen pacing, leave <code>0</code> unless needed. F12 → CPU.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_sleep_busyticks</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>2</code>. 1 ms busyloop ticks per frame. Lower saves CPU, <code>0</code> may stutter. F12 → CPU.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_perf_profile</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Perf preset: <code>0</code> Competitive, <code>1</code> High Visual, <code>2</code> Low Visual, <code>3</code> Custom/Current. The CPU tab selects Custom/Current when the adjusted cvars do not match a preset.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_font_scale</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Manual font scale multiplier (<code>0.25</code> … <code>8</code> in 0.25 steps). Used when auto is <code>0</code>. F12 → UI Scale.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_font_scale_auto</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Auto font scale from <code>vid_h / 480</code>. <code>1</code> on, <code>0</code> off. Legacy <code>_sofbuddy_font_scale -1</code> migrates to auto on + scale <code>1</code>. F12 → UI Scale.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_font_pack</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Font mode: <code>0</code> Default, <code>1</code> Force SoFPlus, <code>2</code> Force Vanilla. Changing it reloads the renderer. F12 → UI Scale.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_hud_scale</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Manual HUD scale multiplier (<code>0.25</code> … <code>8</code> in 0.25 steps). Used when auto is <code>0</code>. F12 → UI Scale.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_hud_scale_auto</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Auto HUD scale from <code>vid_h / 480</code>. <code>1</code> on, <code>0</code> off. Legacy <code>_sofbuddy_hud_scale -1</code> migrates like font auto. F12 → UI Scale.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_scale_round_auto</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Snap auto font/HUD scale to round steps instead of a continuous ratio. <code>1</code> on, <code>0</code> off. F12 → UI Scale.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_scale_round_ratio</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0.25</code>. Snap increment used when round auto is on (<code>0.05</code>, <code>0.1</code>, <code>0.125</code>, <code>0.25</code>, <code>0.5</code>, <code>1</code>). Also applies to cinematic image scaling. F12 → UI Scale.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_scale_cinematic_pics</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Scale cinematic credit/fade images (<code>SP_FLAG_CREDIT</code> / <code>SCR_DrawCinemaScope</code>) up from 640×480. <code>1</code> on, <code>0</code> off. F12 → UI Scale.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_crossh_scale</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Crosshair size multiplier. F12 → UI Scale.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_icons_autoscale</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Scale team icons and playernames drawn above players with the HUD scale. <code>1</code> on, <code>0</code> off. F12 → UI Scale.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_console_size</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0.5</code>. Console height as a fraction of screen height (<code>0</code>–<code>1</code>, <code>1</code> = fullscreen). F12 → UI Scale.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_minfilter_unmipped</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>GL_LINEAR</code>. Min filter for sky and other unmipped textures. <code>GL_NEAREST</code> or <code>GL_LINEAR</code> (mipmap modes make textures incomplete). F12 → Texture.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_magfilter_unmipped</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>GL_LINEAR</code>. Mag filter for sky and other unmipped textures. F12 → Texture.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_minfilter_mipped</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>GL_LINEAR_MIPMAP_LINEAR</code>. Min filter for mipmapped textures. F12 → Texture.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_magfilter_mipped</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>GL_LINEAR</code>. Mag filter for mipmapped textures. F12 → Texture.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_minfilter_ui</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>GL_NEAREST</code>. Min filter for UI textures. Keep <code>GL_NEAREST</code> — LINEAR makes fonts unreadable. F12 → Texture.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_magfilter_ui</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>GL_NEAREST</code>. Mag filter for UI textures. Keep <code>GL_NEAREST</code> — LINEAR makes fonts unreadable. F12 → Texture.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_overbright</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Overbright lighting. <code>1</code> on. When on, it overrides the manual blend cvars below. F12 → Lighting.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_cutoff</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>64</code>. Dynamic light threshold (DLIGHT_CUTOFF). F12 → Lighting.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_water_size</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>64</code>. Warp texture chunk size for water, lava, and sky turbulence. Smaller is finer (more work), minimum <code>16</code>. F12 → Graphics.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lightblend_src</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>GL_ZERO</code>. Lightmap blend source. Experimental, leave at default. F12 → Lighting.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lightblend_dst</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>GL_SRC_COLOR</code>. Lightmap blend destination. Experimental, leave at default. F12 → Lighting.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_shiny_spherical</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Let shiny <code>gl_detailtexturing</code> change with view angle. <code>1</code> on, <code>0</code> off. F12 → Lighting.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_rawmouse</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Raw mouse input via the Raw Input API, bypassing Windows pointer acceleration. <code>1</code> on, <code>0</code> off.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sp_cl_master_gamespy</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>sof1master.sofvault.org</code>. Selected GameSpy master server; choose a known host from F12 → Network. SoFPlus saves this value across launches.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_http_maps</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. HTTP map assist: <code>0</code> Off, <code>1</code> Primary, <code>2</code> Random provider, <code>3</code> Rotate providers.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_http_maps_dl_1</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>https://sofvault.org/sof1maps</code>. Zip download base URL, provider slot 1.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_http_maps_dl_2</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>https://raw.githubusercontent.com/plowsof/sof1maps/main</code>. Zip download base URL, provider slot 2.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_http_maps_dl_3</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <em>empty</em>. Zip download base URL, provider slot 3.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_http_maps_crc_1</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>https://sofvault.org/sof1maps</code>. CRC lookup base URL, slot 1 (HTTP Range fetch of the zip central directory).</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_http_maps_crc_2</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>https://raw.githubusercontent.com/plowsof/sof1maps/main</code>. CRC lookup base URL, slot 2.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_http_maps_crc_3</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <em>empty</em>. CRC lookup base URL, slot 3.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_http_show_providers</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Show the provider + updater URL inputs on the Network tab. <code>1</code> show, <code>0</code> hide.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_update_check_startup</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Run the updater check at startup and open the internal prompt when a newer release is found.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_update_use_gui</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> flavour-dependent. Use <code>sof_buddy_update.exe</code> when queuing an install (<code>sofbuddy_update_install</code>). <strong>On</strong> by default on native Windows universal builds; <strong>off</strong> under Wine/Proton and on non-universal channels. Toggle on <strong>F12 → Version</strong>.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_update_api_url</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> build-dependent. Updater JSON feed URL. XP builds default to the sofvault mirror, non-XP to the GitHub API.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_update_releases_url</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> build-dependent. Human release page URL shown in updater status/help.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_update_target_tag</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>latest</code>. Release tag to install. Run <code>sofbuddy_update releases</code> to refresh the tag list after changing.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_theme</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Menu color preset (<code>0</code> … <code>37</code>). Reopen the menu to apply.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_loading_lock_input</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Lock game input while the loading screen is up. <code>1</code> locked, <code>0</code> unlocked.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_loading_show_mapname</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Show the current map name on the loading screen header. <code>1</code> on, <code>0</code> off.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_loading_show_download</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Show HTTP/download status on the loading screen header. <code>1</code> on, <code>0</code> off.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_entity_edit</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. <strong>Map entity / map study tools (off by default):</strong> set <code>1</code> to enable the spawn <strong>cache</strong> during load, <code>sofbuddy_entities_draw</code> / <code>ev_debugbox</code>, and <strong>primary-attack intersect</strong>. Nothing in this feature runs until this is on — see <a href="src/features/entity_visualizer/README.md#map-entity-wireframes-how-it-works">Map entity wireframes</a></td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_entities_draw_verbose</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Log one line per entity when <code>sofbuddy_entities_draw</code> runs.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_map_debug_map</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <em>empty</em>. Map stem for Map study load + spawn recording, no path and no <code>.bsp</code> (e.g. <code>moscow</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_map_study_deathmatch</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>4</code>. <code>deathmatch</code> mode applied before the map loads. <code>4</code> = CTF, which suits most map testing.</td>
+</tr>
+</tbody></table>
 
-| Cvar | Default | Description |
-| ---- | ------- | ----------- |
-| `_sofbuddy_high_priority` | `1` | Set process priority to HIGH (`0` = NORMAL). F12 → CPU. |
-| `_sofbuddy_sleep` | `1` | CPU-saving sleep between frames. F12 → CPU. |
-| `_sofbuddy_sleep_jitter` | `0` | Frame time borrowing. Experimental; can worsen pacing, leave `0` unless needed. F12 → CPU. |
-| `_sofbuddy_sleep_busyticks` | `2` | 1 ms busyloop ticks per frame. Lower saves CPU, `0` may stutter. F12 → CPU. |
-| `_sofbuddy_perf_profile` | `0` | Perf preset: `0` Competitive, `1` High Visual, `2` Low Visual, `3` Custom/Current. The CPU tab selects Custom/Current when the adjusted cvars do not match a preset. |
-| `_sofbuddy_font_scale` | `1` | Manual font scale multiplier (`0.25` … `8` in 0.25 steps). Used when auto is `0`. F12 → UI Scale. |
-| `_sofbuddy_font_scale_auto` | `1` | Auto font scale from `vid_h / 480`. `1` on, `0` off. Legacy `_sofbuddy_font_scale -1` migrates to auto on + scale `1`. F12 → UI Scale. |
-| `_sofbuddy_font_pack` | `0` | Font mode: `0` Default, `1` Force SoFPlus, `2` Force Vanilla. Changing it reloads the renderer. F12 → UI Scale. |
-| `_sofbuddy_hud_scale` | `1` | Manual HUD scale multiplier (`0.25` … `8` in 0.25 steps). Used when auto is `0`. F12 → UI Scale. |
-| `_sofbuddy_hud_scale_auto` | `1` | Auto HUD scale from `vid_h / 480`. `1` on, `0` off. Legacy `_sofbuddy_hud_scale -1` migrates like font auto. F12 → UI Scale. |
-| `_sofbuddy_scale_round_auto` | `0` | Snap auto font/HUD scale to round steps instead of a continuous ratio. `1` on, `0` off. F12 → UI Scale. |
-| `_sofbuddy_scale_round_ratio` | `0.25` | Snap increment used when round auto is on (`0.05`, `0.1`, `0.125`, `0.25`, `0.5`, `1`). Also applies to cinematic image scaling. F12 → UI Scale. |
-| `_sofbuddy_scale_cinematic_pics` | `1` | Scale cinematic credit/fade images (`SP_FLAG_CREDIT` / `SCR_DrawCinemaScope`) up from 640×480. `1` on, `0` off. F12 → UI Scale. |
-| `_sofbuddy_crossh_scale` | `1` | Crosshair size multiplier. F12 → UI Scale. |
-| `_sofbuddy_icons_autoscale` | `1` | Scale team icons and playernames drawn above players with the HUD scale. `1` on, `0` off. F12 → UI Scale. |
-| `_sofbuddy_console_size` | `0.5` | Console height as a fraction of screen height (`0`–`1`, `1` = fullscreen). F12 → UI Scale. |
-| `_sofbuddy_minfilter_unmipped` | `GL_LINEAR` | Min filter for sky and other unmipped textures. `GL_NEAREST` or `GL_LINEAR` (mipmap modes make textures incomplete). F12 → Texture. |
-| `_sofbuddy_magfilter_unmipped` | `GL_LINEAR` | Mag filter for sky and other unmipped textures. F12 → Texture. |
-| `_sofbuddy_minfilter_mipped` | `GL_LINEAR_MIPMAP_LINEAR` | Min filter for mipmapped textures. F12 → Texture. |
-| `_sofbuddy_magfilter_mipped` | `GL_LINEAR` | Mag filter for mipmapped textures. F12 → Texture. |
-| `_sofbuddy_minfilter_ui` | `GL_NEAREST` | Min filter for UI textures. Keep `GL_NEAREST` — LINEAR makes fonts unreadable. F12 → Texture. |
-| `_sofbuddy_magfilter_ui` | `GL_NEAREST` | Mag filter for UI textures. Keep `GL_NEAREST` — LINEAR makes fonts unreadable. F12 → Texture. |
-| `_sofbuddy_lighting_overbright` | `0` | Overbright lighting. `1` on. When on, it overrides the manual blend cvars below. F12 → Lighting. |
-| `_sofbuddy_lighting_cutoff` | `64` | Dynamic light threshold (DLIGHT_CUTOFF). F12 → Lighting. |
-| `_sofbuddy_water_size` | `64` | Warp texture chunk size for water, lava, and sky turbulence. Smaller is finer (more work), minimum `16`. F12 → Graphics. |
-| `_sofbuddy_lightblend_src` | `GL_ZERO` | Lightmap blend source. Experimental, leave at default. F12 → Lighting. |
-| `_sofbuddy_lightblend_dst` | `GL_SRC_COLOR` | Lightmap blend destination. Experimental, leave at default. F12 → Lighting. |
-| `_sofbuddy_shiny_spherical` | `1` | Let shiny `gl_detailtexturing` change with view angle. `1` on, `0` off. F12 → Lighting. |
-| `_sofbuddy_rawmouse` | `0` | Raw mouse input via the Raw Input API, bypassing Windows pointer acceleration. `1` on, `0` off. |
-| `_sp_cl_master_gamespy` | `sof1master.sofvault.org` | Selected GameSpy master server; choose a known host from F12 → Network. SoFPlus saves this value across launches. |
-| `_sofbuddy_http_maps` | `1` | HTTP map assist: `0` Off, `1` Primary, `2` Random provider, `3` Rotate providers. |
-| `_sofbuddy_http_maps_dl_1` | `https://sofvault.org/sof1maps` | Zip download base URL, provider slot 1. |
-| `_sofbuddy_http_maps_dl_2` | `https://raw.githubusercontent.com/plowsof/sof1maps/main` | Zip download base URL, provider slot 2. |
-| `_sofbuddy_http_maps_dl_3` | *(empty)* | Zip download base URL, provider slot 3. |
-| `_sofbuddy_http_maps_crc_1` | `https://sofvault.org/sof1maps` | CRC lookup base URL, slot 1 (HTTP Range fetch of the zip central directory). |
-| `_sofbuddy_http_maps_crc_2` | `https://raw.githubusercontent.com/plowsof/sof1maps/main` | CRC lookup base URL, slot 2. |
-| `_sofbuddy_http_maps_crc_3` | *(empty)* | CRC lookup base URL, slot 3. |
-| `_sofbuddy_http_show_providers` | `0` | Show the provider + updater URL inputs on the Network tab. `1` show, `0` hide. |
-| `_sofbuddy_update_check_startup` | `1` | Run the updater check at startup and open the internal prompt when a newer release is found. |
-| `_sofbuddy_update_use_gui` | flavour-dependent | Use `sof_buddy_update.exe` when queuing an install (`sofbuddy_update_install`). **On** by default on native Windows universal builds; **off** under Wine/Proton and on non-universal channels. Toggle on **F12 → Version**. |
-| `_sofbuddy_update_api_url` | build-dependent | Updater JSON feed URL. XP builds default to the sofvault mirror, non-XP to the GitHub API. |
-| `_sofbuddy_update_releases_url` | build-dependent | Human release page URL shown in updater status/help. |
-| `_sofbuddy_update_target_tag` | `latest` | Release tag to install. Run `sofbuddy_update releases` to refresh the tag list after changing. |
-| `_sofbuddy_menu_theme` | `0` | Menu color preset (`0` … `37`). Reopen the menu to apply. |
-| `_sofbuddy_loading_lock_input` | `0` | Lock game input while the loading screen is up. `1` locked, `0` unlocked. |
-| `_sofbuddy_loading_show_mapname` | `1` | Show the current map name on the loading screen header. `1` on, `0` off. |
-| `_sofbuddy_loading_show_download` | `1` | Show HTTP/download status on the loading screen header. `1` on, `0` off. |
-| `_sofbuddy_entity_edit` | `0` | **Map entity / map study tools (off by default):** set `1` to enable the spawn **cache** during load, `sofbuddy_entities_draw` / `ev_debugbox`, and **primary-attack intersect**. Nothing in this feature runs until this is on — see [Map entity wireframes](src/features/entity_visualizer/README.md#map-entity-wireframes-how-it-works) |
-| `_sofbuddy_entities_draw_verbose` | `0` | Log one line per entity when `sofbuddy_entities_draw` runs. |
-| `_sofbuddy_map_debug_map` | *(empty)* | Map stem for Map study load + spawn recording, no path and no `.bsp` (e.g. `moscow`). |
-| `_sofbuddy_map_study_deathmatch` | `4` | `deathmatch` mode applied before the map loads. `4` = CTF, which suits most map testing. |
 
-</div>
 
 The four `_sofbuddy_entity_edit` / `_sofbuddy_entities_draw_verbose` / `_sofbuddy_map_debug_map` /
 `_sofbuddy_map_study_deathmatch` cvars come from the `entity_visualizer` feature, which is
@@ -316,13 +471,18 @@ them.
 
 ### Server-visible client info
 
-<div style="overflow-x: auto" markdown="1">
+<table style="width:100%;max-width:838px;table-layout:fixed;border-collapse:collapse">
+<colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+<thead><tr>
+<th style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d">Cvar</th><th style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d">Purpose</th>
+</tr></thead><tbody>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sp_cl_info_sofbuddy</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><code>windows-<version>-<build></code>, <code>wine-<version>-<build></code>, or <code>universal-<version>-<build></code>, sent with client userinfo so a server can identify the SoF Buddy channel.</td>
+</tr>
+</tbody></table>
 
-| Cvar | Purpose |
-| ---- | ------- |
-| `_sp_cl_info_sofbuddy` | `windows-<version>-<build>`, `wine-<version>-<build>`, or `universal-<version>-<build>`, sent with client userinfo so a server can identify the SoF Buddy channel. |
 
-</div>
 
 The build number is the GitHub Actions run number; local builds use `local`.
 This is informational client metadata, not an anti-cheat signal.
@@ -331,28 +491,78 @@ This is informational client metadata, not an anti-cheat signal.
 
 Written by sof_buddy itself. Values are recomputed each launch, so editing them has no lasting effect.
 
-<div style="overflow-x: auto" markdown="1">
+<table style="width:100%;max-width:838px;table-layout:fixed;border-collapse:collapse">
+<colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+<thead><tr>
+<th style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d">Cvar</th><th style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d">Purpose</th>
+</tr></thead><tbody>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_version</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Build version string, reported on the Version tab.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_build_flavour</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Release channel label (Universal, Windows, Linux / Wine, Windows XP, Debug, …).</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_build_number</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">CI build number from <code>SOFBUDDY_BUILD_NUMBER</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_tab</code> / <code>_sb_internal_menu_last_page</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Remembered tab index and last opened page.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_menu_vid_w</code> / <code>_sb_internal_menu_vid_h</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Cached engine <code>vid_w</code> / <code>vid_h</code> used to recompute menu layout cvars.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_center_panel_px</code>, <code>_sb_internal_tabs_row1_*</code>, <code>_sb_internal_tabs_row2_*</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Computed tab-bar layout: panel width, prefixes/suffixes, content width and bias. Recomputed on resolution change.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_profile_target_*</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">In-use profile values shown on the CPU tab.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_font_scale_rounded</code> / <code>_sb_internal_hud_scale_rounded</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Read-only mirror of the effective scale after ratio and glyph-grid rounding.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_font_scale_auto_migrated</code> / <code>_sb_internal_hud_scale_auto_migrated</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">One-shot guards so the legacy <code>-1</code> auto-scale migration runs once.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_loading_progress</code> / <code>_sb_internal_loading_current</code> / <code>_sb_internal_loading_status</code> / <code>_sb_internal_loading_network</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Runtime loading-screen state and status text.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_loading_zip_indicator</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Pic path for the loading-screen download indicator.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_update_status</code> / <code>_sb_internal_update_latest</code> / <code>_sb_internal_update_download_path</code> / <code>_sb_internal_update_downloaded_asset</code> / <code>_sb_internal_update_checked_utc</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Updater progress read-outs (Version tab and startup prompt).</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_update_release_list_rmf</code> / <code>_sb_internal_update_release_list_status</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Generated RMF markup for the release list, plus its load status.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_feature_entity_visualizer</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Compile-time build flag (<code>1</code>/<code>0</code>) used by <code>&lt;cinclude&gt;</code> to hide menu sections whose feature is not compiled in.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_feature_master_server_fallback</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Runtime menu gate for the GameSpy master selection control.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_openurl_status</code> / <code>_sb_internal_openurl_last</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Last social-link open result and requested URL.</td>
+</tr>
+</tbody></table>
 
-| Cvar | Purpose |
-| ---- | ------- |
-| `_sb_internal_version` | Build version string, reported on the Version tab. |
-| `_sb_internal_build_flavour` | Release channel label (Universal, Windows, Linux / Wine, Windows XP, Debug, …). |
-| `_sb_internal_build_number` | CI build number from `SOFBUDDY_BUILD_NUMBER`. |
-| `_sb_internal_tab` / `_sb_internal_menu_last_page` | Remembered tab index and last opened page. |
-| `_sb_internal_menu_vid_w` / `_sb_internal_menu_vid_h` | Cached engine `vid_w` / `vid_h` used to recompute menu layout cvars. |
-| `_sb_internal_center_panel_px`, `_sb_internal_tabs_row1_*`, `_sb_internal_tabs_row2_*` | Computed tab-bar layout: panel width, prefixes/suffixes, content width and bias. Recomputed on resolution change. |
-| `_sb_internal_profile_target_*` | In-use profile values shown on the CPU tab. |
-| `_sb_internal_font_scale_rounded` / `_sb_internal_hud_scale_rounded` | Read-only mirror of the effective scale after ratio and glyph-grid rounding. |
-| `_sb_internal_font_scale_auto_migrated` / `_sb_internal_hud_scale_auto_migrated` | One-shot guards so the legacy `-1` auto-scale migration runs once. |
-| `_sb_internal_loading_progress` / `_sb_internal_loading_current` / `_sb_internal_loading_status` / `_sb_internal_loading_network` | Runtime loading-screen state and status text. |
-| `_sb_internal_loading_zip_indicator` | Pic path for the loading-screen download indicator. |
-| `_sb_internal_update_status` / `_sb_internal_update_latest` / `_sb_internal_update_download_path` / `_sb_internal_update_downloaded_asset` / `_sb_internal_update_checked_utc` | Updater progress read-outs (Version tab and startup prompt). |
-| `_sb_internal_update_release_list_rmf` / `_sb_internal_update_release_list_status` | Generated RMF markup for the release list, plus its load status. |
-| `_sb_internal_feature_entity_visualizer` | Compile-time build flag (`1`/`0`) used by `<cinclude>` to hide menu sections whose feature is not compiled in. |
-| `_sb_internal_feature_master_server_fallback` | Runtime menu gate for the GameSpy master selection control. |
-| `_sb_internal_openurl_status` / `_sb_internal_openurl_last` | Last social-link open result and requested URL. |
 
-</div>
 
 </details>
 
