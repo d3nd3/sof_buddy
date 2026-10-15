@@ -285,6 +285,7 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 | `_sofbuddy_http_maps_crc_3` | *(empty)* | CRC lookup base URL, slot 3. |
 | `_sofbuddy_http_show_providers` | `0` | Show the provider + updater URL inputs on the Network tab. `1` show, `0` hide. |
 | `_sofbuddy_update_check_startup` | `1` | Run the updater check at startup and open the internal prompt when a newer release is found. |
+| `_sofbuddy_update_use_gui` | flavour-dependent | Use `sof_buddy_update.exe` when queuing an install (`sofbuddy_update_install`). **On** by default on native Windows universal builds; **off** under Wine/Proton and on non-universal channels. Toggle on **F12 → Version**. |
 | `_sofbuddy_update_api_url` | build-dependent | Updater JSON feed URL. XP builds default to the sofvault mirror, non-XP to the GitHub API. |
 | `_sofbuddy_update_releases_url` | build-dependent | Human release page URL shown in updater status/help. |
 | `_sofbuddy_update_target_tag` | `latest` | Release tag to install. Run `sofbuddy_update releases` to refresh the tag list after changing. |

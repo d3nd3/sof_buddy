@@ -57,6 +57,7 @@ constexpr const char* kCvarUpdateDownloadPath = "_sb_internal_update_download_pa
 constexpr const char* kCvarUpdateDownloadedAsset = "_sb_internal_update_downloaded_asset";
 constexpr const char* kCvarUpdateCheckedUtc = "_sb_internal_update_checked_utc";
 constexpr const char* kCvarUpdateCheckStartup = "_sofbuddy_update_check_startup";
+constexpr const char* kCvarUpdateUseGui = "_sofbuddy_update_use_gui";
 constexpr const char* kCvarUpdateApiUrl = "_sofbuddy_update_api_url";
 constexpr const char* kCvarUpdateReleasesUrl = "_sofbuddy_update_releases_url";
 constexpr const char* kCvarUpdateTargetTag = "_sofbuddy_update_target_tag";
@@ -117,8 +118,24 @@ bool prefer_linux_wine_release_zip() {
 #endif
 }
 
+const char* update_gui_updater_default_string() {
+#if defined(SOFBUDDY_UNIVERSAL_BUILD)
+    return is_running_under_wine() ? "0" : "1";
+#else
+    return "0";
+#endif
+}
+
+bool update_gui_updater_enabled() {
+    if (!detour_Cvar_Get::oCvar_Get) return false;
+    cvar_t* c = detour_Cvar_Get::oCvar_Get(kCvarUpdateUseGui, update_gui_updater_default_string(),
+        CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    return c && c->value != 0.0f;
+}
+
 bool use_gui_windows_updater() {
 #if defined(SOFBUDDY_UNIVERSAL_BUILD)
+    if (!update_gui_updater_enabled()) return false;
     return is_regular_file(kUpdateInstallGuiWindows);
 #else
     return false;
@@ -255,7 +272,7 @@ bool write_install_context_env(const std::string& zip_path, const std::string& r
     const bool proton = is_running_under_proton();
     std::fprintf(fp, "SOFBUDDY_IS_WINE=%d\n", wine ? 1 : 0);
     std::fprintf(fp, "SOFBUDDY_IS_PROTON=%d\n", proton ? 1 : 0);
-    std::fprintf(fp, "SOFBUDDY_SKIP_GUI=%d\n", (wine || proton) ? 1 : 0);
+    std::fprintf(fp, "SOFBUDDY_SKIP_GUI=%d\n", update_gui_updater_enabled() ? 0 : 1);
     std::string unix_zip = wine_unix_path(zip_path.c_str());
     std::string unix_root = wine_unix_path(root_dir.c_str());
     std::string sh_win = root_dir + "\\sof_buddy\\update_from_zip.sh";
@@ -1355,6 +1372,7 @@ void sofbuddy_update_init(void) {
     detour_Cvar_Get::oCvar_Get(kCvarUpdateDownloadedAsset, "", 0, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateCheckedUtc, "", 0, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateCheckStartup, "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get(kCvarUpdateUseGui, update_gui_updater_default_string(), CVAR_SOFBUDDY_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateApiUrl, kUpdateApiUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
     cvar_t* releases_url_cvar = detour_Cvar_Get::oCvar_Get(kCvarUpdateReleasesUrl, kUpdateReleasesUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateTargetTag, kUpdateTargetLatest, CVAR_SOFBUDDY_ARCHIVE, nullptr);

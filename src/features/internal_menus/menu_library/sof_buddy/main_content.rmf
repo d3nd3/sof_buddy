@@ -35,6 +35,8 @@
 <ctext _sb_internal_build_number atext "Build : " tint white atint white noshade><hbr>
 <ctext _sb_internal_update_status atext "Updater : " tint white atint white noshade><hbr>
 <ctext _sb_internal_update_latest atext "Latest : " tint white atint white noshade><hbr>
+<hbr>
+<list "Off,On" match "0,1" cvar _sofbuddy_update_use_gui atext "Graphical updater : " noshade tip "Use sof_buddy_update.exe when installing (universal builds). Wine/Proton default Off; native Windows default On. Console/script install when Off."><hbr>
 
 <font type title tint sb_subtle atint sb_subtle>
 "_____________________________"

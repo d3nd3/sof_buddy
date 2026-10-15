@@ -56,10 +56,10 @@ void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int pal, char
         float fx = static_cast<float>(x);
         float fy = static_cast<float>(y);
         scale_hud_from_top_right(fx, fy, hudScale);
-        x = static_cast<int>(fx);
-        y = static_cast<int>(fy);
-        w_scale = hudScale;
-        h_scale = hudScale;
+        x = static_cast<int>(fx + 0.5f);
+        y = static_cast<int>(fy + 0.5f);
+        w_scale *= hudScale;
+        h_scale *= hudScale;
     }
 
     original(x, y, w_scale, h_scale, pal, name);

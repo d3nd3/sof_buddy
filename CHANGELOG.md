@@ -2,6 +2,16 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.38
+
+### Graphics and HUD
+
+- Fix SoFPlus `cl_showfps` OSD scaling: digits no longer overlap when HUD scale is above 1.
+
+### Updater
+
+- **`_sofbuddy_update_use_gui`** on **F12 → Version** (and Cvars): choose graphical `sof_buddy_update.exe` vs script/console install on all builds. Defaults **On** for native Windows universal, **Off** under Wine/Proton and on non-universal channels.
+
 ## v8.37
 
 ### F12 menu
