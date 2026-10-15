@@ -6,36 +6,19 @@ User-facing highlights. Older detail is summarized at the bottom.
 
 ### Bug fixes
 
-- **Crash on startup (v8.40):** `FS_AddGameDirectory` hook now uses automatic detour length so the engine prologue is not split (fixes immediate crash after filesystem init).
-- **Wine updater script:** `update_from_zip.cmd` no longer mis-parses the “fresh settings” prompt (`:` in `set /p`); cleanup of `install_context.env` works under Wine `cmd`.
-
-## v8.40
-
-### Bug fixes
-
-- **Load/save slots empty after v8.39** ([#24](https://github.com/d3nd3/sof_buddy/issues/24)): mount `sof_buddy/*.pak` during filesystem init **after** `basedir/base` and **before** the `user` directory, so the `user` search path stays on top and saves remain visible.
+- **Load/save slots empty** ([#24](https://github.com/d3nd3/sof_buddy/issues/24)): mount `sof_buddy/*.pak` during filesystem init **after** `basedir/base` and **before** the `user` directory, so the `user` search path stays on top and saves remain visible.
 - **`sofbuddy.cfg`**: startup load matches save location (`basedir/base/sofbuddy.cfg`); MP profile **`sf_login.cfg`** read/write uses the engine **`user`** cvar path (not hardcoded `basedir/user`).
-
-### F12 menu
-
-- **Gameplay → Crosshair:** stock crosshairs plus community packs under **`sof_buddy/crosshairs/`** (catalog picker, **`active_crosshair.pak`** staging).
-
-### Updater
-
-- **`sofbuddy_update prompt`** — check for updates and open the update or up-to-date menu.
-- Release notes shown in the prompt strip markdown/link noise for RMF text fields.
-- Universal builds default **`_sofbuddy_update_gui_updater`** to on under Wine/Proton as well.
-
-## v8.39
+- **`FS_AddGameDirectory` hook:** automatic detour length so the engine prologue is not split (startup crash).
 
 ### Bundled assets
 
 - Release zips include **`sof_buddy/sndrstfindimage.pak`** (placeholder textures so `GL_FindImage` stops spamming the console after **`snd_restart`**).
-- **`sof_buddy/extended_skins.pak`** — extended multiplayer player models (skins by **Acadie**). Buddy mounts all `sof_buddy/*.pak` via the engine filesystem after startup.
+- **`sof_buddy/extended_skins.pak`** — extended multiplayer player models (skins by **Acadie**). Buddy mounts all `sof_buddy/*.pak` after `basedir/base` (below `user` / `-game` on the search path).
 
 ### F12 menu
 
 - **Gameplay:** Audio section (`s_musicenabled`, `s_volume`, `s_khz`, `s_loadas8bit`, **Restart Audio** → `snd_restart`); kill-feed section (`con_notifytime`, `cl_obit_filter`).
+- **Gameplay → Crosshair:** stock crosshairs plus community packs under **`sof_buddy/crosshairs/`** (catalog picker, **`active_crosshair.pak`** staging).
 - **Lighting / Graphics:** clearer labels (lightmap multiplier, Ghoul lighting block, dynamic light threshold, specular textures); warp chunk size control moved to **Graphics**.
 - Tab bar: centered tab labels; **MP Profile GUID** tab width adjusted.
 - Loading tips default **`tip_duration`** to **10000** ms (migrates legacy 2500/5000).
@@ -43,6 +26,10 @@ User-facing highlights. Older detail is summarized at the bottom.
 ### Updater
 
 - Startup update prompt **What’s new** text fixed (chunked RMF cvars for long release notes).
+- **`sofbuddy_update prompt`** — check for updates and open the update or up-to-date menu.
+- Release notes shown in the prompt strip markdown/link noise for RMF text fields.
+- Universal builds default **`_sofbuddy_update_gui_updater`** to on under Wine/Proton as well.
+- **Wine `update_from_zip.cmd`:** “fresh settings” prompt and cleanup of `install_context.env` work under Wine `cmd` (no `set /p` colon parse bug).
 - GitHub release bodies are generated from **CHANGELOG.md** (`tools/changelog_release_body.py`).
 
 ### Docs
