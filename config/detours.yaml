@@ -57,6 +57,16 @@ functions:
     detour_len: 0
     params: []
 
+  - name: FS_AddGameDirectory
+    module: SofExe
+    identifier: "0x20025540"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: char*
+        name: dir
+
   - name: FS_LoadFile
     module: SofExe
     identifier: "0x20025370"

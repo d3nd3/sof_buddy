@@ -32,7 +32,16 @@
 <hbr>
 <font type title tint gray atint gray>
 <left>
-<includecvar _sb_internal_update_prompt_notes_rmf>
+<includecvar _sb_internal_update_prompt_notes_rmf_00>
+<includecvar _sb_internal_update_prompt_notes_rmf_01>
+<includecvar _sb_internal_update_prompt_notes_rmf_02>
+<includecvar _sb_internal_update_prompt_notes_rmf_03>
+<includecvar _sb_internal_update_prompt_notes_rmf_04>
+<includecvar _sb_internal_update_prompt_notes_rmf_05>
+<includecvar _sb_internal_update_prompt_notes_rmf_06>
+<includecvar _sb_internal_update_prompt_notes_rmf_07>
+<includecvar _sb_internal_update_prompt_notes_rmf_08>
+<includecvar _sb_internal_update_prompt_notes_rmf_09>
 <hbr>
 <hbr>
 

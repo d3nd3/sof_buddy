@@ -34,6 +34,8 @@
 <font type title tint white atint white>
 <list "NEAREST,LINEAR" match "GL_NEAREST,GL_LINEAR" cvar _sofbuddy_minfilter_unmipped atext "Min : " noshade tip "No mipmaps on sky/detail — MIPMAP modes make textures incomplete."><br>
 <list "NEAREST,LINEAR" match "GL_NEAREST,GL_LINEAR" cvar _sofbuddy_magfilter_unmipped atext "Mag : " noshade><br>
+<ctext _sofbuddy_water_size atext "Warp Texture ( water+lava+sky) ChunkSize : " noshade tip "Warp surface tessellation for water, lava, and sky turbulence. Smaller = finer motion, more GPU work. Min 16."><br>
+<slider cvari _sofbuddy_water_size min 16 max 256 step 1><br>
 
 <font type title tint sb_subtle atint sb_subtle>
 "_____________________________"
@@ -102,7 +104,7 @@
 <hbr>
 <hbr>
 <font type title tint white atint white>
-<text "Restore Filter Defaults" key mouse1 "set _sofbuddy_minfilter_unmipped GL_LINEAR;set _sofbuddy_magfilter_unmipped GL_LINEAR;set _sofbuddy_minfilter_mipped GL_LINEAR_MIPMAP_LINEAR;set _sofbuddy_magfilter_mipped GL_LINEAR;set _sofbuddy_minfilter_ui GL_NEAREST;set _sofbuddy_magfilter_ui GL_NEAREST;set gl_picmip 0;set gl_pictip 0;set ghl_mip 0;set r_isf GL_SOLID_FORMAT;set r_iaf GL_ALPHA_FORMAT;set gl_ext_multitexture 1;set gl_ext_anisotropic 1;set _sp_cl_vid_gl_texture_max_anisotropy_ext 16;refresh" border 8 1 cyan regular align center><hbr>
+<text "Restore Filter Defaults" key mouse1 "set _sofbuddy_minfilter_unmipped GL_LINEAR;set _sofbuddy_magfilter_unmipped GL_LINEAR;set _sofbuddy_water_size 64;set _sofbuddy_minfilter_mipped GL_LINEAR_MIPMAP_LINEAR;set _sofbuddy_magfilter_mipped GL_LINEAR;set _sofbuddy_minfilter_ui GL_NEAREST;set _sofbuddy_magfilter_ui GL_NEAREST;set gl_picmip 0;set gl_pictip 0;set ghl_mip 0;set r_isf GL_SOLID_FORMAT;set r_iaf GL_ALPHA_FORMAT;set gl_ext_multitexture 1;set gl_ext_anisotropic 1;set _sp_cl_vid_gl_texture_max_anisotropy_ext 16;refresh" border 8 1 cyan regular align center><hbr>
 <text "Vid Restart" key mouse1 "vid_restart" border 8 1 cyan regular align center>
 <text "Close" key mouse1 "popmenu" border 8 1 cyan regular align center>
 </stm>

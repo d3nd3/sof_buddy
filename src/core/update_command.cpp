@@ -65,6 +65,8 @@ constexpr const char* kCvarUpdateReleaseListRmf = "_sb_internal_update_release_l
 constexpr const char* kCvarUpdateReleaseListStatus = "_sb_internal_update_release_list_status";
 constexpr const char* kCvarUpdateReleaseTitle = "_sb_internal_update_release_title";
 constexpr const char* kCvarUpdatePromptNotesRmf = "_sb_internal_update_prompt_notes_rmf";
+constexpr int kUpdatePromptNotesChunkCount = 10;
+constexpr size_t kUpdatePromptNotesChunkBytes = 200;
 constexpr const char* kCvarUpdateLocalLabel = "_sb_internal_update_local_label";
 constexpr const char* kUpdateApiUrlAllReleasesGitHub = "https://api.github.com/repos/d3nd3/sof_buddy/releases?per_page=100";
 constexpr const char* kUpdateTargetLatest = "latest";
@@ -887,31 +889,77 @@ std::string escape_rmf_text_line(std::string line) {
     return out;
 }
 
-std::string build_update_prompt_notes_rmf(const std::string& notes_text) {
-    std::string rmf = "<font type title tint gray atint gray>";
+std::string update_prompt_notes_chunk_cvar_name(int index) {
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "_sb_internal_update_prompt_notes_rmf_%02d", index);
+    return std::string(buf);
+}
+
+void clear_update_prompt_notes_chunks() {
+    for (int i = 0; i < kUpdatePromptNotesChunkCount; ++i)
+        set_update_cvar(update_prompt_notes_chunk_cvar_name(i).c_str(), "");
+}
+
+std::string fallback_release_notes_text(const ReleaseInfo& info) {
+    std::string out = "SoF Buddy update is ready to install.";
+    if (!info.tag_name.empty()) {
+        out += "\nTag: ";
+        out += info.tag_name;
+    }
+    if (!info.release_name.empty()) {
+        out += "\n";
+        out += info.release_name;
+    }
+    out += "\nSee GitHub releases for the full changelog.";
+    return out;
+}
+
+void set_update_prompt_notes_chunks(const std::string& notes_text) {
+    clear_update_prompt_notes_chunks();
     if (notes_text.empty()) {
-        rmf += "\"(No release notes in the feed. See Version tab or GitHub releases after install.)\"<hbr>";
-        return rmf;
+        set_update_cvar(update_prompt_notes_chunk_cvar_name(0).c_str(),
+            "\"(No release notes in the feed.)\"<hbr>");
+        return;
     }
 
+    std::vector<std::string> frags;
     std::istringstream in(notes_text);
     std::string line;
     int lines = 0;
-    const int kMaxLines = 42;
+    const int kMaxLines = 36;
     while (std::getline(in, line) && lines < kMaxLines) {
         line = escape_rmf_text_line(line);
-        if (line.empty()) {
-            rmf += "<hbr>";
-            continue;
-        }
-        rmf += "\"";
-        rmf += line;
-        rmf += "\"<hbr>";
+        if (line.empty())
+            frags.push_back("<hbr>");
+        else
+            frags.push_back("\"" + line + "\"<hbr>");
         ++lines;
     }
     if (lines >= kMaxLines)
-        rmf += "\"(Release notes truncated — see GitHub for the full changelog.)\"<hbr>";
-    return rmf;
+        frags.push_back("\"(Truncated — see GitHub.)\"<hbr>");
+
+    std::vector<std::string> chunks;
+    std::string acc;
+    for (const auto& frag : frags) {
+        if (!acc.empty() && acc.size() + frag.size() > kUpdatePromptNotesChunkBytes) {
+            chunks.push_back(acc);
+            acc.clear();
+        }
+        if (frag.size() > kUpdatePromptNotesChunkBytes) {
+            if (!acc.empty()) {
+                chunks.push_back(acc);
+                acc.clear();
+            }
+            chunks.push_back(frag.substr(0, kUpdatePromptNotesChunkBytes));
+            continue;
+        }
+        acc += frag;
+    }
+    if (!acc.empty())
+        chunks.push_back(acc);
+
+    for (size_t i = 0; i < chunks.size() && i < static_cast<size_t>(kUpdatePromptNotesChunkCount); ++i)
+        set_update_cvar(update_prompt_notes_chunk_cvar_name(static_cast<int>(i)).c_str(), chunks[i]);
 }
 
 void sync_update_prompt_display_cvars(const ReleaseInfo& info) {
@@ -923,8 +971,10 @@ void sync_update_prompt_display_cvars(const ReleaseInfo& info) {
     if (title.empty())
         title = info.tag_name.empty() ? "unknown" : info.tag_name;
     set_update_cvar(kCvarUpdateReleaseTitle, title);
-    set_update_cvar(kCvarUpdatePromptNotesRmf,
-        build_update_prompt_notes_rmf(normalize_release_notes_for_display(info.body)));
+    std::string notes = normalize_release_notes_for_display(info.body);
+    if (notes.empty())
+        notes = fallback_release_notes_text(info);
+    set_update_prompt_notes_chunks(notes);
 }
 
 bool write_pending_update_manifest(const ReleaseInfo& info, const char* zip_path) {
@@ -1380,8 +1430,9 @@ void sofbuddy_update_init(void) {
     detour_Cvar_Get::oCvar_Get(kCvarUpdateReleaseListStatus, "not loaded", 0, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateLocalLabel, SOFBUDDY_VERSION, 0, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateReleaseTitle, "", 0, nullptr);
-    detour_Cvar_Get::oCvar_Get(kCvarUpdatePromptNotesRmf,
-        "\"(Run an update check to load release notes.)\"<hbr>", 0, nullptr);
+    detour_Cvar_Get::oCvar_Get(kCvarUpdatePromptNotesRmf, "", 0, nullptr);
+    for (int i = 0; i < kUpdatePromptNotesChunkCount; ++i)
+        detour_Cvar_Get::oCvar_Get(update_prompt_notes_chunk_cvar_name(i).c_str(), "", 0, nullptr);
 
 #if defined(SOFBUDDY_XP_BUILD)
     // XP builds should default to the sofvault mirror. Preserve explicit user customizations.

@@ -106,6 +106,7 @@ jobs:
           rm -rf sof_buddy
           mkdir -p sof_buddy/funcmaps
           cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
+          cp rsrc/assets/*.pak sof_buddy/
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
           cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
@@ -139,6 +140,7 @@ jobs:
           rm -rf sof_buddy
           mkdir -p sof_buddy/funcmaps
           cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
+          cp rsrc/assets/*.pak sof_buddy/
           rm -f sof_buddy/*.sh
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
@@ -151,6 +153,7 @@ jobs:
           rm -rf sof_buddy
           mkdir -p sof_buddy/funcmaps
           cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
+          cp rsrc/assets/*.pak sof_buddy/
           rm -f sof_buddy/*.cmd sof_buddy/*.ps1
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
@@ -163,6 +166,7 @@ jobs:
           rm -rf sof_buddy
           mkdir -p sof_buddy/funcmaps
           cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
+          cp rsrc/assets/*.pak sof_buddy/
           rm -f sof_buddy/*.cmd sof_buddy/*.ps1
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
@@ -329,6 +333,11 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Current SoF Buddy version: $VERSION"
 
+      - name: Extract release notes from CHANGELOG
+        id: release_notes
+        run: |
+          python3 tools/changelog_release_body.py "${{ steps.version.outputs.version }}" > release_body.md
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -337,6 +346,7 @@ jobs:
         with:
           tag_name: v${{ steps.version.outputs.version }}-build${{ github.run_number }}
           release_name: Release v${{ steps.version.outputs.version }} (Build ${{ github.run_number }})
+          body_path: release_body.md
           draft: false
           prerelease: false
 

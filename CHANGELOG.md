@@ -2,6 +2,29 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.39
+
+### Bundled assets
+
+- Release zips include **`sof_buddy/sndrstfindimage.pak`** (placeholder textures so `GL_FindImage` stops spamming the console after **`snd_restart`**).
+- **`sof_buddy/extended_skins.pak`** — extended multiplayer player models (skins by **Acadie**). Buddy mounts all `sof_buddy/*.pak` via the engine filesystem after startup.
+
+### F12 menu
+
+- **Gameplay:** Audio section (`s_musicenabled`, `s_volume`, `s_khz`, `s_loadas8bit`, **Restart Audio** → `snd_restart`); kill-feed section (`con_notifytime`, `cl_obit_filter`).
+- **Lighting / Graphics:** clearer labels (lightmap multiplier, Ghoul lighting block, dynamic light threshold, specular textures); warp chunk size control moved to **Graphics**.
+- Tab bar: centered tab labels; **MP Profile GUID** tab width adjusted.
+- Loading tips default **`tip_duration`** to **10000** ms (migrates legacy 2500/5000).
+
+### Updater
+
+- Startup update prompt **What’s new** text fixed (chunked RMF cvars for long release notes).
+- GitHub release bodies are generated from **CHANGELOG.md** (`tools/changelog_release_body.py`).
+
+### Docs
+
+- README features list extended skins (Acadie); cvar tables scroll horizontally on narrow viewports.
+
 ## v8.38
 
 ### Graphics and HUD

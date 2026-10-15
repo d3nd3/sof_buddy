@@ -480,10 +480,13 @@ void create_layout_cvars() {
     // Menu color theme preset index (see kMenuThemes).
     detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_theme", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
 
-    // SoF default for tip_duration is 2500ms; bump to 5000ms if untouched.
+    // SoF.exe menu init (RVA 0xC8400): Cvar_Get("tip_duration", "2500", …). Buddy default 10000 ms.
     cvar_t* tip_duration = detour_Cvar_Get::oCvar_Get("tip_duration", "2500", 0, nullptr);
-    if (tip_duration && tip_duration->string && std::strcmp(tip_duration->string, "2500") == 0 && detour_Cvar_Set2::oCvar_Set2)
-        detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("tip_duration"), const_cast<char*>("5000"), true);
+    if (tip_duration && tip_duration->string && detour_Cvar_Set2::oCvar_Set2) {
+        const char* s = tip_duration->string;
+        if (!std::strcmp(s, "2500") || !std::strcmp(s, "5000"))
+            detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("tip_duration"), const_cast<char*>("10000"), true);
+    }
 }
 
 void set_runtime_cvar_int(const char* name, int value) {

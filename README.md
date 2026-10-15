@@ -36,6 +36,7 @@
 - 🖱️ **Raw Mouse Input** — Direct hardware input bypassing Windows acceleration. All original sensitivity cvars still work!
 - 🏷️ **Widescreen Teamicons GlitchFix** — Team icons are always correctly positioned, even in widescreen. Team icons and playernames above players scale with the HUD — toggle with `_sofbuddy_icons_autoscale` or **Icons Autoscale** in F12 → UI Scale.
 - 🖼️ **HD Texture Support** — Native support for high-res `.m32` textures. [Learn more](https://www.sof1.org/viewtopic.php?p=45667)
+- 👤 **Extended Multiplayer Skins** — Extra player models ship in `sof_buddy/extended_skins.pak` (skins by **Acadie**).
 - 🌙 **Lighting Blend Mode Adjustment** — Experience WhiteMagicRaven's lighting tweaks (optional).
 - 🖲️ **Console Size Adjustment** — Set how much of the screen the console covers, for any setup.
 - 🔄 **VSync Reliability** — `gl_swapinterval` is applied on every `vid_restart` for hassle-free vsync. F12 → CPU shows the measured display refresh, a request picker built from your driver's actual modes, plus a cap check that warns when VSync could deliver more than the framerate cap allows.
@@ -91,6 +92,7 @@ extraction or feature-enable scripts are needed.
   - `sof_buddy.dll` (goes in the SoF root)
   - `sof_buddy/` folder (created under the SoF root)
     - `sof_buddy/funcmaps/` (contains JSON function maps)
+    - `sof_buddy/*.pak` — `sndrstfindimage.pak` (silences `GL_FindImage` spam after `snd_restart`), `extended_skins.pak` (multiplayer skins; credit Acadie)
     - Windows: `sof_buddy/enable_*.cmd` scripts and `sof_buddy/patch_sof_binary.ps1`
     - Linux/Wine: `sof_buddy/enable_*.sh` scripts and `sof_buddy/patch_sof_binary.sh`
 - Use the helper scripts to patch SoF.exe to load different DLLs:
@@ -244,6 +246,8 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 
 ### User-facing
 
+<div style="overflow-x: auto" markdown="1">
+
 | Cvar | Default | Description |
 | ---- | ------- | ----------- |
 | `_sofbuddy_high_priority` | `1` | Set process priority to HIGH (`0` = NORMAL). F12 → CPU. |
@@ -269,8 +273,8 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 | `_sofbuddy_minfilter_ui` | `GL_NEAREST` | Min filter for UI textures. Keep `GL_NEAREST` — LINEAR makes fonts unreadable. F12 → Texture. |
 | `_sofbuddy_magfilter_ui` | `GL_NEAREST` | Mag filter for UI textures. Keep `GL_NEAREST` — LINEAR makes fonts unreadable. F12 → Texture. |
 | `_sofbuddy_lighting_overbright` | `0` | Overbright lighting. `1` on. When on, it overrides the manual blend cvars below. F12 → Lighting. |
-| `_sofbuddy_lighting_cutoff` | `64` | Lighting cutoff value. F12 → Lighting. |
-| `_sofbuddy_water_size` | `64` | Warp polygon size — energy swirl frequency. Smaller is faster, minimum `16`. F12 → Lighting. |
+| `_sofbuddy_lighting_cutoff` | `64` | Dynamic light threshold (DLIGHT_CUTOFF). F12 → Lighting. |
+| `_sofbuddy_water_size` | `64` | Warp texture chunk size for water, lava, and sky turbulence. Smaller is finer (more work), minimum `16`. F12 → Graphics. |
 | `_sofbuddy_lightblend_src` | `GL_ZERO` | Lightmap blend source. Experimental, leave at default. F12 → Lighting. |
 | `_sofbuddy_lightblend_dst` | `GL_SRC_COLOR` | Lightmap blend destination. Experimental, leave at default. F12 → Lighting. |
 | `_sofbuddy_shiny_spherical` | `1` | Let shiny `gl_detailtexturing` change with view angle. `1` on, `0` off. F12 → Lighting. |
@@ -298,6 +302,8 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 | `_sofbuddy_map_debug_map` | *(empty)* | Map stem for Map study load + spawn recording, no path and no `.bsp` (e.g. `moscow`). |
 | `_sofbuddy_map_study_deathmatch` | `4` | `deathmatch` mode applied before the map loads. `4` = CTF, which suits most map testing. |
 
+</div>
+
 The four `_sofbuddy_entity_edit` / `_sofbuddy_entities_draw_verbose` / `_sofbuddy_map_debug_map` /
 `_sofbuddy_map_study_deathmatch` cvars come from the `entity_visualizer` feature, which is
 **disabled by default** in `features/FEATURES.txt`. In a default build they are never registered,
@@ -310,9 +316,13 @@ them.
 
 ### Server-visible client info
 
+<div style="overflow-x: auto" markdown="1">
+
 | Cvar | Purpose |
 | ---- | ------- |
 | `_sp_cl_info_sofbuddy` | `windows-<version>-<build>`, `wine-<version>-<build>`, or `universal-<version>-<build>`, sent with client userinfo so a server can identify the SoF Buddy channel. |
+
+</div>
 
 The build number is the GitHub Actions run number; local builds use `local`.
 This is informational client metadata, not an anti-cheat signal.
@@ -320,6 +330,8 @@ This is informational client metadata, not an anti-cheat signal.
 ### Internal (`_sb_internal_`)
 
 Written by sof_buddy itself. Values are recomputed each launch, so editing them has no lasting effect.
+
+<div style="overflow-x: auto" markdown="1">
 
 | Cvar | Purpose |
 | ---- | ------- |
@@ -339,6 +351,8 @@ Written by sof_buddy itself. Values are recomputed each launch, so editing them 
 | `_sb_internal_feature_entity_visualizer` | Compile-time build flag (`1`/`0`) used by `<cinclude>` to hide menu sections whose feature is not compiled in. |
 | `_sb_internal_feature_master_server_fallback` | Runtime menu gate for the GameSpy master selection control. |
 | `_sb_internal_openurl_status` / `_sb_internal_openurl_last` | Last social-link open result and requested URL. |
+
+</div>
 
 </details>
 

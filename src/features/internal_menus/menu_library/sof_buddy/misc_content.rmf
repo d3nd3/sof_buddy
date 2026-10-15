@@ -48,7 +48,31 @@
 "_____________________________"
 <hbr>
 <hbr>
+<font type title tint cyan atint cyan>
+"Audio"
+<font type title tint white atint white>
+<list "Yes,No" match "1,0" cvar s_musicenabled atext "Play Music : " noshade tip "Background music in-game."><hbr>
+<ctext s_volume atext "Volume : " noshade><br>
+<slider cvar s_volume min 0 max 1 step 0.05><hbr>
+<list "11 kHz,22 kHz,44 kHz,48 kHz" match "11,22,44,48" cvar s_khz atext "Sound Frequency : " noshade tip "Mixer sample rate; snd_restart applies changes."><hbr>
+<list "16-bit,8-bit" match "0,1" cvar s_loadas8bit atext "Sample Rate : " noshade tip "16-bit (0) or 8-bit (1) sample loading."><hbr>
+<text "Restart Audio" key mouse1 "snd_restart" border 8 1 cyan regular align center><hbr>
+
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
 <include sof_buddy/video_fps>
+
+<font type title tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint cyan atint cyan>
+"Kill feed"
+<font type title tint white atint white>
+<list "Off,Default,Fast,SuperFast,Slow,SuperSlow,Indefinite" match "-1,3,2,1,6,12,999" cvar con_notifytime atext "Kill Feed+Chat Visibility Duration : " noshade tip "How long kill-feed and chat lines stay on screen (seconds). Off hides timed notify."><hbr>
+<list "On,Off,Self Only" match "0,2,1" cvar cl_obit_filter atext "Kill Feed : " noshade tip "Obituary lines in the notify area. On=all, Off=none, Self Only=your kills/deaths."><hbr>
 
 <font type title tint sb_subtle atint sb_subtle>
 "_____________________________"

@@ -183,6 +183,12 @@ Internal _sb_internal_ cvars are hidden.
 <font type title tint gray atint gray>
 "Default GL_NEAREST - UI mag filter."
 <hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sofbuddy_water_size atext "_sofbuddy_water_size : " noshade tip "Warp Texture chunk size (F12 Graphics): water, lava, sky turb. Smaller = finer, costlier. Min 16. Default 64."><br>
+<font type title tint gray atint gray>
+"Default 64 - Warp texture chunk size (water/lava/sky)."
+<hbr>
 
 <font type title tint sb_subtle atint sb_subtle>
 "_____________________________"
@@ -197,15 +203,9 @@ Internal _sb_internal_ cvars are hidden.
 <hbr>
 <hbr>
 <font type title tint white atint white>
-<ctext _sofbuddy_lighting_cutoff atext "_sofbuddy_lighting_cutoff : " noshade tip "Lighting cutoff value. Default 64."><br>
+<ctext _sofbuddy_lighting_cutoff atext "_sofbuddy_lighting_cutoff : " noshade tip "Dynamic Light Threshold (F12 Lighting): min dynamic-light contribution / BSP culling margin (DLIGHT_CUTOFF). Default 64."><br>
 <font type title tint gray atint gray>
 "Default 64 - Lighting cutoff."
-<hbr>
-<hbr>
-<font type title tint white atint white>
-<ctext _sofbuddy_water_size atext "_sofbuddy_water_size : " noshade tip "Warp polygon size. Smaller is faster swirl. Min 16. Default 64."><br>
-<font type title tint gray atint gray>
-"Default 64 - Energy swirl polygon size."
 <hbr>
 <hbr>
 <font type title tint white atint white>
@@ -221,7 +221,7 @@ Internal _sb_internal_ cvars are hidden.
 <hbr>
 <hbr>
 <font type title tint white atint white>
-<ctext _sofbuddy_shiny_spherical atext "_sofbuddy_shiny_spherical : " noshade tip "Shiny detail follows view angles. 1 on, 0 off. Default 1."><br>
+<ctext _sofbuddy_shiny_spherical atext "_sofbuddy_shiny_spherical : " noshade tip "Specular Textures (F12 Lighting): view-dependent specular on detail. 1 on, 0 off. Default 1."><br>
 <font type title tint gray atint gray>
 "Default 1 - Spherical shiny detail."
 <hbr>
