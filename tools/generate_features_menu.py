@@ -19,7 +19,7 @@ SECTIONS = [
         "texture_mapping_min_mag", "scaled_con", "scaled_hud", "scaled_menu",
         "hd_textures", "vsync_toggle", "lighting_blend",
     ]),
-    ("Gameplay", ["teamicons_offset", "entity_visualizer"]),
+    ("Gameplay", ["more_crosshairs", "teamicons_offset", "entity_visualizer"]),
     ("Networking", ["http_maps", "master_server_fallback"]),
     ("Menus", ["internal_menus"]),
     ("Input", ["raw_mouse"]),
@@ -44,6 +44,7 @@ LABELS = {
     "cl_maxfps_singleplayer": "Singleplayer Max FPS",
     "cbuf_limit_increase": "Cbuf Limit Increase",
     "raw_mouse": "Raw Mouse",
+    "more_crosshairs": "More Crosshairs",
 }
 
 

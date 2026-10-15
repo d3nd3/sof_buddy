@@ -127,6 +127,12 @@ void* rvaToAbsGame(void* rva);
 void* rvaToAbsSoFPlus(void* rva);
 
 cvar_t * findCvar(char * cvarname);
+/** Engine user directory (`user` cvar / FS_Userdir), e.g. "./user" or a custom -user path. */
+const char* sof_userdir(void);
+/** Join sof_userdir() with a relative filename into out (size includes NUL). */
+bool sof_path_in_userdir(const char* filename, char* out, size_t out_size);
+/** Create parent directories for an on-disk path (engine FS_CreatePath). */
+void sof_fs_create_path(const char* path);
 void setCvarUnsignedInt(cvar_t * which,unsigned int val);
 void setCvarInt(cvar_t * which,int val);
 void setCvarByte(cvar_t * which, unsigned char val);

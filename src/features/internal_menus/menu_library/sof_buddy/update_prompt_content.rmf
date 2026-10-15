@@ -30,7 +30,7 @@
 <font type title tint cyan atint cyan>
 "What's new"
 <hbr>
-<font type title tint gray atint gray>
+<font type title tint white atint white>
 <left>
 <includecvar _sb_internal_update_prompt_notes_rmf_00>
 <includecvar _sb_internal_update_prompt_notes_rmf_01>

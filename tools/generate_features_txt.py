@@ -34,6 +34,7 @@ CATEGORIES = {
         "lighting_blend",
     ],
     "Gameplay Features": [
+        "more_crosshairs",
         "teamicons_offset",
         "entity_visualizer",
     ],

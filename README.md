@@ -31,6 +31,7 @@
 - 🖥️ **HUD Scaling** — Scale the HUD independently from the font for perfect UI balance. **Auto HUD Scale** (`_sofbuddy_hud_scale_auto 1`) uses the same resolution ratio; disable auto to pick a manual `_sofbuddy_hud_scale`.
 - 🎬 **Cinematic Image Scaling** — Credit/fade images (`SP_FLAG_CREDIT`) scale up from 640×480 to your resolution. Toggle with `_sofbuddy_scale_cinematic_pics` (`1` = on, `0` = off) or **Scale Cinematic Images** in F12 → UI Scale.
 - 🎯 **Crosshair Scaling** — Scale crosshair textures independently for improved visibility.
+- 🎯 **More Crosshairs** — Stock crosshairs 0–4 plus bundled community packs (F12 → Gameplay); drives the engine `crosshair` cvar and `sof_buddy/crosshairs/` paks.
 - 🎯 **Restored `cl_maxfps` in Singleplayer** — Enjoy smooth framerates without legacy workarounds. Editable from **F12 → CPU → Framerate** (whole-ms cap list + VSync).
 - ⚡ **Stable Framerate & CPU Saver** — Uses `QueryPerformanceCounter` for precise timing and energy savings. New cvar: `_sofbuddy_sleep`.
 - 🖱️ **Raw Mouse Input** — Direct hardware input bypassing Windows acceleration. All original sensitivity cvars still work!
@@ -178,7 +179,7 @@ options**. Both are checked by default:
 - `sofbuddy_apply_profile_visual` — Apply visual/high-fidelity profile preset.
 - `sofbuddy_update` — Check latest release from configured update API endpoint and compare with your current version.
 - `sofbuddy_update download` — Download latest release zip to `sof_buddy/update/` (apply after closing game; release zips are preferred over debug zips).
-- `sofbuddy_update_install` — Queue the graphical updater on **universal** native Windows builds, else `update_from_zip.cmd` / `.sh`, via engine `winstart`, then quit SoF.
+- `sofbuddy_update_install` — On **universal** builds with graphical updater enabled (default), queue `sof_buddy_update.exe`; otherwise `update_from_zip.cmd` / in-DLL extract on Wine/Proton, via `winstart`, then quit SoF.
 - `sofbuddy_openurl <https_url>` — Open trusted community links in your default browser (used by the Social Links menu page).
 
 </details>
@@ -411,7 +412,7 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_update_use_gui</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> flavour-dependent. Use <code>sof_buddy_update.exe</code> when queuing an install (<code>sofbuddy_update_install</code>). <strong>On</strong> by default on native Windows universal builds; <strong>off</strong> under Wine/Proton and on non-universal channels. Toggle on <strong>F12 → Version</strong>.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code> on <strong>universal</strong> builds (Windows, Wine, and Proton); <code>0</code> on non-universal channels. Use <code>sof_buddy_update.exe</code> when queuing an install (<code>sofbuddy_update_install</code>) unless turned off (then script / in-DLL extract on Wine/Proton). Toggle on <strong>F12 → Version</strong>.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_update_api_url</code></td>

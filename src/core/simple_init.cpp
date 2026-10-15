@@ -25,7 +25,6 @@
 #include "feature_config.h"
 #include "feature_list.inc"
 #include "runtime_features.h"
-#include "sndrst_pak_mount.h"
 #if !defined(NDEBUG) && defined(SOFBUDDY_ENABLE_CALLSITE_LOGGER)
 #include "debug/parent_recorder.h"
 #endif
@@ -86,8 +85,6 @@ void fs_initfilesystem_override_callback(detour_FS_InitFilesystem::tFS_InitFiles
         original();
     }
 
-    sofbuddy_mount_sndrst_pak();
-    
     PrintOut(PRINT_LOG, "=== Lifecycle: Pre-CVar Init Phase ===\n");
 
     sofbuddy_cfg_exec_startup();

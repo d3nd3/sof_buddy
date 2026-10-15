@@ -644,7 +644,7 @@ void internal_menus_remember_menu_page(const char* menu_file) {
             return;
         }
     }
-    if (n == "sof_buddy/update_prompt") {
+    if (n == "sof_buddy/update_prompt" || n == "sof_buddy/update_uptodate") {
         return;
     }
     set_runtime_cvar_str("_sb_internal_menu_last_page", n.c_str());

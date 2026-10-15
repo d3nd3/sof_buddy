@@ -5,6 +5,11 @@
     "override": true
   },
   {
+    "function": "FS_AddGameDirectory",
+    "callback": "fs_addgamedirectory_override_callback",
+    "override": true
+  },
+  {
     "function": "Cbuf_AddLateCommands",
     "callback": "cbuf_addlatecommands_override_callback",
     "override": true

@@ -107,6 +107,8 @@ jobs:
           mkdir -p sof_buddy/funcmaps
           cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
           cp rsrc/assets/*.pak sof_buddy/
+          mkdir -p sof_buddy/crosshairs
+          cp rsrc/assets/crosshairs/*.pak sof_buddy/crosshairs/
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
           cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
@@ -141,6 +143,8 @@ jobs:
           mkdir -p sof_buddy/funcmaps
           cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
           cp rsrc/assets/*.pak sof_buddy/
+          mkdir -p sof_buddy/crosshairs
+          cp rsrc/assets/crosshairs/*.pak sof_buddy/crosshairs/
           rm -f sof_buddy/*.sh
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
@@ -154,6 +158,8 @@ jobs:
           mkdir -p sof_buddy/funcmaps
           cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
           cp rsrc/assets/*.pak sof_buddy/
+          mkdir -p sof_buddy/crosshairs
+          cp rsrc/assets/crosshairs/*.pak sof_buddy/crosshairs/
           rm -f sof_buddy/*.cmd sof_buddy/*.ps1
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
@@ -167,6 +173,8 @@ jobs:
           mkdir -p sof_buddy/funcmaps
           cp rsrc/funcmaps/*.json sof_buddy/funcmaps/
           cp rsrc/assets/*.pak sof_buddy/
+          mkdir -p sof_buddy/crosshairs
+          cp rsrc/assets/crosshairs/*.pak sof_buddy/crosshairs/
           rm -f sof_buddy/*.cmd sof_buddy/*.ps1
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/

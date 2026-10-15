@@ -2,6 +2,23 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.40
+
+### Bug fixes
+
+- **Load/save slots empty after v8.39** ([#24](https://github.com/d3nd3/sof_buddy/issues/24)): mount `sof_buddy/*.pak` during filesystem init **after** `basedir/base` and **before** the `user` directory, so the `user` search path stays on top and saves remain visible.
+- **`sofbuddy.cfg`**: startup load matches save location (`basedir/base/sofbuddy.cfg`); MP profile **`sf_login.cfg`** read/write uses the engine **`user`** cvar path (not hardcoded `basedir/user`).
+
+### F12 menu
+
+- **Gameplay → Crosshair:** stock crosshairs plus community packs under **`sof_buddy/crosshairs/`** (catalog picker, **`active_crosshair.pak`** staging).
+
+### Updater
+
+- **`sofbuddy_update prompt`** — check for updates and open the update or up-to-date menu.
+- Release notes shown in the prompt strip markdown/link noise for RMF text fields.
+- Universal builds default **`_sofbuddy_update_gui_updater`** to on under Wine/Proton as well.
+
 ## v8.39
 
 ### Bundled assets
@@ -33,7 +50,7 @@ User-facing highlights. Older detail is summarized at the bottom.
 
 ### Updater
 
-- **`_sofbuddy_update_use_gui`** on **F12 → Version** (and Cvars): choose graphical `sof_buddy_update.exe` vs script/console install on all builds. Defaults **On** for native Windows universal, **Off** under Wine/Proton and on non-universal channels.
+- **`_sofbuddy_update_use_gui`** on **F12 → Version** (and Cvars): choose graphical `sof_buddy_update.exe` vs script/console install on all builds. Defaults **On** on universal builds (all flavours); **Off** on non-universal channels.
 
 ## v8.37
 

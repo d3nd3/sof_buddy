@@ -25,6 +25,7 @@ vsync_toggle
 lighting_blend
 
 # Gameplay Features
+more_crosshairs
 teamicons_offset
 # entity_visualizer  # Map entity tools / wireframes; enable for map study builds
 

@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <cstring>
 #include <string>
 #include <utility>
 #include <vector>
@@ -152,6 +153,39 @@ bool write_snapshot_to_disk(const CvarSnapshot& snapshot) {
     return true;
 }
 
+void exec_cfg_lines_from_path(const std::string& path) {
+    if (!detour_Cmd_ExecuteString::oCmd_ExecuteString) {
+        return;
+    }
+    FILE* f = std::fopen(path.c_str(), "rb");
+    if (!f) {
+        return;
+    }
+    char line[4096];
+    while (std::fgets(line, sizeof(line), f)) {
+        char* start = line;
+        while (*start == ' ' || *start == '\t') {
+            ++start;
+        }
+        if (*start == '\0' || *start == '\n' || *start == '\r') {
+            continue;
+        }
+        if ((start[0] == '/' && start[1] == '/') || start[0] == '#') {
+            continue;
+        }
+        size_t len = std::strlen(start);
+        while (len > 0 && (start[len - 1] == '\n' || start[len - 1] == '\r' || start[len - 1] == ' ' ||
+                           start[len - 1] == '\t')) {
+            start[--len] = '\0';
+        }
+        if (!start[0]) {
+            continue;
+        }
+        detour_Cmd_ExecuteString::oCmd_ExecuteString(start);
+    }
+    std::fclose(f);
+}
+
 } // namespace
 
 void sofbuddy_cfg_exec_startup(void) {
@@ -165,8 +199,16 @@ void sofbuddy_cfg_exec_startup(void) {
         return;
     }
 
-    // Resolve through FS search path. We write to {basedir}/base/sofbuddy.cfg.
-    detour_Cmd_ExecuteString::oCmd_ExecuteString("exec sofbuddy.cfg\n");
+    // Load from the same path we write ({basedir}/base/sofbuddy.cfg). Plain "exec sofbuddy.cfg"
+    // walks the FS search path and can pick up a different file after sof_buddy/ is mounted.
+    const std::string path = sofbuddy_cfg_path();
+    FILE* probe = std::fopen(path.c_str(), "rb");
+    if (probe) {
+        std::fclose(probe);
+        exec_cfg_lines_from_path(path);
+        return;
+    }
+    detour_Cmd_ExecuteString::oCmd_ExecuteString("exec base/sofbuddy.cfg\n");
 }
 
 void sofbuddy_cfg_save_now(void) {

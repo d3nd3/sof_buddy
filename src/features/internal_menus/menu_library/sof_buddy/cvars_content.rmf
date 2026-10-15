@@ -324,7 +324,7 @@ Internal _sb_internal_ cvars are hidden.
 "Default 1 - Check updates at startup."
 <hbr>
 <hbr>
-<ctext _sofbuddy_update_use_gui atext "_sofbuddy_update_use_gui : " noshade tip "Launch sof_buddy_update.exe on install. Universal only. Default 1 native Windows, 0 Wine/Proton and non-universal."><br>
+<ctext _sofbuddy_update_use_gui atext "_sofbuddy_update_use_gui : " noshade tip "Launch sof_buddy_update.exe on install. Universal builds default 1 (all flavours). Non-universal default 0."><br>
 <font type title tint gray atint gray>
 "Default flavour-dependent - Graphical Windows updater on install."
 <hbr>

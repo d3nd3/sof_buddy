@@ -1,4 +1,4 @@
 #pragma once
 
-// After FS_InitFilesystem: mount basedir/sof_buddy/*.pak (e.g. sndrstfindimage, extended_skins).
+// Mount basedir/sof_buddy/*.pak during FS_Init (after basedir/base, before user).
 void sofbuddy_mount_sndrst_pak(void);

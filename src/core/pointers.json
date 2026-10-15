@@ -11,6 +11,5 @@
   "Cmd_Argc",
   "Cmd_Argv",
   "Z_Free",
-  "CopyString",
-  "FS_AddGameDirectory"
+  "CopyString"
 ]

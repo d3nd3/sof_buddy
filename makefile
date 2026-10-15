@@ -31,6 +31,9 @@ GENERATE_HOOKS_PY = tools/generate_hooks.py
 GENERATE_FEATURES_TXT_PY = tools/generate_features_txt.py
 GENERATE_MENU_EMBED_PY = tools/generate_menu_embed.py
 GENERATE_FEATURES_MENU_PY = tools/generate_features_menu.py
+GENERATE_CROSSHAIR_CATALOG_PY = tools/generate_crosshair_catalog.py
+CROSSHAIR_CATALOG_INC = $(BDIR_GEN)/crosshair_catalog.inc
+CROSSHAIR_ASSETS = $(wildcard rsrc/assets/crosshairs/*)
 MENU_DATA_CPP = $(SDIR)/features/internal_menus/menu_data.cpp
 MENU_LIBRARY_DIR = $(SDIR)/features/internal_menus/menu_library
 FEATURES_ROWS_RMF = $(MENU_LIBRARY_DIR)/sof_buddy/features_rows.rmf
@@ -117,7 +120,7 @@ CALLBACKS_JSON = $(shell find $(SDIR)/features $(SDIR)/core -name "callbacks.jso
 POINTERS_JSON = $(shell find $(SDIR)/features $(SDIR)/core -name "pointers.json" 2>/dev/null || true)
 
 # Release DLL only (used by BUILD=debug/xp and by universal sub-build)
-dll: $(MENU_DATA_CPP) $(FEATURES_TXT) $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(DEFAULT_FEATURE_LIST_H) $(VERSION_H) $(BUILD_INFO_H) $(GENERATED_DETOURS_H) $(GENERATED_DETOURS_CPP) $(GENERATED_REGISTRATIONS_H) $(OUT)
+dll: $(MENU_DATA_CPP) $(CROSSHAIR_CATALOG_INC) $(FEATURES_TXT) $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(DEFAULT_FEATURE_LIST_H) $(VERSION_H) $(BUILD_INFO_H) $(GENERATED_DETOURS_H) $(GENERATED_DETOURS_CPP) $(GENERATED_REGISTRATIONS_H) $(OUT)
 
 # Default: standard release + universal + Windows GUI updater (not debug/xp).
 # Sequential sub-makes: parallel -j would run these concurrently and CI has seen
@@ -134,6 +137,8 @@ FORCE:
 SOFBUDDY_RMF_FILES = $(shell find $(MENU_LIBRARY_DIR) -name '*.rmf' 2>/dev/null || true)
 $(FEATURES_ROWS_RMF): FORCE $(FEATURES_TXT) $(GENERATE_FEATURES_MENU_PY)
 	@python3 $(GENERATE_FEATURES_MENU_PY) $(FEATURES_TXT)
+$(CROSSHAIR_CATALOG_INC): $(GENERATE_CROSSHAIR_CATALOG_PY) $(CROSSHAIR_ASSETS) | $(BDIR_GEN)
+	@python3 $(GENERATE_CROSSHAIR_CATALOG_PY) $(BDIR_GEN)
 $(MENU_DATA_CPP): $(GENERATE_MENU_EMBED_PY) $(FEATURES_ROWS_RMF) $(SOFBUDDY_RMF_FILES)
 	@python3 $(GENERATE_MENU_EMBED_PY)
 

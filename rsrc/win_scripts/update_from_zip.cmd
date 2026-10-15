@@ -20,10 +20,8 @@ set "NO_PAUSE="
 if defined SOFBUDDY_UPDATER_NO_PAUSE set "NO_PAUSE=1"
 call :load_install_context
 if not defined IS_WINE reg query "HKCU\Software\Wine" >nul 2>&1 && set "IS_WINE=1"
-if not defined SOFBUDDY_SKIP_GUI if defined IS_WINE set "SOFBUDDY_SKIP_GUI=1"
-if not defined SOFBUDDY_SKIP_GUI if defined IS_PROTON set "SOFBUDDY_SKIP_GUI=1"
 
-:: GUI updater: native Windows universal only (Wine/Proton use in-DLL extract or zip fallbacks below).
+:: GUI when _sofbuddy_update_use_gui is on (install_context.env sets SOFBUDDY_SKIP_GUI=0).
 if not defined SOFBUDDY_UPDATER_SILENT if not defined SOFBUDDY_SKIP_GUI if exist "%SCRIPT_DIR%sof_buddy_update.exe" (
     start "" "%SCRIPT_DIR%sof_buddy_update.exe" %*
     popd

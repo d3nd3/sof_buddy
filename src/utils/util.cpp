@@ -288,6 +288,34 @@ void WriteNops(void * where, int count)
 /*
 Cvar Util Funcs
 */
+const char* sof_userdir(void) {
+    cvar_t* cv = findCvar(const_cast<char*>("user"));
+    if (cv && cv->string && cv->string[0]) {
+        return cv->string;
+    }
+    return "./user";
+}
+
+bool sof_path_in_userdir(const char* filename, char* out, size_t out_size) {
+    if (!filename || !out || out_size == 0) {
+        return false;
+    }
+    const int n = snprintf(out, out_size, "%s/%s", sof_userdir(), filename);
+    return n > 0 && static_cast<size_t>(n) < out_size;
+}
+
+void sof_fs_create_path(const char* path) {
+    if (!path || !path[0]) {
+        return;
+    }
+    using FS_CreatePath_t = void(__cdecl*)(const char*);
+    static FS_CreatePath_t fn =
+        reinterpret_cast<FS_CreatePath_t>(rvaToAbsExe(reinterpret_cast<void*>(0x00024D60)));
+    if (fn) {
+        fn(path);
+    }
+}
+
 cvar_t * findCvar(char * cvarname)
 {
 	cvar_t	*var;

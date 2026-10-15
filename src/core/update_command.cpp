@@ -122,7 +122,7 @@ bool prefer_linux_wine_release_zip() {
 
 const char* update_gui_updater_default_string() {
 #if defined(SOFBUDDY_UNIVERSAL_BUILD)
-    return is_running_under_wine() ? "0" : "1";
+    return "1";
 #else
     return "0";
 #endif
@@ -854,11 +854,21 @@ std::string normalize_release_notes_for_display(std::string text) {
             text.replace(i, 2, "");
             continue;
         }
-        if (text.compare(i, 2, "- ") == 0) {
-            text.replace(i, 2, "• ");
-            continue;
-        }
         ++i;
+    }
+    for (size_t pos = 0; (pos = text.find("**", pos)) != std::string::npos;)
+        text.erase(pos, 2);
+    for (size_t pos = 0; (pos = text.find('`', pos)) != std::string::npos;)
+        text.erase(pos, 1);
+    for (;;) {
+        const size_t link = text.find("](");
+        if (link == std::string::npos) break;
+        const size_t open = text.rfind('[', link);
+        if (open == std::string::npos) break;
+        const size_t close = text.find(')', link + 2);
+        if (close == std::string::npos) break;
+        const std::string label = text.substr(open + 1, link - open - 1);
+        text.replace(open, close - open + 1, label);
     }
     const size_t kMaxNotes = 12000;
     if (text.size() > kMaxNotes) {
@@ -874,7 +884,7 @@ std::string escape_rmf_text_line(std::string line) {
     std::string out;
     out.reserve(line.size());
     for (unsigned char c : line) {
-        if (c == '"' || c == '<' || c == '>' || c == '\t')
+        if (c == '"' || c == '<' || c == '>' || c == '\t' || c == '*' || c == '`')
             out.push_back(' ');
         else if (c >= 32 && c < 127)
             out.push_back(static_cast<char>(c));
@@ -1289,6 +1299,7 @@ void print_update_usage() {
     PrintOut(PRINT_DEV, "  sofbuddy_update download       (check + download if newer)\n");
     PrintOut(PRINT_DEV, "  sofbuddy_update download force (always download selected zip)\n");
     PrintOut(PRINT_DEV, "  sofbuddy_update releases       (refresh install-version list)\n");
+    PrintOut(PRINT_DEV, "  sofbuddy_update prompt         (check + open update UI)\n");
     PrintOut(PRINT_DEV, "Install target cvar: _sofbuddy_update_target_tag (latest or a tag)\n");
     PrintOut(PRINT_DEV, "Optional overrides (for XP/proxy mirrors):\n");
     PrintOut(PRINT_DEV, "  set _sofbuddy_update_api_url <url>\n");
@@ -1473,6 +1484,26 @@ bool sofbuddy_update_consume_startup_prompt_request(void) {
 #endif
 }
 
+void sofbuddy_update_show_prompt_menu(void) {
+#if !FEATURE_INTERNAL_MENUS
+    PrintOut(PRINT_BAD, "sofbuddy_update prompt: internal menus are not enabled in this build.\n");
+    return;
+#endif
+    if (!detour_Cmd_ExecuteString::oCmd_ExecuteString) return;
+
+    sofbuddy_run_update_flow(false, false, false);
+
+    const std::string remote = get_update_cvar_or_default(kCvarUpdateLatest, "");
+    bool newer = false;
+    if (!remote.empty())
+        newer = compare_versions(SOFBUDDY_VERSION, remote) < 0;
+
+    if (newer)
+        detour_Cmd_ExecuteString::oCmd_ExecuteString("sofbuddy_menu sof_buddy/update_prompt");
+    else
+        detour_Cmd_ExecuteString::oCmd_ExecuteString("sofbuddy_menu sof_buddy/update_uptodate");
+}
+
 void Cmd_SoFBuddy_Update_f(void) {
     if (!detour_Cmd_Argc::oCmd_Argc || !detour_Cmd_Argv::oCmd_Argv) return;
 
@@ -1489,6 +1520,9 @@ void Cmd_SoFBuddy_Update_f(void) {
             force_download = true;
         } else if (!std::strcmp(arg, "releases") || !std::strcmp(arg, "list")) {
             refresh_release_list();
+            return;
+        } else if (!std::strcmp(arg, "prompt") || !std::strcmp(arg, "menu")) {
+            sofbuddy_update_show_prompt_menu();
             return;
         } else if (!std::strcmp(arg, "help") || !std::strcmp(arg, "-h") || !std::strcmp(arg, "--help")) {
             print_update_usage();
@@ -1523,7 +1557,9 @@ void Cmd_SoFBuddy_UpdateInstall_f(void) {
 
     write_install_context_env(zip_path, root_dir);
 
-    if (wine) {
+    const bool want_gui = use_gui_windows_updater();
+
+    if (wine && !want_gui) {
         const char* runtime = proton ? "Proton" : "Wine";
         PrintOut(PRINT_DEV, "sofbuddy_update_install: %s — extracting update in-process (miniz)\n", runtime);
         if (extract_update_zip_inprocess(zip_path, root_dir)) {
@@ -1537,10 +1573,10 @@ void Cmd_SoFBuddy_UpdateInstall_f(void) {
     }
 
     const char* script = nullptr;
-    if (wine) {
-        script = kUpdateInstallScriptWine;
-    } else if (use_gui_windows_updater()) {
+    if (want_gui) {
         script = kUpdateInstallGuiWindows;
+    } else if (wine) {
+        script = kUpdateInstallScriptWine;
     } else {
         script = kUpdateInstallScriptWindows;
     }
@@ -1554,7 +1590,8 @@ void Cmd_SoFBuddy_UpdateInstall_f(void) {
     command += zip_path;
     command += "\"";
     if (wine) {
-        PrintOut(PRINT_DEV, "sofbuddy_update_install: fallback %s via winstart\n", script);
+        PrintOut(PRINT_DEV, "sofbuddy_update_install: %s via winstart\n",
+            want_gui ? "launching graphical updater" : "fallback script");
     }
 
     if (!queue_winstart_command(command.c_str())) {

@@ -14,7 +14,7 @@
 
 namespace {
 
-constexpr const char* kCfgRelPath = "user/sf_login.cfg";
+constexpr const char* kLoginCfgName = "sf_login.cfg";
 constexpr const char* kCvarGuid = "_sofbuddy_mp_profile_guid";
 constexpr const char* kCvarImportPath = "_sofbuddy_mp_profile_import_path";
 constexpr const char* kCvarStatus = "_sb_internal_mp_profile_status";
@@ -61,6 +61,15 @@ void set_status(const char* msg) {
         detour_Cvar_Set2::oCvar_Set2(const_cast<char*>(kCvarStatus), const_cast<char*>(msg), true);
 }
 
+bool user_sf_login_disk_path(std::string& out) {
+    char path[MAX_PATH];
+    if (!sof_path_in_userdir(kLoginCfgName, path, sizeof(path))) {
+        return false;
+    }
+    out = path;
+    return true;
+}
+
 bool write_text_file(const char* path, const std::string& body) {
     FILE* f = std::fopen(path, "wb");
     if (!f) return false;
@@ -74,7 +83,12 @@ std::string cfg_body_for_guid(const std::string& display_guid) {
 }
 
 bool ensure_user_cfg(const std::string& display_guid) {
-    return write_text_file(kCfgRelPath, cfg_body_for_guid(display_guid));
+    std::string path;
+    if (!user_sf_login_disk_path(path)) {
+        return false;
+    }
+    sof_fs_create_path(path.c_str());
+    return write_text_file(path.c_str(), cfg_body_for_guid(display_guid));
 }
 
 bool documents_backup_path(std::string& out) {
@@ -234,11 +248,11 @@ static void Cmd_MpProfileApply_f(void) {
         }
     }
     if (!apply_guid_persisted(guid, true)) {
-        PrintOut(PRINT_BAD, "Could not write Documents backup or %s\n", kCfgRelPath);
+        PrintOut(PRINT_BAD, "Could not write Documents backup or %s\n", kLoginCfgName);
         set_status("Save failed — check Documents path and user folder.");
         return;
     }
-    PrintOut(PRINT_DEV, "MP profile saved to Documents and %s\n", kCfgRelPath);
+    PrintOut(PRINT_DEV, "MP profile saved to Documents and %s (under user dir)\n", kLoginCfgName);
 }
 
 static void Cmd_MpProfileExport_f(void) {
@@ -260,7 +274,7 @@ static void Cmd_MpProfileExport_f(void) {
     }
     std::string path;
     documents_backup_path(path);
-    PrintOut(PRINT_DEV, "Exported to %s (refreshed %s).\n", path.c_str(), kCfgRelPath);
+    PrintOut(PRINT_DEV, "Exported to %s (refreshed %s).\n", path.c_str(), kLoginCfgName);
     set_status("Backup written to Documents.");
 }
 
