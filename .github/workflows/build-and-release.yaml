@@ -7,6 +7,12 @@ on:
     paths-ignore:
       - "**.md"
       - "docs/**"
+  workflow_dispatch:
+    inputs:
+      force_release:
+        description: Build and publish release for VERSION in repo (skip bump check)
+        type: boolean
+        default: false
 
 jobs:
   version_gate:
@@ -26,7 +32,10 @@ jobs:
           VERSION=$(cat VERSION | tr -d '\r\n')
           PREV=$(git show HEAD~1:VERSION 2>/dev/null | tr -d '\r\n' || true)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          if [[ -z "$PREV" || "$VERSION" != "$PREV" ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.force_release }}" == "true" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Forced release build for VERSION $VERSION"
+          elif [[ -z "$PREV" || "$VERSION" != "$PREV" ]]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "VERSION changed: ${PREV:-<none>} -> $VERSION (will publish GitHub release)"
           else
