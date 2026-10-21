@@ -29,6 +29,19 @@ bool sofplus_present() {
            findCvar(const_cast<char*>(kSoFPlusCpuCoolCvar)) != nullptr;
 }
 
+// spm_settings.cfg follows USER-initiated changes. Programmatic writers
+// (e.g. master_server_fallback's bootstrap fixer) raise the counter so
+// their cvar writes don't overwrite the file with non-user values.
+int g_spm_save_suppress_depth = 0;
+
+// Saves to spm_settings.cfg are gated until after Qcommon_Init's FINAL
+// Cbuf_Execute: Cbuf_AddLateCommands only APPENDS "+command" lines (verified in
+// SoF.exe 0x20018740), so SoFPlus's queued "exec sofplus/sofplus.cfg" (which
+// restores spm_settings.cfg) runs in the Cbuf_Execute that follows our
+// PostCvarInit hook. Any save made before that flush would rewrite the very
+// file the restore is about to read, clobbering the user's values.
+bool g_spm_saves_ready = false;
+
 void save_sofplus_spm_settings() {
     if (!detour_Cmd_ExecuteString::oCmd_ExecuteString) {
         return;
@@ -37,7 +50,56 @@ void save_sofplus_spm_settings() {
     if (!sofplus_present()) {
         return;
     }
+    if (g_spm_save_suppress_depth > 0) {
+        return;
+    }
+    if (!g_spm_saves_ready) {
+        return;
+    }
     detour_Cmd_ExecuteString::oCmd_ExecuteString(kSoFPlusSettingsSaveCmd);
+}
+
+// Shutdown flush: the restore has long finished, live values are authoritative.
+void save_sofplus_spm_settings_on_exit() {
+    if (!detour_Cmd_ExecuteString::oCmd_ExecuteString) {
+        return;
+    }
+    if (!sofplus_present()) {
+        return;
+    }
+    if (g_spm_save_suppress_depth > 0) {
+        return;
+    }
+    detour_Cmd_ExecuteString::oCmd_ExecuteString(kSoFPlusSettingsSaveCmd);
+}
+
+// SoFPlus installs its own callbacks for these cvars (cl_showfps syncs its cached
+// display value, _sp_cl_master_gamespy switches masters). Chain them instead of
+// replacing them so both keep working, then persist the spm settings file.
+cvarcommand_t g_prev_cl_showfps_command = nullptr;
+cvarcommand_t g_prev_master_gamespy_command = nullptr;
+
+void cl_showfps_change_chain(cvar_t* cvar) {
+    if (g_prev_cl_showfps_command) {
+        g_prev_cl_showfps_command(cvar);
+    }
+    save_sofplus_spm_settings();
+}
+
+void master_gamespy_change_chain(cvar_t* cvar) {
+    if (g_prev_master_gamespy_command) {
+        g_prev_master_gamespy_command(cvar);
+    }
+    save_sofplus_spm_settings();
+}
+
+void watch_cvar(const char* name, cvarcommand_t chain, cvarcommand_t* prev) {
+    cvar_t* cvar = findCvar(const_cast<char*>(name));
+    if (!cvar || cvar->command == chain) {
+        return;
+    }
+    *prev = cvar->command;
+    cvar->command = chain;
 }
 
 using CvarSnapshot = std::vector<std::pair<std::string, std::string>>;
@@ -216,11 +278,35 @@ void sofbuddy_cfg_save_now(void) {
     write_snapshot_to_disk(snapshot);
 }
 
+void sofbuddy_cfg_save_sofplus_settings(void) {
+    save_sofplus_spm_settings();
+}
+
+void sofbuddy_cfg_spm_save_disable(void) {
+    ++g_spm_save_suppress_depth;
+}
+
+void sofbuddy_cfg_spm_save_enable(void) {
+    if (g_spm_save_suppress_depth > 0) {
+        --g_spm_save_suppress_depth;
+    }
+}
+
+void sofbuddy_cfg_qcommon_frame_post_callback(int msec) {
+    (void)msec;
+    g_spm_saves_ready = true;
+}
+
+void sofbuddy_cfg_watch_spm_cvars(void) {
+    watch_cvar("cl_showfps", cl_showfps_change_chain, &g_prev_cl_showfps_command);
+    watch_cvar(kSoFPlusMasterCvar, master_gamespy_change_chain, &g_prev_master_gamespy_command);
+}
+
 void sofbuddy_cfg_cl_shutdown_post_callback(void) {
     sofbuddy_cfg_save_now();
-    // Persist SoFPlus-owned cvars (cl_maxfps, cl_showfps, _sp_cl_cpu_cool,
+    // Final flush of SoFPlus-owned cvars (cl_maxfps, cl_showfps, _sp_cl_cpu_cool,
     // _sp_cl_master_gamespy) to User/sofplus/data/spm_settings.cfg. These are
-    // intentionally NOT CVAR_ARCHIVE when SoFPlus is present, so without this
-    // save-on-exit the Buddy menu changes would be lost.
-    save_sofplus_spm_settings();
+    // intentionally NOT CVAR_ARCHIVE when SoFPlus is present; change-triggered
+    // saves (post-first-frame) already keep the file current, this is insurance.
+    save_sofplus_spm_settings_on_exit();
 }

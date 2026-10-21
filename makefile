@@ -90,6 +90,10 @@ ifeq ($(UNIVERSAL),1)
     CFLAGS += -DSOFBUDDY_UNIVERSAL_BUILD
 endif
 
+ifeq ($(UPDATE_TEST),1)
+    CFLAGS += -DSOFBUDDY_UPDATE_TEST_BUILD
+endif
+
 # Output
 OUT = $(BDIR)/sof_buddy.dll
 UNIVERSAL_OUT = $(BDIR)/sof_buddy-universal.dll
@@ -264,6 +268,9 @@ $(ODIR)/core/runtime_features.o: $(DEFAULT_FEATURE_LIST_H)
 
 $(ODIR)/core/runtime_features.d: $(DEFAULT_FEATURE_LIST_H)
 
+$(ODIR)/features/more_crosshairs/more_crosshairs.o: $(CROSSHAIR_CATALOG_INC)
+$(ODIR)/features/more_crosshairs/more_crosshairs.d: $(CROSSHAIR_CATALOG_INC)
+
 $(ODIR)/%.o: $(SDIR)/%.cpp $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(VERSION_H) $(BUILD_INFO_H) $(GENERATED_DETOURS_H) $(GENERATED_REGISTRATIONS_H)
 	@mkdir -p $(dir $@)
 	$(CC) -c $(INC) $(DEPFLAGS) -o $@ $< $(CFLAGS)
@@ -295,6 +302,38 @@ universal:
 	$(MAKE) BUILD=release FEATURE_SET=all UI_MENU=1 UNIVERSAL=1 \
 		BDIR_GEN=build/universal ODIR=obj/universal OUT=$(UNIVERSAL_OUT) dll
 
+UPDATE_TEST_OLD_DLL = $(BDIR)/sof_buddy-universal-update-test-old.dll
+UPDATE_TEST_NEW_DLL = $(BDIR)/sof_buddy-universal-update-test-new.dll
+UPDATE_TEST_KIT_ZIP = $(BDIR)/sof_buddy-update-test-kit.zip
+
+update-test-dll-old:
+	$(MAKE) BUILD=release FEATURE_SET=all UI_MENU=1 UNIVERSAL=1 UPDATE_TEST=1 \
+		VERSION_FILE=tools/update_test/VERSION-old \
+		BDIR_GEN=build/update-test-old ODIR=obj/update-test-old \
+		OUT=$(UPDATE_TEST_OLD_DLL) dll
+
+update-test-dll-new: update-test-dll-old
+	$(MAKE) BUILD=release FEATURE_SET=all UI_MENU=1 UNIVERSAL=1 UPDATE_TEST=1 \
+		VERSION_FILE=tools/update_test/VERSION-new \
+		BDIR_GEN=build/update-test-new ODIR=obj/update-test-new \
+		OUT=$(UPDATE_TEST_NEW_DLL) dll
+
+update-test-fixtures: update-test-dll-new
+	python3 tools/update_test/build_fixtures.py --dll $(UPDATE_TEST_NEW_DLL)
+
+update-test-package: update-test-fixtures
+	python3 tools/update_test/package_kit.py -o $(UPDATE_TEST_KIT_ZIP)
+	@cp -f $(UPDATE_TEST_OLD_DLL) $(BDIR)/sof_buddy-universal-update-test.dll
+	@echo "Kit: $(UPDATE_TEST_KIT_ZIP)"
+	@echo "Start with: $(UPDATE_TEST_OLD_DLL)  ->  fixture installs: $(UPDATE_TEST_NEW_DLL)"
+
+# Sequential: parallel -j must not build old/new DLLs at once.
+update-test: win-updater
+	$(MAKE) update-test-package
+
+update-test-serve:
+	python3 tools/update_test/serve.py
+
 # Clean
 clean:
 	rm -rf obj build/*/ $(OUT) $(UNIVERSAL_OUT)
@@ -309,7 +348,9 @@ config:
 	@echo "Sources found: $(words $(SOURCES))"
 	@echo "Target: $(OUT)"
 
-.PHONY: all dll debug debug-gdb debug-collect release xp xp-debug universal win-updater clean config features compdb symbols FORCE
+.PHONY: all dll debug debug-gdb debug-collect release xp xp-debug universal win-updater \
+	update-test update-test-dll-old update-test-dll-new update-test-fixtures update-test-package update-test-serve \
+	clean config features compdb symbols FORCE
 
 # ------------------------------
 # Tools (host-native utilities)

@@ -37,7 +37,12 @@ constexpr const char* kUpdateWindowsUniversalZipName = "release_windows_universa
 constexpr const char* kUpdateLinuxZipName = "release_linux_wine.zip";
 constexpr const char* kUpdateLinuxUniversalZipName = "release_linux_wine_universal.zip";
 
-#if defined(SOFBUDDY_XP_BUILD)
+#if defined(SOFBUDDY_UPDATE_TEST_BUILD)
+constexpr const char* kUpdateApiUrlTest = "http://127.0.0.1:8765/releases/latest.json";
+constexpr const char* kUpdateReleasesUrlTest = "http://127.0.0.1:8765/releases/page";
+constexpr const char* kUpdateApiUrl = kUpdateApiUrlTest;
+constexpr const char* kUpdateReleasesUrl = kUpdateReleasesUrlTest;
+#elif defined(SOFBUDDY_XP_BUILD)
 constexpr const char* kUpdateApiUrl = kUpdateApiUrlSofVault;
 constexpr const char* kUpdateReleasesUrl = kUpdateReleasesUrlSofVault;
 #else
@@ -60,6 +65,7 @@ constexpr const char* kCvarUpdateCheckStartup = "_sofbuddy_update_check_startup"
 constexpr const char* kCvarUpdateUseGui = "_sofbuddy_update_use_gui";
 constexpr const char* kCvarUpdateApiUrl = "_sofbuddy_update_api_url";
 constexpr const char* kCvarUpdateReleasesUrl = "_sofbuddy_update_releases_url";
+constexpr const char* kCvarUpdateAllowProductionUrls = "_sofbuddy_update_allow_production_urls";
 constexpr const char* kCvarUpdateTargetTag = "_sofbuddy_update_target_tag";
 constexpr const char* kCvarUpdateReleaseListRmf = "_sb_internal_update_release_list_rmf";
 constexpr const char* kCvarUpdateReleaseListStatus = "_sb_internal_update_release_list_status";
@@ -104,6 +110,7 @@ constexpr const char* kPendingUpdateManifest = "sof_buddy/update/pending_update.
 constexpr const char* kInstallContextEnv = "sof_buddy/update/install_context.env";
 
 bool parse_url(const std::string& url, ParsedUrl& out, std::string& error);
+bool update_fetch_url_allowed(const std::string& url, std::string& error);
 std::wstring utf8_to_wide(const std::string& value);
 
 bool is_regular_file(const char* path) {
@@ -464,6 +471,8 @@ bool http_begin_get(
     out_request = nullptr;
     out_status_code = 0;
 
+    if (!update_fetch_url_allowed(url, error)) return false;
+
     ParsedUrl parsed;
     if (!parse_url(url, parsed, error)) return false;
 
@@ -778,6 +787,39 @@ bool api_url_uses_sofvault_mirror(const std::string& api_url) {
     return api_url.find("sofvault.org") != std::string::npos;
 }
 
+bool api_url_uses_json_release_feed(const std::string& api_url) {
+    return api_url.rfind("/latest.json") != std::string::npos;
+}
+
+bool update_production_urls_allowed(void) {
+#if defined(SOFBUDDY_UPDATE_TEST_BUILD)
+    if (!detour_Cvar_Get::oCvar_Get) return false;
+    cvar_t* c = detour_Cvar_Get::oCvar_Get(kCvarUpdateAllowProductionUrls, "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    return c && c->value != 0.0f;
+#else
+    return true;
+#endif
+}
+
+bool update_fetch_url_allowed(const std::string& url, std::string& error) {
+#if !defined(SOFBUDDY_UPDATE_TEST_BUILD)
+    return true;
+#endif
+    if (update_production_urls_allowed()) return true;
+
+    ParsedUrl parsed;
+    if (!parse_url(url, parsed, error)) return false;
+    const std::string host = to_lower_ascii(wide_to_utf8(parsed.host));
+    if (host == "127.0.0.1" || host == "localhost" || host == "::1") return true;
+    if (host.size() >= 3 && host.compare(0, 3, "10.") == 0) return true;
+    if (host.size() >= 8 && host.compare(0, 8, "192.168.") == 0) return true;
+    if (host.find("github") != std::string::npos || host.find("sofvault") != std::string::npos) {
+        error = "Update TEST build: production URL blocked. Use the local fixture server (see tools/update_test/README.md).";
+        return false;
+    }
+    return true;
+}
+
 void finalize_xp_mirror_release(ReleaseInfo& info, const std::string& api_url) {
 #if defined(SOFBUDDY_XP_BUILD)
     if (!api_url_uses_sofvault_mirror(api_url)) return;
@@ -1057,7 +1099,7 @@ std::string get_update_target_tag() {
 
 std::string get_update_releases_list_api_url() {
     const std::string api_url = get_update_api_url();
-    if (api_url_uses_sofvault_mirror(api_url)) {
+    if (api_url_uses_json_release_feed(api_url)) {
         const size_t pos = api_url.rfind("/latest.json");
         if (pos != std::string::npos)
             return api_url.substr(0, pos) + "/list.json";
@@ -1153,7 +1195,7 @@ bool fetch_release_by_tag(const std::string& tag, ReleaseInfo& out, std::string&
         return false;
     }
     const std::string api_url = get_update_api_url();
-    if (api_url_uses_sofvault_mirror(api_url)) {
+    if (api_url_uses_json_release_feed(api_url)) {
         const size_t pos = api_url.rfind("/latest.json");
         if (pos != std::string::npos) {
             std::string url = api_url.substr(0, pos) + "/by_tag/" + tag + ".json";
@@ -1427,6 +1469,11 @@ static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool
 
 void sofbuddy_update_init(void) {
     if (!detour_Cvar_Get::oCvar_Get) return;
+#if defined(SOFBUDDY_UPDATE_TEST_BUILD)
+    PrintOut(PRINT_LOG,
+             "SoF Buddy UPDATE TEST build (%s) — fixture feed only; production URLs blocked.\n",
+             SOFBUDDY_VERSION);
+#endif
     detour_Cvar_Get::oCvar_Get(kCvarUpdateStatus, "idle", 0, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateLatest, "", 0, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateDownloadPath, "", 0, nullptr);
@@ -1436,6 +1483,20 @@ void sofbuddy_update_init(void) {
     detour_Cvar_Get::oCvar_Get(kCvarUpdateUseGui, update_gui_updater_default_string(), CVAR_SOFBUDDY_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateApiUrl, kUpdateApiUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
     cvar_t* releases_url_cvar = detour_Cvar_Get::oCvar_Get(kCvarUpdateReleasesUrl, kUpdateReleasesUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
+#if defined(SOFBUDDY_UPDATE_TEST_BUILD)
+    detour_Cvar_Get::oCvar_Get(kCvarUpdateAllowProductionUrls, "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    if (detour_Cvar_Set2::oCvar_Set2) {
+        cvar_t* api_url_cvar = detour_Cvar_Get::oCvar_Get(kCvarUpdateApiUrl, kUpdateApiUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
+        if (cvar_is_empty_or_value(api_url_cvar, kUpdateApiUrlGitHub) ||
+            cvar_is_empty_or_value(api_url_cvar, kUpdateApiUrlSofVault))
+            detour_Cvar_Set2::oCvar_Set2(const_cast<char*>(kCvarUpdateApiUrl),
+                                         const_cast<char*>(kUpdateApiUrlTest), true);
+        if (cvar_is_empty_or_value(releases_url_cvar, kUpdateReleasesUrlGitHub) ||
+            cvar_is_empty_or_value(releases_url_cvar, kUpdateReleasesUrlSofVault))
+            detour_Cvar_Set2::oCvar_Set2(const_cast<char*>(kCvarUpdateReleasesUrl),
+                                         const_cast<char*>(kUpdateReleasesUrlTest), true);
+    }
+#endif
     detour_Cvar_Get::oCvar_Get(kCvarUpdateTargetTag, kUpdateTargetLatest, CVAR_SOFBUDDY_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateReleaseListRmf, kDefaultReleaseListRmf, 0, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateReleaseListStatus, "not loaded", 0, nullptr);

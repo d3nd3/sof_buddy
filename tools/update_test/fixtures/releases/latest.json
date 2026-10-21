@@ -1,0 +1,7 @@
+{
+  "tag_name": "99.0.0-test",
+  "name": "Update test — newer (fixture)",
+  "html_url": "http://127.0.0.1:8765/releases/page",
+  "body": "## Fixture update\n\nThis is a **dummy** release for local updater QA.\n\n- Startup prompt\n- `sofbuddy_update download`\n- `update_from_zip` / GUI updater\n\nAfter install, check `sof_buddy/update/TEST_UPDATE_PAYLOAD.txt`.",
+  "zip_url": "http://127.0.0.1:8765/releases/files/release_windows_universal.zip"
+}

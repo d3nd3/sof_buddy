@@ -67,6 +67,29 @@ def ensure_built_paks() -> None:
         )
 
 
+# SoF.exe comma-split buffer for <list> labels is only 240 bytes (sub_200C92D0).
+MAX_LIST_LABELS_BYTES = 240
+
+
+def menu_list_label(label: str) -> str:
+    """Short label for F12 <list> row (full names overflow the engine buffer)."""
+    if label.startswith("Stock "):
+        return "S" + label[-1]
+    if label.startswith("Jay "):
+        return "J" + label.split()[-1]
+    if label.startswith("Keifer 09 "):
+        return "K9" + label.split()[-1]
+    if label.startswith("Keifer 10 "):
+        return "K0" + label.split()[-1]
+    if label.startswith("Reps "):
+        return "R" + label.split()[-1]
+    if label.startswith("Sauron "):
+        return "Sa" + label.split()[-1]
+    if label.startswith("Yump Skulls "):
+        return "YS" + label.split()[-1]
+    return label
+
+
 def pak_label(name: str) -> str:
     base = name.replace(".pak", "")
     labels = {
@@ -130,11 +153,15 @@ def write_outputs(catalog: list[dict], out_dir: Path) -> None:
     lines.append("")
     out_inc.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-    labels = ",".join(e["label"] for e in catalog)
+    labels = ",".join(menu_list_label(e["label"]) for e in catalog)
+    if len(labels) > MAX_LIST_LABELS_BYTES:
+        raise SystemExit(
+            f"crosshair list labels {len(labels)} bytes exceed engine limit {MAX_LIST_LABELS_BYTES}"
+        )
     match = ",".join(str(i) for i in range(len(catalog)))
     rmf = (
         f'<list "{labels}" match "{match}" cvar _sofbuddy_crosshair_pick atext "Crosshair : " '
-        'noshade tip "Stock 0-4 use the original SoF crosshairs. Higher entries load community packs from sof_buddy/crosshairs/. Uses engine crosshair cvar."><hbr>\n'
+        'noshade tip "S0-S4 stock. Abbreviated names map to community packs under sof_buddy/crosshairs/."><hbr>\n'
     )
     OUT_RMF.write_text(rmf, encoding="utf-8")
 

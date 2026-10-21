@@ -5,6 +5,7 @@
 #include "sof_buddy.h"
 #include "util.h"
 #include "sof_compat.h"
+#include "sofbuddy_cfg.h"
 #include "shared.h"
 #include "runtime_features.h"
 
@@ -260,6 +261,10 @@ void cl_maxfps_change(cvar_t *cvar)
 
     PrintOut(PRINT_DEV, "cl_maxfps is now %f (frame budget %d ms)\n",
              static_cast<double>(previous_cl_maxfps), g_cl_maxfps_target_msec);
+
+    // Persist to SoFPlus's spm_settings.cfg on change (SoFPlus only saves it
+    // from its own menu). No-op on vanilla.
+    sofbuddy_cfg_save_sofplus_settings();
 }
 
 void

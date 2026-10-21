@@ -2,6 +2,23 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.42
+
+### Bug fixes
+
+- **Gameplay tab crash/freeze:** the crosshair `<list>` label string exceeded SoF’s 240-byte menu parser buffer; labels are abbreviated in the picker (tooltip still documents packs).
+- **Crosshair resets on restart:** the `crosshair` cvar is `CVAR_ARCHIVE` and was saved, but the crosshair picker forced its default over `config.cfg` at startup; the engine value now wins when they disagree.
+- **`cl_showfps` / `cl_maxfps` not persisting with SoFPlus:** F12/console changes save `spm_settings.cfg` on change and on exit (after SoFPlus’s startup restore), with chained callbacks so SoFPlus’s own handlers still run; programmatic master-server bootstrap no longer overwrites `spm_settings.cfg`.
+
+### F12 menu
+
+- Tab bar: centered tab labels (`align center`); **Profile GUID** tab widened so text stays inside the box.
+
+### Updater (developer)
+
+- Local update-test kit: `make update-test` builds old/new universal DLLs, fixture JSON/zips, and `bin/sof_buddy-update-test-kit.zip`; `make update-test-serve` runs the fake feed on `127.0.0.1:8765`. See **DEBUGGING_UPDATER.md** and `tools/update_test/README.md`.
+- Update-test DLLs block production GitHub/SofVault URLs unless `_sofbuddy_update_allow_production_urls` is set; supports generic `latest.json` release feeds.
+
 ## v8.41
 
 First stable release in this line; **v8.39** and **v8.40** GitHub builds were withdrawn (broken).

@@ -14,7 +14,7 @@ Extends the in-game crosshair picker beyond the five stock `crosshair` values (0
 Source packs live in `rsrc/assets/crosshairs/`. `tools/generate_crosshair_catalog.py` builds `mhp.pak` / `sauron_crosshairs.pak` from loose `.m32` files, scans packs for `pics/menus/status/ch*`, and regenerates:
 
 - `build/<config>/crosshair_catalog.inc`
-- `menu_library/sof_buddy/more_crosshair_list.rmf`
+- `menu_library/sof_buddy/more_crosshair_list.rmf` (auto-generated; menu labels are abbreviated to stay under the engine’s 240-byte `<list>` label buffer)
 
 ## Credits
 

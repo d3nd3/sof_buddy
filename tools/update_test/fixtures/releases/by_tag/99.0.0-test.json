@@ -1,0 +1,7 @@
+{
+  "tag_name": "99.0.0-test",
+  "name": "Update test — post-install (fixture)",
+  "html_url": "http://127.0.0.1:8765/releases/page",
+  "body": "You are on the post-update DLL. Startup check with latest should report up to date.",
+  "zip_url": "http://127.0.0.1:8765/releases/files/release_windows_universal.zip"
+}

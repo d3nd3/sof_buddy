@@ -41,5 +41,11 @@
     "callback": "sofbuddy_cfg_cl_shutdown_post_callback",
     "phase": "Post",
     "priority": 100
+  },
+  {
+    "function": "Qcommon_Frame",
+    "callback": "sofbuddy_cfg_qcommon_frame_post_callback",
+    "phase": "Post",
+    "priority": 100
   }
 ]

@@ -14,8 +14,8 @@ void mediaTimers_PostCvarInit(void)
 	if (cl_maxfps) cl_maxfps_change(cl_maxfps);
 
 	// Persistence owner for cl_maxfps (this feature owns the cvar + callback):
-	// - With SoFPlus: spm_settings.cfg owns it (saved on shutdown, see
-	//   sofbuddy_cfg_cl_shutdown_post_callback); keep it unarchived to avoid a
+	// - With SoFPlus: spm_settings.cfg owns it (saved on change and shutdown, see
+	//   sofbuddy_cfg_save_sofplus_settings); keep it unarchived to avoid a
 	//   config.cfg vs spm_settings.cfg split.
 	// - Vanilla (no SoFPlus): archive so config.cfg persists the cap.
 	if (cl_maxfps) {

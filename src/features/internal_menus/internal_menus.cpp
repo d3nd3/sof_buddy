@@ -5,6 +5,7 @@
 #include "sof_compat.h"
 #include "features.h"
 #include "util.h"
+#include "sofbuddy_cfg.h"
 #include "shared.h"
 #include "generated_detours.h"
 #include "generated_registrations.h"
@@ -303,8 +304,8 @@ void create_loading_cvars() {
 
     // Engine registers these with flags 0; OR CVAR_ARCHIVE so F12 menu changes persist in config.cfg.
     // cl_showfps/cl_maxfps are special: with SoFPlus they persist via
-    // User/sofplus/data/spm_settings.cfg (saved on shutdown, see
-    // sofbuddy_cfg_cl_shutdown_post_callback), so leave them unarchived to avoid
+    // User/sofplus/data/spm_settings.cfg (saved on every change and on shutdown,
+    // see sofbuddy_cfg_save_sofplus_settings), so leave them unarchived to avoid
     // a config.cfg vs spm_settings.cfg split. Without SoFPlus there is no
     // spm_settings.cfg, so archive them for config.cfg persistence instead.
     // NOTE: Cvar_Get only ORs flags when the cvar exists (never clears), so set
@@ -315,8 +316,13 @@ void create_loading_cvars() {
             findCvar(const_cast<char*>("_sp_cl_cpu_cool")) != nullptr;
         cvar_t* showfps = detour_Cvar_Get::oCvar_Get("cl_showfps", "0", 0, nullptr);
         if (showfps) {
-            if (sofplus_present) showfps->flags &= ~CVAR_ARCHIVE;
-            else showfps->flags |= CVAR_ARCHIVE;
+            if (sofplus_present) {
+                showfps->flags &= ~CVAR_ARCHIVE;
+                // Chain SoFPlus's callbacks (not replace) and save spm on change.
+                sofbuddy_cfg_watch_spm_cvars();
+            } else {
+                showfps->flags |= CVAR_ARCHIVE;
+            }
         }
         if (!sofplus_present) {
             // Best-effort only: media_timers owns cl_maxfps creation and its

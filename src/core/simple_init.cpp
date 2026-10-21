@@ -34,7 +34,9 @@ void Cmd_SoFBuddy_ListFeatures_f(void);
 namespace {
 
 const char* sofbuddy_build_flavour(void) {
-#if defined(SOFBUDDY_UNIVERSAL_BUILD)
+#if defined(SOFBUDDY_UPDATE_TEST_BUILD)
+    return "Update test (fixture feed)";
+#elif defined(SOFBUDDY_UNIVERSAL_BUILD)
     if (is_running_under_proton()) return "Universal (Proton)";
     if (is_running_under_wine()) return "Universal (Wine)";
     return "Universal";
@@ -61,7 +63,9 @@ const char* sofbuddy_build_flavour(void) {
 
 const char* sofbuddy_client_info(void) {
     const char* channel;
-#if defined(SOFBUDDY_UNIVERSAL_BUILD)
+#if defined(SOFBUDDY_UPDATE_TEST_BUILD)
+    channel = "update-test";
+#elif defined(SOFBUDDY_UNIVERSAL_BUILD)
     channel = "universal";
 #elif defined(SOFBUDDY_XP_BUILD)
     channel = "xp";

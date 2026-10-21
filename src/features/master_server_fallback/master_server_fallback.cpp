@@ -4,6 +4,7 @@
 
 #include "generated_detours.h"
 #include "sof_compat.h"
+#include "sofbuddy_cfg.h"
 #include "util.h"
 
 #if 0
@@ -544,10 +545,14 @@ void master_server_fallback_PostCvarInit() {
     detour_Cvar_Get::oCvar_Get(
         "_sb_internal_feature_master_server_fallback", "1", 0, nullptr);
     if (master && (!master->string || !master->string[0]) &&
-        detour_Cvar_Set2::oCvar_Set2)
+        detour_Cvar_Set2::oCvar_Set2) {
+        // Programmatic fix, not a user choice: don't persist it to spm_settings.cfg.
+        sofbuddy_cfg_spm_save_disable();
         detour_Cvar_Set2::oCvar_Set2(
             const_cast<char*>(kSoFPlusMasterCvar),
             const_cast<char*>(kDefaultMaster), true);
+        sofbuddy_cfg_spm_save_enable();
+    }
 }
 
 #endif // FEATURE_MASTER_SERVER_FALLBACK
