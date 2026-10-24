@@ -268,8 +268,10 @@ $(ODIR)/core/runtime_features.o: $(DEFAULT_FEATURE_LIST_H)
 
 $(ODIR)/core/runtime_features.d: $(DEFAULT_FEATURE_LIST_H)
 
-$(ODIR)/features/internal_menus/hooks/fs_loadfile_override.o: $(CROSSHAIR_CATALOG_INC)
-$(ODIR)/features/internal_menus/hooks/fs_loadfile_override.d: $(CROSSHAIR_CATALOG_INC)
+CROSSHAIR_PLACEHOLDER_INC = $(BDIR_GEN)/crosshair_placeholder.inc
+
+$(ODIR)/features/internal_menus/hooks/fs_loadfile_override.o: $(CROSSHAIR_CATALOG_INC) $(CROSSHAIR_PLACEHOLDER_INC)
+$(ODIR)/features/internal_menus/hooks/fs_loadfile_override.d: $(CROSSHAIR_CATALOG_INC) $(CROSSHAIR_PLACEHOLDER_INC)
 
 $(ODIR)/%.o: $(SDIR)/%.cpp $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(VERSION_H) $(BUILD_INFO_H) $(GENERATED_DETOURS_H) $(GENERATED_REGISTRATIONS_H)
 	@mkdir -p $(dir $@)

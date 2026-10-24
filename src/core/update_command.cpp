@@ -1049,6 +1049,7 @@ bool write_pending_update_manifest(const ReleaseInfo& info, const char* zip_path
     if (!info.html_url.empty())
         write_kv("url", info.html_url);
     sync_update_prompt_display_cvars(info);
+    sofbuddy_update_reload_update_menus();
     std::fputs("---\n", fp);
     const std::string notes = normalize_release_notes_for_display(info.body);
     if (!notes.empty())
@@ -1268,6 +1269,7 @@ void refresh_release_list() {
     const std::string rmf = build_release_list_rmf(tags);
     set_update_cvar(kCvarUpdateReleaseListRmf, rmf);
     set_update_cvar(kCvarUpdateReleaseListStatus, std::to_string(tags.size()) + " releases loaded");
+    sofbuddy_update_reload_update_menus();
 
     const std::string target = get_update_target_tag();
     if (!target_tag_in_release_list(tags, target)) {
@@ -1355,6 +1357,13 @@ void queue_startup_update_prompt() {
 }
 
 } // namespace
+
+void sofbuddy_update_reload_update_menus(void) {
+#if FEATURE_INTERNAL_MENUS
+    if (detour_Cmd_ExecuteString::oCmd_ExecuteString)
+        detour_Cmd_ExecuteString::oCmd_ExecuteString("reloadall");
+#endif
+}
 
 static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool startup_check) {
     const std::string releases_url = get_update_releases_url();
@@ -1559,6 +1568,7 @@ void sofbuddy_update_show_prompt_menu(void) {
     if (!remote.empty())
         newer = compare_versions(SOFBUDDY_VERSION, remote) < 0;
 
+    sofbuddy_update_reload_update_menus();
     if (newer)
         detour_Cmd_ExecuteString::oCmd_ExecuteString("sofbuddy_menu sof_buddy/update_prompt");
     else

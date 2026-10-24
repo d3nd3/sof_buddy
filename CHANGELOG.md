@@ -2,6 +2,26 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.44
+
+### Crosshairs (F12 → Gameplay)
+
+- **Unified crosshair list** generated from real pack contents (`_sofbuddy_crosshair_pick` sets theme + stock slot **0–4**); legacy `crosshair` values **5+** still migrate on first load.
+- **Live menu preview** via `_sb_internal_crosshair_preview_rmf` (`status/chN` or `status/sbxch_{theme}_{slot}`); misc menu reloads when the pick changes so the image updates.
+- **Preview rendering:** menu paths use ref_gl **PIC** imagetype (3), not sprite; fixes white squares for pack art while stock **S0–S4** still work.
+- **`FS_LoadFile` routing:** serves buddy-pack `m32` for preview and in-game `chN` requests; normalizes `pics/menus/` prefixes; repacks **mhp** / **sauron** paks with correct PACK TOC offsets (fixes `Invalid version` spam).
+- **`GL_FindImage` pre-hook** for crosshair menu image paths (sprite retry fallback retained).
+- **Stability:** removed nested menu keys from the crosshair list (F12 scroll crash); short list labels stay under SoF’s 240-byte parser limit.
+
+### Release artifacts
+
+- GitHub release zips include **`sof_buddy/crosshairs/*.pak`**; catalog build no longer depends on loose `.m32` sources in the repo (pack-only assets).
+
+### Updater / F12 menu
+
+- Update prompt split into header / notes / footer RMF includes; **`reloadall`** after release-list refresh so open update menus show new notes.
+- Main menu content tweaks for update flow.
+
 ## v8.43
 
 ### Singleplayer framerate (F12 → CPU)

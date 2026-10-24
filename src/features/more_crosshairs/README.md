@@ -4,14 +4,14 @@ Community crosshair packs under `sof_buddy/crosshairs/` while keeping the engine
 
 ## How it works
 
-- **F12 → Gameplay:** `<list>` for **`crosshair`** (`0`–`4`) plus a **Crosshair theme** list bound to **`_sofbuddy_crosshair_theme`**. Theme names are the pack stems (`fl44`, `jay_crosshairs_v4`, …); `stock` uses vanilla art.
+- **F12 → Gameplay:** one **Crosshair** list (`_sofbuddy_crosshair_pick`) generated from the packs (stock `0`–`4` plus one row per real theme/slot pair). It sets **`_sofbuddy_crosshair_theme`** and engine **`crosshair`** (`0`–`4`) together.
 - A live **preview** (`status/chN` for stock theme, `status/sbxch_{theme}_{slot}` otherwise) reloads when theme or slot changes (unique paths bust the GL image cache).
 - **`FS_LoadFile` override** (`internal_menus/hooks/fs_loadfile_override.cpp`): for non-stock themes, `pics/menus/status/ch{N}.m32` (`N` = `crosshair`) is read from the selected pack. No exe patch and no `active_crosshair.pak` staging.
 - **Migration:** saved `_sofbuddy_crosshair_pick` or old `crosshair` values `5+` map through the generated legacy table into theme + slot.
 
 ## Catalog
 
-Source packs: `rsrc/assets/crosshairs/`. `tools/generate_crosshair_catalog.py` builds `mhp.pak` / `sauron_crosshairs.pak`, then regenerates:
+Source packs: `rsrc/assets/crosshairs/*.pak`. `tools/generate_crosshair_catalog.py` normalizes `mhp.pak` / `sauron_crosshairs.pak` TOC entries, then regenerates:
 
 - `build/<config>/crosshair_catalog.inc` (`kCrosshairThemes`, legacy pick map)
 - `menu_library/sof_buddy/more_crosshair_list.rmf`

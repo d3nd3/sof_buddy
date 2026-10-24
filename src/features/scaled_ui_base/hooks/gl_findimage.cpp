@@ -14,6 +14,12 @@
 #include "features/more_crosshairs/shared.h"
 #endif
 
+void gl_findimage_pre_callback(char*& filename, int& imagetype, char& mimap, char& allowPicmip) {
+#if FEATURE_MORE_CROSSHAIRS
+    more_crosshairs_gl_findimage_pre(filename, imagetype, mimap, allowPicmip);
+#endif
+}
+
 void* gl_findimage_post_callback(void* result, char *filename, int imagetype, char mimap, char allowPicmip) {
 #if FEATURE_MORE_CROSSHAIRS
     result = more_crosshairs_gl_findimage_fixup(result, filename, imagetype, mimap, allowPicmip);

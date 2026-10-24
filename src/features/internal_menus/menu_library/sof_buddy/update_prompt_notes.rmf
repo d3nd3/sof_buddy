@@ -1,0 +1,33 @@
+<stm>
+<include tints>
+<backdrop bgcolor black>
+
+<vbar tint orange>
+
+<left>
+<blank 16 1>
+<right>
+<blank 16 1>
+<normal>
+
+<center>
+<font type title tint cyan atint cyan>
+"What's new"
+<hbr>
+<font type title tint white atint white>
+<left>
+<includecvar _sb_internal_update_prompt_notes_rmf_00>
+<includecvar _sb_internal_update_prompt_notes_rmf_01>
+<includecvar _sb_internal_update_prompt_notes_rmf_02>
+<includecvar _sb_internal_update_prompt_notes_rmf_03>
+<includecvar _sb_internal_update_prompt_notes_rmf_04>
+<includecvar _sb_internal_update_prompt_notes_rmf_05>
+<includecvar _sb_internal_update_prompt_notes_rmf_06>
+<includecvar _sb_internal_update_prompt_notes_rmf_07>
+<includecvar _sb_internal_update_prompt_notes_rmf_08>
+<includecvar _sb_internal_update_prompt_notes_rmf_09>
+<hbr>
+<font type title tint gray atint gray>
+"Scroll the list above with the mouse wheel if needed."
+<hbr>
+</stm>

@@ -47,6 +47,7 @@ void internal_menus_M_PushMenu_pre(char const*& menu_file, char const*& parentFr
     if ((!parentFrame || !parentFrame[0]) &&
         leaf == "disclaimer" &&
         sofbuddy_update_consume_startup_prompt_request()) {
+        sofbuddy_update_reload_update_menus();
         menu_file = "sof_buddy/update_prompt";
         menu_name = "sof_buddy/update_prompt";
     }

@@ -20,6 +20,10 @@
 #include <string>
 #include <vector>
 
+#if FEATURE_MORE_CROSSHAIRS
+#include "features/more_crosshairs/shared.h"
+#endif
+
 namespace {
 
 std::string normalize_path(const char* path) {
@@ -101,10 +105,16 @@ bool try_pak_toc(FILE* file, uint32_t toc_pos, uint32_t directory_length,
             std::fread(&offset, sizeof(offset), 1, file) != 1 ||
             std::fread(&length, sizeof(length), 1, file) != 1)
             return false;
-        if (normalize_path(name) == wanted && length > 0 && length <= INT_MAX &&
-            std::fseek(file, static_cast<long>(offset), SEEK_SET) == 0) {
-            data.resize(length);
-            return std::fread(data.data(), 1, length, file) == length;
+        if (normalize_path(name) == wanted && length > 0 && length <= INT_MAX) {
+            auto read_at = [&](uint32_t file_off) {
+                if (std::fseek(file, static_cast<long>(file_off), SEEK_SET) != 0) return false;
+                data.resize(length);
+                if (std::fread(data.data(), 1, length, file) != length) return false;
+                return data.size() >= 4 && *reinterpret_cast<const uint32_t*>(data.data()) == 4u;
+            };
+            if (read_at(offset)) return true;
+            // Older buddy-built paks stored blob-relative offsets (missing +12 PACK header).
+            if (offset < 12u && read_at(offset + 12u)) return true;
         }
     }
     return false;
@@ -189,6 +199,21 @@ bool load_selected_font(char* path, void** buffer, int& length) {
 
 #if FEATURE_MORE_CROSSHAIRS
 #include "crosshair_catalog.inc"
+#include "crosshair_placeholder.inc"
+
+static void collapse_duplicate_pics_menus(std::string& s) {
+    static const char kDup[] = "pics/menus/pics/menus/";
+    const size_t dup_len = sizeof(kDup) - 1;
+    while (s.size() >= dup_len && s.compare(0, dup_len, kDup) == 0) s.erase(0, 11);
+}
+
+static std::string crosshair_fs_path(const std::string& wanted) {
+    std::string s = wanted;
+    collapse_duplicate_pics_menus(s);
+    if (s.compare(0, 7, "status/") == 0) return "pics/menus/" + s;
+    if (s.compare(0, 13, "menus/status/") == 0) return "pics/" + s;
+    return s;
+}
 
 static bool parse_preview_crosshair_path(const std::string& wanted, int& theme, int& slot) {
     static const char kPrefix[] = "pics/menus/status/sbxch_";
@@ -206,17 +231,61 @@ static bool parse_preview_crosshair_path(const std::string& wanted, int& theme, 
     return true;
 }
 
-static bool serve_crosshair_pack(int theme, int slot, void** buffer, int& length) {
+static void patch_m32_internal_name(std::vector<unsigned char>& data, const char* vpath)
+{
+	if (data.size() < 60 || !vpath) return;
+	*reinterpret_cast<uint32_t*>(data.data()) = 4u;
+	std::memset(data.data() + 4, 0, 56);
+	std::strncpy(reinterpret_cast<char*>(data.data() + 4), vpath, 55);
+}
+
+static std::string gl_image_key_from_load_path(const char* path) {
+    std::string s = normalize_path(path);
+    if (s.size() >= 4 && s.compare(s.size() - 4, 4, ".m32") == 0) s.resize(s.size() - 4);
+    collapse_duplicate_pics_menus(s);
+    if (s.compare(0, 7, "status/") == 0) return "pics/menus/" + s;
+    if (s.compare(0, 13, "menus/status/") == 0) return "pics/" + s;
+    return s;
+}
+
+static void crosshair_gl_image_name(const std::string& key, char* out, size_t out_sz) {
+	std::snprintf(out, out_sz, "%s", key.c_str());
+}
+
+static bool serve_crosshair_placeholder(const char* gl_image_name, void** buffer, int& length) {
+    if (kCrosshairNoneM32Size < 60 || !gl_image_name) return false;
+    std::vector<unsigned char> data(kCrosshairNoneM32, kCrosshairNoneM32 + kCrosshairNoneM32Size);
+    patch_m32_internal_name(data, gl_image_name);
+    if (!detour_Z_Malloc::oZ_Malloc) return false;
+    void* copy = detour_Z_Malloc::oZ_Malloc(static_cast<int>(data.size() + 1));
+    if (!copy) return false;
+    std::memcpy(copy, data.data(), data.size());
+    static_cast<unsigned char*>(copy)[data.size()] = 0;
+    *buffer = copy;
+    length = static_cast<int>(data.size());
+    return true;
+}
+
+static bool serve_crosshair_pack(int theme, int slot, const char* gl_image_name, void** buffer,
+                                 int& length) {
     if (slot < 0 || slot > 4) return false;
     if (theme < 0 || theme >= kCrosshairThemeCount) theme = 0;
     const CrosshairThemeEntry& entry = kCrosshairThemes[theme];
-    if (!entry.pak_relpath || !entry.pak_relpath[0]) return false;
+    if (!entry.pak_relpath || !entry.pak_relpath[0]) {
+        if (theme != 0) return serve_crosshair_placeholder(gl_image_name, buffer, length);
+        return false;
+    }
+
+    const int pak_slot = kCrosshairThemePakSlot[theme][slot];
+    if (pak_slot < 0) return serve_crosshair_placeholder(gl_image_name, buffer, length);
 
     const std::string pak_path = game_base_dir() + "/sof_buddy/" + entry.pak_relpath;
     char wanted_entry[64];
-    std::snprintf(wanted_entry, sizeof(wanted_entry), "pics/menus/status/ch%d.m32", slot);
+    std::snprintf(wanted_entry, sizeof(wanted_entry), "pics/menus/status/ch%d.m32", pak_slot);
     std::vector<unsigned char> data;
-    if (!load_pak_entry(pak_path, wanted_entry, data) || data.empty()) return false;
+    if (!load_pak_entry(pak_path, wanted_entry, data) || data.empty())
+        return serve_crosshair_placeholder(gl_image_name, buffer, length);
+    patch_m32_internal_name(data, gl_image_name);
     if (!detour_Z_Malloc::oZ_Malloc) return false;
     void* copy = detour_Z_Malloc::oZ_Malloc(static_cast<int>(data.size() + 1));
     if (!copy) return false;
@@ -232,12 +301,15 @@ static bool serve_crosshair_pack(int theme, int slot, void** buffer, int& length
 // refreshes when the theme changes.
 bool load_crosshair_art(char* path, void** buffer, int& length) {
     if (!path) return false;
-    const std::string wanted = normalize_path(path);
+    const std::string gl_key = gl_image_key_from_load_path(path);
+    const std::string wanted = crosshair_fs_path(normalize_path(path));
+    char gl_name[72];
+    crosshair_gl_image_name(gl_key, gl_name, sizeof(gl_name));
 
     int theme = 0;
     int slot = 0;
     if (parse_preview_crosshair_path(wanted, theme, slot))
-        return serve_crosshair_pack(theme, slot, buffer, length);
+        return serve_crosshair_pack(theme, slot, gl_name, buffer, length);
 
     static const char kPrefix[] = "pics/menus/status/ch";
     const size_t prefix_len = sizeof(kPrefix) - 1;
@@ -259,7 +331,7 @@ bool load_crosshair_art(char* path, void** buffer, int& length) {
         cvar_t* theme_cvar = detour_Cvar_Get::oCvar_Get("_sofbuddy_crosshair_theme", "0", 0, nullptr);
         if (theme_cvar) theme = static_cast<int>(theme_cvar->value + 0.5f);
     }
-    return serve_crosshair_pack(theme, static_cast<int>(value), buffer, length);
+    return serve_crosshair_pack(theme, static_cast<int>(value), gl_name, buffer, length);
 }
 #endif
 
@@ -292,6 +364,33 @@ std::string path_to_menu_name(const char* path) {
     if (key.empty()) return "";
     size_t slash = key.rfind('/');
     return (slash == std::string::npos) ? key : key.substr(0, slash);
+}
+
+static void trim_inplace(std::string& s) {
+    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.front()))) s.erase(s.begin());
+    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back()))) s.pop_back();
+}
+
+// Engine includecvar runs at page-cache time; expand when serving embedded menus so notes/lists stay current.
+static void expand_rmf_includecvars(std::string& content) {
+    if (!detour_Cvar_Get::oCvar_Get) return;
+    static const char kTag[] = "<includecvar ";
+    const size_t tag_len = sizeof(kTag) - 1;
+    for (;;) {
+        const size_t pos = content.find(kTag);
+        if (pos == std::string::npos) break;
+        size_t name_start = pos + tag_len;
+        const size_t end = content.find('>', name_start);
+        if (end == std::string::npos) break;
+        std::string name = content.substr(name_start, end - name_start);
+        trim_inplace(name);
+        std::string insert;
+        if (!name.empty()) {
+            cvar_t* cv = detour_Cvar_Get::oCvar_Get(name.c_str(), "", 0, nullptr);
+            if (cv && cv->string) insert = cv->string;
+        }
+        content.replace(pos, end - pos + 1, insert);
+    }
 }
 } // namespace
 
@@ -336,8 +435,14 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
         content.replace(pos, 13, theme_tints), pos += std::strlen(theme_tints);
     for (std::string::size_type pos = 0; (pos = content.find("{menu_theme_list}", pos)) != std::string::npos; )
         content.replace(pos, 17, theme_list), pos += std::strlen(theme_list);
+#if FEATURE_MORE_CROSSHAIRS
+    const char* crosshair_list = ::more_crosshairs_get_list_rmf();
+    for (std::string::size_type pos = 0; (pos = content.find("{crosshair_list}", pos)) != std::string::npos; )
+        content.replace(pos, 16, crosshair_list), pos += std::strlen(crosshair_list);
+#endif
     for (std::string::size_type pos = 0; (pos = content.find("tall}", pos)) != std::string::npos; )
         content.replace(pos, 5, "");
+    expand_rmf_includecvars(content);
 
     const int size = static_cast<int>(content.size() + 1);
     if (!detour_Z_Malloc::oZ_Malloc) return original(path, buffer, override_pak);

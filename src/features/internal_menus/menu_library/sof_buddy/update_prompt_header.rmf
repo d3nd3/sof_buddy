@@ -1,0 +1,22 @@
+<stm>
+<include tints>
+<backdrop bgcolor black>
+
+<left>
+<blank 16 1>
+<right>
+<blank 16 1>
+<normal>
+
+<center>
+<font type title tint orange atint orange>
+"SOF BUDDY UPDATE AVAILABLE"
+<hbr>
+<hbr>
+
+<font type title tint white atint white>
+<ctext _sb_internal_update_local_label atext "Installed : " noshade><hbr>
+<ctext _sb_internal_update_latest atext "Available tag : " noshade><hbr>
+<ctext _sb_internal_update_release_title atext "Release : " noshade><hbr>
+<ctext _sb_internal_update_downloaded_asset atext "Download package : " noshade><hbr>
+</stm>

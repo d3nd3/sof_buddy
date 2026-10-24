@@ -1,3 +1,2 @@
-<list "0,1,2,3,4" match "0,1,2,3,4" cvar crosshair atext "Crosshair : " key mouse1 "sofbuddy_menu sof_buddy/misc" key mouse2 "sofbuddy_menu sof_buddy/misc" noshade tip "Engine crosshair index 0-4. Pair with a theme below."><hbr>
-<list "stock,fl44,jay_crosshairs_v4,keifer_2009,keifer_2010,mhp,reps_crosshairs_v1.2,sauron_crosshairs,yump_skulls" match "0,1,2,3,4,5,6,7,8" cvar _sofbuddy_crosshair_theme atext "Crosshair theme : " key mouse1 "sofbuddy_menu sof_buddy/misc" key mouse2 "sofbuddy_menu sof_buddy/misc" noshade tip "stock = vanilla art. Other entries load pics/menus/status/ch0..ch4 from sof_buddy/crosshairs/*.pak."><hbr>
+{crosshair_list}
 <includecvar _sb_internal_crosshair_preview_rmf>

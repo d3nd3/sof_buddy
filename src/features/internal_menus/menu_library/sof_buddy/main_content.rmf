@@ -37,6 +37,9 @@
 <ctext _sb_internal_update_latest atext "Latest : " tint white atint white noshade><hbr>
 <hbr>
 <list "Off,On" match "0,1" cvar _sofbuddy_update_use_gui atext "Graphical updater : " noshade tip "Use sof_buddy_update.exe when installing (universal builds). Default On on universal; Off uses script or in-game extract on Wine/Proton."><hbr>
+<includecvar _sb_internal_update_release_list_rmf>
+<ctext _sb_internal_update_release_list_status atext "Release list : " noshade tip "Run Refresh release list after changing the update API URL."><hbr>
+<text "Refresh release list" key mouse1 "sofbuddy_update releases;refresh" border 8 1 cyan regular align center tip "Fetch installable tags from the update feed."><hbr>
 <hbr>
 <text "Check for updates" key mouse1 "sofbuddy_update prompt" border 8 1 cyan regular align center tip "Re-check GitHub (or mirror) and open the update prompt if a newer release is available."><hbr>
 
