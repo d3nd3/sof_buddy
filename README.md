@@ -1,5 +1,9 @@
 # SoF Buddy 🚀
 
+> **Suggestions, criticisms, and issues are highly encouraged.** Please [open a GitHub issue](https://github.com/d3nd3/sof_buddy/issues), reply on a release, or reach out on [Discord](https://discord.gg/zZjnsRKPEJ) — feedback directly drives what gets fixed and built next.
+
+> **Donations help keep development going.** If SoF Buddy is useful to you, consider [sponsoring on GitHub](https://github.com/sponsors/d3nd3) — contributions go toward monthly [Cursor](https://cursor.com) subscriptions and other tooling that make ongoing fixes and features possible.
+
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
   <a href="https://github.com/d3nd3/sof_buddy/releases"><img src="https://img.shields.io/github/v/release/d3nd3/sof_buddy?include_prereleases&style=for-the-badge" alt="GitHub release"></a>
@@ -31,8 +35,8 @@
 - 🖥️ **HUD Scaling** — Scale the HUD independently from the font for perfect UI balance. **Auto HUD Scale** (`_sofbuddy_hud_scale_auto 1`) uses the same resolution ratio; disable auto to pick a manual `_sofbuddy_hud_scale`.
 - 🎬 **Cinematic Image Scaling** — Credit/fade images (`SP_FLAG_CREDIT`) scale up from 640×480 to your resolution. Toggle with `_sofbuddy_scale_cinematic_pics` (`1` = on, `0` = off) or **Scale Cinematic Images** in F12 → UI Scale.
 - 🎯 **Crosshair Scaling** — Scale crosshair textures independently for improved visibility.
-- 🎯 **More Crosshairs** — Stock crosshairs 0–4 plus bundled community packs (F12 → Gameplay); drives the engine `crosshair` cvar and `sof_buddy/crosshairs/` paks.
-- 🎯 **Restored `cl_maxfps` in Singleplayer** — Enjoy smooth framerates without legacy workarounds. Editable from **F12 → CPU → Framerate** (whole-ms cap list + VSync).
+- 🎯 **More Crosshairs** — Engine `crosshair` stays 0–4; F12 → Gameplay adds a **theme** list (pack filenames under `sof_buddy/crosshairs/`) with a live preview image.
+- 🎯 **Restored `cl_maxfps` in Singleplayer** — Smooth SP caps via **F12 → CPU → Framerate** (legacy ms-budget list, or optional **Exact FPS cap** for integer values like `60`).
 - ⚡ **Stable Framerate & CPU Saver** — Uses `QueryPerformanceCounter` for precise timing and energy savings. New cvar: `_sofbuddy_sleep`.
 - 🖱️ **Raw Mouse Input** — Direct hardware input bypassing Windows acceleration. All original sensitivity cvars still work!
 - 🏷️ **Widescreen Teamicons GlitchFix** — Team icons are always correctly positioned, even in widescreen. Team icons and playernames above players scale with the HUD — toggle with `_sofbuddy_icons_autoscale` or **Icons Autoscale** in F12 → UI Scale.
@@ -269,6 +273,10 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_sleep_busyticks</code></td>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>2</code>. 1 ms busyloop ticks per frame. Lower saves CPU, <code>0</code> may stutter. F12 → CPU.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_cl_maxfps_exact</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. <code>1</code> = <code>cl_maxfps</code> is literal integer FPS; <code>0</code> = legacy millisecond-budget list. Requires Singleplayer Max FPS. F12 → CPU.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_perf_profile</code></td>
@@ -600,7 +608,15 @@ Published tags look like **`v8.1-build189`**. Pushing to `master` always builds;
 ## 🤝 Credits
 
 - **WhiteMagicRaven** — Lighting blend mode
-- **Acadie** — Endless knowledge
+- **Acadie** — Endless knowledge; `extended_skins.pak`
+- **More Crosshairs** — Classic community packs in `sof_buddy/crosshairs/` (original authors retain credit; SoF Buddy repackages them for the theme picker):
+  - **FL44** — `fl44.pak`
+  - **Jay** — `jay_crosshairs_v4.pak`
+  - **Keifer** — `keifer_2009.pak`, `keifer_2010.pak`
+  - **MHP** — `mhp.pak`
+  - **Reps** — `reps_crosshairs_v1.2.pak`
+  - **Sauron** — `sauron_crosshairs.pak`
+  - **Yump Skulls** — `yump_skulls.pak`
 - **d3nd3** — Project lead
 - **Community** — Bug reports, testing, and support
 

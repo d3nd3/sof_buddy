@@ -24,6 +24,10 @@
 #include "features/vsync_toggle/shared.h"
 #endif
 
+#if FEATURE_MORE_CROSSHAIRS
+#include "features/more_crosshairs/shared.h"
+#endif
+
 #include <windows.h>
 #include <algorithm>
 #include <cctype>
@@ -344,8 +348,8 @@ void create_loading_cvars() {
 }
 
 constexpr int kSofBuddyCenterPanelVirtualWidth = 640;
-constexpr int kSofBuddyDefaultRow1ContentWidth = 384;
-constexpr int kSofBuddyDefaultRow2ContentWidth = 384;
+constexpr int kSofBuddyDefaultRow1ContentWidth = 456;
+constexpr int kSofBuddyDefaultRow2ContentWidth = 456;
 constexpr int kSofBuddyTabWidthPx = 120;
 constexpr int kSofBuddyTabGapPx = 12;
 constexpr int kSofBuddyTabLeftNudgePx = 32;
@@ -477,8 +481,8 @@ void create_layout_cvars() {
     detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row2_prefix_rmf", "<blank 36 1>", kLayoutCvarFlags, nullptr);
     detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row1_suffix_rmf", "<blank 96 1>", kLayoutCvarFlags, nullptr);
     detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row2_suffix_rmf", "<blank 36 1>", kLayoutCvarFlags, nullptr);
-    _sb_internal_tabs_row1_content_px = detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row1_content_px", "384", kLayoutCvarFlags, nullptr);
-    _sb_internal_tabs_row2_content_px = detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row2_content_px", "384", kLayoutCvarFlags, nullptr);
+    _sb_internal_tabs_row1_content_px = detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row1_content_px", "456", kLayoutCvarFlags, nullptr);
+    _sb_internal_tabs_row2_content_px = detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row2_content_px", "456", kLayoutCvarFlags, nullptr);
     _sb_internal_tabs_center_bias_px = detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_center_bias_px", "0", kLayoutCvarFlags, nullptr);
     _sb_internal_tabs_row1_bias_px = detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row1_bias_px", "0", kLayoutCvarFlags, nullptr);
     _sb_internal_tabs_row2_bias_px = detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row2_bias_px", "0", kLayoutCvarFlags, nullptr);
@@ -505,6 +509,25 @@ void set_runtime_cvar_int(const char* name, int value) {
 void set_runtime_cvar_str(const char* name, const char* value) {
     if (!detour_Cvar_Set2::oCvar_Set2 || !name || !value) return;
     detour_Cvar_Set2::oCvar_Set2(const_cast<char*>(name), const_cast<char*>(value), true);
+}
+
+// <cinclude> rows read these at menu parse time; keep them aligned with runtime feature state.
+static void sync_internal_feature_include_cvars(void) {
+    if (!detour_Cvar_Get::oCvar_Get || !detour_Cvar_Set2::oCvar_Set2) return;
+#if FEATURE_ENTITY_VISUALIZER
+    detour_Cvar_Get::oCvar_Get("_sb_internal_feature_entity_visualizer", "0", 0, nullptr);
+    set_runtime_cvar_int("_sb_internal_feature_entity_visualizer",
+                           RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_ENTITY_VISUALIZER)
+                               ? 1
+                               : 0);
+#endif
+#if FEATURE_CL_MAXFPS_SINGLEPLAYER
+    detour_Cvar_Get::oCvar_Get("_sb_internal_feature_cl_maxfps_singleplayer", "0", 0, nullptr);
+    const bool sp_maxfps =
+        RuntimeFeatures::Compiled(RuntimeFeatures::Feature::RUNTIME_FEATURE_CL_MAXFPS_SINGLEPLAYER) &&
+        RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_CL_MAXFPS_SINGLEPLAYER);
+    set_runtime_cvar_int("_sb_internal_feature_cl_maxfps_singleplayer", sp_maxfps ? 1 : 0);
+#endif
 }
 
 std::string sanitize_menu_hotkey_token(const char* raw) {
@@ -922,8 +945,7 @@ void internal_menus_PostCvarInit(void) {
     // only exist when their feature is compiled in; gating on these keeps the page honest
     // instead of rendering blank <ctext> rows for unregistered cvars.
     // NOTE: <cinclude> includes when the cvar is non-zero; <cninclude> is its inverse.
-    detour_Cvar_Get::oCvar_Get("_sb_internal_feature_entity_visualizer",
-                               RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_ENTITY_VISUALIZER) ? "1" : "0", 0, nullptr);
+    sync_internal_feature_include_cvars();
 
     create_loading_cvars();
     create_layout_cvars();
@@ -1025,8 +1047,15 @@ void Cmd_SoFBuddy_Menu_f(void) {
         internal_menus_remember_menu_page(menu_to_push.c_str());
     }
 
-    if (menu_to_push == "sof_buddy/cpu")
+    if (menu_to_push == "sof_buddy/cpu") {
+        sync_internal_feature_include_cvars();
         sync_sofbuddy_profile_from_cvars();
+    }
+
+#if FEATURE_MORE_CROSSHAIRS
+    if (menu_to_push == "sof_buddy/misc")
+        more_crosshairs_refresh_menu_preview();
+#endif
 
     if (menu_to_push == "sof_buddy/mp_profile_guid")
         mp_profile_guid_on_menu_open();

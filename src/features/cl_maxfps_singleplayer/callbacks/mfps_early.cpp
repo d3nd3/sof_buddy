@@ -11,10 +11,9 @@
 void cl_maxfps_EarlyStartup(void)
 {
     PrintOut(PRINT_LOG, "cl_maxfps_singleplayer: Applying early patches...\n");
-    
-    // Apply cl_maxfps throttle during SP (vanilla skips it when Com_ServerState != 0).
-    WriteByte(rvaToAbsExe((void*)0x0000D973), 0x90);
-    WriteByte(rvaToAbsExe((void*)0x0000D974), 0x90);
+
+    // Undo broken exact-FPS CL_Frame patches from older builds before the main loop runs.
+    mfps_restore_cl_frame_maxfps_gate();
 
     PrintOut(PRINT_LOG, "cl_maxfps_singleplayer: sp_Sys_Mil hook registered automatically\n");
     if (o_sofplus && orig_sp_Sys_Mil == NULL) {

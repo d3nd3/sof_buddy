@@ -6,6 +6,9 @@
 #include "util.h"
 #include "sof_buddy.h"
 #include "../shared.h"
+#if FEATURE_MEDIA_TIMERS
+#include "features/media_timers/shared.h"
+#endif
 
 int (*orig_sp_Sys_Mil)(void) = NULL;
 
@@ -18,8 +21,11 @@ int hksp_Sys_Mil(void)
 		*_sp_cl_frame_delay = 0x00;
 	}
 
-    if (orig_sp_Sys_Mil) return orig_sp_Sys_Mil();
-    return 0;
+    const int ret = orig_sp_Sys_Mil ? orig_sp_Sys_Mil() : 0;
+#if FEATURE_MEDIA_TIMERS
+    sofbuddy_sp_clear_sofplus_frame_delay_if_exact();
+#endif
+    return ret;
 }
 
 #endif // FEATURE_CL_MAXFPS_SINGLEPLAYER

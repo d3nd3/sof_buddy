@@ -1,21 +1,21 @@
 # more_crosshairs
 
-Extends the in-game crosshair picker beyond the five stock `crosshair` values (0–4).
+Community crosshair packs under `sof_buddy/crosshairs/` while keeping the engine **`crosshair`** cvar on stock values **0–4**.
 
-## Behaviour
+## How it works
 
-- **F12 → Gameplay → Crosshair** lists stock entries first, then community packs shipped under `sof_buddy/crosshairs/`.
-- **`_sofbuddy_crosshair_pick`** (archived) selects a catalog row; the feature sets the engine **`crosshair`** cvar to the correct slot (0–4) and stages **`sof_buddy/active_crosshair.pak`** when a pack override is needed.
-- Stock rows remove `active_crosshair.pak` so vanilla `pics/menus/status/chN` textures are used.
-- Works with **`_sofbuddy_crossh_scale`** (scaled UI) for size.
+- **F12 → Gameplay:** `<list>` for **`crosshair`** (`0`–`4`) plus a **Crosshair theme** list bound to **`_sofbuddy_crosshair_theme`**. Theme names are the pack stems (`fl44`, `jay_crosshairs_v4`, …); `stock` uses vanilla art.
+- A live **preview** (`status/chN` for stock theme, `status/sbxch_{theme}_{slot}` otherwise) reloads when theme or slot changes (unique paths bust the GL image cache).
+- **`FS_LoadFile` override** (`internal_menus/hooks/fs_loadfile_override.cpp`): for non-stock themes, `pics/menus/status/ch{N}.m32` (`N` = `crosshair`) is read from the selected pack. No exe patch and no `active_crosshair.pak` staging.
+- **Migration:** saved `_sofbuddy_crosshair_pick` or old `crosshair` values `5+` map through the generated legacy table into theme + slot.
 
-## Assets
+## Catalog
 
-Source packs live in `rsrc/assets/crosshairs/`. `tools/generate_crosshair_catalog.py` builds `mhp.pak` / `sauron_crosshairs.pak` from loose `.m32` files, scans packs for `pics/menus/status/ch*`, and regenerates:
+Source packs: `rsrc/assets/crosshairs/`. `tools/generate_crosshair_catalog.py` builds `mhp.pak` / `sauron_crosshairs.pak`, then regenerates:
 
-- `build/<config>/crosshair_catalog.inc`
-- `menu_library/sof_buddy/more_crosshair_list.rmf` (auto-generated; menu labels are abbreviated to stay under the engine’s 240-byte `<list>` label buffer)
+- `build/<config>/crosshair_catalog.inc` (`kCrosshairThemes`, legacy pick map)
+- `menu_library/sof_buddy/more_crosshair_list.rmf`
 
 ## Credits
 
-Bundled crosshair packs are classic community assets (Jay, Keifer, Reps, Yump Skulls, FL44, MHP, Sauron, etc.). Authors retain credit for their original work.
+Bundled packs are classic community crosshair art (FL44, Jay, Keifer, MHP, Reps, Sauron, Yump Skulls, etc.). See the root [README](../../../README.md) **Credits** section for filenames; original authors retain credit for their work.

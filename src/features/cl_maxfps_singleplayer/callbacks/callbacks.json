@@ -4,5 +4,11 @@
     "callback": "cl_maxfps_EarlyStartup",
     "priority": 70,
     "phase": "Post"
+  },
+  {
+    "hook": "PostCvarInit",
+    "callback": "cl_maxfps_PostCvarInit",
+    "priority": 71,
+    "phase": "Post"
   }
 ]

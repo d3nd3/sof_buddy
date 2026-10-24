@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build crosshair paks, C catalog header, and F12 menu list RMF."""
+"""Build crosshair paks, C theme catalog, legacy migration table, and F12 menu RMF."""
 
 from __future__ import annotations
 
@@ -14,6 +14,11 @@ ASSET_DIR = ROOT / "rsrc" / "assets" / "crosshairs"
 OUT_RMF = ROOT / "src" / "features" / "internal_menus" / "menu_library" / "sof_buddy" / "more_crosshair_list.rmf"
 
 CH_PATH = re.compile(rb"pics/menus/status/ch(\d)(?:\.\w+)?")
+STOCK_THEME = "stock"
+MENU_RELOAD = (
+    'key mouse1 "sofbuddy_menu sof_buddy/misc" '
+    'key mouse2 "sofbuddy_menu sof_buddy/misc" '
+)
 
 
 def write_pak(path: Path, entries: list[tuple[str, Path]]) -> None:
@@ -25,7 +30,7 @@ def write_pak(path: Path, entries: list[tuple[str, Path]]) -> None:
         blob.extend(data)
     out = bytearray()
     out.extend(b"PACK")
-    toc_off = 12 + len(toc) * 64
+    toc_off = 12 + len(blob)
     out.extend(struct.pack("<II", toc_off, len(toc) * 64))
     out.extend(blob)
     for vpath, off, size in toc:
@@ -38,8 +43,7 @@ def write_pak(path: Path, entries: list[tuple[str, Path]]) -> None:
 
 def pak_slots(pak: Path) -> set[int]:
     raw = pak.read_bytes()
-    slots = {int(m.group(1)) for m in CH_PATH.finditer(raw)}
-    return slots
+    return {int(m.group(1)) for m in CH_PATH.finditer(raw)}
 
 
 def strings_slots(pak: Path) -> set[int]:
@@ -67,101 +71,92 @@ def ensure_built_paks() -> None:
         )
 
 
-# SoF.exe comma-split buffer for <list> labels is only 240 bytes (sub_200C92D0).
-MAX_LIST_LABELS_BYTES = 240
+def build_themes() -> list[dict]:
+    ensure_built_paks()
+    themes: list[dict] = [{"name": STOCK_THEME, "pak": ""}]
+    for pak in sorted(ASSET_DIR.glob("*.pak")):
+        slots = sorted(strings_slots(pak))
+        if not slots or not any(0 <= s <= 4 for s in slots):
+            continue
+        themes.append({"name": pak.stem, "pak": f"crosshairs/{pak.name}"})
+    return themes
 
 
-def menu_list_label(label: str) -> str:
-    """Short label for F12 <list> row (full names overflow the engine buffer)."""
-    if label.startswith("Stock "):
-        return "S" + label[-1]
-    if label.startswith("Jay "):
-        return "J" + label.split()[-1]
-    if label.startswith("Keifer 09 "):
-        return "K9" + label.split()[-1]
-    if label.startswith("Keifer 10 "):
-        return "K0" + label.split()[-1]
-    if label.startswith("Reps "):
-        return "R" + label.split()[-1]
-    if label.startswith("Sauron "):
-        return "Sa" + label.split()[-1]
-    if label.startswith("Yump Skulls "):
-        return "YS" + label.split()[-1]
-    return label
+def theme_index(themes: list[dict], pak_relpath: str) -> int:
+    pak_relpath = pak_relpath.replace("\\", "/")
+    for i, t in enumerate(themes):
+        if t["pak"] == pak_relpath:
+            return i
+    return 0
 
 
-def pak_label(name: str) -> str:
-    base = name.replace(".pak", "")
-    labels = {
-        "fl44": "FL44",
-        "jay_crosshairs_v4": "Jay",
-        "keifer_2009": "Keifer 09",
-        "keifer_2010": "Keifer 10",
-        "reps_crosshairs_v1.2": "Reps",
-        "yump_skulls": "Yump Skulls",
-        "mhp": "MHP",
-        "sauron_crosshairs": "Sauron",
-    }
-    return labels.get(base, base.replace("_", " ").title())
-
-
-def build_catalog() -> list[dict]:
+def build_legacy_flat_catalog() -> list[dict]:
+    """Old picker: one row per stock slot + per (pack, ch0..ch4) — for config migration."""
     ensure_built_paks()
     catalog: list[dict] = []
     for slot in range(5):
-        catalog.append(
-            {
-                "label": f"Stock {slot}",
-                "pak": "",
-                "slot": slot,
-            }
-        )
+        catalog.append({"pak": "", "slot": slot})
+    seen: set[tuple[str, int]] = set()
     for pak in sorted(ASSET_DIR.glob("*.pak")):
-        if pak.name in ("mhp.pak", "sauron_crosshairs.pak") or pak.name.endswith(".pak"):
-            slots = sorted(strings_slots(pak))
-            if not slots:
+        slots = sorted(strings_slots(pak))
+        if not slots:
+            continue
+        rel = f"crosshairs/{pak.name}"
+        for slot in slots:
+            if slot < 0 or slot > 4:
                 continue
-            prefix = pak_label(pak.name)
-            for slot in slots:
-                if slot < 0 or slot > 4:
-                    continue
-                label = prefix if len(slots) == 1 else f"{prefix} {slot}"
-                catalog.append({"label": label, "pak": f"crosshairs/{pak.name}", "slot": slot})
+            key = (rel, slot)
+            if key in seen:
+                continue
+            seen.add(key)
+            catalog.append({"pak": rel, "slot": slot})
     return catalog
 
 
-def write_outputs(catalog: list[dict], out_dir: Path) -> None:
+def write_outputs(themes: list[dict], legacy: list[dict], out_dir: Path) -> None:
     out_inc = out_dir / "crosshair_catalog.inc"
     out_inc.parent.mkdir(parents=True, exist_ok=True)
     lines = [
         "/* Auto-generated by tools/generate_crosshair_catalog.py */",
         "#pragma once",
         "",
-        "struct CrosshairCatalogEntry {",
-        "    const char* label;",
-        "    const char* pak_relpath; /* empty = stock (no override pak) */",
+        "struct CrosshairThemeEntry {",
+        "    const char* name; /* pak stem, or \"stock\" */",
+        "    const char* pak_relpath; /* empty = vanilla FS for ch0..ch4 */",
+        "};",
+        "",
+        "struct CrosshairLegacyPick {",
+        "    int theme_index;",
         "    int slot; /* engine crosshair cvar 0..4 */",
         "};",
         "",
-        f"static constexpr int kCrosshairCatalogCount = {len(catalog)};",
-        "static const CrosshairCatalogEntry kCrosshairCatalog[] = {",
+        f"static constexpr int kCrosshairThemeCount = {len(themes)};",
+        "static const CrosshairThemeEntry kCrosshairThemes[] = {",
     ]
-    for e in catalog:
-        pak = e["pak"].replace("\\", "/")
-        lines.append(f'    {{"{e["label"]}", "{pak}", {e["slot"]}}},')
+    for t in themes:
+        pak = t["pak"].replace("\\", "/")
+        lines.append(f'    {{"{t["name"]}", "{pak}"}},')
+    lines.append("};")
+    lines.append("")
+    lines.append(f"static constexpr int kCrosshairLegacyCatalogCount = {len(legacy)};")
+    lines.append("static const CrosshairLegacyPick kCrosshairLegacyCatalog[] = {")
+    for e in legacy:
+        lines.append(f"    {{{theme_index(themes, e['pak'])}, {e['slot']}}},")
     lines.append("};")
     lines.append("")
     out_inc.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-    labels = ",".join(menu_list_label(e["label"]) for e in catalog)
-    if len(labels) > MAX_LIST_LABELS_BYTES:
-        raise SystemExit(
-            f"crosshair list labels {len(labels)} bytes exceed engine limit {MAX_LIST_LABELS_BYTES}"
-        )
-    match = ",".join(str(i) for i in range(len(catalog)))
+    theme_labels = ",".join(t["name"] for t in themes)
+    theme_match = ",".join(str(i) for i in range(len(themes)))
     rmf = (
-        f'<list "{labels}" match "{match}" cvar _sofbuddy_crosshair_pick atext "Crosshair : " '
-        'noshade tip "S0-S4 stock. Abbreviated names map to community packs under sof_buddy/crosshairs/."><hbr>\n'
+        f'<list "0,1,2,3,4" match "0,1,2,3,4" cvar crosshair atext "Crosshair : " '
+        f"{MENU_RELOAD}"
+        'noshade tip "Engine crosshair index 0-4. Pair with a theme below."><hbr>\n'
+        f'<list "{theme_labels}" match "{theme_match}" cvar _sofbuddy_crosshair_theme '
+        f'atext "Crosshair theme : " {MENU_RELOAD}'
+        'noshade tip "stock = vanilla art. Other entries load pics/menus/status/ch0..ch4 from '
+        'sof_buddy/crosshairs/*.pak."><hbr>\n'
+        "<includecvar _sb_internal_crosshair_preview_rmf>\n"
     )
     OUT_RMF.write_text(rmf, encoding="utf-8")
 
@@ -171,9 +166,13 @@ def main() -> int:
         print(f"missing {ASSET_DIR}", file=sys.stderr)
         return 1
     out_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "build" / "release"
-    catalog = build_catalog()
-    write_outputs(catalog, out_dir)
-    print(f"crosshair catalog: {len(catalog)} entries -> {out_dir / 'crosshair_catalog.inc'}, {OUT_RMF}")
+    themes = build_themes()
+    legacy = build_legacy_flat_catalog()
+    write_outputs(themes, legacy, out_dir)
+    print(
+        f"crosshair themes: {len(themes)} (+legacy {len(legacy)} rows) -> "
+        f"{out_dir / 'crosshair_catalog.inc'}, {OUT_RMF}"
+    )
     return 0
 
 

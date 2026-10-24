@@ -1,0 +1,2 @@
+<list "Auto,30,60,90,120,144,165,240" match "923,30,60,90,120,144,165,240" cvar cl_maxfps atext "Framerate Cap : " key mouse1 "sofbuddy_display_refresh;refresh" noshade tip "Literal FPS (10-360). Auto = uncapped (923). Fine-tune with the slider below."><br>
+<slider cvar cl_maxfps min 10 max 360 step 1><br>

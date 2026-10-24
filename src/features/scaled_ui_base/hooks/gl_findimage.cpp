@@ -6,8 +6,18 @@
 #include "util.h"
 #include "../../scaled_ui_base/shared.h"
 #include "runtime_features.h"
+#include <cstdio>
+#include <cstring>
+#include <string>
+
+#if FEATURE_MORE_CROSSHAIRS
+#include "features/more_crosshairs/shared.h"
+#endif
 
 void* gl_findimage_post_callback(void* result, char *filename, int imagetype, char mimap, char allowPicmip) {
+#if FEATURE_MORE_CROSSHAIRS
+    result = more_crosshairs_gl_findimage_fixup(result, filename, imagetype, mimap, allowPicmip);
+#endif
     if (result) {
         #ifdef UI_MENU
         if (g_currentPicCaller == PicCaller::SCR_DrawCrosshair ||

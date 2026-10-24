@@ -18,6 +18,9 @@ cvar_t * _sofbuddy_high_priority = NULL;
 cvar_t * _sofbuddy_sleep = NULL;
 cvar_t * _sofbuddy_sleep_jitter = NULL;
 cvar_t * _sofbuddy_sleep_busyticks = NULL;
+#if FEATURE_CL_MAXFPS_SINGLEPLAYER
+cvar_t * _sofbuddy_cl_maxfps_exact = NULL;
+#endif
 
 /*
 	Create and register all media_timers cvars
@@ -36,12 +39,20 @@ void create_mediatimers_cvars(void) {
 	// sleep/busyloop frame budget in sync with the cap picked on F12 -> CPU.
 	cl_maxfps = detour_Cvar_Get::oCvar_Get("cl_maxfps", "30", 0, &cl_maxfps_change);
 
+#if FEATURE_CL_MAXFPS_SINGLEPLAYER
+	_sofbuddy_cl_maxfps_exact = detour_Cvar_Get::oCvar_Get(
+	    "_sofbuddy_cl_maxfps_exact", "0", CVAR_SOFBUDDY_ARCHIVE, &cl_maxfps_exact_change);
+#endif
+
 	// Apply archived/default values immediately so internal state matches CVars at startup.
 	if (_sofbuddy_high_priority) high_priority_change(_sofbuddy_high_priority);
 	if (_sofbuddy_sleep) sleep_change(_sofbuddy_sleep);
 	if (_sofbuddy_sleep_jitter) sleep_jitter_change(_sofbuddy_sleep_jitter);
 	if (_sofbuddy_sleep_busyticks) sleep_busyticks_change(_sofbuddy_sleep_busyticks);
 	if (cl_maxfps) cl_maxfps_change(cl_maxfps);
+#if FEATURE_CL_MAXFPS_SINGLEPLAYER
+	if (_sofbuddy_cl_maxfps_exact) cl_maxfps_exact_change(_sofbuddy_cl_maxfps_exact);
+#endif
 }
 
 #endif // FEATURE_MEDIA_TIMERS

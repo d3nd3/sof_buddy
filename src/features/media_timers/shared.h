@@ -39,7 +39,17 @@ void mediaTimers_EarlyStartup(void);
 void mediaTimers_PostCvarInit(void);
 
 void cl_maxfps_change(cvar_t *cvar);
+void cl_maxfps_exact_change(cvar_t *cvar);
 void sofbuddy_quantize_cl_maxfps(void);
+bool sofbuddy_cl_maxfps_exact_enabled(void);
+float sofbuddy_cl_maxfps_effective_fps(float stored);
+void sofbuddy_sp_clear_sofplus_frame_delay_if_exact(void);
+int sofbuddy_exact_fps_quantize(float v);
+void sofbuddy_exact_bresenham_reset(void);
+int sofbuddy_exact_bresenham_period_ms(int fps);
+bool sofbuddy_exact_frame_allows(int extratime_ms, float maxfps_stored);
+void sofbuddy_exact_on_frame_window_start(float maxfps_stored);
+int sofbuddy_exact_frame_budget_ms(void);
 void high_priority_change(cvar_t *cvar);
 void sleep_change(cvar_t *cvar);
 void sleep_jitter_change(cvar_t *cvar);

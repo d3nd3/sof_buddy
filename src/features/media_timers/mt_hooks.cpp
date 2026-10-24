@@ -8,6 +8,9 @@
 #include "sofbuddy_cfg.h"
 #include "shared.h"
 #include "runtime_features.h"
+#if FEATURE_CL_MAXFPS_SINGLEPLAYER
+#include "features/cl_maxfps_singleplayer/shared.h"
+#endif
 
 #include "customfloat.h"
 
@@ -28,6 +31,9 @@ int sleep_busyticks = 2;
 
 cvar_t * cl_maxfps = NULL;
 extern cvar_t * _sofbuddy_sleep;
+#if FEATURE_CL_MAXFPS_SINGLEPLAYER
+extern cvar_t * _sofbuddy_cl_maxfps_exact;
+#endif
 
 int (*sp_Sys_Mil) (void) = NULL;
 
@@ -60,14 +66,105 @@ int *sp_current_timestamp2 = NULL;
 void (*spcl_Timers)(void) = NULL;
 void (*spcl_FreeScript)(void) = NULL;
 
-static int calc_target_msec(float maxfps)
+static constexpr float kClMaxfpsAutoSentinel = 923.0f;
+
+static int legacy_budget_msec(float stored)
 {
-	// 0 means uncapped: there is no frame budget, so keep the sleep heuristic minimal.
-	if (maxfps <= 0.0f) return 1;
-	const double msec = 1000.0 / static_cast<double>(maxfps);
+	if (stored <= 0.0f) return 1;
+	const double msec = 1000.0 / static_cast<double>(stored);
 	int target = static_cast<int>(std::ceil(msec));
 	if (target < 1) target = 1;
 	return target;
+}
+
+bool sofbuddy_cl_maxfps_exact_enabled(void)
+{
+#if FEATURE_CL_MAXFPS_SINGLEPLAYER
+	// Do not findCvar here: winmain_loop runs before PostCvarInit.
+	return _sofbuddy_cl_maxfps_exact && _sofbuddy_cl_maxfps_exact->value != 0.0f;
+#else
+	return false;
+#endif
+}
+
+int sofbuddy_exact_fps_quantize(float v)
+{
+	int fps = static_cast<int>(v + 0.5f);
+	if (fps < 10) fps = 10;
+	if (fps > 360) fps = 360;
+	return fps;
+}
+
+static int s_bresenham_fps = -1;
+static int s_bresenham_err = 0;
+
+void sofbuddy_exact_bresenham_reset(void)
+{
+	s_bresenham_fps = -1;
+	s_bresenham_err = 0;
+}
+
+int sofbuddy_exact_bresenham_period_ms(int fps)
+{
+	if (fps != s_bresenham_fps) {
+		s_bresenham_fps = fps;
+		s_bresenham_err = 0;
+	}
+	const int base = 1000 / fps;
+	const int rem = 1000 % fps;
+	int period = base;
+	s_bresenham_err += rem;
+	if (s_bresenham_err >= fps) {
+		period++;
+		s_bresenham_err -= fps;
+	}
+	return period < 1 ? 1 : period;
+}
+
+bool sofbuddy_exact_frame_allows(int extratime_ms, float maxfps_stored)
+{
+	if (maxfps_stored <= 0.0f || maxfps_stored == kClMaxfpsAutoSentinel) return true;
+	const int fps = sofbuddy_exact_fps_quantize(maxfps_stored);
+	return extratime_ms * fps >= 1000 - (1000 % fps);
+}
+
+void sofbuddy_exact_on_frame_window_start(float maxfps_stored)
+{
+	if (!sofbuddy_cl_maxfps_exact_enabled()) return;
+	if (maxfps_stored <= 0.0f || maxfps_stored == kClMaxfpsAutoSentinel) return;
+	g_cl_maxfps_target_msec =
+	    sofbuddy_exact_bresenham_period_ms(sofbuddy_exact_fps_quantize(maxfps_stored));
+}
+
+int sofbuddy_exact_frame_budget_ms(void)
+{
+	return g_cl_maxfps_target_msec;
+}
+
+void sofbuddy_sp_clear_sofplus_frame_delay_if_exact(void)
+{
+#if FEATURE_CL_MAXFPS_SINGLEPLAYER
+	if (!o_sofplus || !sofbuddy_cl_maxfps_exact_enabled()) return;
+	*(int*)((char*)o_sofplus + 0x331BC) = 0;
+#endif
+}
+
+float sofbuddy_cl_maxfps_effective_fps(float stored)
+{
+	if (stored == kClMaxfpsAutoSentinel || stored <= 0.0f) return 0.0f;
+	if (sofbuddy_cl_maxfps_exact_enabled()) return stored;
+	const int msec = legacy_budget_msec(stored);
+	return static_cast<float>(1000) / static_cast<float>(msec);
+}
+
+static int calc_target_msec(float maxfps)
+{
+	// Auto / uncapped: no frame budget, keep the sleep heuristic minimal.
+	if (maxfps == kClMaxfpsAutoSentinel || maxfps <= 0.0f) return 1;
+	// Exact: Bresenham ms periods (avg 1000/N); see sofbuddy_exact_on_frame_window_start.
+	// Legacy: list label → ceil(1000/label) ms (e.g. 63 → ~62.5 FPS effective).
+	if (sofbuddy_cl_maxfps_exact_enabled()) return g_cl_maxfps_target_msec;
+	return legacy_budget_msec(maxfps);
 }
 
 void mediaTimers_Request1msTimerPeriod(bool enable)
@@ -207,9 +304,14 @@ void sofbuddy_quantize_cl_maxfps(void)
 {
     if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_MEDIA_TIMERS)) return;
     if (!cl_maxfps || !cl_maxfps->string || !detour_Cvar_Set2::oCvar_Set2) return;
-    float best = cl_maxfps_ceil_step(cl_maxfps->value);
+    if (cl_maxfps->value == kClMaxfpsAutoSentinel) return;
     char buf[32];
-    snprintf(buf, sizeof(buf), "%g", static_cast<double>(best));
+    if (sofbuddy_cl_maxfps_exact_enabled()) {
+        snprintf(buf, sizeof(buf), "%d", sofbuddy_exact_fps_quantize(cl_maxfps->value));
+    } else {
+        const float best = cl_maxfps_ceil_step(cl_maxfps->value);
+        snprintf(buf, sizeof(buf), "%g", static_cast<double>(best));
+    }
     if (strcmp(cl_maxfps->string, buf) != 0)
         detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("cl_maxfps"), buf, true);
 }
@@ -231,23 +333,42 @@ void cl_maxfps_change(cvar_t *cvar)
     // "923" can therefore never be held. Keep in sync with the Framerate Cap list in
     // cpu_content.rmf (excluding the sentinel itself).
     // NOTE: exact == is safe - our own normalize writes the literal string "923".
-    if (cvar->value == 923.0f && !s_settling) {
+    if (cvar->value == kClMaxfpsAutoSentinel && !s_settling) {
         float want = previous_cl_maxfps;
-        float best = cl_maxfps_ceil_step(want);
-        PrintOut(PRINT_DEV, "cl_maxfps %f off-list, rounding up to step %f\n",
-                 static_cast<double>(want), static_cast<double>(best));
         s_settling = true;
         char buf[32];
-        snprintf(buf, sizeof(buf), "%g", static_cast<double>(best));
+        if (sofbuddy_cl_maxfps_exact_enabled()) {
+            snprintf(buf, sizeof(buf), "%d", sofbuddy_exact_fps_quantize(want));
+        } else {
+            const float best = cl_maxfps_ceil_step(want);
+            PrintOut(PRINT_DEV, "cl_maxfps %f off-list, rounding up to step %f\n",
+                     static_cast<double>(want), static_cast<double>(best));
+            snprintf(buf, sizeof(buf), "%g", static_cast<double>(best));
+        }
         detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("cl_maxfps"), buf, true);
         s_settling = false;
         return;
     }
 
-    // Floor the cap at 10fps. Anything lower is a slideshow and 0 uncaps entirely, which can
-    // freeze weak hardware - and menu <input> fields write every keystroke, so backspacing to
-    // "" would uncap mid-edit without this.
-    if (cvar->value < 10.0f && !s_settling) {
+    if (sofbuddy_cl_maxfps_exact_enabled() && cvar->value != kClMaxfpsAutoSentinel && !s_settling) {
+        const int fps = sofbuddy_exact_fps_quantize(cvar->value);
+        if (cvar->value < 10.0f) {
+            PrintOut(PRINT_DEV, "cl_maxfps %f below minimum, raising to 10\n",
+                     static_cast<double>(cvar->value));
+            s_settling = true;
+            detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("cl_maxfps"), const_cast<char*>("10"), true);
+            s_settling = false;
+            return;
+        }
+        if (std::fabs(cvar->value - static_cast<float>(fps)) > 0.01f) {
+            s_settling = true;
+            char buf[32];
+            snprintf(buf, sizeof(buf), "%d", fps);
+            detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("cl_maxfps"), buf, true);
+            s_settling = false;
+            return;
+        }
+    } else if (cvar->value < 10.0f && !s_settling) {
         PrintOut(PRINT_DEV, "cl_maxfps %f below minimum, raising to 10\n",
                  static_cast<double>(cvar->value));
         s_settling = true;
@@ -257,14 +378,55 @@ void cl_maxfps_change(cvar_t *cvar)
     }
 
     previous_cl_maxfps = cvar->value;
+#if FEATURE_CL_MAXFPS_SINGLEPLAYER
+    if (sofbuddy_cl_maxfps_exact_enabled()) {
+        sofbuddy_exact_bresenham_reset();
+        sofbuddy_exact_on_frame_window_start(cvar->value);
+    }
+#endif
     g_cl_maxfps_target_msec = calc_target_msec(cvar->value);
 
-    PrintOut(PRINT_DEV, "cl_maxfps is now %f (frame budget %d ms)\n",
-             static_cast<double>(previous_cl_maxfps), g_cl_maxfps_target_msec);
+    PrintOut(PRINT_DEV, "cl_maxfps is now %f (frame budget %d ms, exact %s)\n",
+             static_cast<double>(previous_cl_maxfps), g_cl_maxfps_target_msec,
+             sofbuddy_cl_maxfps_exact_enabled() ? "on" : "off");
+
+    sofbuddy_sp_clear_sofplus_frame_delay_if_exact();
+#if FEATURE_CL_MAXFPS_SINGLEPLAYER
+    mfps_set_exact_cl_frame_patch(sofbuddy_cl_maxfps_exact_enabled());
+#endif
 
     // Persist to SoFPlus's spm_settings.cfg on change (SoFPlus only saves it
     // from its own menu). No-op on vanilla.
     sofbuddy_cfg_save_sofplus_settings();
+}
+
+void cl_maxfps_exact_change(cvar_t* cvar)
+{
+    SOFBUDDY_ASSERT(cvar != nullptr);
+    if (!cl_maxfps || !detour_Cvar_Set2::oCvar_Set2) return;
+
+    const bool exact = cvar->value != 0.0f;
+    const float v = cl_maxfps->value;
+    if (v == kClMaxfpsAutoSentinel) {
+        cl_maxfps_change(cl_maxfps);
+        return;
+    }
+
+    char buf[32];
+    if (exact) {
+        // Literal integer FPS — do not remap through legacy ceil(1000/x) ms budgets.
+        snprintf(buf, sizeof(buf), "%d", sofbuddy_exact_fps_quantize(v));
+    } else {
+        const float best = cl_maxfps_ceil_step(v);
+        snprintf(buf, sizeof(buf), "%g", static_cast<double>(best));
+    }
+    if (strcmp(cl_maxfps->string, buf) != 0)
+        detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("cl_maxfps"), buf, true);
+    else
+        cl_maxfps_change(cl_maxfps);
+#if FEATURE_CL_MAXFPS_SINGLEPLAYER
+    mfps_set_exact_cl_frame_patch(exact);
+#endif
 }
 
 void
@@ -359,7 +521,10 @@ int winmain_loop(void)
 
 	SOFBUDDY_ASSERT(cls_state != nullptr);
 	SOFBUDDY_ASSERT(extratime != nullptr);
-	
+
+	if (sofbuddy_cl_maxfps_exact_enabled() && cl_maxfps && *extratime == 0)
+		sofbuddy_exact_on_frame_window_start(cl_maxfps->value);
+
 	int targetMsec = *cls_state == 7 ? 100 : g_cl_maxfps_target_msec;
 	SOFBUDDY_ASSERT(targetMsec > 0);
 
@@ -421,7 +586,7 @@ int winmain_loop(void)
 		//1MS has passed...
 
 		//Not really needed feature, but its there just in-case mb for slow laptops?
-		if ( sleep_jitter ) {
+		if ( sleep_jitter && !sofbuddy_cl_maxfps_exact_enabled() ) {
 			/*
 				This 'frame' cannot fit into the 'frame_window',
 				borrow from next 'frame_window'
@@ -485,6 +650,7 @@ int winmain_loop(void)
 		*(int*)((char*)o_sofplus + 0x331AC) = 0x00;
 		*(int*)((char*)o_sofplus + 0x331BC) = 0x00;
 		sp_Sys_Mil();
+		sofbuddy_sp_clear_sofplus_frame_delay_if_exact();
 	}
 
 	//higher msec value (less frequent) = lower frequency to server, more distance moved
@@ -559,6 +725,7 @@ int winmain_loop(void)
 		*(int*)((char*)o_sofplus + 0x331AC) = 0x00;
 		*(int*)((char*)o_sofplus + 0x331BC) = 0x00;
 		sp_Sys_Mil();
+		sofbuddy_sp_clear_sofplus_frame_delay_if_exact();
 	}	
 	#endif
 

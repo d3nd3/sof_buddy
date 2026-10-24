@@ -2,17 +2,37 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.43
+
+### Singleplayer framerate (F12 → CPU)
+
+- **Exact FPS cap** (`_sofbuddy_cl_maxfps_exact`, default `0`): with **Singleplayer Max FPS** on, set `1` so `cl_maxfps` is a **literal integer FPS** (10–360, e.g. `65` targets ~65 FPS). With exact off, the legacy **millisecond-budget** list still applies (e.g. list value `63` caps near **62.5** FPS).
+- **Bresenham pacing** in the media-timers main loop and a matching **`CL_Frame` gate** (call patch into the DLL, integer-only, applied only while exact is on) so the engine does not early-out on the old float `1000/cl_maxfps` compare.
+- **SoFPlus** `_sp_cl_frame_delay` is cleared in exact mode so SoFPlus does not stack a second `ceil(1000/fps)` limiter.
+- **Stability:** removed unsafe mid-function detours; restores broken inline `CL_Frame` patches from older test builds; defers the SP listen-server `CL_Frame` NOP until `cl_maxfps` exists.
+- **F12 → CPU:** separate RMF widgets for legacy framerate, exact integer cap, and Buddy presets.
+
+### Crosshairs (F12 → Gameplay)
+
+- **Theme picker** uses **`_sofbuddy_crosshair_theme`** plus stock `crosshair` **0–4**; packs load via **`FS_LoadFile`** routing (no `active_crosshair.pak` staging). Catalog/regenerated packs and menu list updated (`tools/generate_crosshair_catalog.py`).
+
+### Other
+
+- **Internal menus:** CPU tab sync for `_sb_internal_feature_cl_maxfps_singleplayer`; assorted tab/RGF layout fixes.
+- **VSync display** and **scaled UI** hooks: minor fixes aligned with crosshair asset paths.
+- **Docs/README:** exact vs legacy `cl_maxfps` semantics and new cvar table entry.
+
 ## v8.42
 
 ### Bug fixes
 
 - **Gameplay tab crash/freeze:** the crosshair `<list>` label string exceeded SoF’s 240-byte menu parser buffer; labels are abbreviated in the picker (tooltip still documents packs).
-- **Crosshair resets on restart:** the `crosshair` cvar is `CVAR_ARCHIVE` and was saved, but the crosshair picker forced its default over `config.cfg` at startup; the engine value now wins when they disagree.
+- **Crosshair picker now drives the engine `crosshair` cvar directly:** the shadow `_sofbuddy_crosshair_pick` cvar, `sof_buddy/active_crosshair.pak` staging, and the startup pick/config reconciliation are gone. The list writes values 0–32 onto `crosshair` itself (archived, shared with community configs). SCR_DrawCrosshair's stock 4.0f clamp is bypassed (branch patch at SoF.exe RVA `0x15DE8`), and the new extended values are served by the FS_LoadFile route: an engine request for `pics/menus/status/chN` (5–32) returns that entry's `ch{src_slot}.m32` sprite from its pack under `sof_buddy/crosshairs/`, which also fixes the restart-reset reports; stock rows 0–4 still use vanilla art.
 - **`cl_showfps` / `cl_maxfps` not persisting with SoFPlus:** F12/console changes save `spm_settings.cfg` on change and on exit (after SoFPlus’s startup restore), with chained callbacks so SoFPlus’s own handlers still run; programmatic master-server bootstrap no longer overwrites `spm_settings.cfg`.
 
 ### F12 menu
 
-- Tab bar: centered tab labels (`align center`); **Profile GUID** tab widened so text stays inside the box.
+- Tab bar: `align center` stacked every tab onto its own centered line (regression of the v8.42 changelog bullet: the engine treats widget `align` as line alignment, not label alignment inside the box). Tabs now flow side by side in a flush 4x3 wrapped grid with uniform 144px boxes (fitting the measured widest label, Profile GUID 121px + 8px border pads), so no label overflows and rows wrap cleanly.
 
 ### Updater (developer)
 

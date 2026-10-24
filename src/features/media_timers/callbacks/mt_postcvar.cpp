@@ -10,8 +10,7 @@
 void mediaTimers_PostCvarInit(void)
 {
 	PrintOut(PRINT_LOG, "Media timers: PostCvarInit\n");
-	cl_maxfps = detour_Cvar_Get::oCvar_Get("cl_maxfps","30",0,&cl_maxfps_change);
-	if (cl_maxfps) cl_maxfps_change(cl_maxfps);
+	create_mediatimers_cvars();
 
 	// Persistence owner for cl_maxfps (this feature owns the cvar + callback):
 	// - With SoFPlus: spm_settings.cfg owns it (saved on change and shutdown, see
@@ -25,9 +24,7 @@ void mediaTimers_PostCvarInit(void)
 		if (sofplus_present) cl_maxfps->flags &= ~CVAR_ARCHIVE;
 		else cl_maxfps->flags |= CVAR_ARCHIVE;
 	}
-	
-	create_mediatimers_cvars();
-	
+
 	PrintOut(PRINT_LOG, "Media timers: Applying memory patches...\n");
 }
 

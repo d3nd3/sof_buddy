@@ -16,6 +16,10 @@
 #include "generated_detours.h"
 #include "runtime_features.h"
 
+#if FEATURE_MEDIA_TIMERS
+#include "features/media_timers/shared.h"
+#endif
+
 #include <windows.h>
 #include <cstdio>
 #include <cstring>
@@ -126,7 +130,11 @@ void sofbuddy_refresh_display_info(void) {
 	// Warning condition for RMF <cinclude>: VSync must actually be able to cap below the
 	// display - swapinterval on, a real reading, and cap strictly below it. Uncapped
 	// (<= 0) can never mismatch by definition.
+#if FEATURE_MEDIA_TIMERS
+	const float cap = sofbuddy_cl_maxfps_effective_fps(vs_cl_maxfps->value);
+#else
 	const float cap = vs_cl_maxfps->value;
+#endif
 	const bool vsync_on = gl_swapinterval && gl_swapinterval->value != 0.0f;
 	const bool mismatch = vsync_on && actual > 1 && cap > 0.0f && cap < (float)actual;
 	detour_Cvar_Set2::oCvar_Set2(

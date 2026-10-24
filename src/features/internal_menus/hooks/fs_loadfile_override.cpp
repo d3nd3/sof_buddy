@@ -13,6 +13,7 @@
 #include <cctype>
 #include <cstdio>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <climits>
 #include <windows.h>
@@ -89,6 +90,26 @@ std::vector<std::string> vanilla_font_paks() {
     return result;
 }
 
+bool try_pak_toc(FILE* file, uint32_t toc_pos, uint32_t directory_length,
+                 const std::string& wanted, std::vector<unsigned char>& data) {
+    for (uint32_t pos = 0; pos < directory_length; pos += 64) {
+        char name[57] = {};
+        uint32_t offset = 0;
+        uint32_t length = 0;
+        if (std::fseek(file, static_cast<long>(toc_pos + pos), SEEK_SET) != 0) return false;
+        if (std::fread(name, 1, 56, file) != 56 ||
+            std::fread(&offset, sizeof(offset), 1, file) != 1 ||
+            std::fread(&length, sizeof(length), 1, file) != 1)
+            return false;
+        if (normalize_path(name) == wanted && length > 0 && length <= INT_MAX &&
+            std::fseek(file, static_cast<long>(offset), SEEK_SET) == 0) {
+            data.resize(length);
+            return std::fread(data.data(), 1, length, file) == length;
+        }
+    }
+    return false;
+}
+
 bool load_pak_entry(const std::string& pak_path, const std::string& wanted, std::vector<unsigned char>& data) {
     FILE* file = std::fopen(pak_path.c_str(), "rb");
     if (!file) return false;
@@ -100,29 +121,29 @@ bool load_pak_entry(const std::string& pak_path, const std::string& wanted, std:
                            std::fread(&directory_length, sizeof(directory_length), 1, file) == 1;
     if (!header_ok || std::memcmp(magic, "PACK", 4) != 0 ||
         directory_length == 0 || directory_length % 64 != 0 ||
-        directory_length > 64 * 1024 * 1024 ||
-        std::fseek(file, static_cast<long>(directory_offset), SEEK_SET) != 0) {
+        directory_length > 64 * 1024 * 1024) {
         std::fclose(file);
         return false;
     }
-    for (uint32_t pos = 0; pos < directory_length; pos += 64) {
-        char name[57] = {};
-        uint32_t offset = 0;
-        uint32_t length = 0;
-        if (std::fread(name, 1, 56, file) != 56 ||
-            std::fread(&offset, sizeof(offset), 1, file) != 1 ||
-            std::fread(&length, sizeof(length), 1, file) != 1)
+    std::fseek(file, 0, SEEK_END);
+    const long file_size = std::ftell(file);
+    // Older generator builds stored header+directory as the TOC offset instead of
+    // header+payloads; the directory then physically sits at the end of the file.
+    std::vector<uint32_t> candidates;
+    candidates.push_back(directory_offset);
+    if (file_size > 0 && static_cast<uint64_t>(file_size) >= directory_length &&
+        static_cast<uint64_t>(file_size) - directory_length != directory_offset)
+        candidates.push_back(static_cast<uint32_t>(file_size - directory_length));
+
+    bool found = false;
+    for (uint32_t toc_pos : candidates) {
+        if (try_pak_toc(file, toc_pos, directory_length, wanted, data)) {
+            found = true;
             break;
-        if (normalize_path(name) != wanted || length == 0 || length > INT_MAX ||
-            std::fseek(file, static_cast<long>(offset), SEEK_SET) != 0)
-            continue;
-        data.resize(length);
-        const bool read_ok = std::fread(data.data(), 1, length, file) == length;
-        std::fclose(file);
-        return read_ok;
+        }
     }
     std::fclose(file);
-    return false;
+    return found;
 }
 
 int selected_font_mode() {
@@ -166,6 +187,82 @@ bool load_selected_font(char* path, void** buffer, int& length) {
     return false;
 }
 
+#if FEATURE_MORE_CROSSHAIRS
+#include "crosshair_catalog.inc"
+
+static bool parse_preview_crosshair_path(const std::string& wanted, int& theme, int& slot) {
+    static const char kPrefix[] = "pics/menus/status/sbxch_";
+    const size_t prefix_len = sizeof(kPrefix) - 1;
+    if (wanted.size() <= prefix_len || wanted.compare(0, prefix_len, kPrefix) != 0) return false;
+    const char* rest = wanted.c_str() + prefix_len;
+    char* end = nullptr;
+    const long t = std::strtol(rest, &end, 10);
+    if (!end || *end != '_') return false;
+    const long s = std::strtol(end + 1, &end, 10);
+    if (s < 0 || s > 4) return false;
+    if (*end != '\0' && std::strcmp(end, ".m32") != 0) return false;
+    theme = static_cast<int>(t);
+    slot = static_cast<int>(s);
+    return true;
+}
+
+static bool serve_crosshair_pack(int theme, int slot, void** buffer, int& length) {
+    if (slot < 0 || slot > 4) return false;
+    if (theme < 0 || theme >= kCrosshairThemeCount) theme = 0;
+    const CrosshairThemeEntry& entry = kCrosshairThemes[theme];
+    if (!entry.pak_relpath || !entry.pak_relpath[0]) return false;
+
+    const std::string pak_path = game_base_dir() + "/sof_buddy/" + entry.pak_relpath;
+    char wanted_entry[64];
+    std::snprintf(wanted_entry, sizeof(wanted_entry), "pics/menus/status/ch%d.m32", slot);
+    std::vector<unsigned char> data;
+    if (!load_pak_entry(pak_path, wanted_entry, data) || data.empty()) return false;
+    if (!detour_Z_Malloc::oZ_Malloc) return false;
+    void* copy = detour_Z_Malloc::oZ_Malloc(static_cast<int>(data.size() + 1));
+    if (!copy) return false;
+    std::memcpy(copy, data.data(), data.size());
+    static_cast<unsigned char*>(copy)[data.size()] = 0;
+    *buffer = copy;
+    length = static_cast<int>(data.size());
+    return true;
+}
+
+// Theme packs: engine `crosshair` stays 0..4; `_sofbuddy_crosshair_theme` picks the
+// pack. Menu preview uses pics/menus/status/sbxch_{theme}_{slot} so GL image cache
+// refreshes when the theme changes.
+bool load_crosshair_art(char* path, void** buffer, int& length) {
+    if (!path) return false;
+    const std::string wanted = normalize_path(path);
+
+    int theme = 0;
+    int slot = 0;
+    if (parse_preview_crosshair_path(wanted, theme, slot))
+        return serve_crosshair_pack(theme, slot, buffer, length);
+
+    static const char kPrefix[] = "pics/menus/status/ch";
+    const size_t prefix_len = sizeof(kPrefix) - 1;
+    if (wanted.size() <= prefix_len || std::memcmp(wanted.c_str(), kPrefix, prefix_len) != 0)
+        return false;
+
+    const char* num = wanted.c_str() + prefix_len;
+    if (!std::isdigit(static_cast<unsigned char>(*num))) return false;
+    char* end = nullptr;
+    const long value = std::strtol(num, &end, 10);
+    const size_t value_digits = static_cast<size_t>(end - num);
+    const char* tail = wanted.c_str() + prefix_len + value_digits;
+    const bool plain = *tail == '\0';
+    const bool m32 = std::strcmp(tail, ".m32") == 0;
+    if (!plain && !m32) return false;
+    if (value < 0 || value > 4) return false;
+
+    if (detour_Cvar_Get::oCvar_Get) {
+        cvar_t* theme_cvar = detour_Cvar_Get::oCvar_Get("_sofbuddy_crosshair_theme", "0", 0, nullptr);
+        if (theme_cvar) theme = static_cast<int>(theme_cvar->value + 0.5f);
+    }
+    return serve_crosshair_pack(theme, static_cast<int>(value), buffer, length);
+}
+#endif
+
 // Normalize path to a key: lowercase, forward slashes, strip "menus/", "menu/", ".rmf".
 std::string path_to_menu_key(const char* path) {
     if (!path || !path[0]) return "";
@@ -202,6 +299,8 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
     if (!path || !buffer) return original(path, buffer, override_pak);
     int font_length = 0;
     if (load_selected_font(path, buffer, font_length)) return font_length;
+    int crosshair_length = 0;
+    if (load_crosshair_art(path, buffer, crosshair_length)) return crosshair_length;
     if (g_menu_internal_files.empty()) return original(path, buffer, override_pak);
 
     std::string menu_name = path_to_menu_name(path);
