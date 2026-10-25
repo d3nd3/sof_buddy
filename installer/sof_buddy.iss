@@ -445,6 +445,11 @@ begin
       mbError, MB_OK);
 end;
 
+function IsWine: Boolean;
+begin
+  Result := RegKeyExists(HKEY_CURRENT_USER, 'Software\Wine');
+end;
+
 function InstallDll: Boolean;
 var
   DllPath, StagedPath, ScriptPath, Parameters: String;
