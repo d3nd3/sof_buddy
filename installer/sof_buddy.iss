@@ -445,11 +445,6 @@ begin
       mbError, MB_OK);
 end;
 
-function IsWine: Boolean;
-begin
-  Result := RegKeyExists(HKEY_CURRENT_USER, 'Software\Wine');
-end;
-
 function InstallDll: Boolean;
 var
   DllPath, StagedPath, ScriptPath, Parameters: String;
@@ -537,7 +532,7 @@ var
   ResultCode: Integer;
   ScriptPath, Parameters: String;
 begin
-  if IsWine then begin
+  if RegKeyExists(HKEY_CURRENT_USER, 'Software\Wine') then begin
     if not ApplyWineDllPatch then
       MsgBox('Could not enable SoF Buddy automatically under Wine. Run sof_buddy/enable_sofplus_and_buddy.sh from the SoF folder.',
         mbError, MB_OK);
