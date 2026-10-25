@@ -67,7 +67,7 @@ begin
     '" -GameRoot "' + ExpandConstant('{app}') +
     '" -PatchKitRoot "' + ExpandConstant('{app}\sof_buddy\sofplus_patches') +
     '" -Variant "' + SoFPatchVariant + '"';
-  if IsWine then
+  if RegKeyExists(HKEY_CURRENT_USER, 'Software\Wine') then
     Parameters := Parameters + ' -UseWine';
   if not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
     Parameters, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) or (ResultCode <> 0) then
