@@ -607,7 +607,8 @@ begin
     SoFTasksAdjusted := True;
     ApplySoFDetectTaskDefaults;
     if SoFPatchVariant <> '' then
-      Log(Format('SoF detect: distribution=%s variant=%s raven_cleared=%s sofplus=%s', [SoFDistribution, SoFPatchVariant, BoolToStr(SoFRavenCompatCleared), BoolToStr(SoFPlusPresent)]));
+      Log('SoF detect: distribution=' + SoFDistribution + ' variant=' + SoFPatchVariant +
+        ' raven_cleared=' + IntToStr(Ord(SoFRavenCompatCleared)) + ' sofplus=' + IntToStr(Ord(SoFPlusPresent)));
   end;
 end;
 
