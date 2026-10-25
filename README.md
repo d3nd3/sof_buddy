@@ -52,6 +52,7 @@
 - 🌐 **HTTP Map Download Assist** — Download missing maps over HTTP and resume precache; provider URLs configurable via cvars.
 - 🌐 **GameSpy Master Selection** — Choose a known master server for SoFPlus from F12 → Network; the selected `_sp_cl_master_gamespy` value is saved by SoFPlus.
 - ⬆️ **In-Game Updater + Startup Prompt** — Check/download release zips in-game, with optional startup check and internal-menu prompt.
+- 🎮 **SoF Plus installer wizard** — Windows Setup optional task **Install SoF Plus client** applies the official **20140531** SoF Plus client patch (`spcl.dll`, `base/sofplus.pak`, and related files). After you choose the SoF folder, Setup inspects `SoF.exe` to pick **CD vs GOG** and whether the **KB4571756** Raven-string fix is already on the executable, then runs the matching bundled kit—no manual “stub vs full” choice. See [SoF Plus client (installer)](docs/WINDOWS_INSTALLER.md#sof-plus-client-20140531).
 - 🧓 **Windows XP Updater Mirror Defaults** — XP builds default updater feed URLs to `sofvault.org` (overrideable via cvars).
 - 📚 **Feature Docs** — See `src/features/internal_menus/README.md`, `src/features/http_maps/README.md`, `src/features/master_server_fallback/README.md`, and `src/features/cbuf_limit_increase/README.md`.
 
@@ -128,18 +129,27 @@ feature, and take effect after restarting SoF. On startup, those saved selection
 are read before hooks are registered and synchronized back to
 `sof_buddy/features.cfg`; that file remains the early-startup source of truth.
 It also offers a **Select Additional Tasks** page with **Optional installation
-options**. Both are checked by default:
+options**. After you pick the game directory, Setup probes `SoF.exe` and
+pre-checks the first two tasks when they still make sense for your retail build;
+**Install SoF Plus client** stays off unless you enable it.
 
 - **[OPTIONAL] Apply Windows 10+ Application Compatibility fix** — For a
   recognized `SoF.exe`, applies the same PE change GOG uses so the game behaves
   under Windows 10+ application compatibility. The original is saved as
-  `SoF.exe.sofbuddy.bak`. Unrecognized executables are not modified.
+  `SoF.exe.sofbuddy.bak`. Unrecognized executables are not modified. Skipped
+  when the KB4571756 Raven-string fix is already present on the executable.
 
 - **[OPTIONAL] Unlock full violence** — Recommended when you are not using
   SoFPlus's `spcl.dll`. Password, volume serial, and `-cs` key are optional.
   The installer sets SoF parental-control values for the volume that contains
   the chosen game folder, for the current Windows user only. Uninstalling SoF
   Buddy does not remove those per-user settings.
+
+- **[OPTIONAL] Install SoF Plus client (20140531)** — Bundles all four retail
+  patch kits (`cd`, `gog`, `cd-kb4571756`, `gog-kb4571756`); Setup selects one
+  from your `SoF.exe`, runs `sofplus-patch.exe`, and then enables
+  `enable_sofplus_and_buddy` so `sof_buddy.dll` loads `spcl.dll` when present.
+  Full detection rules: [WINDOWS_INSTALLER.md](docs/WINDOWS_INSTALLER.md#sof-plus-client-20140531).
 
 </details>
 
