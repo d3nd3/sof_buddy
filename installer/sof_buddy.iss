@@ -177,9 +177,10 @@ begin
 end;
 
 
-procedure InitializeSetup;
+function InitializeSetup(): Boolean;
 begin
   ExtractTemporaryFile('sof_install_detect.ps1');
+  Result := True;
 end;
 
 function GetVolumeInformationW(RootPathName, VolumeNameBuffer: string; VolumeNameSize: Cardinal;
