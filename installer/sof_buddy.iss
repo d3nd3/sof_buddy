@@ -1,5 +1,5 @@
 ; Generated from features/FEATURES.txt. Do not edit by hand.
-#define AppVersion "8.44"
+#define AppVersion "8.45"
 
 [Setup]
 AppId={{B0F7F5D4-4A1E-4F4A-A7B4-8CF2E7C9B1A6}}
@@ -612,8 +612,7 @@ begin
     SoFTasksAdjusted := True;
     ApplySoFDetectTaskDefaults;
     if SoFPatchVariant <> '' then
-      Log(Format('SoF detect: distribution=%s variant=%s raven_cleared=%s sofplus=%s',
-        [SoFDistribution, SoFPatchVariant, BoolToStr(SoFRavenCompatCleared), BoolToStr(SoFPlusPresent)]));
+      Log(Format('SoF detect: distribution=%s variant=%s raven_cleared=%s sofplus=%s', [SoFDistribution, SoFPatchVariant, BoolToStr(SoFRavenCompatCleared), BoolToStr(SoFPlusPresent)]));
   end;
 end;
 
