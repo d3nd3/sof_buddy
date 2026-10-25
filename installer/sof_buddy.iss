@@ -99,6 +99,12 @@ var
   FullViolenceModePage: TInputOptionWizardPage;
   FullViolenceSerial: Cardinal;
   SoFTasksAdjusted: Boolean;
+
+function IsWine: Boolean;
+begin
+  Result := RegKeyExists(HKEY_CURRENT_USER, 'Software\Wine');
+end;
+
   SoFDetectPath: String;
   SoFDistribution: String;
   SoFPatchVariant: String;
@@ -443,11 +449,6 @@ begin
     Parameters, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) or (ResultCode <> 0) then
     MsgBox('The Windows 10+ compatibility patch failed. Check the SoF.exe version and backup before retrying.',
       mbError, MB_OK);
-end;
-
-function IsWine: Boolean;
-begin
-  Result := RegKeyExists(HKEY_CURRENT_USER, 'Software\Wine');
 end;
 
 function InstallDll: Boolean;
