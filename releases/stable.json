@@ -1,24 +1,24 @@
 {
-  "tag_name": "v8.44-build253",
-  "name": "Release v8.44 (Build 253)",
-  "html_url": "https://github.com/d3nd3/sof_buddy/releases/tag/v8.44-build253",
-  "body": "### Crosshairs (F12 \u2192 Gameplay)\n\n- **Unified crosshair list** generated from real pack contents (`_sofbuddy_crosshair_pick` sets theme + stock slot **0\u20134**); legacy `crosshair` values **5+** still migrate on first load.\n- **Live menu preview** via `_sb_internal_crosshair_preview_rmf` (`status/chN` or `status/sbxch_{theme}_{slot}`); misc menu reloads when the pick changes so the image updates.\n- **Preview rendering:** menu paths use ref_gl **PIC** imagetype (3), not sprite; fixes white squares for pack art while stock **S0\u2013S4** still work.\n- **`FS_LoadFile` routing:** serves buddy-pack `m32` for preview and in-game `chN` requests; normalizes `pics/menus/` prefixes; repacks **mhp** / **sauron** paks with correct PACK TOC offsets (fixes `Invalid version` spam).\n- **`GL_FindImage` pre-hook** for crosshair menu image paths (sprite retry fallback retained).\n- **Stability:** removed nested menu keys from the crosshair list (F12 scroll crash); short list labels stay under SoF\u2019s 240-byte parser limit.\n\n### Release artifacts\n\n- GitHub release zips include **`sof_buddy/crosshairs/*.pak`**; catalog build no longer depends on loose `.m32` sources in the repo (pack-only assets).\n\n### Updater / F12 menu\n\n- Update prompt split into header / notes / footer RMF includes; **`reloadall`** after release-list refresh so open update menus show new notes.\n- Main menu content tweaks for update flow.\n",
-  "zip_url": "https://github.com/d3nd3/sof_buddy/releases/download/v8.44-build253/release_windows_universal.zip",
+  "tag_name": "v8.45-build270",
+  "name": "Release v8.45 (Build 270)",
+  "html_url": "https://github.com/d3nd3/sof_buddy/releases/tag/v8.45-build270",
+  "body": "### Windows installer \u2014 optional SoF Plus client\n\n- **Detect retail layout** from the GOG violence / parental-control cvar cluster (`0x201373BF`\u2013`0x20137453`); **CD** when that cluster is absent (file size is not used).\n- **Detect KB4571756-style exe fix** when UTF-16 `Raven Software` is cleared at `0x2015F1C0`; maps to `gog` / `gog-kb4571756` or `cd` / `cd-kb4571756` patch kits.\n- Bundled **20140531 SoF Plus client patch kits**, `install_sofplus_client.ps1`, and installer task; skips Raven compat script when the exe already has the KB fix.\n- Docs: `docs/WINDOWS_INSTALLER.md`, `tools/test_sof_install_detect.py`.\n\n### Updater / stable channel\n\n- **Stable release pointer** (`releases/stable.json`, `raw.githubusercontent.com` feed) and in-game **Stable vs Latest** install target.\n- **Release list** filtering, downgrade flow RMF, GUI updater improvements, and expanded `tools/update_test` (robustness + `verify_updater.py`).\n- SofVault mirror script notes for stable JSON sync.\n\n### Other\n\n- F12 update prompt RMF refactor (`update_prompt_content.rmf`, downgrade menus).\n- Minor crosshair `FS_LoadFile` / UI-scale menu tweaks.\n",
+  "zip_url": "https://github.com/d3nd3/sof_buddy/releases/download/v8.45-build270/release_windows_universal.zip",
   "assets": [
     {
-      "browser_download_url": "https://github.com/d3nd3/sof_buddy/releases/download/v8.44-build253/release_windows_universal.zip"
+      "browser_download_url": "https://github.com/d3nd3/sof_buddy/releases/download/v8.45-build270/release_windows_universal.zip"
     },
     {
-      "browser_download_url": "https://github.com/d3nd3/sof_buddy/releases/download/v8.44-build253/release_linux_wine_universal.zip"
+      "browser_download_url": "https://github.com/d3nd3/sof_buddy/releases/download/v8.45-build270/release_linux_wine_universal.zip"
     },
     {
-      "browser_download_url": "https://github.com/d3nd3/sof_buddy/releases/download/v8.44-build253/release_windows.zip"
+      "browser_download_url": "https://github.com/d3nd3/sof_buddy/releases/download/v8.45-build270/release_windows.zip"
     },
     {
-      "browser_download_url": "https://github.com/d3nd3/sof_buddy/releases/download/v8.44-build253/release_linux_wine.zip"
+      "browser_download_url": "https://github.com/d3nd3/sof_buddy/releases/download/v8.45-build270/release_linux_wine.zip"
     },
     {
-      "browser_download_url": "https://github.com/d3nd3/sof_buddy/releases/download/v8.44-build253/release_windows_xp.zip"
+      "browser_download_url": "https://github.com/d3nd3/sof_buddy/releases/download/v8.45-build270/release_windows_xp.zip"
     }
   ],
   "stable": true
