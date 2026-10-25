@@ -166,3 +166,26 @@ Release helper: `./tools/new_release.sh`.
 - Confirm the tag on https://github.com/d3nd3/sof_buddy/releases
 - In-game updater and badges use the new `vX.Y-build<N>` tag
 - Normal bugfix work on `master` does not need a `VERSION` bump until the next public release
+
+## Stable release channel (updater)
+
+Every CI release updates **latest** (GitHub `releases/latest`, sofvault `latest.json`). Players default to **stable** — a tag you choose when a build is ready for everyone.
+
+**Promote an existing tag to stable** (any time, any published release):
+
+```sh
+./tools/set_stable_release.py v8.44-build253
+git add releases/stable.json
+git commit -m "Set stable release to v8.44-build253"
+git push
+```
+
+Optional mirrors:
+
+```sh
+./tools/set_stable_release.py v8.44-build253 --sofvault-root /var/www/html/sofvault.org/sof_buddy/releases
+```
+
+- Writes `releases/stable.json` in git (used by `raw.githubusercontent.com` when the game checks **stable**).
+- Does **not** create a new GitHub release; it only moves the stable pointer.
+- Users who want the bleeding-edge build set `_sofbuddy_update_target_tag` to `latest`.

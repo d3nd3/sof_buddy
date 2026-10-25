@@ -1,0 +1,12 @@
+{
+  "tag_name": "99.0.0-test",
+  "name": "Update test — stable (fixture)",
+  "html_url": "http://127.0.0.1:8765/releases/page",
+  "body": "Stable channel fixture. Newer bleeding-edge release is **99.1.0-test** on latest.json only.",
+  "zip_url": "http://127.0.0.1:8765/files/release_windows_universal.zip",
+  "stable": true,
+  "assets": [
+    {"browser_download_url": "http://127.0.0.1:8765/files/release_windows_universal.zip"},
+    {"browser_download_url": "http://127.0.0.1:8765/files/release_linux_wine_universal.zip"}
+  ]
+}

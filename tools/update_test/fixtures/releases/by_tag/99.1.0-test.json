@@ -3,5 +3,11 @@
   "name": "Update test — long notes (fixture)",
   "html_url": "http://127.0.0.1:8765/releases/page",
   "body": "## Long release notes\n\n### Section A\n\n- Bullet one with `code` and **bold**\n- Bullet two [link](https://example.com)\n\n### Section B\n\nLorem ipsum repeated for RMF chunking. Lorem ipsum repeated for RMF chunking. Lorem ipsum repeated for RMF chunking. Lorem ipsum repeated for RMF chunking. Lorem ipsum repeated for RMF chunking. Lorem ipsum repeated for RMF chunking. Lorem ipsum repeated for RMF chunking. Lorem ipsum repeated for RMF chunking. Lorem ipsum repeated for RMF chunking. Lorem ipsum repeated for RMF chunking.\n\n### Section C\n\nMore text for the update prompt scroll test.",
-  "zip_url": "http://127.0.0.1:8765/releases/files/release_windows_universal.zip"
+  "zip_url": "http://127.0.0.1:8765/files/release_windows_universal.zip",
+  "assets": [
+    {"browser_download_url": "http://127.0.0.1:8765/files/release_windows_universal.zip"},
+    {"browser_download_url": "http://127.0.0.1:8765/files/release_linux_wine_universal.zip"},
+    {"browser_download_url": "http://127.0.0.1:8765/files/release_windows.zip"},
+    {"browser_download_url": "http://127.0.0.1:8765/files/release_linux_wine.zip"}
+  ]
 }

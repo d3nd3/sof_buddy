@@ -24,7 +24,8 @@ def main() -> None:
     ap.add_argument("--port", type=int, default=8765)
     args = ap.parse_args()
     httpd = ThreadingHTTPServer((args.host, args.port), Handler)
-    print(f"Fixture feed: http://{args.host}:{args.port}/releases/latest.json")
+    print(f"Stable feed:  http://{args.host}:{args.port}/releases/stable.json")
+    print(f"Latest feed:  http://{args.host}:{args.port}/releases/latest.json")
     print(f"Files root:   {FIXTURES}")
     print("Ctrl+C to stop.")
     try:

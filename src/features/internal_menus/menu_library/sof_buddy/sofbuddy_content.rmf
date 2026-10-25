@@ -61,6 +61,7 @@
 "Startup"
 <font type title tint white atint white>
 <list "Off,On" match "0,1" cvar _sofbuddy_update_check_startup atext "Check updates on startup : " noshade tip "Runs release check when SoF starts."><br>
+<list "Off,On" match "0,1" cvar _sofbuddy_update_startup_stable_only atext "Startup notify stable only : " noshade tip "On: auto update prompt only when stable.json is newer than your build. Off: uses Install version on F12. Default On."><br>
 
 <font type title tint sb_subtle atint sb_subtle>
 "_____________________________"

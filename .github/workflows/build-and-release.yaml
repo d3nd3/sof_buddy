@@ -120,6 +120,9 @@ jobs:
           cp rsrc/assets/crosshairs/*.pak sof_buddy/crosshairs/
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
+          cp rsrc/win_scripts/sof_install_detect.ps1 sof_buddy/
+          cp rsrc/win_scripts/install_sofplus_client.ps1 sof_buddy/
+          cp -r rsrc/sofplus_client_patches sof_buddy/sofplus_patches
           cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
           cp bin/sof_buddy.dll sof_buddy.dll
           zip -r release_windows.zip sof_buddy.dll sof_buddy/
@@ -134,6 +137,9 @@ jobs:
           rm -f sof_buddy/*.cmd sof_buddy/*.sh sof_buddy/*.ps1
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
+          cp rsrc/win_scripts/sof_install_detect.ps1 sof_buddy/
+          cp rsrc/win_scripts/install_sofplus_client.ps1 sof_buddy/
+          cp -r rsrc/sofplus_client_patches sof_buddy/sofplus_patches
           cp rsrc/win_scripts/update_from_zip.cmd sof_buddy/
           test -f bin/sof_buddy-universal.dll || make universal
           test -f bin/sof_buddy_update.exe || make win-updater

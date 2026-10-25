@@ -23,9 +23,11 @@ Output layout:
 
 ```
 $SOFVAULT_ROOT/
-  latest.json          # latest manifest (tag_name, html_url, zip_url)
+  latest.json          # newest GitHub release (updates every sync)
+  stable.json          # blessed stable release (only tools/set_stable_release.py)
   list.json            # GitHub /releases?per_page=100 (Refresh Release List on XP)
-  latest               # plain tag text
+  latest               # plain tag text (newest)
+  stable               # plain tag text (stable pointer)
   .synced_tag          # last downloaded tag
   by_tag/              # per-tag manifests for install-version picker
     v6.6-build170.json

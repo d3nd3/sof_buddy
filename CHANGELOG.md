@@ -2,6 +2,26 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.45
+
+### Windows installer — optional SoF Plus client
+
+- **Detect retail layout** from the GOG violence / parental-control cvar cluster (`0x201373BF`–`0x20137453`); **CD** when that cluster is absent (file size is not used).
+- **Detect KB4571756-style exe fix** when UTF-16 `Raven Software` is cleared at `0x2015F1C0`; maps to `gog` / `gog-kb4571756` or `cd` / `cd-kb4571756` patch kits.
+- Bundled **20140531 SoF Plus client patch kits**, `install_sofplus_client.ps1`, and installer task; skips Raven compat script when the exe already has the KB fix.
+- Docs: `docs/WINDOWS_INSTALLER.md`, `tools/test_sof_install_detect.py`.
+
+### Updater / stable channel
+
+- **Stable release pointer** (`releases/stable.json`, `raw.githubusercontent.com` feed) and in-game **Stable vs Latest** install target.
+- **Release list** filtering, downgrade flow RMF, GUI updater improvements, and expanded `tools/update_test` (robustness + `verify_updater.py`).
+- SofVault mirror script notes for stable JSON sync.
+
+### Other
+
+- F12 update prompt RMF refactor (`update_prompt_content.rmf`, downgrade menus).
+- Minor crosshair `FS_LoadFile` / UI-scale menu tweaks.
+
 ## v8.44
 
 ### Crosshairs (F12 → Gameplay)

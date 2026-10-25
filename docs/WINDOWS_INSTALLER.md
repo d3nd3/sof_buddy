@@ -101,7 +101,7 @@ to Windows' application-compatibility database.
 
 ## Installation options
 
-### Windows 10+ Application Compatibility Fix
+### Windows 10+ Application Compatibility fix
 
 The checked-by-default **Apply Windows 10+ Application Compatibility fix**
 option on the installer's separate **Select Additional Tasks** page runs
@@ -111,10 +111,34 @@ maps virtual address `0x2015F1C0` to the file, verifies the expected
 `Raven Software` string, and zeroes that string. This prevents the Windows
 Application Compatibility Toolkit database match used by the GOG-style fix.
 
+Setup skips this step automatically when detection reports the KB4571756-style
+fix already present on `SoF.exe` (UTF-16 `Raven Software` cleared at
+`0x2015F1C0`).
+
 The original executable is saved as `SoF.exe.sofbuddy.bak`. Unexpected PE
 layouts or bytes are rejected without modifying the executable. The script is
 idempotent for an already-patched executable, but the installer does not
 automatically restore the backup when uninstalled.
+
+### SoF Plus client (20140531)
+
+The optional **Install SoF Plus client** task runs `install_sofplus_client.ps1`,
+which inspects `SoF.exe` and picks one of four bundled kits:
+
+| Detected retail | KB4571756 fix on exe | Kit folder |
+| --- | --- | --- |
+| CD | No | `cd` |
+| CD | Yes | `cd-kb4571756` |
+| GOG | No | `gog` |
+| GOG | Yes | `gog-kb4571756` |
+
+**GOG** is inferred from the violence cvar cluster at `0x201373BF`–`0x20137453`.
+**CD** is inferred when that cluster is absent (file size is not used). The KB
+column is from UTF-16 `Raven Software` cleared at `0x2015F1C0`.
+
+No manual choice between “stub” and “full” GOG is required. After SoF Plus files
+are installed, Setup runs `enable_sofplus_and_buddy` so `SoF.exe` loads
+`sof_buddy.dll`, which loads `spcl.dll` when present.
 
 ### Full violence
 

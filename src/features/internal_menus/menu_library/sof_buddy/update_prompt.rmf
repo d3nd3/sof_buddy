@@ -1,12 +1,6 @@
 <stm resize 640 480 global nopush>
 <include tints>
 
-<key n "killmenu">
-<key y "killmenu;sofbuddy_update download;sofbuddy_update_install">
-<key escape "killmenu">
-
-<frame shell 640 0 border 40 1 gray backfill black>
-<frame header 640 132 cut shell page sof_buddy/update_prompt_header>
-<frame notes 640 0 cut shell page sof_buddy/update_prompt_notes>
-<frame footer 640 96 cut shell page sof_buddy/update_prompt_footer>
+<frame main 0 0 border 40 1 gray backfill black>
+<frame alert 0 0 page sof_buddy/update_prompt_content cut main>
 </stm>

@@ -89,3 +89,4 @@ done
 
 echo "$TAG" > "$ROOT/latest"
 echo "Synced $TAG -> $FN (+ list.json, $(find "$BY_TAG" -name '*.json' | wc -l) tag manifests)"
+echo "Note: stable.json is not updated by this script; run tools/set_stable_release.py <tag> --sofvault-root \"$ROOT\""

@@ -11,7 +11,7 @@
 	- _sofbuddy_hud_scale_auto: Auto HUD scale from resolution (default: 1)
 	- _sofbuddy_crossh_scale: Scale factor for crosshair textures (default: 1.0)
 - _sofbuddy_icons_autoscale: Scale team icons + playernames with HUD scale (default: 1)
-	- _sofbuddy_scale_round_auto: Snap auto font/HUD scale to round steps (default: 0)
+	- _sofbuddy_scale_round_auto: Snap cinematic image scale to round steps (default: 0)
 	- _sofbuddy_scale_round_ratio: Round step for scale values (default: 0.25)
 	- _sofbuddy_font_pack: Font mode (0=default, 1=force SoFPlus, 2=force vanilla)
 */

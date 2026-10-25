@@ -18,10 +18,10 @@ Production URLs are **blocked** unless `_sofbuddy_update_allow_production_urls 1
 1. **Build** (on a machine with mingw): `make update-test`
 2. **Serve fixtures** (same host as Wine, or LAN): `make update-test-serve`  
    → `http://127.0.0.1:8765/releases/latest.json`
-3. **Install OLD dll** as `sof_buddy.dll` in a throwaway SoF tree (back up your real DLL).
+3. **Install OLD dll** as `sof_buddy.dll` in a throwaway SoF tree (back up your real DLL).  
+   Copy the kit’s **`sof_buddy/`** folder (or at least **`sof_buddy_update.exe`**, **`update_from_zip.cmd`**, **`update_from_zip.sh`**) into your game tree. On Wine, use the **`bin/sof_buddy_update.exe`** from `make win-updater` (static build)—see [DEBUGGING_UPDATER.md](../../DEBUGGING_UPDATER.md#wine--proton-linux).
 4. **Launch SoF** — startup check should offer **99.0.0-test** (fixture, not cloud).
-5. **`sofbuddy_update download`** (or use the startup prompt).
-6. **`sofbuddy_update_install`** (or install from the menu) — game should **quit**; engine **`winstart`** runs `update_from_zip.cmd` / GUI updater.
+5. On the startup prompt, choose **Download + install (Y)** — one step: download, then quit; **`winstart`** runs `update_from_zip.cmd` / GUI updater.
 7. **Relaunch SoF** — you should now be on **`99.0.0-test`** (F12 → Version / `_sp_cl_info_sofbuddy` shows `update-test-99.0.0-test-…`).
 8. Confirm **`sof_buddy/update/TEST_UPDATE_PAYLOAD.txt`** exists.
 9. Second launch: startup check should be **up to date** (same fixture tag as installed DLL).
@@ -43,9 +43,32 @@ Private LAN IPs are allowed; `github.com` / `sofvault.org` are not.
 
 | Goal | Command / setting |
 |------|-------------------|
+| Stable vs latest channels | Default target **stable** → `stable.json` (99.0.0-test); **latest** → `latest.json` (99.1.0-test) |
 | Long release notes in prompt | `set _sofbuddy_update_target_tag 99.1.0-test` then `sofbuddy_update prompt` |
 | Release list UI | `sofbuddy_update releases` |
 | Disable startup check | `_sofbuddy_update_check_startup 0` |
+| Graphical updater (progress bar) | `sof_buddy/sof_buddy_update.exe` required when `_sofbuddy_update_use_gui` is 1 (default on universal) |
+
+## Verify updater artifacts
+
+```bash
+make update-test-verify
+```
+
+Checks static `sof_buddy_update.exe` and Wine-safe `update_from_zip.cmd`.
+
+## Linux / Wine: `Base` vs `base`
+
+Game data lives in **`Base/`** (pak files). Do **not** create a separate lowercase **`base/`** directory on a case-sensitive filesystem (typical Linux Wine prefixes). An empty `base/` makes SoF fail with *Could not open string package 'str_server'*. The robustness script writes only `Base/sofbuddy.cfg`.
+
+## Robustness suite
+
+```bash
+make update-test-serve   # in another terminal
+make update-test-robustness
+```
+
+HTTP fixtures, version/list-filter logic, zip payload, updater binary checks, and (when `SoF.exe` starts under Wine) startup manifest tests for **startup stable-only** vs **install target = latest**.
 
 ## Rebuild fixture zips after code changes
 

@@ -1,5 +1,5 @@
 ; Generated from features/FEATURES.txt. Do not edit by hand.
-#define AppVersion "8.30"
+#define AppVersion "8.44"
 
 [Setup]
 AppId={{B0F7F5D4-4A1E-4F4A-A7B4-8CF2E7C9B1A6}}
@@ -49,6 +49,7 @@ Name: "features\recommended\graphics_features\hd_textures"; Description: "Hd Tex
 Name: "features\recommended\graphics_features\vsync_toggle"; Description: "Vsync Toggle"; Types: full custom
 Name: "features\recommended\graphics_features\lighting_blend"; Description: "Lighting Blend"; Types: full custom
 Name: "features\recommended\gameplay_features"; Description: "Gameplay Features"; Types: full custom
+Name: "features\recommended\gameplay_features\more_crosshairs"; Description: "More Crosshairs"; Types: full custom
 Name: "features\recommended\gameplay_features\teamicons_offset"; Description: "Teamicons Offset"; Types: full custom
 Name: "features\recommended\networking_features"; Description: "Networking Features"; Types: full custom
 Name: "features\recommended\networking_features\http_maps"; Description: "Http Maps"; Types: full custom
@@ -66,14 +67,18 @@ Name: "features\optional\gameplay_features"; Description: "Gameplay Features"; T
 Name: "features\optional\gameplay_features\entity_visualizer"; Description: "Entity Visualizer"; Types: custom
 
 [Tasks]
-Name: "appcompat_fix"; Description: "[OPTIONAL] Apply Windows 10+ Application Compatibility fix (recommended)"; GroupDescription: "Optional installation options:"
+Name: "appcompat_fix"; Description: "[OPTIONAL] Windows 10+ Application Compatibility fix (Raven string at 0x2015F1C0; usually skip for GOG 2022/community or SoF Plus kb kits)"; GroupDescription: "Optional installation options:"
 Name: "full_violence"; Description: "[OPTIONAL] Unlock full violence (highly recommended if not using SoFPlus spcl.dll)"; GroupDescription: "Optional installation options:"
+Name: "install_sofplus"; Description: "[OPTIONAL] Install SoF Plus client (20140531; CD or GOG kit chosen from your SoF.exe)"; GroupDescription: "Optional installation options:"
 
 [Files]
 Source: "payload\sof_buddy.dll"; DestDir: "{app}\sof_buddy"; DestName: "sof_buddy.dll.new"; Flags: ignoreversion
 Source: "payload\sof_buddy\*"; DestDir: "{app}\sof_buddy"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\rsrc\win_scripts\replace_sof_buddy_dll.cmd"; DestDir: "{app}\sof_buddy"; Flags: ignoreversion
 Source: "..\rsrc\win_scripts\patch_windows_compat.ps1"; DestDir: "{app}\sof_buddy"; Tasks: appcompat_fix; Flags: ignoreversion
+Source: "..\rsrc\win_scripts\sof_install_detect.ps1"; Flags: dontcopy
+Source: "..\rsrc\win_scripts\install_sofplus_client.ps1"; DestDir: "{app}\sof_buddy"; Flags: ignoreversion
+Source: "..\rsrc\sofplus_client_patches\*"; DestDir: "{app}\sof_buddy\sofplus_patches"; Tasks: install_sofplus; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [UninstallDelete]
 Type: files; Name: "{app}\sof_buddy.dll"
@@ -93,6 +98,89 @@ var
   FullViolencePage: TInputQueryWizardPage;
   FullViolenceModePage: TInputOptionWizardPage;
   FullViolenceSerial: Cardinal;
+  SoFTasksAdjusted: Boolean;
+  SoFDetectPath: String;
+  SoFDistribution: String;
+  SoFPatchVariant: String;
+  SoFRavenCompatCleared: Boolean;
+  SoFPlusPresent: Boolean;
+  SoFRecommendAppcompat: Boolean;
+  SoFRecommendFullViolence: Boolean;
+
+function SoFDetectValue(const Key: String): String;
+var
+  Lines: TArrayOfString;
+  I, P: Integer;
+  Line, K: String;
+begin
+  Result := '';
+  if SoFDetectPath = '' then exit;
+  if not LoadStringsFromFile(SoFDetectPath, Lines) then exit;
+  for I := 0 to GetArrayLength(Lines) - 1 do begin
+    Line := Trim(Lines[I]);
+    P := Pos('=', Line);
+    if P <= 1 then continue;
+    K := Trim(Copy(Line, 1, P - 1));
+    if CompareText(K, Key) = 0 then begin
+      Result := Trim(Copy(Line, P + 1, MaxInt));
+      exit;
+    end;
+  end;
+end;
+
+function RunSoFDetect(const GameRoot: String): Boolean;
+var
+  ResultCode: Integer;
+  ScriptPath, Parameters: String;
+begin
+  SoFDetectPath := ExpandConstant('{tmp}\sofbuddy_sof_detect.ini');
+  ScriptPath := ExpandConstant('{tmp}\sof_install_detect.ps1');
+  Parameters := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptPath +
+    '" -GameRoot "' + GameRoot + '" -OutFile "' + SoFDetectPath + '"';
+  Result := Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+    Parameters, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) and (ResultCode = 0);
+  if not Result then exit;
+  SoFDistribution := SoFDetectValue('distribution');
+  SoFPatchVariant := SoFDetectValue('patch_variant');
+  SoFRavenCompatCleared := (SoFDetectValue('kb4571756_exe_fix') = '1') or
+    (SoFDetectValue('raven_compat_cleared') = '1');
+  SoFPlusPresent := SoFDetectValue('sofplus_present') = '1';
+  SoFRecommendAppcompat := SoFDetectValue('recommend_appcompat') <> '0';
+  SoFRecommendFullViolence := SoFDetectValue('recommend_full_violence') <> '0';
+end;
+
+procedure ApplySoFDetectTaskDefaults;
+begin
+  if SoFDetectPath = '' then exit;
+  if WizardForm.TasksList.Items.Count < 3 then exit;
+  WizardForm.TasksList.Checked[0] := SoFRecommendAppcompat;
+  WizardForm.TasksList.Checked[1] := SoFRecommendFullViolence;
+  WizardForm.TasksList.Checked[2] := False;
+end;
+
+procedure InstallSoFPlusClient;
+var
+  ResultCode: Integer;
+  ScriptPath, Parameters: String;
+begin
+  ScriptPath := ExpandConstant('{app}\sof_buddy\install_sofplus_client.ps1');
+  Parameters := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptPath +
+    '" -GameRoot "' + ExpandConstant('{app}') +
+    '" -PatchKitRoot "' + ExpandConstant('{app}\sof_buddy\sofplus_patches') +
+    '" -Variant "' + SoFPatchVariant + '"';
+  if IsWine then
+    Parameters := Parameters + ' -UseWine';
+  if not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+    Parameters, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) or (ResultCode <> 0) then
+    MsgBox('SoF Plus client installation failed. You can run install_sofplus_client.ps1 from the sof_buddy folder after setup.',
+      mbError, MB_OK);
+end;
+
+
+procedure InitializeSetup;
+begin
+  ExtractTemporaryFile('sof_install_detect.ps1');
+end;
 
 function GetVolumeInformationW(RootPathName, VolumeNameBuffer: string; VolumeNameSize: Cardinal;
   var VolumeSerialNumber, MaximumComponentLength, FileSystemFlags: Cardinal;
@@ -340,6 +428,10 @@ var
   ResultCode: Integer;
   ScriptPath, Parameters: String;
 begin
+  if SoFRavenCompatCleared then begin
+    Log('Skipping Raven compat patch; KB4571756-style fix already on SoF.exe.');
+    exit;
+  end;
   if RegKeyExists(HKEY_CURRENT_USER, 'Software\Wine') then begin
     Log('Skipping Windows compatibility fix under Wine.');
     exit;
@@ -477,6 +569,7 @@ begin
   AddFeatureLine(Config, 'hd_textures', 'features\recommended\graphics_features\hd_textures');
   AddFeatureLine(Config, 'vsync_toggle', 'features\recommended\graphics_features\vsync_toggle');
   AddFeatureLine(Config, 'lighting_blend', 'features\recommended\graphics_features\lighting_blend');
+  AddFeatureLine(Config, 'more_crosshairs', 'features\recommended\gameplay_features\more_crosshairs');
   AddFeatureLine(Config, 'teamicons_offset', 'features\recommended\gameplay_features\teamicons_offset');
   AddFeatureLine(Config, 'http_maps', 'features\recommended\networking_features\http_maps');
   AddFeatureLine(Config, 'master_server_fallback', 'features\recommended\networking_features\master_server_fallback');
@@ -492,11 +585,14 @@ end;
 function NextButtonClick(CurPageID: Integer): Boolean;
 begin
   Result := True;
-  if CurPageID = wpSelectDir then
+  if CurPageID = wpSelectDir then begin
     if not FileExists(AddBackslash(WizardDirValue) + 'SoF.exe') then begin
       MsgBox('Choose the Soldier of Fortune folder containing SoF.exe.', mbError, MB_OK);
       Result := False;
-    end;
+    end else if not RunSoFDetect(AddBackslash(WizardDirValue)) then
+      Log('SoF install detection failed; optional task defaults were not adjusted.');
+    SoFTasksAdjusted := False;
+  end;
   if (CurPageID = FullViolencePage.ID) and WizardIsTaskSelected('full_violence') then begin
     if not IsValidViolencePassword(FullViolencePage.Values[0]) then begin
       MsgBox('The password must contain 0 to 31 printable ASCII characters.', mbError, MB_OK);
@@ -510,9 +606,22 @@ begin
   end;
 end;
 
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if (CurPageID = wpSelectTasks) and (not SoFTasksAdjusted) then begin
+    SoFTasksAdjusted := True;
+    ApplySoFDetectTaskDefaults;
+    if SoFPatchVariant <> '' then
+      Log(Format('SoF detect: distribution=%s variant=%s raven_cleared=%s sofplus=%s',
+        [SoFDistribution, SoFPatchVariant, BoolToStr(SoFRavenCompatCleared), BoolToStr(SoFPlusPresent)]));
+  end;
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then begin
+    if WizardIsTaskSelected('install_sofplus') then
+      InstallSoFPlusClient;
     InstallDll;
     VerifyInstalledDll;
     EnableSoFBuddy;

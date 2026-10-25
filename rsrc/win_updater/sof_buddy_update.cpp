@@ -6,9 +6,13 @@
 #include <shellapi.h>
 #include <shlwapi.h>
 
+#define MINIZ_IMPL
+#include "miniminiz.h"
+
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <algorithm>
 
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "shlwapi.lib")
@@ -158,10 +162,11 @@ bool resolve_paths(const std::wstring& zip_arg) {
     const size_t slash = dir.find_last_of(L"\\/");
     if (slash == std::wstring::npos) return false;
     dir.resize(slash);
-    if (dir.size() >= 9) {
-        const std::wstring tail = dir.substr(dir.size() - 9);
+    constexpr size_t kBuddyDirSuffix = 10; // \sof_buddy or /sof_buddy
+    if (dir.size() >= kBuddyDirSuffix) {
+        const std::wstring tail = dir.substr(dir.size() - kBuddyDirSuffix);
         if (_wcsicmp(tail.c_str(), L"\\sof_buddy") == 0 || _wcsicmp(tail.c_str(), L"/sof_buddy") == 0)
-            g_root = dir.substr(0, dir.size() - 9);
+            g_root = dir.substr(0, dir.size() - kBuddyDirSuffix);
         else
             g_root = dir;
     } else {
@@ -200,11 +205,222 @@ bool env_set(const wchar_t* name, const wchar_t* value) {
     return SetEnvironmentVariableW(name, value) != FALSE;
 }
 
-DWORD WINAPI worker_thread(LPVOID) {
-    DeleteFileW(g_progress_file.c_str());
-    CreateDirectoryW((g_root + L"\\sof_buddy\\update").c_str(), nullptr);
+std::string wide_to_path(const std::wstring& w) {
+    if (w.empty()) return std::string();
+    int n = WideCharToMultiByte(CP_ACP, 0, w.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    if (n <= 0) return std::string();
+    std::string out(static_cast<size_t>(n), '\0');
+    WideCharToMultiByte(CP_ACP, 0, w.c_str(), -1, &out[0], n, nullptr, nullptr);
+    if (!out.empty() && out.back() == '\0') out.pop_back();
+    return out;
+}
 
-    const bool fresh = (g_fresh && SendMessageW(g_fresh, BM_GETCHECK, 0, 0) == BST_CHECKED);
+bool ensure_parent_dirs_a(const std::string& file_path) {
+    std::string normalized = file_path;
+    std::replace(normalized.begin(), normalized.end(), '\\', '/');
+    size_t slash = 0;
+    while ((slash = normalized.find('/', slash)) != std::string::npos) {
+        std::string dir = normalized.substr(0, slash++);
+        if (dir.empty() || (dir.size() == 2 && dir[1] == ':')) continue;
+        if (!CreateDirectoryA(dir.c_str(), nullptr) && GetLastError() != ERROR_ALREADY_EXISTS)
+            return false;
+    }
+    return true;
+}
+
+bool safe_zip_entry(const std::string& path) {
+    return !path.empty() && path.find("..") == std::string::npos;
+}
+
+int g_shown_pct = 0;
+
+void ui_progress(int pct, const wchar_t* msg) {
+    if (pct < 0) pct = 0;
+    if (pct > 100) pct = 100;
+    g_shown_pct = pct;
+    PostMessageW(g_hwnd, kMsgProgress, pct, msg ? (LPARAM)_wcsdup(msg) : 0);
+}
+
+void pace_stage(int target, const wchar_t* status, DWORD min_ms) {
+    if (target < g_shown_pct) target = g_shown_pct;
+    const DWORD step_ms = 48;
+    DWORD elapsed = 0;
+    while (g_shown_pct < target || elapsed < min_ms) {
+        if (g_shown_pct < target) {
+            const int delta = target - g_shown_pct;
+            g_shown_pct += (delta > 4) ? 2 : 1;
+            if (g_shown_pct > target) g_shown_pct = target;
+        }
+        ui_progress(g_shown_pct, (elapsed == 0) ? status : nullptr);
+        Sleep(step_ms);
+        elapsed += step_ms;
+    }
+    ui_progress(target, status);
+}
+
+bool is_wine_runtime() {
+    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+    return ntdll && GetProcAddress(ntdll, "wine_get_unix_file_name") != nullptr;
+}
+
+void append_install_log(const char* msg) {
+    if (!msg || !*msg) return;
+    FILE* f = _wfopen(g_log.c_str(), L"ab");
+    if (!f) return;
+    std::fputs(msg, f);
+    std::fputc('\n', f);
+    std::fclose(f);
+}
+
+std::wstring read_install_log_text() {
+    std::wstring out = L"Log file:\n" + g_log + L"\n\n";
+    FILE* f = _wfopen(g_log.c_str(), L"rb");
+    if (!f) return out + L"(log empty or missing)";
+    char buf[4096];
+    size_t n = 0;
+    while ((n = std::fread(buf, 1, sizeof(buf) - 1, f)) > 0) {
+        buf[n] = '\0';
+        wchar_t wbuf[4096] = {};
+        MultiByteToWideChar(CP_UTF8, 0, buf, -1, wbuf, 4096);
+        if (!wbuf[0])
+            MultiByteToWideChar(CP_ACP, 0, buf, -1, wbuf, 4096);
+        out += wbuf;
+    }
+    std::fclose(f);
+    return out;
+}
+
+bool is_main_dll_entry(const std::string& entry) {
+    std::string e = entry;
+    std::replace(e.begin(), e.end(), '\\', '/');
+    for (auto& c : e)
+        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return e == "sof_buddy.dll";
+}
+
+std::wstring path_full_wide(const std::wstring& p) {
+    wchar_t full[MAX_PATH] = {};
+    if (GetFullPathNameW(p.c_str(), MAX_PATH, full, nullptr))
+        return full;
+    return p;
+}
+
+std::wstring path_a_to_wide(const std::string& p) {
+    if (p.empty()) return std::wstring();
+    int n = MultiByteToWideChar(CP_ACP, 0, p.c_str(), -1, nullptr, 0);
+    if (n <= 0) return std::wstring();
+    std::wstring out(static_cast<size_t>(n), L'\0');
+    MultiByteToWideChar(CP_ACP, 0, p.c_str(), -1, &out[0], n);
+    if (!out.empty() && out.back() == L'\0') out.pop_back();
+    return out;
+}
+
+std::wstring running_module_path() {
+    wchar_t mod[MAX_PATH] = {};
+    if (!GetModuleFileNameW(nullptr, mod, MAX_PATH)) return std::wstring();
+    return path_full_wide(mod);
+}
+
+bool is_running_image_path(const std::string& out_a) {
+    const std::wstring self = running_module_path();
+    if (self.empty()) return false;
+    return _wcsicmp(path_full_wide(path_a_to_wide(out_a)).c_str(), self.c_str()) == 0;
+}
+
+bool extract_one_file(mz_zip_archive& za, mz_uint idx, const std::string& out, bool main_dll) {
+    const int attempts = main_dll ? 24 : 1;
+    for (int t = 0; t < attempts; ++t) {
+        if (main_dll && t > 0)
+            Sleep(250);
+        if (mz_zip_reader_extract_to_file(&za, idx, out.c_str(), 0))
+            return true;
+    }
+    char line[512];
+    std::snprintf(line, sizeof(line), "extract failed: %s", out.c_str());
+    append_install_log(line);
+    return false;
+}
+
+void prune_sofbuddy_cfg_tree(const std::wstring& dir) {
+    std::wstring spec = dir + L"\\*";
+    WIN32_FIND_DATAW fd = {};
+    HANDLE h = FindFirstFileW(spec.c_str(), &fd);
+    if (h == INVALID_HANDLE_VALUE) return;
+    do {
+        if (fd.cFileName[0] == L'.' &&
+            (fd.cFileName[1] == L'\0' || (fd.cFileName[1] == L'.' && fd.cFileName[2] == L'\0')))
+            continue;
+        std::wstring path = dir + L"\\" + fd.cFileName;
+        if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            prune_sofbuddy_cfg_tree(path);
+        else if (_wcsicmp(fd.cFileName, L"sofbuddy.cfg") == 0)
+            DeleteFileW(path.c_str());
+    } while (FindNextFileW(h, &fd));
+    FindClose(h);
+}
+
+bool extract_zip_inprocess(const std::wstring& zip_w, const std::wstring& root_w) {
+    const std::string zip = wide_to_path(zip_w);
+    const std::string root = wide_to_path(root_w);
+    if (zip.empty() || root.empty()) {
+        append_install_log("extract: empty zip or root path");
+        return false;
+    }
+
+    mz_zip_archive za = {};
+    if (!mz_zip_reader_init_file(&za, zip.c_str(), 0)) {
+        append_install_log("extract: mz_zip_reader_init_file failed");
+        return false;
+    }
+    const mz_uint nfiles = mz_zip_reader_get_num_files(&za);
+    mz_uint done = 0;
+    for (mz_uint pass = 0; pass < 2; ++pass) {
+        for (mz_uint i = 0; i < nfiles; ++i) {
+            mz_zip_archive_file_stat st = {};
+            if (!mz_zip_reader_file_stat(&za, i, &st) || st.m_is_directory) continue;
+            std::string entry(st.m_filename);
+            std::replace(entry.begin(), entry.end(), '\\', '/');
+            while (!entry.empty() && entry.front() == '/') entry.erase(entry.begin());
+            if (!safe_zip_entry(entry)) continue;
+            const bool main_dll = is_main_dll_entry(entry);
+            if ((pass == 0 && main_dll) || (pass == 1 && !main_dll)) continue;
+            std::string out = root + "\\" + entry;
+            std::replace(out.begin(), out.end(), '/', '\\');
+            if (!ensure_parent_dirs_a(out)) {
+                mz_zip_reader_end(&za);
+                append_install_log("extract: mkdir failed");
+                return false;
+            }
+            if (is_running_image_path(out)) {
+                char line[512];
+                std::snprintf(line, sizeof(line), "skipped in-use file: %s", out.c_str());
+                append_install_log(line);
+                continue;
+            }
+            if (!extract_one_file(za, i, out, main_dll)) {
+                mz_zip_reader_end(&za);
+                return false;
+            }
+            ++done;
+            if (nfiles > 0) {
+                const int cap = 28 + static_cast<int>(done * 44 / nfiles);
+                while (g_shown_pct < cap) {
+                    ++g_shown_pct;
+                    ui_progress(g_shown_pct, L"Extracting update files...");
+                    Sleep(42);
+                }
+            }
+        }
+    }
+    mz_zip_reader_end(&za);
+    if (!file_exists(root_w + L"\\sof_buddy.dll")) {
+        append_install_log("extract: sof_buddy.dll missing after extract");
+        return false;
+    }
+    return true;
+}
+
+bool install_via_cmd(const bool fresh) {
     env_set(L"SOFBUDDY_UPDATER_NO_PAUSE", L"1");
     env_set(L"SOFBUDDY_UPDATER_SILENT", L"1");
     env_set(L"SOFBUDDY_UPDATER_FRESH", fresh ? L"1" : L"0");
@@ -222,10 +438,8 @@ DWORD WINAPI worker_thread(LPVOID) {
     std::wstring mutable_cmd = cmdline;
     mutable_cmd.push_back(L'\0');
     if (!CreateProcessW(nullptr, &mutable_cmd[0], nullptr, nullptr, FALSE, CREATE_NO_WINDOW,
-                      nullptr, g_root.c_str(), &si, &pi)) {
-        PostMessageW(g_hwnd, kMsgFailed, 0, 0);
-        return 0;
-    }
+                      nullptr, g_root.c_str(), &si, &pi))
+        return false;
     CloseHandle(pi.hThread);
 
     int last_pct = 0;
@@ -261,14 +475,61 @@ DWORD WINAPI worker_thread(LPVOID) {
     DWORD exit_code = 1;
     GetExitCodeProcess(pi.hProcess, &exit_code);
     CloseHandle(pi.hProcess);
-    PostMessageW(g_hwnd, exit_code == 0 ? kMsgDone : kMsgFailed, 0, 0);
+    return exit_code == 0;
+}
+
+DWORD WINAPI worker_thread(LPVOID) {
+    DeleteFileW(g_progress_file.c_str());
+    DeleteFileW(g_log.c_str());
+    CreateDirectoryW((g_root + L"\\sof_buddy\\update").c_str(), nullptr);
+
+    if (!g_zip.empty()) {
+        wchar_t full[MAX_PATH] = {};
+        if (GetFullPathNameW(g_zip.c_str(), MAX_PATH, full, nullptr))
+            g_zip = full;
+    }
+
+    const bool fresh = (g_fresh && SendMessageW(g_fresh, BM_GETCHECK, 0, 0) == BST_CHECKED);
+    g_shown_pct = 5;
+    ui_progress(5, L"Preparing installation...");
+    if (is_wine_runtime())
+        Sleep(400);
+    pace_stage(14, L"Reading update package...", 520);
+    pace_stage(22, L"Update package ready", 480);
+
+    bool ok = false;
+    if (!g_zip.empty() && file_exists(g_zip)) {
+        pace_stage(28, L"Extracting update files...", 320);
+        ok = extract_zip_inprocess(g_zip, g_root);
+    } else {
+        append_install_log("extract: update zip not found");
+    }
+    if (ok) {
+        pace_stage(78, L"Verifying installation...", 450);
+        pace_stage(86, L"Applying options...", 380);
+        if (fresh) prune_sofbuddy_cfg_tree(g_root);
+        DeleteFileW(g_zip.c_str());
+        DeleteFileW((g_root + L"\\sof_buddy\\update\\pending_update.txt").c_str());
+        DeleteFileW((g_root + L"\\sof_buddy\\update\\install_context.env").c_str());
+        pace_stage(94, L"Cleaning up...", 360);
+        pace_stage(100, L"Installation complete", 500);
+    } else if (!is_wine_runtime() && !g_script.empty() && file_exists(g_script)) {
+        ok = install_via_cmd(fresh);
+    } else if (!ok) {
+        append_install_log(is_wine_runtime()
+            ? "Wine: in-process extract failed (cmd fallback disabled for spaced install paths)"
+            : "in-process extract failed");
+    }
+
+    PostMessageW(g_hwnd, ok ? kMsgDone : kMsgFailed, 0, 0);
     return 0;
 }
 
 void start_worker() {
     if (g_worker) return;
+    g_shown_pct = 0;
     set_status(L"Installing update — please wait...");
-    set_percent(5);
+    set_percent(0);
     g_worker = CreateThread(nullptr, 0, worker_thread, nullptr, 0, nullptr);
 }
 
@@ -342,20 +603,34 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         }
         return 0;
     }
-    case kMsgDone:
+    case kMsgDone: {
         set_percent(100);
+        if (g_headline)
+            SetWindowTextW(g_headline, L"Installation complete");
+        std::wstring done_msg = L"SoF Buddy ";
         if (!g_version_label.empty())
-            set_status((L"Update to " + g_version_label + L" complete. Launch Soldier of Fortune.").c_str());
+            done_msg += g_version_label;
         else
-            set_status(L"Update complete. You can launch Soldier of Fortune.");
+            done_msg += L"update";
+        done_msg += L" is installed.\r\n\r\nLaunch Soldier of Fortune when you are ready.";
+        if (!g_version_label.empty())
+            set_status((L"Success — " + g_version_label + L" is ready. Close this window when finished.").c_str());
+        else
+            set_status(L"Success — close this window when finished.");
+        SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+        FlashWindow(hwnd, TRUE);
+        MessageBeep(MB_OK);
+        MessageBoxW(hwnd, done_msg.c_str(), L"SoF Buddy Update — complete",
+            MB_OK | MB_ICONINFORMATION | MB_SETFOREGROUND);
         EnableWindow(g_ok, TRUE);
         SetFocus(g_ok);
         return 0;
+    }
     case kMsgFailed: {
         set_status(L"Update failed. See the log for details.");
         set_percent(0);
         EnableWindow(g_ok, TRUE);
-        std::wstring text = L"The update could not be applied.\n\nLog:\n" + g_log;
+        std::wstring text = L"The update could not be applied.\n\n" + read_install_log_text();
         MessageBoxW(hwnd, text.c_str(), L"SoF Buddy Update", MB_ICONERROR | MB_OK);
         return 0;
     }
@@ -418,6 +693,8 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR cmd_line, int) {
     if (!hwnd) return 1;
     ShowWindow(hwnd, SW_SHOW);
     UpdateWindow(hwnd);
+    SetForegroundWindow(hwnd);
+    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
 
     MSG msg;
     while (GetMessageW(&msg, nullptr, 0, 0)) {

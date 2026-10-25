@@ -106,7 +106,6 @@ void hud_scale_auto_change(cvar_t* cvar) {
 void apply_auto_hud_scale(void) {
     if (!hudScaleAuto) return;
     hudScale = (screen_y_scale > 0.0f) ? screen_y_scale : 1.0f;
-    if (scaleRoundAuto) hudScale = round_scale_value(hudScale);
     SOFBUDDY_ASSERT(hudScale > 0.0f);
     if (oCvar_Set2) {
         char buf[32];

@@ -323,7 +323,13 @@ update-test-dll-new: update-test-dll-old
 update-test-fixtures: update-test-dll-new
 	python3 tools/update_test/build_fixtures.py --dll $(UPDATE_TEST_NEW_DLL)
 
-update-test-package: update-test-fixtures
+update-test-verify:
+	python3 tools/update_test/verify_updater.py
+
+update-test-robustness:
+	python3 tools/update_test/test_robustness.py
+
+update-test-package: update-test-fixtures update-test-verify
 	python3 tools/update_test/package_kit.py -o $(UPDATE_TEST_KIT_ZIP)
 	@cp -f $(UPDATE_TEST_OLD_DLL) $(BDIR)/sof_buddy-universal-update-test.dll
 	@echo "Kit: $(UPDATE_TEST_KIT_ZIP)"
@@ -351,7 +357,7 @@ config:
 	@echo "Target: $(OUT)"
 
 .PHONY: all dll debug debug-gdb debug-collect release xp xp-debug universal win-updater \
-	update-test update-test-dll-old update-test-dll-new update-test-fixtures update-test-package update-test-serve \
+	update-test update-test-dll-old update-test-dll-new update-test-fixtures update-test-package update-test-serve update-test-robustness \
 	clean config features compdb symbols FORCE
 
 # ------------------------------

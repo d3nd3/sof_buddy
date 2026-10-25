@@ -50,11 +50,15 @@ if rm -f -- "${ZIP_PATH}"; then
 else
     echo "Warning: could not delete ${ZIP_PATH}"
 fi
-echo
-read -r -p "Start with fresh settings? [y/N]: " ans
-if [[ "${ans,,}" =~ ^y(es)?$ ]]; then
-    echo "Searching for old configuration to prune..."
+if [[ "${SOFBUDDY_UPDATER_FRESH:-}" == "1" ]]; then
     find "${ROOT_DIR}" -type f -name "sofbuddy.cfg" -print -delete 2>/dev/null || true
+elif [[ "${SOFBUDDY_UPDATER_NO_PAUSE:-}" != "1" ]]; then
+    echo
+    read -r -p "Start with fresh settings? [y/N]: " ans
+    if [[ "${ans,,}" =~ ^y(es)?$ ]]; then
+        echo "Searching for old configuration to prune..."
+        find "${ROOT_DIR}" -type f -name "sofbuddy.cfg" -print -delete 2>/dev/null || true
+    fi
 fi
 echo
 echo "You can now launch SoF normally."

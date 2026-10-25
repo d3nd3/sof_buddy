@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+INNO_SOF_CODE = ROOT / "installer" / "templates" / "sof_install_inno_code.inc"
 FEATURE_NAME = re.compile(r"^[a-z][a-z0-9_-]*$")
 IGNORED_HEADERS = ("SoF Buddy", "Lines ", "Uncommented", "Commented")
 
@@ -156,9 +157,11 @@ def generate(features_path, output_path):
     lines += [
         "",
         "[Tasks]",
-        'Name: "appcompat_fix"; Description: "[OPTIONAL] Apply Windows 10+ Application Compatibility fix (recommended)"; '
+        'Name: "appcompat_fix"; Description: "[OPTIONAL] Windows 10+ Application Compatibility fix (Raven string at 0x2015F1C0; usually skip for GOG 2022/community or SoF Plus kb kits)"; '
         'GroupDescription: "Optional installation options:"',
         'Name: "full_violence"; Description: "[OPTIONAL] Unlock full violence (highly recommended if not using SoFPlus spcl.dll)"; '
+        'GroupDescription: "Optional installation options:"',
+        'Name: "install_sofplus"; Description: "[OPTIONAL] Install SoF Plus client (20140531; CD or GOG kit chosen from your SoF.exe)"; '
         'GroupDescription: "Optional installation options:"',
         "",
         "[Files]",
@@ -171,6 +174,13 @@ def generate(features_path, output_path):
         'Source: "..\\rsrc\\win_scripts\\patch_windows_compat.ps1"; '
         'DestDir: "{app}\\sof_buddy"; Tasks: appcompat_fix; '
         "Flags: ignoreversion",
+        'Source: "..\\rsrc\\win_scripts\\sof_install_detect.ps1"; '
+        "Flags: dontcopy",
+        'Source: "..\\rsrc\\win_scripts\\install_sofplus_client.ps1"; '
+        'DestDir: "{app}\\sof_buddy"; Flags: ignoreversion',
+        'Source: "..\\rsrc\\sofplus_client_patches\\*"; '
+        'DestDir: "{app}\\sof_buddy\\sofplus_patches"; Tasks: install_sofplus; '
+        "Flags: ignoreversion recursesubdirs createallsubdirs",
         "",
         "[UninstallDelete]",
         'Type: files; Name: "{app}\\sof_buddy.dll"',
@@ -190,6 +200,13 @@ def generate(features_path, output_path):
         "  FullViolencePage: TInputQueryWizardPage;",
         "  FullViolenceModePage: TInputOptionWizardPage;",
         "  FullViolenceSerial: Cardinal;",
+        "  SoFTasksAdjusted: Boolean;",
+        INNO_SOF_CODE.read_text(encoding="utf-8"),
+        "",
+        "procedure InitializeSetup;",
+        "begin",
+        "  ExtractTemporaryFile('sof_install_detect.ps1');",
+        "end;",
         "",
         "function GetVolumeInformationW(RootPathName, VolumeNameBuffer: string; VolumeNameSize: Cardinal;",
         "  var VolumeSerialNumber, MaximumComponentLength, FileSystemFlags: Cardinal;",
@@ -437,6 +454,10 @@ def generate(features_path, output_path):
         "  ResultCode: Integer;",
         "  ScriptPath, Parameters: String;",
         "begin",
+        "  if SoFRavenCompatCleared then begin",
+        "    Log('Skipping Raven compat patch; KB4571756-style fix already on SoF.exe.');",
+        "    exit;",
+        "  end;",
         "  if RegKeyExists(HKEY_CURRENT_USER, 'Software\\Wine') then begin",
         "    Log('Skipping Windows compatibility fix under Wine.');",
         "    exit;",
@@ -574,11 +595,14 @@ def generate(features_path, output_path):
         "function NextButtonClick(CurPageID: Integer): Boolean;",
         "begin",
         "  Result := True;",
-        "  if CurPageID = wpSelectDir then",
+        "  if CurPageID = wpSelectDir then begin",
         "    if not FileExists(AddBackslash(WizardDirValue) + 'SoF.exe') then begin",
         "      MsgBox('Choose the Soldier of Fortune folder containing SoF.exe.', mbError, MB_OK);",
         "      Result := False;",
-        "    end;",
+        "    end else if not RunSoFDetect(AddBackslash(WizardDirValue)) then",
+        "      Log('SoF install detection failed; optional task defaults were not adjusted.');",
+        "    SoFTasksAdjusted := False;",
+        "  end;",
         "  if (CurPageID = FullViolencePage.ID) and WizardIsTaskSelected('full_violence') then begin",
         "    if not IsValidViolencePassword(FullViolencePage.Values[0]) then begin",
         "      MsgBox('The password must contain 0 to 31 printable ASCII characters.', mbError, MB_OK);",
@@ -592,9 +616,22 @@ def generate(features_path, output_path):
         "  end;",
         "end;",
         "",
+        "procedure CurPageChanged(CurPageID: Integer);",
+        "begin",
+        "  if (CurPageID = wpSelectTasks) and (not SoFTasksAdjusted) then begin",
+        "    SoFTasksAdjusted := True;",
+        "    ApplySoFDetectTaskDefaults;",
+        "    if SoFPatchVariant <> '' then",
+        "      Log(Format('SoF detect: distribution=%s variant=%s raven_cleared=%s sofplus=%s',",
+        "        [SoFDistribution, SoFPatchVariant, BoolToStr(SoFRavenCompatCleared), BoolToStr(SoFPlusPresent)]));",
+        "  end;",
+        "end;",
+        "",
         "procedure CurStepChanged(CurStep: TSetupStep);",
         "begin",
         "  if CurStep = ssPostInstall then begin",
+        "    if WizardIsTaskSelected('install_sofplus') then",
+        "      InstallSoFPlusClient;",
         "    InstallDll;",
         "    VerifyInstalledDll;",
         "    EnableSoFBuddy;",

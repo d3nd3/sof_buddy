@@ -1,0 +1,6 @@
+<stm resize 640 480 global nopush>
+<include tints>
+
+<frame main 0 0 border 40 1 gray backfill black>
+<frame alert 0 0 page sof_buddy/update_downgrade_content cut main>
+</stm>

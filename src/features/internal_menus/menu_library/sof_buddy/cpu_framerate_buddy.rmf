@@ -1,3 +1,3 @@
-<list "Off,On" cvar _sofbuddy_cl_maxfps_exact atext "Exact FPS cap (try it) : " key mouse1 "sofbuddy_menu sof_buddy/cpu" noshade tip "When on, cl_maxfps is an integer FPS (60 = 60 FPS). When off, the legacy millisecond budget list is used."><br>
+<list "Off,On" cvar _sofbuddy_cl_maxfps_exact atext "Exact FPS cap (Experimental) : " key mouse1 "sofbuddy_menu sof_buddy/cpu" noshade tip "When on, cl_maxfps is an integer FPS (60 = 60 FPS). When off, the legacy millisecond budget list is used."><br>
 <cninclude _sofbuddy_cl_maxfps_exact sof_buddy/cpu_maxfps_legacy>
 <cinclude _sofbuddy_cl_maxfps_exact sof_buddy/cpu_maxfps_exact>

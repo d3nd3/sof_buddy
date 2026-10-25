@@ -73,7 +73,6 @@ static void refresh_scale_rounding(void) {
 
 void scale_round_auto_change(cvar_t* cvar) {
 	scaleRoundAuto = cvar && cvar->value != 0.0f;
-	if (cvar) refresh_scale_rounding();
 }
 
 void scale_round_ratio_change(cvar_t* cvar) {

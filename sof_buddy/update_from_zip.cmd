@@ -133,6 +133,7 @@ exit /b 0
 
 :extract_zip
 set "ZIP=%~1"
+if defined IS_WINE call :fill_host_extract_vars "%ZIP%"
 
 where tar.exe >nul 2>&1
 if not errorlevel 1 (
@@ -162,6 +163,7 @@ if defined HOST_SH if defined HOST_ZIP (
 
 if defined IS_WINE (
     call :extract_with_unix_unzip "%ZIP%"
+    if errorlevel 1 exit /b 1
     set "EXTRACT_METHOD=unix-unzip"
     exit /b 0
 )
@@ -207,32 +209,28 @@ if defined HOST_SH if defined HOST_ZIP (
 )
 exit /b 0
 
+:fill_host_extract_vars
+set "ZIP_WIN=%~1"
+if not defined HOST_ZIP for /f "delims=" %%I in ('winepath.exe -u "%ZIP_WIN%" 2^>nul') do set "HOST_ZIP=%%I"
+if not defined HOST_ZIP for /f "delims=" %%I in ('winepath -u "%ZIP_WIN%" 2^>nul') do set "HOST_ZIP=%%I"
+if not defined HOST_SH for /f "delims=" %%I in ('winepath.exe -u "%ROOT_DIR%\sof_buddy\update_from_zip.sh" 2^>nul') do set "HOST_SH=%%I"
+if not defined HOST_SH for /f "delims=" %%I in ('winepath -u "%ROOT_DIR%\sof_buddy\update_from_zip.sh" 2^>nul') do set "HOST_SH=%%I"
+exit /b 0
+
 :extract_with_unix_unzip
 set "ZIP_WIN=%~1"
-set "UNZIP_BIN="
-
-for /f "delims=" %%I in ('winepath.exe -w /usr/bin/unzip 2^>nul') do set "UNZIP_BIN=%%I"
-if not defined UNZIP_BIN for /f "delims=" %%I in ('winepath -w /usr/bin/unzip 2^>nul') do set "UNZIP_BIN=%%I"
-if not defined UNZIP_BIN for /f "delims=" %%I in ('winepath -w /bin/unzip 2^>nul') do set "UNZIP_BIN=%%I"
-
-if not defined UNZIP_BIN if exist "Z:\usr\bin\unzip" set "UNZIP_BIN=Z:\usr\bin\unzip"
-if not defined UNZIP_BIN if exist "Z:\bin\unzip" set "UNZIP_BIN=Z:\bin\unzip"
-
-if not defined UNZIP_BIN exit /b 1
-
 set "UNIX_ZIP="
 set "UNIX_DEST="
-
 for /f "delims=" %%I in ('winepath.exe -u "%ZIP_WIN%" 2^>nul') do set "UNIX_ZIP=%%I"
-if not defined UNIX_ZIP for /f "delims=" %%I in ('winepath -u "%ZIP_WIN%"') do set "UNIX_ZIP=%%I"
+if not defined UNIX_ZIP for /f "delims=" %%I in ('winepath -u "%ZIP_WIN%" 2^>nul') do set "UNIX_ZIP=%%I"
 for /f "delims=" %%I in ('winepath.exe -u "%ROOT_DIR%" 2^>nul') do set "UNIX_DEST=%%I"
 if not defined UNIX_DEST for /f "delims=" %%I in ('winepath -u "%ROOT_DIR%"') do set "UNIX_DEST=%%I"
-
 if not defined UNIX_ZIP exit /b 1
 if not defined UNIX_DEST exit /b 1
-
-start /b /wait "" "%UNZIP_BIN%" -o "%UNIX_ZIP%" -d "%UNIX_DEST%" >nul 2>&1
-exit /b 0
+start /wait /unix /usr/bin/unzip -o "%UNIX_ZIP%" -d "%UNIX_DEST%" >nul 2>&1
+if not errorlevel 1 exit /b 0
+start /wait /unix /bin/unzip -o "%UNIX_ZIP%" -d "%UNIX_DEST%" >nul 2>&1
+exit /b %ERRORLEVEL%
 
 :extract_with_vbscript
 set "ZIP=%~1"
@@ -271,7 +269,7 @@ exit /b 1
 :report_progress
 if not defined SOFBUDDY_UPDATER_SILENT exit /b 0
 if not defined PROGRESS_FILE exit /b 0
->"%PROGRESS_FILE%" echo %~1|%~2
+(echo %~1^|%~2)>"%PROGRESS_FILE%"
 exit /b 0
 
 :delete_if_exists

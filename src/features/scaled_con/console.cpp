@@ -88,7 +88,6 @@ void font_scale_auto_change(cvar_t* cvar) {
 void apply_auto_font_scale(void) {
 	if (!fontScaleAuto) return;
 	fontScale = (screen_y_scale > 0.0f) ? screen_y_scale : 1.0f;
-	if (scaleRoundAuto) fontScale = round_scale_value(fontScale);
 	SOFBUDDY_ASSERT(fontScale > 0.0f);
 	if (detour_Cvar_Set2::oCvar_Set2) {
 		char buf[32];

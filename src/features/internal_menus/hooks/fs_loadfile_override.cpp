@@ -23,6 +23,7 @@
 #if FEATURE_MORE_CROSSHAIRS
 #include "features/more_crosshairs/shared.h"
 #endif
+#include "update_command.h"
 
 namespace {
 
@@ -435,6 +436,9 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
         content.replace(pos, 13, theme_tints), pos += std::strlen(theme_tints);
     for (std::string::size_type pos = 0; (pos = content.find("{menu_theme_list}", pos)) != std::string::npos; )
         content.replace(pos, 17, theme_list), pos += std::strlen(theme_list);
+    const char* update_notes = sofbuddy_update_prompt_notes_rmf();
+    for (std::string::size_type pos = 0; (pos = content.find("{update_prompt_notes}", pos)) != std::string::npos; )
+        content.replace(pos, 21, update_notes ? update_notes : ""), pos += std::strlen(update_notes ? update_notes : "");
 #if FEATURE_MORE_CROSSHAIRS
     const char* crosshair_list = ::more_crosshairs_get_list_rmf();
     for (std::string::size_type pos = 0; (pos = content.find("{crosshair_list}", pos)) != std::string::npos; )
