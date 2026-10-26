@@ -40,7 +40,7 @@
 <hbr>
 <hbr>
 <font type title tint cyan atint cyan>
-"Engine lighting"
+<text "Engine lighting" align center border 0 0><hbr>
 <font type title tint white atint white>
 <list "Off,On" cvar gl_dynamic atext "Dynamic Lighting : " noshade tip "Dynamic lights on world surfaces. Big FPS hit — leave Off for performance."><br>
 <ctext gl_modulate atext "Lightmap Multiplier : " noshade tip "Scales baked lightmap brightness (gl_modulate)."><br>
@@ -53,7 +53,7 @@
 <hbr>
 <hbr>
 <font type title tint cyan atint cyan>
-"Ghoul"
+<text "Ghoul" align center border 0 0><hbr>
 <font type title tint white atint white>
 <list "Flat,Balanced,High Quality,GPU" match "0,1,2,3" cvar ghl_light_method atext "Ghoul Lighting Mode : " noshade tip "0=Flat: minimal lighting, white light; ghl_light_multiply has no effect. 1=Balanced: best contrast but most CPU-heavy. 2=High Quality: GPU path; specular and colored lights apply; brighter than 1. 3=GPU: like 2 without specular or colored lighting."><br>
 <list "Off,On" match "0,1" cvar ghl_specular atext "Specular Reflective Ghouls : " noshade tip "Specular highlights on ghoul models. Only when Ghoul Lighting Mode is High Quality (2)."><br>
@@ -66,12 +66,9 @@
 <hbr>
 <hbr>
 <font type title tint cyan atint cyan>
-"Lightblend"
-<hbr>
-<normal>
+<text "Lightblend" align center border 0 0><hbr>
 <font type title tint gray atint gray>
-!WARNING: Experimental. Do not change.
-<hbr>
+<text "!WARNING: Experimental. Do not change." align center border 0 0><hbr>
 <font type title tint white atint white>
 <list "ZERO,ONE,SRC_C,1-SRC_C,DST_C,1-DST_C,SRC_A,1-SRC_A" match "GL_ZERO,GL_ONE,GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR,GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA" cvar _sofbuddy_lightblend_src atext "Src : " noshade tip "Experimental - leave at defaults."><br>
 <list "ZERO,ONE,SRC_C,1-SRC_C,DST_C,1-DST_C,SRC_A,1-SRC_A" match "GL_ZERO,GL_ONE,GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR,GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA" cvar _sofbuddy_lightblend_dst atext "Dst : " noshade tip "Experimental - leave at defaults."><br>
@@ -81,10 +78,8 @@
 "_____________________________"
 <hbr>
 <hbr>
-<normal>
 <font type title tint gray atint gray>
-Overbright mode overrides manual blend src/dst behavior.
-<hbr>
+<text "Overbright mode overrides manual blend src/dst behavior." align center border 0 0><hbr>
 <center>
 <font type title tint sb_subtle atint sb_subtle>
 "_____________________________"

@@ -8,22 +8,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "src/features/internal_menus/menu_library/sof_buddy/features_rows.rmf"
 
-SECTIONS = [
-    ("Core / Performance", ["media_timers"]),
-    ("Security Fixes", ["console_protection"]),
-    ("Bug Fixes", [
-        "new_system_bug", "cl_maxfps_singleplayer", "list_match_fix",
-        "cbuf_limit_increase",
-    ]),
-    ("Graphics", [
-        "texture_mapping_min_mag", "scaled_con", "scaled_hud", "scaled_menu",
-        "hd_textures", "vsync_toggle", "lighting_blend",
-    ]),
-    ("Gameplay", ["more_crosshairs", "teamicons_offset", "entity_visualizer"]),
-    ("Networking", ["http_maps", "master_server_fallback"]),
-    ("Menus", ["internal_menus"]),
-    ("Input", ["raw_mouse"]),
-]
+sys.path.insert(0, str(ROOT / "tools"))
+from generate_installer import component_label, read_features  # noqa: E402
+
+SECTION_RECOMMENDED = "Recommended / tested features"
+SECTION_OPTIONAL = "Optional / unstable features"
 
 LABELS = {
     "media_timers": "Media Timers",
@@ -42,24 +31,11 @@ LABELS = {
     "new_system_bug": "New System Bug Fix",
     "console_protection": "Console Protection",
     "cl_maxfps_singleplayer": "Singleplayer Max FPS",
+    "list_match_fix": "List Match Fix",
     "cbuf_limit_increase": "Cbuf Limit Increase",
     "raw_mouse": "Raw Mouse",
     "more_crosshairs": "More Crosshairs",
 }
-
-
-def enabled_features(path: Path) -> set[str]:
-    out: set[str] = set()
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("//"):
-            continue
-        if line.startswith("#"):
-            continue
-        name = line.split("#", 1)[0].strip()
-        if name:
-            out.add(name)
-    return out
 
 
 def row(name: str) -> str:
@@ -70,7 +46,7 @@ def row(name: str) -> str:
     )
 
 
-def section_header(title: str, first: bool) -> list[str]:
+def tier_header(title: str, first: bool) -> list[str]:
     out: list[str] = []
     if not first:
         out.append("<hbr>")
@@ -80,17 +56,54 @@ def section_header(title: str, first: bool) -> list[str]:
     return out
 
 
+def category_header(title: str, first_in_tier: bool) -> list[str]:
+    out: list[str] = []
+    if not first_in_tier:
+        out.append("<hbr>")
+    out.append('<font type title tint sb_subtle atint sb_subtle>')
+    out.append(f'<text "{title}" align center border 0 0><hbr>')
+    out.append('<font type title tint white atint white>')
+    return out
+
+
 def generate(features_path: Path) -> str:
-    enabled = enabled_features(features_path)
+    categories = read_features(features_path)
+    recommended: list[tuple[str, list[str]]] = []
+    optional: list[tuple[str, list[str]]] = []
+
+    for category, features in categories:
+        required = "(always enabled)" in category.lower()
+        cat_title = component_label(category)
+        rec_rows: list[str] = []
+        opt_rows: list[str] = []
+        for name, disabled in features:
+            if required or not disabled:
+                rec_rows.append(row(name))
+            else:
+                opt_rows.append(row(name))
+        if rec_rows:
+            recommended.append((cat_title, rec_rows))
+        if opt_rows:
+            optional.append((cat_title, opt_rows))
+
     lines: list[str] = []
-    first_section = True
-    for section, names in SECTIONS:
-        section_rows = [row(n) for n in names if n in enabled]
-        if not section_rows:
-            continue
-        lines.extend(section_header(section, first_section))
-        first_section = False
-        lines.extend(section_rows)
+    first_tier = True
+    if recommended:
+        lines.extend(tier_header(SECTION_RECOMMENDED, first_tier))
+        first_tier = False
+        first_cat = True
+        for cat_title, rows in recommended:
+            lines.extend(category_header(cat_title, first_cat))
+            first_cat = False
+            lines.extend(rows)
+    if optional:
+        lines.extend(tier_header(SECTION_OPTIONAL, first_tier))
+        first_tier = False
+        first_cat = True
+        for cat_title, rows in optional:
+            lines.extend(category_header(cat_title, first_cat))
+            first_cat = False
+            lines.extend(rows)
     return "\n".join(lines) + "\n"
 
 
@@ -106,8 +119,7 @@ def main() -> int:
     try:
         with open(fd, "w", encoding="utf-8") as f:
             f.write(content)
-        tmp_path = Path(tmp)
-        tmp_path.replace(OUT)
+        Path(tmp).replace(OUT)
     except Exception:
         Path(tmp).unlink(missing_ok=True)
         raise

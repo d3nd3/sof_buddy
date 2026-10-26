@@ -42,7 +42,7 @@
 <list "Off,On" match "0,1" cvar _sofbuddy_update_startup_stable_only atext "Startup notify stable only : " noshade tip "Limits the startup update popup to stable releases, not Latest CI."><hbr>
 <includecvar _sb_internal_update_release_list_rmf>
 <ctext _sb_internal_update_release_list_status atext "Release list : " noshade tip "Run Refresh release list after changing the update API URL or tag filter."><hbr>
-<text "Refresh release list" key mouse1 "sofbuddy_update releases;refresh" border 8 1 cyan regular align center tip "Fetch installable tags from the update feed."><hbr>
+<text "Refresh release list" key mouse1 "sofbuddy_update releases" border 8 1 cyan regular align center tip "Fetch installable tags from the update feed and reload this page."><hbr>
 <hbr>
 <text "Install stable release (recommended)" key mouse1 "sofbuddy_update stable" border 12 1 gray regular align center tip "Target the stable channel and open the install dialog (upgrade or downgrade)."><hbr>
 <hbr>

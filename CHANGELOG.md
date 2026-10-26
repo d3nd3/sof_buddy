@@ -2,6 +2,20 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.47
+
+### Updater (F12 → Version)
+
+- **Refresh release list** reopens the current F12 page after fetch so the install-version picker updates (fixes stale `<includecvar>` list on global menu pages).
+- Filtered list includes **Stable**, **Latest**, blessed stable tag, and **newest feed tag** when not showing all releases.
+- **`_sofbuddy_update_startup_stable_only`** defaults to **Off** (startup check follows **Install version** unless you enable stable-only notify).
+
+### Menus
+
+- **Features** tab (universal): **Recommended / tested** and **Optional / unstable** sections match the Windows installer grouping (`tools/generate_features_menu.py`).
+- **General** tab: centered section headers, bonus menu key row, and action buttons (removed left/tab indent that broke alignment).
+- **Lighting** tab: **Lightblend** section (title, warning, Src/Dst lists, overbright note) stays centered with the rest of the page.
+
 ## v8.46
 
 ### Crosshairs (F12 → Gameplay)

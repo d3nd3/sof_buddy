@@ -1346,9 +1346,9 @@ bool show_all_release_tags() {
 }
 
 bool startup_prompt_stable_only() {
-    if (!detour_Cvar_Get::oCvar_Get) return true;
-    cvar_t* c = detour_Cvar_Get::oCvar_Get(kCvarUpdateStartupStableOnly, "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
-    return !c || c->value != 0.0f;
+    if (!detour_Cvar_Get::oCvar_Get) return false;
+    cvar_t* c = detour_Cvar_Get::oCvar_Get(kCvarUpdateStartupStableOnly, "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    return c && c->value != 0.0f;
 }
 
 void cache_stable_release_tag() {
@@ -1358,20 +1358,28 @@ void cache_stable_release_tag() {
         set_update_cvar(kCvarUpdateStableTag, stable.tag_name);
 }
 
+static bool release_tag_in_filtered_list(const std::string& tag, const std::vector<std::string>& tags,
+                                         const std::string& stable_tag) {
+    if (!stable_tag.empty() && tag == stable_tag) return true;
+    if (!tags.empty() && tag == tags.front()) return true;
+    return false;
+}
+
 std::string build_release_list_rmf(const std::vector<std::string>& tags, const std::string& stable_tag, bool show_all) {
     std::string labels = "Stable,Latest";
     std::string values = std::string(kUpdateTargetStable) + "," + kUpdateTargetLatest;
-    size_t listed = 0;
-    for (const auto& tag : tags) {
-        if (!show_all) {
-            if (stable_tag.empty() || tag != stable_tag)
-                continue;
-        }
+    auto append_tag = [&](const std::string& tag) {
+        if (tag.empty()) return;
+        const std::string needle = "," + tag;
+        if (values == tag || values.find(needle) != std::string::npos) return;
         labels.push_back(',');
         labels += tag;
         values.push_back(',');
         values += tag;
-        ++listed;
+    };
+    for (const auto& tag : tags) {
+        if (show_all || release_tag_in_filtered_list(tag, tags, stable_tag))
+            append_tag(tag);
     }
 
     std::string rmf = "<list \"";
@@ -1382,7 +1390,7 @@ std::string build_release_list_rmf(const std::vector<std::string>& tags, const s
     rmf += kCvarUpdateTargetTag;
     rmf += " atext \"Install version : \" noshade tip \"";
     rmf += show_all ? "Stable recommended; Latest is newest CI; or pick any tag." :
-                      "Stable recommended; enable Show non-stable tags for older builds.";
+                      "Stable + Latest channels, blessed stable tag, and newest feed tag; enable Show non-stable tags for older builds.";
     rmf += "\"><hbr>";
     return rmf;
 }
@@ -1411,8 +1419,8 @@ void refresh_release_list() {
     set_update_cvar(kCvarUpdateReleaseListRmf, rmf);
     std::string status = std::to_string(tags.size()) + " releases in feed";
     if (!show_all)
-        status += stable_tag.empty() ? " (stable tag unknown; showing channels only)" :
-                                       " (filtered to stable tag + channels)";
+        status += stable_tag.empty() ? " (filtered: channels + newest tag)" :
+                                       " (filtered: channels + stable + newest tag)";
     set_update_cvar(kCvarUpdateReleaseListStatus, status);
     sofbuddy_update_reload_update_menus();
 
@@ -1495,7 +1503,7 @@ void print_update_usage() {
     PrintOut(PRINT_DEV, "  sofbuddy_update apply          (download + install selected target)\n");
     PrintOut(PRINT_DEV, "Install target cvar: _sofbuddy_update_target_tag (stable, latest, or a tag)\n");
     PrintOut(PRINT_DEV, "  _sofbuddy_update_show_all_releases 1 shows every tag in F12 list\n");
-    PrintOut(PRINT_DEV, "  _sofbuddy_update_startup_stable_only 1 limits startup notify to stable (default)\n");
+    PrintOut(PRINT_DEV, "  _sofbuddy_update_startup_stable_only 1 limits startup notify to stable (default 0)\n");
     PrintOut(PRINT_DEV, "Optional overrides (for XP/proxy mirrors):\n");
     PrintOut(PRINT_DEV, "  set _sofbuddy_update_api_url <url>\n");
     PrintOut(PRINT_DEV, "  set _sofbuddy_update_releases_url <url>\n");
@@ -1515,8 +1523,16 @@ const char* sofbuddy_update_prompt_notes_rmf(void) {
 
 void sofbuddy_update_reload_update_menus(void) {
 #if FEATURE_INTERNAL_MENUS
-    if (detour_Cmd_ExecuteString::oCmd_ExecuteString)
-        detour_Cmd_ExecuteString::oCmd_ExecuteString("reloadall");
+    if (!detour_Cmd_ExecuteString::oCmd_ExecuteString) return;
+    const char* page = "sof_buddy/main";
+    if (detour_Cvar_Get::oCvar_Get) {
+        cvar_t* cv = detour_Cvar_Get::oCvar_Get("_sb_internal_menu_last_page", "", 0, nullptr);
+        if (cv && cv->string && cv->string[0] && std::strncmp(cv->string, "sof_buddy/", 10) == 0)
+            page = cv->string;
+    }
+    char cmd[192];
+    std::snprintf(cmd, sizeof(cmd), "reloadall;sofbuddy_menu %s;refresh", page);
+    detour_Cmd_ExecuteString::oCmd_ExecuteString(cmd);
 #endif
 }
 
@@ -1668,7 +1684,7 @@ void sofbuddy_update_init(void) {
     detour_Cvar_Get::oCvar_Get(kCvarUpdateDownloadedAsset, "", 0, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateCheckedUtc, "", 0, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateCheckStartup, "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
-    detour_Cvar_Get::oCvar_Get(kCvarUpdateStartupStableOnly, "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get(kCvarUpdateStartupStableOnly, "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateUseGui, update_gui_updater_default_string(), CVAR_SOFBUDDY_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateApiUrl, kUpdateApiUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
     cvar_t* releases_url_cvar = detour_Cvar_Get::oCvar_Get(kCvarUpdateReleasesUrl, kUpdateReleasesUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
