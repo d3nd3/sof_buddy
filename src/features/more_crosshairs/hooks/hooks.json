@@ -1,0 +1,8 @@
+[
+  {
+    "function": "Qcommon_Frame",
+    "callback": "more_crosshairs_qcommon_frame_post_callback",
+    "phase": "Post",
+    "priority": 90
+  }
+]

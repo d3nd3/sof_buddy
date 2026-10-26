@@ -15,6 +15,7 @@
 #include "shared.h"
 #include "generated_detours.h"
 #include "runtime_features.h"
+#include "sofbuddy_cfg.h"
 
 #if FEATURE_MEDIA_TIMERS
 #include "features/media_timers/shared.h"
@@ -148,6 +149,7 @@ void sofbuddy_refresh_display_info(void) {
 // runs the new value is already set.
 void Cmd_SoFBuddy_Display_Refresh_f(void) {
 	sofbuddy_refresh_display_info();
+	sofbuddy_cfg_request_spm_save();
 }
 
 #endif // FEATURE_VSYNC_TOGGLE

@@ -15,6 +15,11 @@
     "override": true
   },
   {
+    "function": "Cvar_Set2",
+    "callback": "sofbuddy_cfg_cvar_set2_override_callback",
+    "override": true
+  },
+  {
     "function": "VID_LoadRefresh",
     "callback": "vid_loadrefresh_override_callback",
     "override": true

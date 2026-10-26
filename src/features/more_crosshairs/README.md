@@ -4,9 +4,11 @@ Community crosshair packs under `sof_buddy/crosshairs/` while keeping the engine
 
 ## How it works
 
-- **F12 → Gameplay:** one **Crosshair** list (`_sofbuddy_crosshair_pick`) generated from the packs (stock `0`–`4` plus one row per real theme/slot pair). It sets **`_sofbuddy_crosshair_theme`** and engine **`crosshair`** (`0`–`4`) together.
+- **F12 → Gameplay → Crosshair:** theme list (`_sofbuddy_crosshair_pick`): **S0–S4** (stock), **sof_buddy** bundled packs (`sof_buddy/crosshairs/*.pak`), plus any extra crosshair `.pak` in `base/` / gamedir (not `pak0`–`pak9`; skips stems already in the buddy catalog, e.g. `jay_crosshairs_v4.pak` in `base` when that pack is shipped under `sof_buddy/crosshairs/`). Each discovered pak gets menu rows like `pcr1` / `pcr2` for `pcross.pak` (ch1–ch2 only is fine). Sets **`_sofbuddy_crosshair_theme`** and engine **`crosshair`** (`0`–`4`). **`_sofbuddy_crossh_scale`** lives on the same section.
 - A live **preview** (`status/chN` for stock theme, `status/sbxch_{theme}_{slot}` otherwise) reloads when theme or slot changes (unique paths bust the GL image cache).
-- **`FS_LoadFile` override** (`internal_menus/hooks/fs_loadfile_override.cpp`): for non-stock themes, `pics/menus/status/ch{N}.m32` (`N` = `crosshair`) is read from the selected pack. No exe patch and no `active_crosshair.pak` staging.
+- **`_sofbuddy_crosshair_tint`** (F12 → Gameplay): primary colors for **stock S0–S4** only (applied at `glVertex2f` during `SCR_DrawCrosshair`, after ref_gl sets white).
+- **`FS_LoadFile` override** (`internal_menus/hooks/fs_loadfile_override.cpp`): theme packs load only via `pics/menus/status/sbxch_{theme}_{slot}`. **Standard (S0–S4, theme 0)** loads `ch0`..`ch4` from `gamedir` / `base` paks and loose files only — **`sof_buddy/` is skipped** so mounted community crosshair paks do not override stock.
+- **Engine path:** `SCR_DrawCrosshair` only runs `Com_sprintf("pics/menus/status/ch%i")` when the slot is **non-zero**, so slot **0** pack picks (e.g. Yump 0) must set `crosshair_pic_ptr` (`SoF.exe` `0x225940`) to `sbxch_{theme}_{slot}` explicitly. `Draw_GetPicSize` / `GL_FindImage` pre-hooks refresh that buffer so ref_gl does not keep serving cached vanilla `ch0`..`ch4` art (same reason `vid_restart` used to “fix” it).
 - **Migration:** saved `_sofbuddy_crosshair_pick` or old `crosshair` values `5+` map through the generated legacy table into theme + slot.
 
 ## Catalog

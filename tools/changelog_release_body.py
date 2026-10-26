@@ -6,9 +6,10 @@ import sys
 
 def main() -> int:
     version = (sys.argv[1] if len(sys.argv) > 1 else "").strip()
+    changelog_path = sys.argv[2] if len(sys.argv) > 2 else "CHANGELOG.md"
     if not version:
         version = open("VERSION", encoding="utf-8").read().strip()
-    text = open("CHANGELOG.md", encoding="utf-8").read()
+    text = open(changelog_path, encoding="utf-8").read()
     pat = rf"^## v{re.escape(version)}\s*\n(.*?)(?=^## v|\Z)"
     m = re.search(pat, text, re.MULTILINE | re.DOTALL)
     if m:

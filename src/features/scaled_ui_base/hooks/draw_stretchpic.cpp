@@ -8,6 +8,9 @@
 #include "../../scaled_ui_base/shared.h"
 #include "debug/hook_callsite.h"
 #include "runtime_features.h"
+#if FEATURE_MORE_CROSSHAIRS
+#include "features/more_crosshairs/shared.h"
+#endif
 
 // #pragma GCC push_options
 // #pragma GCC optimize ("O0")
@@ -86,8 +89,13 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
     }
 #endif
 
+#if FEATURE_MORE_CROSSHAIRS
+    if (name) {
+        const char* live = more_crosshairs_menu_preview_pic_name(name);
+        if (live) name = const_cast<char*>(live);
+    }
+#endif
     original(x, y, w, h, palette, name, flags);
-    
 
     g_currentStretchPicCaller = StretchPicCaller::Unknown;
     g_activeDrawCall = DrawRoutineType::None;

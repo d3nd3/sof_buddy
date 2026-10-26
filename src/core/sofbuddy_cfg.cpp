@@ -1,5 +1,10 @@
 #include "sofbuddy_cfg.h"
 
+#include "feature_config.h"
+#if FEATURE_MEDIA_TIMERS
+#include "features/media_timers/shared.h"
+#endif
+#include "generated_detours.h"
 #include "sof_compat.h"
 #include "util.h"
 
@@ -12,6 +17,8 @@
 #include <utility>
 #include <vector>
 
+extern void* o_sofplus;
+
 namespace {
 
 constexpr const char* kCfgRelativePath = "/base/sofbuddy.cfg";
@@ -22,9 +29,12 @@ constexpr const char* kCfgRelativePath = "/base/sofbuddy.cfg";
 constexpr char kSoFPlusMasterCvar[] = "_sp_cl_master_gamespy";
 constexpr char kSoFPlusCpuCoolCvar[] = "_sp_cl_cpu_cool";
 constexpr char kSoFPlusSettingsSaveCmd[] =
-    "sp_sc_cvar_save spm_settings.cfg cl_maxfps cl_showfps _sp_cl_cpu_cool _sp_cl_master_gamespy";
+    "sp_sc_cvar_save spm_settings.cfg cl_maxfps cl_showfps _sp_cl_cpu_cool _sp_cl_master_gamespy\n";
 
 bool sofplus_present() {
+    if (o_sofplus) {
+        return true;
+    }
     return findCvar(const_cast<char*>(kSoFPlusMasterCvar)) != nullptr ||
            findCvar(const_cast<char*>(kSoFPlusCpuCoolCvar)) != nullptr;
 }
@@ -41,6 +51,7 @@ int g_spm_save_suppress_depth = 0;
 // PostCvarInit hook. Any save made before that flush would rewrite the very
 // file the restore is about to read, clobbering the user's values.
 bool g_spm_saves_ready = false;
+bool g_spm_save_pending = false;
 
 void save_sofplus_spm_settings() {
     if (!detour_Cmd_ExecuteString::oCmd_ExecuteString) {
@@ -74,9 +85,10 @@ void save_sofplus_spm_settings_on_exit() {
 }
 
 // SoFPlus installs its own callbacks for these cvars (cl_showfps syncs its cached
-// display value, _sp_cl_master_gamespy switches masters). Chain them instead of
-// replacing them so both keep working, then persist the spm settings file.
+// display value, _sp_cl_master_gamespy switches masters, cl_maxfps from its menu).
+// Chain them instead of replacing them so both keep working, then persist spm_settings.
 cvarcommand_t g_prev_cl_showfps_command = nullptr;
+cvarcommand_t g_prev_cl_maxfps_command = nullptr;
 cvarcommand_t g_prev_master_gamespy_command = nullptr;
 
 void cl_showfps_change_chain(cvar_t* cvar) {
@@ -84,6 +96,30 @@ void cl_showfps_change_chain(cvar_t* cvar) {
         g_prev_cl_showfps_command(cvar);
     }
     save_sofplus_spm_settings();
+}
+
+#if FEATURE_MEDIA_TIMERS
+void cl_maxfps_change_chain(cvar_t* cvar) {
+    if (g_prev_cl_maxfps_command) {
+        g_prev_cl_maxfps_command(cvar);
+    }
+    if (g_prev_cl_maxfps_command != cl_maxfps_change) {
+        cl_maxfps_change(cvar);
+    }
+    save_sofplus_spm_settings();
+}
+#else
+void cl_maxfps_change_chain(cvar_t* cvar) {
+    if (g_prev_cl_maxfps_command) {
+        g_prev_cl_maxfps_command(cvar);
+    }
+    save_sofplus_spm_settings();
+}
+#endif
+
+bool is_spm_persisted_cvar_name(const char* name) {
+    return name && (!std::strcmp(name, "cl_maxfps") || !std::strcmp(name, "cl_showfps") ||
+                    !std::strcmp(name, kSoFPlusMasterCvar) || !std::strcmp(name, kSoFPlusCpuCoolCvar));
 }
 
 void master_gamespy_change_chain(cvar_t* cvar) {
@@ -282,6 +318,16 @@ void sofbuddy_cfg_save_sofplus_settings(void) {
     save_sofplus_spm_settings();
 }
 
+void sofbuddy_cfg_request_spm_save(void) {
+    g_spm_save_pending = true;
+}
+
+void sofbuddy_cfg_on_spm_cvar_written(const char* cvar_name) {
+    if (is_spm_persisted_cvar_name(cvar_name)) {
+        sofbuddy_cfg_request_spm_save();
+    }
+}
+
 void sofbuddy_cfg_spm_save_disable(void) {
     ++g_spm_save_suppress_depth;
 }
@@ -294,12 +340,43 @@ void sofbuddy_cfg_spm_save_enable(void) {
 
 void sofbuddy_cfg_qcommon_frame_post_callback(int msec) {
     (void)msec;
-    g_spm_saves_ready = true;
+    if (!g_spm_saves_ready) {
+        g_spm_saves_ready = true;
+    }
+    // SoFPlus re-registers cl_maxfps/cl_showfps callbacks from spcl.dll; keep our chain
+    // wrapped around whatever handler is current.
+    if (sofplus_present()) {
+        sofbuddy_cfg_watch_spm_cvars();
+    }
+    if (g_spm_save_pending) {
+        g_spm_save_pending = false;
+        save_sofplus_spm_settings();
+    }
+}
+
+cvar_t* sofbuddy_cfg_cvar_set2_override_callback(char* var_name, char* value, qboolean force,
+                                                 detour_Cvar_Set2::tCvar_Set2 original) {
+    cvar_t* result = original ? original(var_name, value, force) : nullptr;
+    sofbuddy_cfg_on_spm_cvar_written(var_name);
+    return result;
+}
+
+static void Cmd_SoFBuddy_Spm_Save_f(void) {
+    save_sofplus_spm_settings();
 }
 
 void sofbuddy_cfg_watch_spm_cvars(void) {
     watch_cvar("cl_showfps", cl_showfps_change_chain, &g_prev_cl_showfps_command);
+    watch_cvar("cl_maxfps", cl_maxfps_change_chain, &g_prev_cl_maxfps_command);
     watch_cvar(kSoFPlusMasterCvar, master_gamespy_change_chain, &g_prev_master_gamespy_command);
+    if (detour_Cmd_AddCommand::oCmd_AddCommand) {
+        static bool registered = false;
+        if (!registered) {
+            detour_Cmd_AddCommand::oCmd_AddCommand(
+                const_cast<char*>("sofbuddy_spm_save"), Cmd_SoFBuddy_Spm_Save_f);
+            registered = true;
+        }
+    }
 }
 
 void sofbuddy_cfg_cl_shutdown_post_callback(void) {

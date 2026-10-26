@@ -9,6 +9,9 @@
 #include "../../scaled_ui_base/ref_gl_state.h"
 #include "debug/hook_callsite.h"
 #include "runtime_features.h"
+#if FEATURE_MORE_CROSSHAIRS
+#include "features/more_crosshairs/shared.h"
+#endif
 
 void hkDraw_Pic(int x, int y, char const * imgname, int palette, detour_Draw_Pic::tDraw_Pic original) {
     SOFBUDDY_ASSERT(original != nullptr);
@@ -18,6 +21,9 @@ void hkDraw_Pic(int x, int y, char const * imgname, int palette, detour_Draw_Pic
         uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("Draw_Pic");
         if (fnStart) g_currentPicCaller = getPicCallerFromRva(fnStart);
     }
+#if FEATURE_MORE_CROSSHAIRS
+    if (g_currentPicCaller == PicCaller::SCR_DrawCrosshair) more_crosshairs_before_draw_crosshair();
+#endif
     if (imgname != nullptr &&
         RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
         const char* p = imgname;
@@ -44,6 +50,12 @@ void hkDraw_Pic(int x, int y, char const * imgname, int palette, detour_Draw_Pic
         }
     }
 
+#if FEATURE_MORE_CROSSHAIRS
+    if (imgname) {
+        const char* live = more_crosshairs_menu_preview_pic_name(imgname);
+        if (live) imgname = live;
+    }
+#endif
     original(x, y, imgname, palette);
 #if FEATURE_SCALED_HUD
     // Draw_Pic enables GL_BLEND but never clears it (unlike Draw_StretchPic).

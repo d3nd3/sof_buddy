@@ -253,6 +253,89 @@ static void crosshair_gl_image_name(const std::string& key, char* out, size_t ou
 	std::snprintf(out, out_sz, "%s", key.c_str());
 }
 
+static bool path_is_sof_buddy_gamedir(const std::string& dir) {
+    std::string norm = dir;
+    std::replace(norm.begin(), norm.end(), '\\', '/');
+    std::transform(norm.begin(), norm.end(), norm.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    while (norm.size() > 1 && norm.back() == '/') norm.pop_back();
+    std::string buddy = game_base_dir() + "/sof_buddy";
+    std::replace(buddy.begin(), buddy.end(), '\\', '/');
+    std::transform(buddy.begin(), buddy.end(), buddy.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return norm == buddy;
+}
+
+static void stock_crosshair_gamedirs(std::vector<std::string>& dirs) {
+    const std::string root = game_base_dir();
+    cvar_t* gd = findCvar(const_cast<char*>("gamedir"));
+    const char* rel = gd && gd->string && gd->string[0] ? gd->string : "base";
+    const std::string primary = root + "/" + rel;
+    const std::string base = root + "/base";
+    if (!path_is_sof_buddy_gamedir(primary)) dirs.push_back(primary);
+    if (primary != base && !path_is_sof_buddy_gamedir(base)) dirs.push_back(base);
+}
+
+static void append_stock_paks_only(const std::string& dir, std::vector<std::string>& out) {
+    auto already = [&](const std::string& p) {
+        return std::find(out.begin(), out.end(), p) != out.end();
+    };
+    for (int i = 9; i >= 0; --i) {
+        char path[MAX_PATH];
+        std::snprintf(path, sizeof(path), "%s/pak%d.pak", dir.c_str(), i);
+        if (GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES && !already(path)) out.push_back(path);
+    }
+}
+
+static bool copy_crosshair_m32(std::vector<unsigned char>& data, const char* gl_image_name, void** buffer,
+                               int& length) {
+    patch_m32_internal_name(data, gl_image_name);
+    if (!detour_Z_Malloc::oZ_Malloc) return false;
+    void* copy = detour_Z_Malloc::oZ_Malloc(static_cast<int>(data.size() + 1));
+    if (!copy) return false;
+    std::memcpy(copy, data.data(), data.size());
+    static_cast<unsigned char*>(copy)[data.size()] = 0;
+    *buffer = copy;
+    length = static_cast<int>(data.size());
+    return true;
+}
+
+static bool serve_stock_standard_crosshair(int slot, const char* gl_image_name, void** buffer, int& length) {
+    char wanted[64];
+    std::snprintf(wanted, sizeof(wanted), "pics/menus/status/ch%d.m32", slot);
+    const std::string wanted_norm = normalize_path(wanted);
+    std::vector<std::string> dirs;
+    stock_crosshair_gamedirs(dirs);
+    std::vector<unsigned char> data;
+    for (const std::string& dir : dirs) {
+        const std::string loose = dir + "/" + wanted_norm;
+        FILE* file = std::fopen(loose.c_str(), "rb");
+        if (file) {
+            std::fseek(file, 0, SEEK_END);
+            const long sz = std::ftell(file);
+            if (sz > 0 && sz <= INT_MAX) {
+                std::fseek(file, 0, SEEK_SET);
+                data.resize(static_cast<size_t>(sz));
+                if (std::fread(data.data(), 1, data.size(), file) == data.size() &&
+                    copy_crosshair_m32(data, gl_image_name, buffer, length)) {
+                    std::fclose(file);
+                    return true;
+                }
+            }
+            std::fclose(file);
+            data.clear();
+        }
+        std::vector<std::string> paks;
+        append_stock_paks_only(dir, paks);
+        for (const std::string& pak : paks) {
+            if (load_pak_entry(pak, wanted_norm, data) && copy_crosshair_m32(data, gl_image_name, buffer, length))
+                return true;
+            data.clear();
+        }
+    }
+    return false;
+}
+
 static bool serve_crosshair_placeholder(const char* gl_image_name, void** buffer, int& length) {
     if (kCrosshairNoneM32Size < 60 || !gl_image_name) return false;
     std::vector<unsigned char> data(kCrosshairNoneM32, kCrosshairNoneM32 + kCrosshairNoneM32Size);
@@ -270,6 +353,19 @@ static bool serve_crosshair_placeholder(const char* gl_image_name, void** buffer
 static bool serve_crosshair_pack(int theme, int slot, const char* gl_image_name, void** buffer,
                                  int& length) {
     if (slot < 0 || slot > 4) return false;
+    const char* pak = nullptr;
+    const int8_t* ext_slots = nullptr;
+    if (more_crosshairs_theme_external_pak(theme, &pak, &ext_slots)) {
+        const int pak_slot = ext_slots ? ext_slots[slot] : -1;
+        if (!pak || !pak[0] || pak_slot < 0) return serve_crosshair_placeholder(gl_image_name, buffer, length);
+        char wanted_entry[64];
+        std::snprintf(wanted_entry, sizeof(wanted_entry), "pics/menus/status/ch%d.m32", pak_slot);
+        std::vector<unsigned char> data;
+        if (!load_pak_entry(pak, wanted_entry, data) || data.empty())
+            return serve_crosshair_placeholder(gl_image_name, buffer, length);
+        return copy_crosshair_m32(data, gl_image_name, buffer, length);
+    }
+    if (theme == 0) return serve_stock_standard_crosshair(slot, gl_image_name, buffer, length);
     if (theme < 0 || theme >= kCrosshairThemeCount) theme = 0;
     const CrosshairThemeEntry& entry = kCrosshairThemes[theme];
     if (!entry.pak_relpath || !entry.pak_relpath[0]) {
@@ -327,12 +423,12 @@ bool load_crosshair_art(char* path, void** buffer, int& length) {
     const bool m32 = std::strcmp(tail, ".m32") == 0;
     if (!plain && !m32) return false;
     if (value < 0 || value > 4) return false;
-
     if (detour_Cvar_Get::oCvar_Get) {
         cvar_t* theme_cvar = detour_Cvar_Get::oCvar_Get("_sofbuddy_crosshair_theme", "0", 0, nullptr);
         if (theme_cvar) theme = static_cast<int>(theme_cvar->value + 0.5f);
     }
-    return serve_crosshair_pack(theme, static_cast<int>(value), gl_name, buffer, length);
+    if (theme != 0) return false;
+    return serve_stock_standard_crosshair(static_cast<int>(value), gl_name, buffer, length);
 }
 #endif
 
@@ -443,6 +539,9 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
     const char* crosshair_list = ::more_crosshairs_get_list_rmf();
     for (std::string::size_type pos = 0; (pos = content.find("{crosshair_list}", pos)) != std::string::npos; )
         content.replace(pos, 16, crosshair_list), pos += std::strlen(crosshair_list);
+    const char* crosshair_preview = ::more_crosshairs_get_preview_rmf();
+    for (std::string::size_type pos = 0; (pos = content.find("{crosshair_preview}", pos)) != std::string::npos; )
+        content.replace(pos, 19, crosshair_preview), pos += std::strlen(crosshair_preview);
 #endif
     for (std::string::size_type pos = 0; (pos = content.find("tall}", pos)) != std::string::npos; )
         content.replace(pos, 5, "");

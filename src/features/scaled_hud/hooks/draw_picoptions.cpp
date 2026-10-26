@@ -6,6 +6,9 @@
 #include "generated_detours.h"
 #include "../../scaled_ui_base/shared.h"
 #include "debug/hook_callsite.h"
+#if FEATURE_MORE_CROSSHAIRS
+#include "features/more_crosshairs/shared.h"
+#endif
 
 void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int pal, char * name, detour_Draw_PicOptions::tDraw_PicOptions original) {
     SOFBUDDY_ASSERT(original != nullptr);
@@ -15,6 +18,10 @@ void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int pal, char
         uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("Draw_PicOptions");
         if (fnStart) g_currentPicOptionsCaller = getPicOptionsCallerFromRva(fnStart);
     }
+#if FEATURE_MORE_CROSSHAIRS
+    if (g_currentPicOptionsCaller == PicOptionsCaller::SCR_DrawCrosshair)
+        more_crosshairs_before_draw_crosshair();
+#endif
     if (g_activeRenderType == uiRenderType::HudDmRanking) {
         float x_scale = static_cast<float>(current_vid_w) / 640.0f;
         int offsetEdge = 40; //36??

@@ -45,6 +45,9 @@
 #include "detours.h"
 #include "../scaled_ui_base/shared.h"
 #include "shared.h"
+#if FEATURE_MORE_CROSSHAIRS
+#include "features/more_crosshairs/shared.h"
+#endif
 
 #include "DetourXS/detourxs.h"
 #include <math.h>
@@ -70,6 +73,13 @@ int menuLoadboxFirstItemY;
 void my_Draw_GetPicSize(int *w, int *h, char *pic)
 {
     if (!orig_Draw_GetPicSize) return;
+#if FEATURE_MORE_CROSSHAIRS
+    more_crosshairs_on_getpicsize(pic);
+    if (pic && more_crosshairs_is_menu_preview_path(pic)) {
+        orig_Draw_GetPicSize(w, h, pic);
+        return;
+    }
+#endif
 
     /*
         We are targetting specific menu only items here for now.   

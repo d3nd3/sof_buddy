@@ -2,6 +2,22 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.46
+
+### Crosshairs (F12 → Gameplay)
+
+- **Live preview** tracks the crosshair list selection (`status/chN` for stock **S0–S4**, `status/sbxch_{theme}_{slot}` for packs) via draw/`GL_FindImage` redirects without unsafe menu reloads or `SCR_UpdateScreen` overlays.
+- **Stock preview fix:** recognize vanilla `status/ch0`–`ch4` paths correctly so **S0/S2/S3/S4** no longer all look like the **S1** dot; bundled themes unchanged.
+- **Pick applies immediately:** list `SetValue` and pick cvar sync theme + engine **`crosshair`** slot; deferred pic refresh avoids crashes when switching pack themes (e.g. FL44).
+- **Extra crosshair `.pak` discovery** in `base`/gamedir (non-`pak0`–`pak9`, skips duplicate buddy catalog names); short menu labels and regenerated catalog/RMF.
+- **`_sofbuddy_crosshair_tint`** on stock **S0–S4** during `SCR_DrawCrosshair` (`glVertex2f` hook).
+- **Stock art routing:** theme **0** loads `ch0`–`ch4` from retail `base`/gamedir only (not `sof_buddy/` mounts); pack slots use `sbxch_*` and `crosshair_pic_ptr` sync for slot **0** picks.
+
+### Other
+
+- **Crosshair scale** doc: F12 → **Gameplay** (not UI Scale).
+- **Release tooling:** `tools/new_release.sh` supports SoF2 product tags; CI ignores `sof2/**` path-only pushes on the main workflow.
+
 ## v8.45
 
 ### Windows installer — optional SoF Plus client

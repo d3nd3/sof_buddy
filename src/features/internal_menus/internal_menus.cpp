@@ -1090,7 +1090,15 @@ void Cmd_SoFBuddy_Menu_f(void) {
     if (is_loading_menu)
         loading_reset_current_map_unknown();
 
+#if FEATURE_MORE_CROSSHAIRS
+    more_crosshairs_set_active_buddy_page(nullptr);
+#endif
+
     detour_M_PushMenu::oM_PushMenu(menu_to_push.c_str(), "", lock_input);
+
+#if FEATURE_MORE_CROSSHAIRS
+    more_crosshairs_set_active_buddy_page(menu_to_push.c_str());
+#endif
 }
 
 void internal_menus_OnVidChanged(void) {

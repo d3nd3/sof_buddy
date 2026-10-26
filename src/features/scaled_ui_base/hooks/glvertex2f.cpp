@@ -6,6 +6,9 @@
 #include "util.h"
 #include "../../scaled_ui_base/shared.h"
 #include "runtime_features.h"
+#if FEATURE_MORE_CROSSHAIRS
+#include "features/more_crosshairs/shared.h"
+#endif
 
 extern void(__stdcall * orig_glVertex2f)(float one, float two);
 
@@ -149,6 +152,9 @@ static void handleDrawPicVertex(float x, float y) {
     switch (g_currentPicCaller) {
 #if FEATURE_SCALED_HUD
         case PicCaller::SCR_DrawCrosshair:
+#if FEATURE_MORE_CROSSHAIRS
+            if (g_quadVertexIndex == 1) more_crosshairs_apply_stock_tint_gl();
+#endif
             if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
                 scaleVertexFromScreenCenter(x, y, crosshairScale);
                 return;
@@ -213,6 +219,9 @@ static void handleDrawPicOptionsVertex(float x, float y) {
     SOFBUDDY_ASSERT(orig_glVertex2f != nullptr);
     if (tryScoreboardVertex(x, y)) return;
     if (g_currentPicOptionsCaller == PicOptionsCaller::SCR_DrawCrosshair) {
+#if FEATURE_MORE_CROSSHAIRS
+        if (g_quadVertexIndex == 1) more_crosshairs_apply_stock_tint_gl();
+#endif
         scaleVertexFromScreenCenter(x, y, crosshairScale);
         return;
     }

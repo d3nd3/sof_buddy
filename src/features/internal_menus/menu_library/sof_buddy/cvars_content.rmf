@@ -119,7 +119,7 @@ Internal _sb_internal_ cvars are hidden.
 <hbr>
 <hbr>
 <font type title tint white atint white>
-<ctext _sofbuddy_crossh_scale atext "_sofbuddy_crossh_scale : " noshade tip "Crosshair size multiplier. Default 1."><br>
+<ctext _sofbuddy_crossh_scale atext "_sofbuddy_crossh_scale : " noshade tip "Crosshair size multiplier. F12 Gameplay. Default 1."><br>
 <font type title tint gray atint gray>
 "Default 1 - Crosshair size multiplier."
 <hbr>

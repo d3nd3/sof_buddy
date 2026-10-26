@@ -126,15 +126,7 @@ def strings_slots(pak: Path) -> set[int]:
 
 def engine_slot_map(pak_slots_set: set[int]) -> list[int]:
     """Map engine crosshair cvar 0..4 -> pak ch index, or -1."""
-    out: list[int] = []
-    for es in range(5):
-        if es in pak_slots_set:
-            out.append(es)
-        elif (es + 1) in pak_slots_set:
-            out.append(es + 1)
-        else:
-            out.append(-1)
-    return out
+    return [es if es in pak_slots_set else -1 for es in range(5)]
 
 
 def ensure_built_paks() -> None:
@@ -339,7 +331,7 @@ def write_outputs(
     out_inc.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     OUT_RMF.write_text(
-        "{crosshair_list}\n<includecvar _sb_internal_crosshair_preview_rmf>\n",
+        "{crosshair_list}\n{crosshair_preview}\n",
         encoding="utf-8",
     )
 

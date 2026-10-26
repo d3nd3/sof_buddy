@@ -4,6 +4,7 @@ cd "$(git rev-parse --show-toplevel)"
 VERSION_FILE="VERSION"
 VERSION_H="hdr/version.h"
 CHANGELOG="CHANGELOG.md"
+PRODUCT=sof1
 DRY_RUN=
 MSG=
 OVERRIDE_VERSION=
@@ -14,6 +15,7 @@ CI_MODE=
 
 while [[ $# -gt 0 ]]; do
   case $1 in
+    --sof2) PRODUCT=sof2; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
     --commit) COMMIT_ONLY=1; shift ;;
     --check) CHECK_ONLY=1; shift ;;
@@ -21,9 +23,15 @@ while [[ $# -gt 0 ]]; do
     --last-release) LAST_RELEASE=1; shift ;;
     -m) MSG="$2"; shift 2 ;;
     [0-9]*.*[0-9]*) OVERRIDE_VERSION="$1"; shift ;;
-    *) echo "Usage: $0 [--dry-run] [--commit] [--check] [--ci] [--last-release] [-m 'msg'] [VERSION]"; exit 1 ;;
+    *) echo "Usage: $0 [--sof2] [--dry-run] [--commit] [--check] [--ci] [--last-release] [-m 'msg'] [VERSION]"; exit 1 ;;
   esac
 done
+
+if [[ "$PRODUCT" == sof2 ]]; then
+  VERSION_FILE="sof2/VERSION"
+  VERSION_H=
+  CHANGELOG="sof2/CHANGELOG.md"
+fi
 
 read_version() { tr -d '\r\n' < "$1"; }
 
@@ -38,16 +46,28 @@ version_gt() {
 }
 
 latest_release_tag() {
-  local repo tag
+  local repo
   repo=$(git remote get-url origin 2>/dev/null | sed -n 's/.*github.com[:/]\([^.]*\)\.git/\1/p')
   [[ -n "$repo" ]] || return 1
-  tag=$(curl -fsSL "https://api.github.com/repos/$repo/releases/latest" | grep '"tag_name"' | head -1 | sed 's/.*"tag_name"[^"]*"\([^"]*\)".*/\1/')
-  [[ -n "$tag" ]] || return 1
-  printf '%s' "$tag"
+  curl -fsSL "https://api.github.com/repos/$repo/releases?per_page=100" | python3 -c "
+import json, re, sys
+product = sys.argv[1]
+for r in json.load(sys.stdin):
+    t = r.get('tag_name', '')
+    if product == 'sof2' and re.match(r'^sof2-v[0-9]', t):
+        print(t); break
+    if product == 'sof1' and re.match(r'^v[0-9]', t) and not t.startswith('sof2-'):
+        print(t); break
+" "$PRODUCT"
 }
 
 version_from_tag() {
-  sed -n 's/^v\([0-9][0-9.]*\)-build[0-9][0-9]*$/\1/p' <<< "$1"
+  local tag="$1"
+  if [[ "$PRODUCT" == sof2 ]]; then
+    sed -n 's/^sof2-v\([0-9][0-9.]*\)-build[0-9][0-9]*$/\1/p' <<< "$tag"
+  else
+    sed -n 's/^v\([0-9][0-9.]*\)-build[0-9][0-9]*$/\1/p' <<< "$tag"
+  fi
 }
 
 run_release_check() {
@@ -100,7 +120,11 @@ if [[ -n "$COMMIT_ONLY" ]]; then
     echo "Dry run: commit created, not pushing."
   else
     git push origin master
-    echo "Pushed. CI will create release v${NEW_VER}-build<N> when VERSION changes on master."
+    if [[ "$PRODUCT" == sof2 ]]; then
+      echo "Pushed. CI will create release sof2-v${NEW_VER}-build<N> when sof2/VERSION changes on master."
+    else
+      echo "Pushed. CI will create release v${NEW_VER}-build<N> when VERSION changes on master."
+    fi
   fi
   exit 0
 fi
@@ -109,15 +133,27 @@ if [[ -n "$OVERRIDE_VERSION" ]]; then
   echo "$OVERRIDE_VERSION" > "$VERSION_FILE"
   echo "Set VERSION to $OVERRIDE_VERSION"
 else
-  [[ -f ./tools/increment_version.sh ]] || { echo "tools/increment_version.sh not found"; exit 1; }
-  ./tools/increment_version.sh
+  if [[ "$PRODUCT" == sof2 ]]; then
+    ./sof2/tools/increment_version.sh
+  else
+    [[ -f ./tools/increment_version.sh ]] || { echo "tools/increment_version.sh not found"; exit 1; }
+    ./tools/increment_version.sh
+  fi
 fi
 
-make "$VERSION_H"
 NEW_VER=$(read_version "$VERSION_FILE")
-git add "$VERSION_FILE" && git add -f "$VERSION_H"
+git add "$VERSION_FILE"
+if [[ -n "$VERSION_H" ]]; then
+  make "$VERSION_H"
+  git add -f "$VERSION_H"
+fi
 if last_tag=$(latest_release_tag 2>/dev/null); then
   echo "Latest GitHub release: $last_tag"
 fi
-echo "Staged VERSION and hdr/version.h (v$NEW_VER). Add CHANGELOG, run: $0 --check"
-echo "Then: $0 --commit [--dry-run] [-m 'Release v$NEW_VER']"
+if [[ "$PRODUCT" == sof2 ]]; then
+  echo "Staged sof2/VERSION (v$NEW_VER). Add sof2/CHANGELOG.md, run: $0 --sof2 --check"
+  echo "Then: $0 --sof2 --commit [--dry-run] [-m 'sof2bud v$NEW_VER']"
+else
+  echo "Staged VERSION and hdr/version.h (v$NEW_VER). Add CHANGELOG, run: $0 --check"
+  echo "Then: $0 --commit [--dry-run] [-m 'Release v$NEW_VER']"
+fi
