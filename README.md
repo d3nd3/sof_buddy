@@ -646,6 +646,9 @@ Written by sof_buddy itself. Values are recomputed each launch, so editing them 
 
 ## Releasing (maintainers)
 
+<details>
+<summary><b>Click to expand</b></summary>
+
 See **[RELEASE_INSTRUCTIONS.md](docs/RELEASE_INSTRUCTIONS.md)** for the full manual guide.
 
 SoF Buddy uses two version numbers:
@@ -668,9 +671,14 @@ Published tags look like **`v8.1-build189`**. Pushing to `master` always builds;
 
 `--commit` runs `--check` automatically. Feature fixes on `master` without a `VERSION` bump still CI-build but do not publish a new GitHub release.
 
+</details>
+
 ---
 
 ## Chapter 2: SoF 2 MP (sof2bud)
+
+<details>
+<summary><b>Click to expand</b></summary>
 
 Experimental **Soldier of Fortune II: Double Helix** multiplayer companion, developed in this repo under [`sof2/`](sof2/). It is **not** the same DLL as SoF 1’s `sof_buddy.dll` — it injects **`sof2bud.dll`** into **`SoF2MP.exe`** (MP **1.03 Gold** target today).
 
@@ -717,15 +725,8 @@ make -C sof2 clean
 
 Feature list: [`sof2/FEATURES.txt`](sof2/FEATURES.txt). Changelog: [`sof2/CHANGELOG.md`](sof2/CHANGELOG.md). Maintainer releases: [`sof2/RELEASE.md`](sof2/RELEASE.md).
 
-### SoF2 vs SoF1 in this repo
 
-| | **SoF 1** | **SoF 2 MP** |
-|---|-----------|----------------|
-| Game binary | `SoF.exe` | `SoF2MP.exe` |
-| DLL | `sof_buddy.dll` | `sof2bud.dll` |
-| Menu command | `sofbuddy_menu sof_buddy/...` | `sof2buddy_menu sof_buddy/...` or `menu sof_buddy <page>` |
-| Path in repo | root + `src/` | [`sof2/`](sof2/) |
-| Releases | `vX.Y-buildN` | `sof2-vX.Y-buildN` |
+</details>
 
 ---
 
