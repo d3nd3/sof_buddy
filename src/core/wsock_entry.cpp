@@ -143,6 +143,33 @@ static void load_vectored_exception_handlers(void) {
 }
 
 // Capture and print a simple stack backtrace (addresses + resolved symbols when possible)
+static void describe_address(void* addr, char* out, size_t outLen) {
+    out[0] = '\0';
+    if (!addr) return;
+    HMODULE mod = nullptr;
+    if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+                                GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                            reinterpret_cast<LPCSTR>(addr), &mod) ||
+        !mod) {
+        snprintf(out, outLen, "%p", addr);
+        return;
+    }
+    char path[MAX_PATH] = {0};
+    if (!GetModuleFileNameA(mod, path, MAX_PATH)) {
+        snprintf(out, outLen, "%p", addr);
+        return;
+    }
+    const char* leaf = path;
+    for (const char* p = path; *p; ++p) {
+        if (*p == '\\' || *p == '/') leaf = p + 1;
+    }
+    MODULEINFO mi = {0};
+    uintptr_t base = reinterpret_cast<uintptr_t>(mod);
+    if (GetModuleInformation(GetCurrentProcess(), mod, &mi, sizeof(mi)) && mi.lpBaseOfDll)
+        base = reinterpret_cast<uintptr_t>(mi.lpBaseOfDll);
+    snprintf(out, outLen, "%s+0x%x", leaf, (unsigned)(reinterpret_cast<uintptr_t>(addr) - base));
+}
+
 static void print_stack_backtrace(PEXCEPTION_POINTERS pExceptionInfo)
 {
     void* backtrace[62];
@@ -150,6 +177,7 @@ static void print_stack_backtrace(PEXCEPTION_POINTERS pExceptionInfo)
 
     PrintOut(PRINT_BAD, "Stack backtrace (frames=%u) thread=%lu:\n", frames, GetCurrentThreadId());
 
+    char desc[160];
     if (g_dbghelp_initialized) {
         SYMBOL_INFO *symbol = (SYMBOL_INFO*)malloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char));
         if (symbol) {
@@ -162,16 +190,17 @@ static void print_stack_backtrace(PEXCEPTION_POINTERS pExceptionInfo)
 
             for (USHORT i = 0; i < frames; ++i) {
                 DWORD64 addr = (DWORD64)(uintptr_t)backtrace[i];
+                describe_address(backtrace[i], desc, sizeof(desc));
                 if (SymFromAddr(GetCurrentProcess(), addr, 0, symbol)) {
                     memset(&lineInfo, 0, sizeof(lineInfo));
                     DWORD displacement32 = 0;
                     if (SymGetLineFromAddr64(GetCurrentProcess(), addr, &displacement32, &lineInfo)) {
-                        PrintOut(PRINT_BAD, "  #%02u: %s + 0x%llx (%s:%lu) [0x%p]\n", i, symbol->Name, (unsigned long long)(addr - symbol->Address), lineInfo.FileName, lineInfo.LineNumber, (void*)addr);
+                        PrintOut(PRINT_BAD, "  #%02u: %s + 0x%llx (%s:%lu) [%s]\n", i, symbol->Name, (unsigned long long)(addr - symbol->Address), lineInfo.FileName, lineInfo.LineNumber, desc);
                     } else {
-                        PrintOut(PRINT_BAD, "  #%02u: %s [0x%p]\n", i, symbol->Name, (void*)addr);
+                        PrintOut(PRINT_BAD, "  #%02u: %s [%s]\n", i, symbol->Name, desc);
                     }
                 } else {
-                    PrintOut(PRINT_BAD, "  #%02u: 0x%p\n", i, (void*)addr);
+                    PrintOut(PRINT_BAD, "  #%02u: %s\n", i, desc);
                 }
             }
 
@@ -179,7 +208,8 @@ static void print_stack_backtrace(PEXCEPTION_POINTERS pExceptionInfo)
         }
     } else {
         for (USHORT i = 0; i < frames; ++i) {
-            PrintOut(PRINT_BAD, "  #%02u: 0x%p\n", i, backtrace[i]);
+            describe_address(backtrace[i], desc, sizeof(desc));
+            PrintOut(PRINT_BAD, "  #%02u: %s\n", i, desc);
         }
     }
 }

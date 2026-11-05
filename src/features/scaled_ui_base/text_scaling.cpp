@@ -3,12 +3,11 @@
 
 	This file handles non-console text scaling:
 	- Generic HUD/menu text vertex scaling (ref.dll R_DrawFont)
-	- Menu text measurement scaling (R_Strlen/R_StrHeight)
 */
 
 #include "feature_config.h"
 
-#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
+#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_INTRO_SCALER
 
 #include "features.h"
 #include "generated_detours.h"
@@ -16,8 +15,14 @@
 using detour_R_DrawFont::oR_DrawFont;
 #include "shared.h"
 #include "util.h"
+#if FEATURE_SCALED_MENU
+#include "../scaled_menu/shared.h"
+#include "../scaled_menu/border_frame_dims.h"
+#endif
+#if FEATURE_INTRO_SCALER
+#include "../intro_scaler/shared.h"
+#endif
 #include "debug/hook_callsite.h"
-
 #include <math.h>
 #include <stdint.h>
 #include <string.h>
@@ -30,6 +35,36 @@ static float pivoty;
 static float fontStartX;
 int characterIndex = 0;
 
+// Menu text scaling: SoF lays text out with R_Strlen / R_StrHeight (centring, caret
+// position, clipping, row pitch, column offsets), so those scale by the same factor as
+// the glyphs. Each run then grows from its own start, leaving SoF's position intact.
+static float g_menuFontPivotX = 0.0f;
+static float g_menuFontPivotY = 0.0f;
+static bool g_menuTextScaleBypass = false;
+static char g_versionStampText[64] = {0};
+
+void scaled_menu_text_scale_bypass(bool on) {
+	g_menuTextScaleBypass = on;
+}
+
+bool scaled_menu_version_stamp(const char* text, int font) {
+	if (!text || !*text || font != static_cast<int>(REALFONT_SMALL)) return false;
+	if (text[0] < '0' || text[0] > '9') return false;
+	bool dot = false;
+	size_t n = 0;
+	for (const char* p = text; *p; ++p) {
+		if (++n >= sizeof(g_versionStampText)) return false;
+		if (*p == ' ') return false;
+		if (*p == '.') dot = true;
+	}
+	if (!dot) return false;
+	size_t i = 0;
+	for (; text[i] && i + 1 < sizeof(g_versionStampText); ++i)
+		g_versionStampText[i] = text[i];
+	g_versionStampText[i] = '\0';
+	return true;
+}
+
 static bool forceVanillaFont(void)
 {
 	cvar_t* pack = findCvar(const_cast<char*>("_sofbuddy_font_pack"));
@@ -37,11 +72,6 @@ static bool forceVanillaFont(void)
 }
 
 FontCaller g_currentFontCaller = FontCaller::Unknown;
-
-#ifdef UI_MENU
-int (*oR_Strlen)(char*, char*) = nullptr;
-int (*oR_StrHeight)(char*) = nullptr;
-#endif
 
 void computeTextBottomAnchor(float topLineY, int lineCount, float lineHeight,
     float& bottomY, float& targetBottomY)
@@ -199,20 +229,38 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 		case FontCaller::InputHandle:
 		case FontCaller::FileboxHandle:
 		case FontCaller::LoadboxGetIndices:
-		case FontCaller::ServerboxDraw:
 		case FontCaller::TipRender:
-			if (!RuntimeFeatures::Enabled(
-			        RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
+		case FontCaller::MenuSystemText:
+#if FEATURE_INTRO_SCALER
+			if (intro_scaler_disclaimer_menu_text_active()) {
+				const float s = intro_scaler_page_width_scale();
+				if (std::fabs(s - 1.f) < 0.001f) {
+					orig_glVertex2f(x, y);
+					break;
+				}
+				if (scaleX) x = pivotx + (x - pivotx) * s;
+				if (scaleY) y = pivoty + (y - pivoty) * s;
+				orig_glVertex2f(x + (characterIndex * realFontSizes[realFont]) * (s - 1), y);
+				break;
+			}
+			if (intro_scaler_intro_cinematic_active()) {
 				orig_glVertex2f(x, y);
 				break;
 			}
-			SOFBUDDY_ASSERT(screen_y_scale > 0.0f);
-			{
-			const float s = snapped_text_scale_active(screen_y_scale);
-			if (scaleX) x = pivotx + (x - pivotx) * s;
-			if (scaleY) y = pivoty + (y - pivoty) * s;
-			orig_glVertex2f(x + (characterIndex * realFontSizes[realFont])*(s-1), y);
-			}
+#endif
+#if FEATURE_SCALED_MENU
+			if (scaled_menu_uniform_actual_active() && !g_menuTextScaleBypass) {
+				const float s = scaled_menu_snapped_text_scale(realFont);
+				if (s == 1.0f) {
+					orig_glVertex2f(x, y);
+					break;
+				}
+				orig_glVertex2f(
+				    scaled_menu_detail::scale_axis_coordinate(x, g_menuFontPivotX, s),
+				    scaled_menu_detail::scale_axis_coordinate(y, g_menuFontPivotY, s));
+			} else
+#endif
+				orig_glVertex2f(x, y);
 			break;
 #endif
 			
@@ -225,7 +273,12 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 }
 
 void __stdcall my_glVertex2f_DrawFont_1(float x, float y) {
-	if (characterIndex == 0) fontStartX = x;
+	if (characterIndex == 0) {
+		fontStartX = x;
+		// Run start: pivot so the run grows right/down from where SoF's layout put it.
+		g_menuFontPivotX = x;
+		g_menuFontPivotY = y;
+	}
 	pivotx = x;
 	pivoty = y;
 	handleFontVertex(x, y, false, false, false);
@@ -245,34 +298,98 @@ void __stdcall my_glVertex2f_DrawFont_4(float x, float y) {
 
 #ifdef UI_MENU
 
-int hkR_Strlen(char * str, char * fontStd)
-{
-	SOFBUDDY_ASSERT(str != nullptr);
-	SOFBUDDY_ASSERT(fontStd != nullptr);
-	SOFBUDDY_ASSERT(screen_y_scale > 0.0f);
-	
-	int space_count = 0;
-	for (char *p = str; *p != '\0'; ++p) {
-		if (*p == ' ') {
-			space_count++;
-		}
-	}
+// Menu-module callers measure text so their layout (centring, caret at x + width,
+// clipping, row pitch, column offsets) matches the scaled glyphs we draw.
+struct MenuMeasureCaller {
+	bool is_menu = false;
+};
 
-	extern int (__cdecl *oR_Strlen)(char*, char*);
-	SOFBUDDY_ASSERT(oR_Strlen != nullptr);
-	return screen_y_scale * ( oR_Strlen(str, fontStd) - 5 * space_count);
+static bool pickMenuMeasureCaller(const CallerInfo& info, void* raw) {
+	if (is_menu_system_caller(info.module, (uint32_t)info.functionStartRva)) {
+		static_cast<MenuMeasureCaller*>(raw)->is_menu = true;
+		return true;
+	}
+	return false;
 }
 
-int hkR_StrHeight(char * fontStd)
-{
-	SOFBUDDY_ASSERT(fontStd != nullptr);
-	SOFBUDDY_ASSERT(screen_y_scale > 0.0f);
-	
-	extern int (__cdecl *oR_StrHeight)(char*);
-	SOFBUDDY_ASSERT(oR_StrHeight != nullptr);
-	return screen_y_scale * oR_StrHeight(fontStd);
+float scaled_menu_font_measure_scale(const char* fontStd) {
+#if FEATURE_SCALED_MENU
+	if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU) ||
+	    !scaled_menu_uniform_actual_active()) {
+		return 1.0f;
+	}
+	scaled_menu_sync_scale_from_engine();
+	const char* fontName = fontStd
+	                           ? *reinterpret_cast<char* const*>(fontStd + 4)
+	                           : nullptr;
+	const realFontEnum_t font = fontName ? getRealFontEnum(fontName) : REALFONT_UNKNOWN;
+	return snapped_text_scale(scaled_menu_screen_scale(), font_glyph_px(font));
+#else
+	(void)fontStd;
+	return 1.0f;
+#endif
+}
+
+static float font_measure_scale(const char* fontStd) {
+#if FEATURE_INTRO_SCALER
+	// Startup violence disclaimer: its glyphs scale by the page-width ratio (never by
+	// menuScale), so its measurement must follow the same ratio — unconditionally, so it
+	// is correct regardless of the scaled-menu cvars.
+	if (intro_scaler_disclaimer_menu_text_active()) return intro_scaler_page_width_scale();
+	if (intro_scaler_intro_cinematic_active()) return 1.0f;
+#endif
+#if FEATURE_SCALED_MENU
+	// Menu layout (centring, caret at x + width, clipping, row pitch, columns) is driven
+	// by these measurements, so they must scale with the glyphs we draw — otherwise the
+	// clip rects cut the scaled runs into slivers.
+	if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU) &&
+	    scaled_menu_uniform_actual_active()) {
+		MenuMeasureCaller caller;
+		HookCallsite::visitExternalCallers(pickMenuMeasureCaller, &caller);
+		if (caller.is_menu) {
+			return scaled_menu_font_measure_scale(fontStd);
+		}
+	}
+#else
+	(void)pickMenuMeasureCaller;
+#endif
+	return 1.0f;
+}
+
+int hkR_Strlen(char* str, char* fontStd, detour_R_Strlen::tR_Strlen original) {
+	if (!original || !str || !fontStd) return 0;
+	if (g_versionStampText[0] && strcmp(str, g_versionStampText) == 0)
+		return original(str, fontStd);
+	if (strcmp(str, "version") == 0) return original(str, fontStd);
+	if (str[0] >= '0' && str[0] <= '9') {
+		bool dot = false;
+		bool ok = true;
+		size_t n = 0;
+		for (const char* p = str; *p; ++p) {
+			if (++n > 31 || *p == ' ') {
+				ok = false;
+				break;
+			}
+			if (*p == '.') dot = true;
+		}
+		const char* fontName = *reinterpret_cast<char* const*>(fontStd + 4);
+		if (ok && dot && fontName && getRealFontEnum(fontName) == REALFONT_SMALL)
+			return original(str, fontStd);
+	}
+	const float s = font_measure_scale(fontStd);
+	const int w = original(str, fontStd);
+	return s == 1.0f ? w : static_cast<int>(lroundf(s * static_cast<float>(w)));
+}
+
+int hkR_StrHeight(char* fontStd, detour_R_StrHeight::tR_StrHeight original) {
+	if (!original || !fontStd) return 0;
+	const float s = font_measure_scale(fontStd);
+	const int h = original(fontStd);
+	const int scaled_h =
+	    s == 1.0f ? h : static_cast<int>(lroundf(s * static_cast<float>(h)));
+	return scaled_h;
 }
 
 #endif // UI_MENU
 
-#endif // FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
+#endif // FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_INTRO_SCALER

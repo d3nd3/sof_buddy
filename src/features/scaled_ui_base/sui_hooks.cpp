@@ -68,11 +68,14 @@ PicOptionsCaller g_currentPicOptionsCaller = PicOptionsCaller::Unknown;
 int DrawPicWidth = 0;
 int DrawPicHeight = 0;
 float screen_y_scale = 1.0f;
+float screen_x_scale = 1.0f;
 
 // Variables used by base hooks (defined here, modified by feature files)
 float hudScale = 1;
 bool hudScaleAuto = true;
 float crosshairScale = 1.0f;
+bool crosshairScaleAuto = false;
+bool crosshairAutoAxisVertical = true;
 bool hudStretchPicCenter = false;
 bool hudDmRanking = false;
 bool hudDmRanking_wasImage = false;
@@ -153,9 +156,6 @@ void (__thiscall *orig_slider_c_Draw)(void * self);
 void (__thiscall *orig_loadbox_c_Draw)(void * self);
 void (__thiscall *orig_vbar_c_Draw)(void * self);
 void (__thiscall *orig_master_Draw)(void * rect_c_self);
-void (__thiscall *orig_frame_c_Constructor)(void* self, void * menu_c, char * width, char * height, void * frame_name) = NULL;
-char * (__thiscall *ostm_c_ParseStm)(void *self_stm_c, void * toke_c) = NULL;
-void (__thiscall *orig_stm_c_ParseBlank)(void *self_stm_c, void * toke_c);
 int (__thiscall *orig_toke_c_GetNTokens)(void * toke_c, int quantity) = NULL;
 char * (__thiscall *orig_toke_c_Token)(void * toke_c, int idx) = NULL;
 void * (__cdecl *orig_new_std_string)(int length) = NULL;

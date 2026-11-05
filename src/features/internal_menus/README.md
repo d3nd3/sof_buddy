@@ -26,7 +26,7 @@ g_menu_internal_files[menu_name][filename]
 ### 2) `sofbuddy_menu` command path
 Internal menus can be opened without `sofbuddy_menu` (e.g. SCR_BeginLoadingPlaque or `loading_show_ui()` push `loading/loading` via `M_PushMenu`; the FS_LoadFile override serves them from memory either way). The `sofbuddy_menu` command is a convenience that adds behavior the engine's `menu` command does not provide:
 
-- **Layout cvars synced before open** — `update_layout_cvars(false)` so scaling and centering are correct for the current video mode.
+- **Layout cvars synced before open** — `scaled_menu_sync_scale_from_engine()` then `update_layout_cvars(false)`, so the tab prefix/centering are correct even when F12 is the first menu opened (no stock main menu first).
 - **Validation and resolution** — Name is sanitized and resolved against the embedded menu set only (`g_menu_internal_files`); invalid or missing paths are rejected. Converts to `<menu>/<page_stem>` (e.g. `sof_buddy/main`, `loading/loading`) with fallback to `main.rmf` for menu roots.
 - **Replace top page for non-sofbuddy** — For targets other than `sof_buddy/*`, runs `killmenu` first so the new menu replaces the current one and ESC behavior is predictable.
 - **Loading lock** — For `loading/*`, uses `_sofbuddy_loading_lock_input` for lock behavior. The loading current map name (`_sb_internal_loading_current`) is set to `"resolving..."` only in the loading reset state (http_maps `http_maps_clear_loading_cvars`), not here.
@@ -62,12 +62,33 @@ Loading UI is fed by direct helpers:
 Created in `PostCvarInit` and recomputed on vid changes:
 - `_sb_internal_menu_vid_w`, `_sb_internal_menu_vid_h`
 - `_sb_internal_center_panel_px`
-- `_sb_internal_tabs_row1_prefix_px`, `_sb_internal_tabs_row2_prefix_px`
-- `_sb_internal_tabs_row1_prefix_rmf`, `_sb_internal_tabs_row2_prefix_rmf`
+- `_sb_internal_tabs_wide` (`1` = 6×2 wide-screen layout, `0` = 3×4 4:3 layout)
+- `_sb_internal_tabs_row1_prefix_px`, `_sb_internal_tabs_row2_prefix_px` (wide prefix)
+- `_sb_internal_tabs_row1_prefix_rmf`, `_sb_internal_tabs_row2_prefix_rmf` (`<blank N 1>`)
+- `_sb_internal_tabs_row1_prefix_narrow_rmf` (narrow 4-column prefix, `<blank N 1>`)
 - `_sofbuddy_loading_lock_input` (`CVAR_SOFBUDDY_ARCHIVE`, default `0`)
 - The bonus menu key uses the native RMF `<setkey "sofbuddy_menu sof_buddy" ...>` widget; F12 remains the default shortcut through a separate internal binding, so it is not shown as the bonus key.
 - `_sofbuddy_perf_profile` (`CVAR_SOFBUDDY_ARCHIVE`, default `0`, used by the CPU profile list; the CPU page selects `Custom/Current` when the adjusted cvars do not match a preset)
-- Tunables: `_sb_internal_tabs_row1_content_px`, `_sb_internal_tabs_row2_content_px`, `_sb_internal_tabs_center_bias_px`, `_sb_internal_tabs_row1_bias_px`, `_sb_internal_tabs_row2_bias_px`
+- `_sofbuddy_menu_tip_font` (`CVAR_SOFBUDDY_ARCHIVE`, default `0` = Small; `1` = Medium, `2` = Title); `{tipfont}` is expanded into F12 `<defaults>` at load and applies after reopening F12.
+- `_sofbuddy_snd_quiet_alt_tab` (`CVAR_SOFBUDDY_ARCHIVE`, default `1`): filters DirectSound `Com_Printf` buffer messages (`Creating DS buffers`, `...using secondary sound buffer`, `Destroying DS buffers`) when enabled.
+- `_sofbuddy_menu_font_size_style` (`CVAR_SOFBUDDY_ARCHIVE`, default `0` = Small; `1` = Normal, `2` = Large, `3` = Extra Large); selects the F12 font-tier template at RMF load and requires reopening F12.
+
+The tab bar is **adaptive**: wide aspects (`vid_w * 3 > vid_h * 4`, i.e. 16:9/16:10/ultrawide) use **6×2**; 4:3 and 5:4 use **3×4**. All layouts use 12 medium-font tabs, `width 90`, `border 2 1`, `blank 4` gaps. Wide labels are Version, General, Cpu, UI Scale, Network, Graphics / Lighting, Gameplay, WebLinks, Features, Cvars, Profile; narrow rows are Version, General, Cpu, UI Scale / Network, Graphics, Lighting, Gameplay / WebLinks, Features, Cvars, Profile.
+
+Each `tabs/<page>.rmf` is a selector:
+```rmf
+<cinclude _sb_internal_tabs_wide sof_buddy/tabs/<page>_wide>
+<cninclude _sb_internal_tabs_wide sof_buddy/tabs/<page>_narrow>
+```
+The wide files use `{tabs_row_prefix}`, the narrow files use `{tabs_row_prefix_narrow}`; both prefixes are recomputed at runtime so the rows stay centred. The `content_inset` / `content_inset_tall` macros use a dynamic 4:3 content width: at 1920×1080 the content is 1440 px wide with 240 px side spacers; at 4:3 the spacers are zero. The unit conversion back to authored 640×480 coordinates uses the current menu scale. Internal `sof_buddy/*` frames stay on the stock frame canvas; only their content uses `menuScale`. Only the active tab tint changes between pages.
+
+Each F12 wrapper now has two sibling page frames:
+```rmf
+<cinclude _sb_internal_tabs_wide sof_buddy/nav_frame_<page>_wide>
+<cninclude _sb_internal_tabs_wide sof_buddy/nav_frame_<page>_narrow>
+<frame center_panel 640 0 page sof_buddy/<page>_content border 0 0 clear backfill clear>
+```
+The nav frame snippet is 42 px high for the wide 6×2 layout and 56 px for the narrow 3×4 layout; both are in stock frame-canvas units. `nav_<page>.rmf` is a small `<stm>` containing the tab include and a `sb_bg` backdrop. The nav is fixed; the content frame below owns the `vbar` and scrolls independently, so changing tabs never requires scrolling back to the top.
 
 When video size changes, `update_layout_cvars(true)` recomputes runtime layout cvars used by tab-prefix `includecvar` blocks.
 

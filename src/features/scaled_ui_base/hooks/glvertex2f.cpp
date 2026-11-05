@@ -6,11 +6,26 @@
 #include "util.h"
 #include "../../scaled_ui_base/shared.h"
 #include "runtime_features.h"
+#if FEATURE_SCALED_MENU
+#include "../../scaled_menu/shared.h"
+#endif
 #if FEATURE_MORE_CROSSHAIRS
 #include "features/more_crosshairs/shared.h"
 #endif
 
 extern void(__stdcall * orig_glVertex2f)(float one, float two);
+
+// Cinematic text/pics fall back to the intro-scaler scale when scaled menu claims them.
+#if FEATURE_SCALED_MENU
+static inline bool menuUniformActive(void) {
+	return RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU) &&
+	       scaled_menu_uniform_actual_active();
+}
+#else
+static inline bool menuUniformActive(void) {
+	return false;
+}
+#endif
 
 static int g_quadVertexIndex = 1;
 static float g_quadXMidOffset;

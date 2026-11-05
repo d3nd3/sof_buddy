@@ -19,7 +19,6 @@ list_match_fix
 texture_mapping_min_mag
 scaled_con
 scaled_hud
-# scaled_menu
 hd_textures
 vsync_toggle
 lighting_blend
@@ -34,6 +33,8 @@ http_maps
 master_server_fallback
 
 # Menu Features
+intro_scaler
+scaled_menu
 internal_menus
 
 # Input Features

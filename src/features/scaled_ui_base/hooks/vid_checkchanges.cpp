@@ -9,6 +9,9 @@
 #if FEATURE_INTERNAL_MENUS
 #include "features/internal_menus/shared.h"
 #endif
+#if FEATURE_SCALED_MENU
+#include "features/scaled_menu/shared.h"
+#endif
 
 extern int* viddef_width;
 extern int* viddef_height;
@@ -20,13 +23,20 @@ void scaled_ui_refresh_vid_dimensions_from_engine(void) {
         current_vid_w = *viddef_width;
         current_vid_h = *viddef_height;
         screen_y_scale = (float)current_vid_h / 480.0f;
+        screen_x_scale = (current_vid_w > 0) ? (float)current_vid_w / 640.0f : 1.0f;
 #if FEATURE_SCALED_CON
         if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON))
             apply_auto_font_scale();
 #endif
 #if FEATURE_SCALED_HUD
-        if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD))
+        if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
             apply_auto_hud_scale();
+            apply_auto_crosshair_scale();
+        }
+#endif
+#if FEATURE_SCALED_MENU
+        if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU))
+            apply_auto_menu_scale();
 #endif
     }
 }
@@ -36,6 +46,10 @@ void vid_checkchanges_post(void) {
 #if FEATURE_INTERNAL_MENUS
     if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_INTERNAL_MENUS))
         internal_menus_OnVidChanged();
+#endif
+#if FEATURE_SCALED_MENU
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU))
+        scaled_menu_on_vid_layout_changed();
 #endif
 }
 

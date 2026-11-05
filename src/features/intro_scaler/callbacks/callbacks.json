@@ -1,0 +1,8 @@
+[
+  {
+    "hook": "EarlyStartup",
+    "callback": "introScaler_EarlyStartup",
+    "priority": 65,
+    "phase": "Post"
+  }
+]

@@ -6,7 +6,7 @@
 
 <vbar tint sb_accent>
 
-<defaults noborder tiptint normaltext tipbtint sb_panel tipfont title>
+<defaults noborder tiptint normaltext tipbtint sb_panel tipfont {tipfont}>
 <backdrop bgcolor sb_bg>
 
 <left>
@@ -15,53 +15,54 @@
 {content_inset_tall}
 <normal>
 
-<include sof_buddy/tabs/misc>
 
 <center>
-<font type title tint sb_accent atint sb_accent>
+<font type {font_title} tint sb_accent atint sb_accent>
 "_____________________________"
 <hbr>
 <hbr>
-<font type title tint white atint white>
+<font type {font_title} tint white atint white>
 <text "SOF BUDDY: GAMEPLAY">
 <center>
-<font type title tint cyan atint cyan>
+<font type {font_title} tint cyan atint cyan>
 "_____________________________"
 <hbr>
 <hbr>
-<font type title tint cyan atint cyan>
+<font type {font_title} tint cyan atint cyan>
 "View"
-<font type title tint white atint white>
+<font type {font_title} tint white atint white>
 <list "H95,V79,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111" match "0,1,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111" cvar _sp_cl_vid_fov atext "FOV : " noshade tip "H95=horizontal 95, V79=vertical 79 (default). 90-111=custom horizontal FOV; vertical adjusts for aspect ratio. Uses _sp_cl_vid_fov (not locked fov cvar)."><hbr>
 <list "Off,On" cvar cl_gun atext "cl_gun : " noshade tip "Off (0) hides the first-person weapon model."><hbr>
 
-<font type title tint sb_subtle atint sb_subtle>
+<font type {font_title} tint sb_subtle atint sb_subtle>
 "_____________________________"
 <hbr>
 <hbr>
-<font type title tint cyan atint cyan>
+<font type {font_title} tint cyan atint cyan>
 "Crosshair"
-<font type title tint white atint white>
+<font type {font_title} tint white atint white>
 <include sof_buddy/more_crosshair_list>
 <list "White,Red,Green,Blue,Yellow,Cyan,Magenta,Orange,Purple" match "0,1,2,3,4,5,6,7,8" cvar _sofbuddy_crosshair_tint atext "Stock tint : " noshade tip "Color tint for stock crosshairs S0-S4 only (theme 0)."><hbr>
-<list "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" match "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" cvar _sofbuddy_crossh_scale atext "Crosshair Scale : " noshade tip "Size multiplier for the current crosshair."><hbr>
+<list "Horizontal,Vertical" match "0,1" cvari _sofbuddy_crossh_scale_auto_axis atext "Crosshair Auto Scale Axis : " key mouse1 "sofbuddy_menu sof_buddy/misc" noshade tip "Axis used when Auto Crosshair Scale is on. Default Vertical."><br>
+<list "Off,On" cvari _sofbuddy_crossh_scale_auto atext "Auto Crosshair Scale : " key mouse1 "sofbuddy_menu sof_buddy/misc" noshade tip "Track crosshair scale from the selected resolution axis. Hides the manual scale control when on."><br>
+<cninclude _sofbuddy_crossh_scale_auto sof_buddy/misc_crosshair_manual>
 
-<font type title tint sb_subtle atint sb_subtle>
+<font type {font_title} tint sb_subtle atint sb_subtle>
 "_____________________________"
 <hbr>
 <hbr>
-<font type title tint cyan atint cyan>
+<font type {font_title} tint cyan atint cyan>
 "Input"
-<font type title tint white atint white>
+<font type {font_title} tint white atint white>
 <list "Off,On" cvari _sofbuddy_rawmouse atext "Raw Mouse Input : " noshade><br>
 
-<font type title tint sb_subtle atint sb_subtle>
+<font type {font_title} tint sb_subtle atint sb_subtle>
 "_____________________________"
 <hbr>
 <hbr>
-<font type title tint cyan atint cyan>
+<font type {font_title} tint cyan atint cyan>
 "Audio"
-<font type title tint white atint white>
+<font type {font_title} tint white atint white>
 <list "Yes,No" match "1,0" cvar s_musicenabled atext "Play Music : " noshade tip "Background music in-game."><hbr>
 <ctext s_volume atext "Volume : " noshade><br>
 <slider cvar s_volume min 0 max 1 step 0.05><hbr>
@@ -69,37 +70,37 @@
 <list "16-bit,8-bit" match "0,1" cvar s_loadas8bit atext "Sample Rate : " noshade tip "16-bit (0) or 8-bit (1) sample loading."><hbr>
 <text "Restart Audio" key mouse1 "snd_restart" border 8 1 cyan regular align center><hbr>
 
-<font type title tint sb_subtle atint sb_subtle>
+<font type {font_title} tint sb_subtle atint sb_subtle>
 "_____________________________"
 <hbr>
 <hbr>
 <include sof_buddy/video_fps>
 
-<font type title tint sb_subtle atint sb_subtle>
+<font type {font_title} tint sb_subtle atint sb_subtle>
 "_____________________________"
 <hbr>
 <hbr>
-<font type title tint cyan atint cyan>
+<font type {font_title} tint cyan atint cyan>
 "Kill feed"
-<font type title tint white atint white>
-<list "Off,Default,Fast,SuperFast,Slow,SuperSlow,Indefinite" match "-1,3,2,1,6,12,999" cvar con_notifytime atext "Kill Feed+Chat Visibility Duration : " noshade tip "How long kill-feed and chat lines stay on screen (seconds). Off hides timed notify."><hbr>
+<font type {font_title} tint white atint white>
+<list "Off,Default (3s),Fast (2s),SuperFast (1s),Slow (6s),SuperSlow (12s),Indefinite" match "-1,3,2,1,6,12,999" cvar con_notifytime atext "Kill Feed+Chat Visibility Duration : " noshade tip "How long kill-feed and chat lines stay on screen. Durations shown in seconds; Off hides timed notify."><hbr>
 <list "On,Off,Self Only" match "0,2,1" cvar cl_obit_filter atext "Kill Feed : " noshade tip "Obituary lines in the notify area. On=all, Off=none, Self Only=your kills/deaths."><hbr>
 
-<font type title tint sb_subtle atint sb_subtle>
+<font type {font_title} tint sb_subtle atint sb_subtle>
 "_____________________________"
 <hbr>
 <hbr>
-<font type title tint cyan atint cyan>
+<font type {font_title} tint cyan atint cyan>
 "Game"
-<font type title tint white atint white>
+<font type {font_title} tint white atint white>
 <ctext ai_maxcorpses atext "ai_maxcorpses : " noshade><br>
 <slider cvar ai_maxcorpses min 1 max 20 step 1><hbr>
 
-<font type title tint sb_subtle atint sb_subtle>
+<font type {font_title} tint sb_subtle atint sb_subtle>
 "_____________________________"
 <hbr>
 <hbr>
-<font type title tint white atint white>
+<font type {font_title} tint white atint white>
 <text "Restore Input Defaults" key mouse1 "set _sofbuddy_rawmouse 0;refresh" border 8 1 cyan regular align center>
 <text "Close" key mouse1 "popmenu" border 8 1 cyan regular align center>
 </stm>

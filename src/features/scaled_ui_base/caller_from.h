@@ -108,10 +108,15 @@ enum class FontCaller {
 	ServerboxDraw,
 	TipRender,
 	DrawLine,
-	PlayerInfoName // ref_gl Draw_PlayerInfo (0x3040): playername text above a player
+	PlayerInfoName, // ref_gl Draw_PlayerInfo (0x3040): playername text above a player
+	MenuSystemText  // SoF.exe menu module widget text (range-classified fallback)
 };
 
 FontCaller getFontCallerFrom(Module m, uint32_t fnStartRva);
 FontCaller getFontCallerFromRva(uint32_t fnStartRva);
+
+// True for callers inside the SoF.exe menu-system code region (backdrop_c..toke_c,
+// RVAs 0xC3EF0..0xEB000). Used for R_DrawFont / R_Strlen / R_StrHeight classification.
+bool is_menu_system_caller(Module m, uint32_t fnStartRva);
 
 #endif

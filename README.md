@@ -15,9 +15,18 @@
 ![HTTP map download - missing maps fetched on demand](docs/images/http.png)
 ![SoF Buddy in-game menu (F12)](docs/images/menu.png)
 
-> **A modern enhancement suite for Soldier of Fortune 1 — scaling, fixes, and quality-of-life improvements for the best SoF experience.**
+> **A modern enhancement suite for Soldier of Fortune 1 and early Soldier of Fortune II: Double Helix multiplayer (sof2bud) — scaling, fixes, and quality-of-life improvements.**
+
+<p align="center">
+  <strong>Jump to:</strong>
+  <a href="#sof-1--soldier-of-fortune">SoF 1</a>
+  ·
+  <a href="#chapter-2-sof-2-mp-sof2bud">SoF 2 MP (sof2bud)</a>
+</p>
 
 ---
+
+## SoF 1 — Soldier of Fortune
 
 ### ⚠️ **#1 THING YOU NEED TO KNOW**
 
@@ -30,31 +39,21 @@
 <details open>
 <summary><b>Click to expand</b></summary>
 
-- 🔠 **Font Scaling** — Crisp, readable fonts at any resolution: `1x`, `2x`, `3x`, `4x`, etc. Enable **Auto Font Scale** (`_sofbuddy_font_scale_auto 1`) to track resolution (`vid_h / 480`), or turn auto off and set `_sofbuddy_font_scale` manually.
-- 🔤 **Font Pack Switcher** — Choose **Default**, **Force SoFPlus**, or **Force Vanilla** fonts from F12 → UI Scale; changing it reloads the renderer without restarting the game.
-- 🖥️ **HUD Scaling** — Scale the HUD independently from the font for perfect UI balance. **Auto HUD Scale** (`_sofbuddy_hud_scale_auto 1`) uses the same resolution ratio; disable auto to pick a manual `_sofbuddy_hud_scale`.
-- 🎬 **Cinematic Image Scaling** — Credit/fade images (`SP_FLAG_CREDIT`) scale up from 640×480 to your resolution. Toggle with `_sofbuddy_scale_cinematic_pics` (`1` = on, `0` = off) or **Scale Cinematic Images** in F12 → UI Scale.
-- 🎯 **Crosshair Scaling** — Scale crosshair textures independently for improved visibility.
-- 🎯 **More Crosshairs** — Engine `crosshair` stays 0–4; F12 → Gameplay adds a **theme** list (pack filenames under `sof_buddy/crosshairs/`) with a live preview image.
-- 🎯 **Restored `cl_maxfps` in Singleplayer** — Smooth SP caps via **F12 → CPU → Framerate** (legacy ms-budget list, or optional **Exact FPS cap** for integer values like `60`).
-- ⚡ **Stable Framerate & CPU Saver** — Uses `QueryPerformanceCounter` for precise timing and energy savings. New cvar: `_sofbuddy_sleep`.
-- 🖱️ **Raw Mouse Input** — Direct hardware input bypassing Windows acceleration. All original sensitivity cvars still work!
-- 🏷️ **Widescreen Teamicons GlitchFix** — Team icons are always correctly positioned, even in widescreen. Team icons and playernames above players scale with the HUD — toggle with `_sofbuddy_icons_autoscale` or **Icons Autoscale** in F12 → UI Scale.
-- 🖼️ **HD Texture Support** — Native support for high-res `.m32` textures. [Learn more](https://www.sof1.org/viewtopic.php?p=45667)
-- 👤 **Extended Multiplayer Skins** — Extra player models ship in `sof_buddy/extended_skins.pak` (skins by **Acadie**).
-- 🌙 **Lighting Blend Mode Adjustment** — Experience WhiteMagicRaven's lighting tweaks (optional).
-- 🖲️ **Console Size Adjustment** — Set how much of the screen the console covers, for any setup.
-- 🔄 **VSync Reliability** — `gl_swapinterval` is applied on every `vid_restart` for hassle-free vsync. F12 → CPU shows the measured display refresh, a request picker built from your driver's actual modes, plus a cap check that warns when VSync could deliver more than the framerate cap allows.
-- 🛠️ **Sane Defaults on First Run** — Fixes bad config defaults after hardware changes.
-- 🛡️ **Console Overflow/Crash Fixes** — No more crashes from large pastes or ultra-wide resolutions.
-- 🧾 **Large `config.cfg` Exec Fix** — Avoid `Cbuf_AddText: overflow` when running `exec config.cfg` with very large configs.
-- 🧩 **Embedded Loading / Internal Menus** — Serve RMF menu assets from memory (includes loading UI) and open internal pages via `sofbuddy_menu`.
-- 🌐 **HTTP Map Download Assist** — Download missing maps over HTTP and resume precache; provider URLs configurable via cvars.
-- 🌐 **GameSpy Master Selection** — Choose a known master server for SoFPlus from F12 → Network; the selected `_sp_cl_master_gamespy` value is saved by SoFPlus.
-- ⬆️ **In-Game Updater + Startup Prompt** — Check/download release zips in-game, with optional startup check and internal-menu prompt.
-- 🎮 **SoF Plus installer wizard** — Windows Setup optional task **Install SoF Plus client** applies the official **20140531** SoF Plus client patch (`spcl.dll`, `base/sofplus.pak`, and related files). After you choose the SoF folder, Setup inspects `SoF.exe` to pick **CD vs GOG** and whether the **KB4571756** Raven-string fix is already on the executable, then runs the matching bundled kit—no manual “stub vs full” choice. See [SoF Plus client (installer)](docs/WINDOWS_INSTALLER.md#sof-plus-client-20140531).
-- 🧓 **Windows XP Updater Mirror Defaults** — XP builds default updater feed URLs to `sofvault.org` (overrideable via cvars).
-- 📚 **Feature Docs** — See `src/features/internal_menus/README.md`, `src/features/http_maps/README.md`, `src/features/master_server_fallback/README.md`, and `src/features/cbuf_limit_increase/README.md`.
+- 🎯 **One menu for everything** — Press **F12** for settings, profiles, updates, links, and diagnostics. No console required.
+- ✨ **Crisp at any resolution** — Fonts, HUD, console, intros, cinematics, and the **entire menu system** scale cleanly from 640×480 to 4K and ultrawide, with auto or manual control.
+- 🧭 **Menu Scaling, rebuilt** — Stock and F12 menus stay sharp and readable at high resolutions. The redesigned F12 menu has adaptive tabs, a fixed nav bar, a comfortable widescreen reading column, themes, and readable font/tooltip presets.
+- 🎯 **Crosshair studio** — Stock and community crosshair packs with live preview, tint, size control, and optional auto-scaling.
+- ⚡ **Smoother framerate** — Fine-grained singleplayer FPS caps, including exact integer targets, with improved timing and CPU-friendly pacing.
+- 🖱️ **Raw mouse input** — Direct hardware input without Windows acceleration; your existing sensitivity settings still work.
+- 🏷️ **Widescreen fixes** — Team icons and player names stay correctly positioned and scale with your HUD.
+- 🖼️ **HD textures & extended skins** — High-resolution texture support plus extra multiplayer player models.
+- 🌙 **Better lighting** — Optional WhiteMagicRaven lighting blend tweaks for a sharper, more atmospheric look.
+- 🌐 **Multiplayer quality of life** — HTTP map downloads, a GameSpy master selector with known-host fallback, and faster server setup.
+- ⬆️ **In-game updater** — Check, download, and install releases without leaving the game; choose stable or latest and get an optional startup prompt.
+- 🎮 **One-click Windows installer** — Installs SoF Buddy and can optionally set up the official SoF Plus client, with automatic CD/GOG detection.
+- 🛡️ **Rock-solid compatibility** — Console crash fixes, large-config handling, Windows XP builds, and Wine/Proton support.
+- 📚 **Learn more** — Feature guides live under `src/features/`; start with `scaled_menu/`, `internal_menus/`, and `more_crosshairs/`.
+
 
 </details>
 
@@ -301,6 +300,10 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Auto font scale from <code>vid_h / 480</code>. <code>1</code> on, <code>0</code> off. Legacy <code>_sofbuddy_font_scale -1</code> migrates to auto on + scale <code>1</code>. F12 → UI Scale.</td>
 </tr>
 <tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_font_scale_auto_axis</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Font auto-scale axis: <code>0</code> horizontal (<code>vid_w / 640</code>), <code>1</code> vertical (<code>vid_h / 480</code>). F12 → UI Scale.</td>
+</tr>
+<tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_font_pack</code></td>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Font mode: <code>0</code> Default, <code>1</code> Force SoFPlus, <code>2</code> Force Vanilla. Changing it reloads the renderer. F12 → UI Scale.</td>
 </tr>
@@ -311,6 +314,10 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_hud_scale_auto</code></td>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Auto HUD scale from <code>vid_h / 480</code>. <code>1</code> on, <code>0</code> off. Legacy <code>_sofbuddy_hud_scale -1</code> migrates like font auto. F12 → UI Scale.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_hud_scale_auto_axis</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. HUD auto-scale axis: <code>0</code> horizontal (<code>vid_w / 640</code>), <code>1</code> vertical (<code>vid_h / 480</code>). F12 → UI Scale.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_scale_round_auto</code></td>
@@ -327,6 +334,18 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_crossh_scale</code></td>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Crosshair size multiplier. F12 → Gameplay → Crosshair.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_crossh_scale_auto</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code> (Off). Auto-scale the crosshair from the selected axis; hides the manual scale control when On. F12 → Gameplay.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_crossh_scale_auto_axis</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code> (Vertical). Crosshair auto-scale axis: <code>0</code> horizontal (<code>vid_w / 640</code>), <code>1</code> vertical (<code>vid_h / 480</code>). F12 → Gameplay.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_crosshair_theme</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Crosshair theme index used by the crosshair picker. F12 → Gameplay.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_icons_autoscale</code></td>
@@ -429,6 +448,14 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Run the updater check at startup and open the internal prompt when a newer release is found. F12 → General.</td>
 </tr>
 <tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_update_show_all_releases</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. List every release tag in F12 after Refresh release list. F12 → Version.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_update_startup_stable_only</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Startup prompt only when stable.json is newer; <code>1</code> stable only, <code>0</code> use the selected install target. F12 → General.</td>
+</tr>
+<tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_update_use_gui</code></td>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code> on <strong>universal</strong> builds (Windows, Wine, and Proton); <code>0</code> on non-universal channels. Use <code>sof_buddy_update.exe</code> when queuing an install (<code>sofbuddy_update_install</code>) unless turned off (then script / in-DLL extract on Wine/Proton). Toggle on <strong>F12 → Version</strong>.</td>
 </tr>
@@ -442,11 +469,39 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_update_target_tag</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>latest</code>. Release tag to install. Run <code>sofbuddy_update releases</code> to refresh the tag list after changing. F12 → Cvars (or console).</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>stable</code>. Release target: <code>stable</code> (blessed release), <code>latest</code> (newest CI), or a tag. Run <code>sofbuddy_update releases</code> to refresh the tag list after changing. F12 → Cvars (or console).</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_theme</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Menu color preset (<code>0</code> … <code>37</code>). Reopen the menu to apply. F12 → General.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>21</code> (Cob2). Menu color preset (<code>0</code> … <code>38</code>). Reopen the menu to apply. F12 → General.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_hotkey</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_scale</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Manual actual-pixel menu scale (<code>0.25</code> … <code>8</code>) when auto is off; <code>1</code> = vanilla SoF. F12 → UI Scale.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_scale_auto</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Auto menu scale from vertical resolution (<code>vid_h / 480</code>); <code>0</code> uses <code>_sofbuddy_menu_scale</code>. F12 → UI Scale.</td>
+</tr>
+<strong>Default</strong> <code>F12</code>. Keyboard key that opens the F12 menu. F12 → General.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_tip_appear</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>250</code>. Tooltip appearance delay in milliseconds (<code>0</code> immediate). F12 → General.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_tip_font</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code> (Small). Tooltip font tier: <code>0</code> Small, <code>1</code> Medium, <code>2</code> Title. Reopen F12 to apply. F12 → General.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_font_size_style</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code> (Small). F12 font-tier preset: <code>0</code> Small, <code>1</code> Normal, <code>2</code> Large, <code>3</code> Extra Large. Reopen F12 to apply. F12 → General.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_snd_quiet_alt_tab</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Hide DirectSound buffer recreation messages, including after Alt-Tab. <code>1</code> on, <code>0</code> off. F12 → General.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_loading_lock_input</code></td>
@@ -539,7 +594,7 @@ Written by sof_buddy itself. Values are recomputed each launch, so editing them 
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_center_panel_px</code>, <code>_sb_internal_tabs_row1_*</code>, <code>_sb_internal_tabs_row2_*</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Computed tab-bar layout: panel width, prefixes/suffixes, content width and bias. Recomputed on resolution change.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Computed tab-bar layout: panel width and the per-resolution centred tab prefix (28 px at 640×480). Recomputed on resolution change.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_profile_target_*</code></td>
@@ -615,6 +670,65 @@ Published tags look like **`v8.1-build189`**. Pushing to `master` always builds;
 
 ---
 
+## Chapter 2: SoF 2 MP (sof2bud)
+
+Experimental **Soldier of Fortune II: Double Helix** multiplayer companion, developed in this repo under [`sof2/`](sof2/). It is **not** the same DLL as SoF 1’s `sof_buddy.dll` — it injects **`sof2bud.dll`** into **`SoF2MP.exe`** (MP **1.03 Gold** target today).
+
+### What works today
+
+- **F12 in-game menu** — same *idea* as SoF Buddy (native **Menusx86** RMF under `menus/sof_buddy/`): **Version**, **Graphics**, **General** tabs.
+- **Graphics** — extended `r_mode` list (common desktop resolutions), **fullscreen**, **Vid Restart**.
+- **Baseline fixes** — small engine patches (e.g. `r_mode` bounds, master server string) aligned with the SoF2 MP binary.
+- **Wine/Linux** — run with the game folder as working directory (see below).
+
+SoF 1 features (font/HUD scaling, updater, HTTP maps, crosshair packs, installer wizard, etc.) are **not** ported yet; the SoF2 menu and feature set will grow over time.
+
+### Quick start (Wine / manual)
+
+1. Build or download **`sof2bud.dll`** ([`sof2` releases](https://github.com/d3nd3/sof_buddy/releases) — tags `sof2-v*`, artifact `sof2_release_windows.zip`).
+2. Point at your **SoF2 MP install root** (folder with `SoF2MP.exe`, `Menusx86.dll`, `base/`):
+
+   ```sh
+   cd sof2
+   ./deploy_to_sof2.sh "/path/to/Soldier of Fortune II - Double Helix"
+   ```
+
+   This copies `sof2bud.dll`, patch helpers under `sof2_buddy/`, and **`menus/sof_buddy/*.rmf`** into the game tree, then patches **`SoF2MP.exe`** to load the DLL (same import-hijack idea as SoF 1).
+
+3. Launch **from the game directory** (required for assets and menus):
+
+   ```sh
+   ./sof2/run_sof2mp_wine.sh
+   ```
+
+4. In-game: press **`F12`** (bound at startup) or console:
+
+   ```text
+   sof2buddy_menu sof_buddy/main
+   sof2buddy_menu sof_buddy/texture
+   ```
+
+### Build from source
+
+```sh
+make -C sof2              # → sof2/bin/sof2bud.dll
+make -C sof2 clean
+```
+
+Feature list: [`sof2/FEATURES.txt`](sof2/FEATURES.txt). Changelog: [`sof2/CHANGELOG.md`](sof2/CHANGELOG.md). Maintainer releases: [`sof2/RELEASE.md`](sof2/RELEASE.md).
+
+### SoF2 vs SoF1 in this repo
+
+| | **SoF 1** | **SoF 2 MP** |
+|---|-----------|----------------|
+| Game binary | `SoF.exe` | `SoF2MP.exe` |
+| DLL | `sof_buddy.dll` | `sof2bud.dll` |
+| Menu command | `sofbuddy_menu sof_buddy/...` | `sof2buddy_menu sof_buddy/...` or `menu sof_buddy <page>` |
+| Path in repo | root + `src/` | [`sof2/`](sof2/) |
+| Releases | `vX.Y-buildN` | `sof2-vX.Y-buildN` |
+
+---
+
 ## 🤝 Credits
 
 - **WhiteMagicRaven** — Lighting blend mode
@@ -646,5 +760,5 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 ---
 
-> *SoF Buddy is not affiliated with Raven Software or Activision. Soldier of Fortune is © their respective owners.* 
+> *SoF Buddy / sof2bud are not affiliated with Raven Software or Activision. Soldier of Fortune and Soldier of Fortune II are © their respective owners.*
 

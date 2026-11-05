@@ -6,8 +6,12 @@
 #include "util.h"
 #include "../../scaled_ui_base/shared.h"
 #include "runtime_features.h"
+#if FEATURE_SCALED_MENU
+#include "../../scaled_menu/shared.h"
+#endif
 #include <cstdio>
 #include <cstring>
+#include <cmath>
 #include <string>
 
 #if FEATURE_MORE_CROSSHAIRS
@@ -33,10 +37,19 @@ void* gl_findimage_post_callback(void* result, char *filename, int imagetype, ch
         } else 
         #endif
         if ( g_activeDrawCall == DrawRoutineType::Pic) {
-            if (mainMenuBgTiled && RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
-                DrawPicWidth = *(short*)((char*)result + 0x44) * screen_y_scale;
-                DrawPicHeight = *(short*)((char*)result + 0x46) * screen_y_scale;
-            } else {
+#if FEATURE_SCALED_MENU
+            if (scaled_menu_uniform_actual_active() &&
+                g_currentPicCaller != PicCaller::SCR_DrawCrosshair &&
+                g_currentPicCaller != PicCaller::ExecuteLayoutString &&
+                g_currentPicCaller != PicCaller::SCR_DrawCinemaScope) {
+                const float ms = scaled_menu_screen_scale();
+                DrawPicWidth = static_cast<int>(std::lround(
+                    static_cast<float>(*(short*)((char*)result + 0x44)) * ms));
+                DrawPicHeight = static_cast<int>(std::lround(
+                    static_cast<float>(*(short*)((char*)result + 0x46)) * ms));
+            } else
+#endif
+            {
                 DrawPicWidth = *(short*)((char*)result + 0x44);
                 DrawPicHeight = *(short*)((char*)result + 0x46);
             }

@@ -138,14 +138,15 @@ Callers of `R_DrawFont` - used for text rendering:
 | `Inventory2` | Inventory text | `0x00008260` | SoF.exe | HUD scale | Item names, ammo counts |
 | `SCRDrawPause` | Pause screen text | `0x00013710` | SoF.exe | Screen scale | Pause menu |
 | `SCR_DrawCenterPrint` | Center print text | `0x000163C0` | SoF.exe | Screen scale | Center screen text (called from SCR_UpdateScreen) |
-| `RectDrawTextItem` | Menu item text | `0x000CECC0` | SoF.exe | Screen scale | Menu items |
-| `RectDrawTextLine` | Menu line text | `0x000CF0E0` | SoF.exe | Screen scale | Menu text lines |
-| `TickerDraw` | Ticker text | `0x000D19F0` | SoF.exe | Screen scale | Scrolling text |
-| `InputHandle` | Input field text | `0x000D4060` | SoF.exe | Screen scale | Text input fields |
-| `FileboxHandle` | File box text | `0x000D9F80` | SoF.exe | Screen scale | File browser |
-| `LoadboxGetIndices` | Load box text | `0x000DBF10` | SoF.exe | Screen scale | Loading screen text |
-| `ServerboxDraw` | Server browser text | `0x000DE430` | SoF.exe | Screen scale | Server list |
-| `TipRender` | Tip text | `0x000EA8A0` | SoF.exe | Screen scale | Help/tip messages |
+| `RectDrawTextItem` | Menu item text | `0x000CECC0` | SoF.exe | Menu scale | Menu items |
+| `RectDrawTextLine` | Menu line text | `0x000CF0E0` | SoF.exe | Menu scale | Menu text lines |
+| `TickerDraw` | Ticker text | `0x000D19F0` | SoF.exe | Menu scale | Scrolling text |
+| `InputHandle` | Input field text | `0x000D4060` | SoF.exe | Menu scale | Text input fields |
+| `FileboxHandle` | File box text | `0x000D9F80` | SoF.exe | Menu scale | File browser |
+| `LoadboxGetIndices` | Load box text | `0x000DBF10` | SoF.exe | Menu scale | Loading screen text |
+| `ServerboxDraw` | Server browser text | `0x000DE8D0` | SoF.exe | Menu scale | Server list |
+| `TipRender` | Tip text | `0x000EA8A0` | SoF.exe | Menu scale | Help/tip messages |
+| `MenuSystemText` | Any menu-module widget text | `0x000C3EF0`–`0x000EB000` | SoF.exe | Menu scale | Range-classified fallback (text_c, vbar, helpers) |
 | `DrawLine` | Line text | `0x00002A40` | ref.dll | None | Text on lines |
 
 **Related Files:**
@@ -194,6 +195,18 @@ Applied to:
 Applied to:
 - `FontCaller::SCRDrawPause` - Pause screen text
 - `FontCaller::SCR_DrawCenterPrint` - Center print text (called from SCR_UpdateScreen)
+
+**Related Files:**
+- `text_scaling.cpp` (lines 55-61, 68-80) - Font scaling with screen scale
+- `text_scaling.cpp` (lines 111-137) - Text measurement scaling (R_Strlen, R_StrHeight)
+- `src/features/scaled_menu/` - Menu scaling implementation
+
+### Menu Scale (`menuScale` — `scaled_menu`)
+Applied to all SoF.exe menu-module font runs. Every glyph of a run is scaled
+uniformly around that run's own start (first glyph), so text keeps the position
+the menu layout gave it and only the glyphs grow. `R_DrawFont` screen
+coordinates and `R_Strlen` / `R_StrHeight` stay stock — nothing is translated by
+the scaler, and at `menuScale` 1 the draw path is identical to vanilla.
 - `FontCaller::RectDrawTextItem` - Menu item text
 - `FontCaller::RectDrawTextLine` - Menu line text
 - `FontCaller::TickerDraw` - Ticker text
@@ -202,11 +215,16 @@ Applied to:
 - `FontCaller::LoadboxGetIndices` - Load box text
 - `FontCaller::ServerboxDraw` - Server browser text
 - `FontCaller::TipRender` - Tip text
+- `FontCaller::MenuSystemText` - Range-classified menu widget text (>= 0x000C3EF0, < 0x000EB000)
+
+The scale is snapped per font via `snapped_text_scale(scaled_menu_screen_scale(),
+font_glyph_px(font))`.
 
 **Related Files:**
-- `text_scaling.cpp` (lines 55-61, 68-80) - Font scaling with screen scale
-- `text_scaling.cpp` (lines 111-137) - Text measurement scaling (R_Strlen, R_StrHeight)
-- `src/features/scaled_menu/` - Menu scaling implementation
+- `text_scaling.cpp` - Menu uniform vertex path (glyph-run scaling)
+- `hooks/r_drawfont.cpp` - `FontCaller::MenuSystemText` range fallback
+- `caller_from.cpp` - `is_menu_system_caller`
+- `src/features/scaled_menu/` - Menu scale cvars/activation
 
 ### Console Scale (`consoleSize`)
 Applied to:
@@ -254,11 +272,14 @@ switch (g_currentFontCaller) {
 switch (g_currentFontCaller) {
     case FontCaller::RectDrawTextItem:
     case FontCaller::RectDrawTextLine:
-    case FontCaller::InputHandle:
-        // Apply screen scaling for menus
-        x = pivotx + (x - pivotx) * screen_y_scale;
-        y = pivoty + (y - pivoty) * screen_y_scale;
+    case FontCaller::MenuSystemText: {
+        // Uniform scale around the captured run pivot
+        const float s = snapped_text_scale(scaled_menu_screen_scale(),
+            font_glyph_px(realFont));
+        x = g_menuFontPivotX + (x - g_menuFontPivotX) * s;
+        y = g_menuFontPivotY + (y - g_menuFontPivotY) * s;
         break;
+    }
 }
 ```
 
@@ -292,4 +313,3 @@ switch (g_currentFontCaller) {
 - `README.md` - Scaled UI Base overview
 - `docs/HARMONY.md` - Caller detection system architecture
 - `src/features/scaled_hud/README.md` - HUD component details
-

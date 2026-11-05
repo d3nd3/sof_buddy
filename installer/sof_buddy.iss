@@ -1,5 +1,5 @@
 ; Generated from features/FEATURES.txt. Do not edit by hand.
-#define AppVersion "8.45"
+#define AppVersion "8.48"
 
 [Setup]
 AppId={{B0F7F5D4-4A1E-4F4A-A7B4-8CF2E7C9B1A6}}
@@ -55,14 +55,14 @@ Name: "features\recommended\networking_features"; Description: "Networking Featu
 Name: "features\recommended\networking_features\http_maps"; Description: "Http Maps"; Types: full custom
 Name: "features\recommended\networking_features\master_server_fallback"; Description: "Master Server Fallback"; Types: full custom
 Name: "features\recommended\menu_features"; Description: "Menu Features"; Types: full custom
+Name: "features\recommended\menu_features\intro_scaler"; Description: "Intro Scaler"; Types: full custom
+Name: "features\recommended\menu_features\scaled_menu"; Description: "Scaled Menu"; Types: full custom
 Name: "features\recommended\menu_features\internal_menus"; Description: "Internal Menus"; Types: full custom
 Name: "features\recommended\input_features"; Description: "Input Features"; Types: full custom
 Name: "features\recommended\input_features\raw_mouse"; Description: "Raw Mouse"; Types: full custom
 Name: "features\optional"; Description: "Un-recommended / unstable features"; Types: custom; Flags: checkablealone
 Name: "features\optional\bug_fixes"; Description: "Bug Fixes"; Types: custom
 Name: "features\optional\bug_fixes\cbuf_limit_increase"; Description: "Cbuf Limit Increase"; Types: custom
-Name: "features\optional\graphics_features"; Description: "Graphics Features"; Types: custom
-Name: "features\optional\graphics_features\scaled_menu"; Description: "Scaled Menu"; Types: custom
 Name: "features\optional\gameplay_features"; Description: "Gameplay Features"; Types: custom
 Name: "features\optional\gameplay_features\entity_visualizer"; Description: "Entity Visualizer"; Types: custom
 
@@ -569,10 +569,11 @@ begin
   AddFeatureLine(Config, 'teamicons_offset', 'features\recommended\gameplay_features\teamicons_offset');
   AddFeatureLine(Config, 'http_maps', 'features\recommended\networking_features\http_maps');
   AddFeatureLine(Config, 'master_server_fallback', 'features\recommended\networking_features\master_server_fallback');
+  AddFeatureLine(Config, 'intro_scaler', 'features\recommended\menu_features\intro_scaler');
+  AddFeatureLine(Config, 'scaled_menu', 'features\recommended\menu_features\scaled_menu');
   AddFeatureLine(Config, 'internal_menus', 'features\recommended\menu_features\internal_menus');
   AddFeatureLine(Config, 'raw_mouse', 'features\recommended\input_features\raw_mouse');
   AddFeatureLine(Config, 'cbuf_limit_increase', 'features\optional\bug_fixes\cbuf_limit_increase');
-  AddFeatureLine(Config, 'scaled_menu', 'features\optional\graphics_features\scaled_menu');
   AddFeatureLine(Config, 'entity_visualizer', 'features\optional\gameplay_features\entity_visualizer');
   if not SaveStringToFile(ExpandConstant('{app}\sof_buddy\features.cfg'), Config, False) then
     MsgBox('Could not save the selected feature settings.', mbError, MB_OK);

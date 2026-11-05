@@ -1,6 +1,6 @@
 #include "feature_config.h"
 
-#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
+#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_INTRO_SCALER
 
 #include "sof_compat.h"
 #include "util.h"
@@ -8,6 +8,9 @@
 #include "../../scaled_ui_base/shared.h"
 #include "debug/hook_callsite.h"
 #include "runtime_features.h"
+#if FEATURE_INTRO_SCALER
+#include "../../intro_scaler/shared.h"
+#endif
 #include <math.h>
 #include <string.h>
 
@@ -30,10 +33,19 @@ struct FontCallerResolveCtx {
 
 static bool pickKnownFontCaller(const CallerInfo& info, void* raw)
 {
-    FontCaller fc = getFontCallerFrom(info.module, (uint32_t)info.functionStartRva);
-    if (fc == FontCaller::Unknown) return false;
-    *static_cast<FontCallerResolveCtx*>(raw)->out = fc;
-    return true;
+	FontCaller fc = getFontCallerFrom(info.module, (uint32_t)info.functionStartRva);
+	if (fc == FontCaller::Unknown) {
+		// Menu widget text outside the named-caller table (ticker such as input_c,
+		// popup, loadbox, filebox, text_c, vbar and interface helpers): classify by the
+		// menu IRVA region nexus so those runs get the uniform text scale too.
+		if (is_menu_system_caller(info.module, (uint32_t)info.functionStartRva)) {
+			*static_cast<FontCallerResolveCtx*>(raw)->out = FontCaller::MenuSystemText;
+			return true;
+		}
+		return false;
+	}
+	*static_cast<FontCallerResolveCtx*>(raw)->out = fc;
+	return true;
 }
 
 static FontCaller fontCallerFromRenderType(uiRenderType rt)
@@ -48,7 +60,8 @@ static FontCaller fontCallerFromRenderType(uiRenderType rt)
 void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor, detour_R_DrawFont::tR_DrawFont original) {
     if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) &&
         !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU) &&
-        !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON)) {
+        !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON) &&
+        !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_INTRO_SCALER)) {
         original(screenX, screenY, text, colorPalette, font, rememberLastColor);
         return;
     }
@@ -220,7 +233,23 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 			}
 		}
 	}
-	original(screenX, screenY, text, colorPalette, font, rememberLastColor);
+		// Menu text: SoF layout (R_Strlen / R_StrHeight, scaled by font_measure_scale) picks
+		// the position; glyphs grow from the run start, so nothing shifts here. Small
+		// black stamped text (the version string on the panel art) must stay stock-sized:
+		// scaling it pushes it off its panel and makes it invisible.
+		const bool stockStamp = scaled_menu_version_stamp(text, static_cast<int>(realFont));
+		if (stockStamp) scaled_menu_text_scale_bypass(true);
+		if (stockStamp) {
+			// The version ctext sets a right-clip around its (scaled) rect; the stock-size
+			// stamp then falls outside it. Give the stamp a full-screen scissor.
+			auto** rr = reinterpret_cast<void**>(
+			    rvaToAbsExe(reinterpret_cast<void*>(0x004035FC)));
+			using DrawRenderRect_t = void(__cdecl*)(int, int, int, int);
+			if (rr && *rr)
+				reinterpret_cast<DrawRenderRect_t>(*rr)(0, 0, current_vid_w, current_vid_h);
+		}
+		original(screenX, screenY, text, colorPalette, font, rememberLastColor);
+		if (stockStamp) scaled_menu_text_scale_bypass(false);
 
 	if (g_currentFontCaller != FontCaller::MissionStatus &&
 	    g_currentFontCaller != FontCaller::SCR_DrawCenterPrint)
@@ -230,4 +259,4 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 	resetGlVertexQuadState();
 }
 
-#endif // FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
+#endif // FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_INTRO_SCALER

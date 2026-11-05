@@ -2,6 +2,43 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.48
+
+### F12 menu
+
+- **Adaptive nav bar**: 6×2 tabs on 16:9/16:10/ultrawide, 3×4 on 4:3/5:4, with the tab labels centered in their boxes.
+- **Fixed navigation**: the tab bar now has its own frame, so the content scrollbar no longer moves the nav; switching tabs never requires scrolling back to the top.
+- **General is now the second tab**, followed by the rest of the sections; nav tinting follows the selected theme and the nav font stays readable at the Small font preset.
+- **Readable widescreen content column**: text is constrained to a height-derived 4:3 width (`height × 4/3`), e.g. 1440 px with 240 px side spacers at 1920×1080. It adapts to every resolution and is full-width on 4:3.
+- **F12 first-open fix**: opening F12 before the stock main menu no longer inherits the startup menu's page layout; the overlay builds against a clean menu context.
+- **Menu font size style**: Small / Normal / Large / Extra Large now select real `<font type>` tiers instead of a scale multiplier; default is **Small**.
+- **Tooltip controls**: separate tooltip font (Small / Medium / Title, default Small), appearance delay default **250 ms**, and tooltip duration default **5500 ms**; both timing sliders are integer-only.
+- **Auto crosshair scale**: new axis selector (Horizontal/Vertical, default Vertical) and auto toggle; when On it tracks the selected resolution axis and hides the manual scale row. Default remains Off.
+- **Theme updates**: added **SoF1**, a palette based on the stock SoF menu (olive/charcoal panels, parchment text, cyan/teal headings and orange selection); **Cob2** is now the default theme.
+- **Page polish**: Features is centered and no longer shows literal `hbr`; Lighting section `hbr` text fixed; Network headings, Gamespy Master, Current map, and HTTP provider fields are centered; texture filtering is one compact section; CPU Profile controls moved above Effects/debris under **Improve Frame-rate here.**; profile state reads **Would-Set** unless the active profile is Custom/Current; notify-duration labels show seconds.
+- Removed Cvars/Version bloat text; added a max-anisotropy tooltip; Cvars tab now documents the current menu, tooltip, font, sound, hotkey, font-pack, and crosshair cvars with current defaults.
+- **Quiet Alt-Tab sound messages** (default **On**): filters `Creating DS buffers`, `...using secondary sound buffer`, and `Destroying DS buffers` from `Com_Printf` when DirectSound reactivates after Alt-Tab.
+- **Join menu scaling:** `menu join` now uses `max(0.75 × menuScale, 1)` while auto menu scale is on or manual menu scale is above 1, scoped to that menu only.
+
+### Scaled Menu / UI scaling
+
+- Reworked menu scaling around actual screen pixels for frames, rects, borders, text, tooltips, sliders, tickers, version stamps, and internal menu pages.
+- **Sliders** now scale their bar, button, cap, and flow-layout dimensions with `menuScale`.
+- **Manual menu scale** changes reparse the open page immediately, so each 0.25 step reflows correctly instead of shifting text.
+- **Ticker speed** now uses the height-derived 4:3 width scale, keeping scroll speed a fixed percentage of that content width at any resolution; ticker delay remains authored.
+- Split font/HUD/menu auto-scale axes and added `screen_x_scale`; scale-rounding and resize/intro/disclaimer paths now use the correct scale.
+- Version-stamp rendering uses a full-screen scissor and bypasses menu glyph scaling, fixing the stamp when the menu scale is large or the menu is first opened.
+- Cinematic/typewriter text now keeps character spacing and glyph size on the same HUD scale; menu scaling no longer stretches positions without scaling the glyph quads (large gaps between letters).
+- Internal `sof_buddy/*` frames remain computed in the stock menu space while their content uses `menuScale`; `_ss` and loading-menu frame handling was corrected.
+
+### Updater / other fixes
+
+- Fixed updater menu reloads: `Cmd_ExecuteString` does not split on `;`, so reloads now issue `reloadall`, menu open, and `refresh` separately; non-startup update flows reload their menus at the right time.
+- **List Match Fix** no longer hides off-list cvar values; numeric zero still uses the first label without changing the cvar.
+- Installer feature grouping now places **Intro Scaler** and **Scaled Menu** under recommended **Menu Features**; installer version metadata updated.
+- Crash backtraces now include module name + offset so reports remain usable when symbol lookup fails.
+- Documentation updated for the new F12 layout, font/tooltip settings, theme, scaling, ticker, and Cvars reference.
+
 ## v8.47
 
 ### Updater (F12 → Version)

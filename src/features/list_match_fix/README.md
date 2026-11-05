@@ -19,7 +19,7 @@ Four `__thiscall` overrides (`detours.yaml`, module `SofExe`):
 | `GetMatchedValue` | `0x200D3830` | return `-1` when match-backed but unmatched (disambiguates fallback `0` by comparing cvar string to `match[0]`; bitmask / no-match / null-cvar keep `0`) |
 | `SetValue` | `0x200D3640` | no-op when index is `-1` (preserves cvar; width left as `Setup` left it) |
 | `Handle` | `0x200D39E0` | param `1` = left, `2` = right. Matched rows run original. Unmatched rows compute next-highest (left) / next-lowest (right) by value, bias `curIndex` by ∓1, then run original so its `++/--`, `SetValue`, sound and `key` dispatch land exactly |
-| `Draw` | `0x200D3AE0` | unmatched rows graft the live cvar string onto display element 0 and draw index 0, then restore — the page shows the unmatched value instead of label[0] |
+| `Draw` | `0x200D3AE0` | unmatched rows graft the live cvar string onto display element 0 and draw index 0, then restore; numeric zero uses label[0] (without changing the cvar) to preserve legacy behavior for lists whose `match[]` starts at 1 |
 
 `list_c` offsets used: `+0x50` cvar, `+0x9C` index (`-1` = unmatched),
 `+0xA8` bitmask, `+0xB0/0xB4` display First/Last, `+0xC0/0xC4` match
@@ -40,5 +40,6 @@ falls back to lex.
 - `cvari`-without-`match`, bitmask rows, and null-cvar rows are untouched.
 - Width for unmatched rows is not recomputed (stays max-label based from
   `Setup`); it corrects itself once a listed value is picked.
+- Other off-list values still display literally, so custom values remain visible.
 - `Reinitialise` (`0x200D3940`) / `Cleanup` (`0x200D3960`) need no hook:
   `index = GetMatchedValue(); SetValue();` already preserves via the above.

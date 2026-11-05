@@ -1,3 +1,20 @@
 [
+  {
+    "function": "M_PushMenu",
+    "callback": "scaled_menu_M_PushMenu_pre",
+    "phase": "Pre",
+    "priority": 48
+  },
+  {
+    "function": "M_PushMenu",
+    "callback": "scaled_menu_M_PushMenu_post",
+    "phase": "Post",
+    "priority": 48
+  },
+  {
+    "function": "slider_c__Setup",
+    "callback": "scaled_menu_slider_setup_post",
+    "phase": "Post",
+    "priority": 50
+  }
 ]
-

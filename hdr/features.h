@@ -12,6 +12,7 @@
 extern int current_vid_w;
 extern int current_vid_h;
 extern float screen_y_scale;
+extern float screen_x_scale;
 extern int * viddef_width;
 extern int * viddef_height;
 

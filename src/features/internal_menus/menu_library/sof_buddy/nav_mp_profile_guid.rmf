@@ -1,0 +1,6 @@
+<stm>
+<include tints>
+{theme_tints}
+<backdrop bgcolor sb_bg>
+<include sof_buddy/tabs/mp_profile_guid>
+</stm>

@@ -105,7 +105,7 @@ void hud_scale_auto_change(cvar_t* cvar) {
 
 void apply_auto_hud_scale(void) {
     if (!hudScaleAuto) return;
-    hudScale = (screen_y_scale > 0.0f) ? screen_y_scale : 1.0f;
+    hudScale = auto_scale_resolution_ratio_hud();
     SOFBUDDY_ASSERT(hudScale > 0.0f);
     if (oCvar_Set2) {
         char buf[32];
@@ -114,8 +114,29 @@ void apply_auto_hud_scale(void) {
     }
 }
 
+void apply_auto_crosshair_scale(void) {
+    if (!crosshairScaleAuto) return;
+    const float raw = crosshairAutoAxisVertical ? screen_y_scale : screen_x_scale;
+    crosshairScale = (raw > 0.0f) ? raw : 1.0f;
+    if (crosshairScale <= 0.0f) crosshairScale = 1.0f;
+}
+
+void crosshair_scale_auto_change(cvar_t* cvar) {
+    crosshairScaleAuto = cvar && cvar->value != 0.0f;
+    if (_sofbuddy_crossh_scale) crosshairscale_change(_sofbuddy_crossh_scale);
+}
+
+void crosshair_scale_auto_axis_change(cvar_t* cvar) {
+    crosshairAutoAxisVertical = !cvar || cvar->value != 0.0f;
+    if (_sofbuddy_crossh_scale) crosshairscale_change(_sofbuddy_crossh_scale);
+}
+
 void crosshairscale_change(cvar_t * cvar) {
     SOFBUDDY_ASSERT(cvar != nullptr);
+    if (crosshairScaleAuto) {
+        apply_auto_crosshair_scale();
+        return;
+    }
     SOFBUDDY_ASSERT(cvar->value > 0.0f);
     
     crosshairScale = roundf(cvar->value * 4.0f) / 4.0f;

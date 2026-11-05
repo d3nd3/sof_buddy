@@ -32,17 +32,59 @@ struct StackFrame {
     void* ret;
 };
 
-static inline bool plausibleFramePtr(const StackFrame* frame) {
-    if (!frame) return false;
-    const uintptr_t v = (uintptr_t)frame;
-    return v >= 0x10000u && v < 0x7FFF0000u && (v & 3u) == 0u;
+struct StackBounds {
+    uintptr_t lo;
+    uintptr_t hi;
+    bool valid;
+};
+
+static inline StackBounds currentThreadStackBounds() {
+    StackBounds b{0, 0, false};
+#if defined(_WIN32) && defined(__i386__)
+    uintptr_t base = 0;
+    uintptr_t limit = 0;
+    __asm__ __volatile__("movl %%fs:4, %0" : "=r"(base));
+    __asm__ __volatile__("movl %%fs:8, %0" : "=r"(limit));
+    if (base > limit && limit >= 0x10000u) {
+        b.lo = limit;
+        b.hi = base;
+        b.valid = true;
+    }
+#endif
+    return b;
 }
 
-static inline StackFrame* nextStackFrame(StackFrame* frame) {
-    if (!plausibleFramePtr(frame)) return nullptr;
+#if defined(_WIN32)
+static inline bool readableRange(const void* p, size_t len) {
+    MEMORY_BASIC_INFORMATION mbi;
+    if (VirtualQuery(p, &mbi, sizeof(mbi)) != sizeof(mbi)) return false;
+    if (mbi.State != MEM_COMMIT) return false;
+    if (mbi.Protect & (PAGE_NOACCESS | PAGE_GUARD)) return false;
+    const uintptr_t start = reinterpret_cast<uintptr_t>(p);
+    const uintptr_t regionEnd = reinterpret_cast<uintptr_t>(mbi.BaseAddress) + mbi.RegionSize;
+    if (regionEnd < start) return false;
+    return (regionEnd - start) >= len;
+}
+#endif
+
+static inline bool plausibleFramePtr(const StackFrame* frame, const StackBounds& sb) {
+    if (!frame) return false;
+    const uintptr_t v = reinterpret_cast<uintptr_t>(frame);
+    if ((v & 3u) != 0u) return false;
+    if (sb.valid) return v >= sb.lo && v <= sb.hi - sizeof(StackFrame);
+#if defined(_WIN32)
+    if (v < 0x10000u || v >= 0x7FFF0000u) return false;
+    return readableRange(frame, sizeof(StackFrame));
+#else
+    return v >= 0x10000u && v < 0x7FFF0000u;
+#endif
+}
+
+static inline StackFrame* nextStackFrame(StackFrame* frame, const StackBounds& sb) {
+    if (!plausibleFramePtr(frame, sb)) return nullptr;
     StackFrame* next = frame->ebp;
-    if (!plausibleFramePtr(next)) return nullptr;
-    if ((uintptr_t)next <= (uintptr_t)frame) return nullptr;
+    if (!plausibleFramePtr(next, sb)) return nullptr;
+    if (reinterpret_cast<uintptr_t>(next) <= reinterpret_cast<uintptr_t>(frame)) return nullptr;
     return next;
 }
 
@@ -52,10 +94,11 @@ static inline bool walkExternalFrames(bool (*tryAddr)(void*, void*), void* ctx) 
     StackFrame* frame;
     __asm__ __volatile__("movl %%ebp, %0" : "=r"(frame));
 
+    const StackBounds sb = currentThreadStackBounds();
     for (int i = 0; i < 32; ++i) {
-        if (!plausibleFramePtr(frame)) break;
+        if (!plausibleFramePtr(frame, sb)) break;
         if (tryAddr(frame->ret, ctx)) return true;
-        frame = nextStackFrame(frame);
+        frame = nextStackFrame(frame, sb);
         if (!frame) break;
     }
     return false;

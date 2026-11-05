@@ -1105,7 +1105,6 @@ bool write_pending_update_manifest(const ReleaseInfo& info, const char* zip_path
     if (!info.html_url.empty())
         write_kv("url", info.html_url);
     sync_update_prompt_display_cvars(info);
-    sofbuddy_update_reload_update_menus();
     std::fputs("---\n", fp);
     const std::string notes = normalize_release_notes_for_display(info.body);
     if (!notes.empty())
@@ -1530,9 +1529,12 @@ void sofbuddy_update_reload_update_menus(void) {
         if (cv && cv->string && cv->string[0] && std::strncmp(cv->string, "sof_buddy/", 10) == 0)
             page = cv->string;
     }
-    char cmd[192];
-    std::snprintf(cmd, sizeof(cmd), "reloadall;sofbuddy_menu %s;refresh", page);
+    // Cmd_ExecuteString does not split on ';' (unlike Cbuf) — run each command separately.
+    detour_Cmd_ExecuteString::oCmd_ExecuteString("reloadall");
+    char cmd[160];
+    std::snprintf(cmd, sizeof(cmd), "sofbuddy_menu %s", page);
     detour_Cmd_ExecuteString::oCmd_ExecuteString(cmd);
+    detour_Cmd_ExecuteString::oCmd_ExecuteString("refresh");
 #endif
 }
 
@@ -1565,6 +1567,9 @@ static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool
     if (is_stable_target_tag(target_tag))
         set_update_cvar(kCvarUpdateStableTag, latest.tag_name);
     write_pending_update_manifest(latest, nullptr);
+    // The startup prompt reloads its menu when the disclaimer is intercepted.
+    if (!startup_check)
+        sofbuddy_update_reload_update_menus();
     const std::string release_asset = asset_name_from_url(latest.zip_url);
     if (!release_asset.empty()) {
         set_update_cvar(kCvarUpdateDownloadedAsset, release_asset);
@@ -1662,6 +1667,7 @@ static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool
 
     write_update_readme(latest, zip_path);
     write_pending_update_manifest(latest, zip_path.c_str());
+    sofbuddy_update_reload_update_menus();
 
     if (!selected_asset.empty())
         PrintOut(PRINT_DEV, "Downloaded release asset: %s\n", selected_asset.c_str());

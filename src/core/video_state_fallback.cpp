@@ -4,6 +4,7 @@
 int current_vid_w = 0;
 int current_vid_h = 0;
 float screen_y_scale = 1.0f;
+float screen_x_scale = 1.0f;
 int* viddef_width = nullptr;
 int* viddef_height = nullptr;
 #endif

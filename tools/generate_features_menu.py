@@ -19,6 +19,7 @@ LABELS = {
     "texture_mapping_min_mag": "Texture Mapping",
     "scaled_con": "Scaled Console",
     "scaled_hud": "Scaled HUD",
+    "intro_scaler": "Intro Scaler",
     "scaled_menu": "Scaled Menu",
     "hd_textures": "HD Textures",
     "vsync_toggle": "VSync Toggle",
@@ -50,9 +51,10 @@ def tier_header(title: str, first: bool) -> list[str]:
     out: list[str] = []
     if not first:
         out.append("<hbr>")
-    out.append('<font type title tint cyan atint cyan>')
-    out.append(f'<text "{title}" align center border 0 0><hbr>')
-    out.append('<font type title tint white atint white>')
+    out.append('<font type {font_title} tint cyan atint cyan>')
+    out.append(f'<text "{title}">')
+    out.append('<hbr>')
+    out.append('<font type {font_title} tint white atint white>')
     return out
 
 
@@ -60,9 +62,10 @@ def category_header(title: str, first_in_tier: bool) -> list[str]:
     out: list[str] = []
     if not first_in_tier:
         out.append("<hbr>")
-    out.append('<font type title tint sb_subtle atint sb_subtle>')
-    out.append(f'<text "{title}" align center border 0 0><hbr>')
-    out.append('<font type title tint white atint white>')
+    out.append('<font type {font_title} tint sb_subtle atint sb_subtle>')
+    out.append(f'<text "{title}">')
+    out.append('<hbr>')
+    out.append('<font type {font_title} tint white atint white>')
     return out
 
 

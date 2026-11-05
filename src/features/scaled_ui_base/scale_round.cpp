@@ -1,6 +1,6 @@
 #include "feature_config.h"
 
-#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD
+#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
 
 #include <math.h>
 #include "sof_compat.h"
@@ -16,9 +16,61 @@ extern void fontscale_change(cvar_t* cvar);
 extern cvar_t* _sofbuddy_hud_scale;
 extern void hudscale_change(cvar_t* cvar);
 #endif
+#if FEATURE_SCALED_MENU
+extern cvar_t* _sofbuddy_menu_scale;
+extern void menuscale_change(cvar_t* cvar);
+#endif
+
+static void refresh_scale_rounding(void);
 
 float scaleRoundRatio = 0.25f;
 bool scaleRoundAuto = false;
+static bool fontAutoAxisVertical = true;
+static bool hudAutoAxisVertical = true;
+
+static float ratio_for_auto_axis(bool vertical) {
+	const float raw = vertical ? screen_y_scale : screen_x_scale;
+	return (raw > 0.0f) ? raw : 1.0f;
+}
+
+float auto_scale_resolution_ratio_font(void) {
+	return ratio_for_auto_axis(fontAutoAxisVertical);
+}
+
+float auto_scale_resolution_ratio_hud(void) {
+	return ratio_for_auto_axis(hudAutoAxisVertical);
+}
+
+float auto_scale_resolution_ratio(void) {
+	// Menu content (text, areas, xoff/yoff) follows the vertical 480 design: resY/480.
+	// Frames keep their own percent-of-V mapping via the engine canvas (vid_w/640).
+	return ratio_for_auto_axis(true);
+}
+
+void font_scale_auto_axis_change(cvar_t* cvar) {
+	fontAutoAxisVertical = !cvar || cvar->value != 0.0f;
+#if FEATURE_SCALED_CON
+	if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON) && _sofbuddy_font_scale)
+		fontscale_change(_sofbuddy_font_scale);
+#endif
+}
+
+void hud_scale_auto_axis_change(cvar_t* cvar) {
+	hudAutoAxisVertical = !cvar || cvar->value != 0.0f;
+#if FEATURE_SCALED_HUD
+	if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) && _sofbuddy_hud_scale)
+		hudscale_change(_sofbuddy_hud_scale);
+#endif
+}
+
+void scale_auto_axis_change(cvar_t* cvar) {
+	// Menu scale axis is fixed to vertical; kept only so stale archived configs parse.
+	(void)cvar;
+#if FEATURE_SCALED_MENU
+	if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU) && _sofbuddy_menu_scale)
+		menuscale_change(_sofbuddy_menu_scale);
+#endif
+}
 
 float round_scale_value(float v) {
 	if (scaleRoundRatio <= 0.0f) return v;
@@ -68,6 +120,10 @@ static void refresh_scale_rounding(void) {
 #if FEATURE_SCALED_HUD
 	if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) && _sofbuddy_hud_scale)
 		hudscale_change(_sofbuddy_hud_scale);
+#endif
+#if FEATURE_SCALED_MENU
+	if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU) && _sofbuddy_menu_scale)
+		menuscale_change(_sofbuddy_menu_scale);
 #endif
 }
 

@@ -1,35 +1,14 @@
 /*
-	Scaled UI - Menu Scaling Functions (Experimental)
-	
-	This file contains all menu scaling functionality including:
-	- Menu element scaling
-	- Menu text scaling
-	- Menu rendering hooks
-	- Menu parsing and layout modifications
+	Menu scaling: content follows the vertical design scale (resY/480), frames keep the
+	stock percent-of-V canvas scale (vid_w/640). Rect width/height/xoff/yoff are scaled
+	once at RMF parse and stored, so drawing, layout and cursor hit-testing agree.
 
-    Active Hooks:
-        my_rect_c_Parse
-        my_Draw_GetPicSize (calls GL_FindImage under the hood)
+	Cvars:
+	- _sofbuddy_menu_scale_auto=1: menuScale = vid_h/480.
+	- _sofbuddy_menu_scale_auto=0: menuScale = _sofbuddy_menu_scale (0.25..8, oddly 1 = vanilla).
+	- _sofbuddy_scale_round_auto / _sofbuddy_scale_round_ratio: optional scale snapping.
 
-        M_PushMenu
-        my_R_Strlen
-        my_R_StrHeight
-        my_stm_c_ParseStm
-
-        Draw_Pic (Shared in hooks.cpp)
-        GL_FindImage (Shared in hooks.cpp)
-
-    How does menu sizing work?
-        By default the menus seem to go full width, but stretch too far down.
-
-        It seems he reduced the width of all menus.
-        So that the vertical scaling would fit the screen.
-
-        It uses mostly, 0 for height, which means auto stretch.
-
-        
-
-
+	See README.md for the full model, engine addresses and file-specific overrides.
 */
 
 #include "feature_config.h"
@@ -41,759 +20,1268 @@
 #include "sof_compat.h"
 #include "features.h"
 #include "util.h"
-#include "shared_hook_manager.h"
 #include "detours.h"
 #include "../scaled_ui_base/shared.h"
 #include "shared.h"
-#if FEATURE_MORE_CROSSHAIRS
-#include "features/more_crosshairs/shared.h"
+#include "border_frame_dims.h"
+#if FEATURE_INTRO_SCALER
+#include "../intro_scaler/shared.h"
 #endif
+#include "runtime_features.h"
+#include "generated_detours.h"
 
-#include "DetourXS/detourxs.h"
-#include <math.h>
+#include <cmath>
+#include <cstdio>
+#include <cctype>
+#include <cstring>
 #include <stdint.h>
-#include <string>
+#include <atomic>
 
-// Menu-specific global variables
-// Note: mainMenuBgTiled is defined in scaled_ui_base/sui_hooks.cpp because it's used by base hooks
-bool isMenuSpmSettings = false;
-int menuLoadboxFirstItemX;
-int menuLoadboxFirstItemY;
+float menuScale = 1.0f;
+bool menuScaleAuto = true;
 
-/*
-    This function is called internally by:
-    - cInterface::DrawNum()
-    - cDMRanking::Draw()
-    - SCR_FadePic()
-    - SCR_TouchPics()
-    - SCR_Crosshair()
-    - vbar_c::vbar_c()
-    - slider_c::Setup()
-*/
-void my_Draw_GetPicSize(int *w, int *h, char *pic)
-{
-    if (!orig_Draw_GetPicSize) return;
-#if FEATURE_MORE_CROSSHAIRS
-    more_crosshairs_on_getpicsize(pic);
-    if (pic && more_crosshairs_is_menu_preview_path(pic)) {
-        orig_Draw_GetPicSize(w, h, pic);
-        return;
-    }
+static char s_pushed_menu_name[64] = {0};
+static bool s_join_scale_active = false;
+static bool s_join_scale_pending = false;
+static void* s_join_scale_menu = nullptr;
+static bool s_menu_source_is_ss = false;
+static bool s_menu_skip_frame_convert = false;
+
+static bool name_contains_ci(const char* s, const char* needle) {
+	if (!s || !needle || !*needle) return false;
+	for (const char* p = s; *p; ++p) {
+		const char* a = p;
+		const char* b = needle;
+		while (*a && *b) {
+			char ca = *a;
+			char cb = *b;
+			if (ca >= 'A' && ca <= 'Z') ca = static_cast<char>(ca - 'A' + 'a');
+			if (cb >= 'A' && cb <= 'Z') cb = static_cast<char>(cb - 'A' + 'a');
+			if (ca != cb) break;
+			++a;
+			++b;
+		}
+		if (!*b) return true;
+	}
+	return false;
+}
+
+static void* scaled_menu_current_menu(void) {
+	auto* ms = *reinterpret_cast<void**>(rvaToAbsExe(reinterpret_cast<void*>(0x00406554)));
+	return ms ? *reinterpret_cast<void**>(static_cast<char*>(ms) + 4) : nullptr;
+}
+
+static bool join_scale_active(void) {
+	if (!s_join_scale_active) return false;
+	if (s_join_scale_pending) return true;
+	void* current = scaled_menu_current_menu();
+	return current && current == s_join_scale_menu;
+}
+
+void scaled_menu_M_PushMenu_post(char const*, char const*, bool) {
+	if (!s_join_scale_pending) return;
+	if (void* current = scaled_menu_current_menu()) {
+		s_join_scale_menu = current;
+		s_join_scale_pending = false;
+	}
+}
+
+void scaled_menu_set_pushed_menu(const char* name) {
+	size_t i = 0;
+	if (name) {
+		for (; name[i] && i + 1 < sizeof(s_pushed_menu_name); ++i)
+			s_pushed_menu_name[i] = name[i];
+	}
+	s_pushed_menu_name[i] = '\0';
+	s_menu_source_is_ss = i >= 3 && s_pushed_menu_name[i - 3] == '_' &&
+	                      s_pushed_menu_name[i - 2] == 's' &&
+	                      s_pushed_menu_name[i - 1] == 's';
+	s_menu_skip_frame_convert = false;
+	const bool is_join = std::strcmp(s_pushed_menu_name, "join") == 0 ||
+	                     std::strcmp(s_pushed_menu_name, "join_ss") == 0 ||
+	                     std::strcmp(s_pushed_menu_name, "join_ns") == 0;
+	s_join_scale_active = is_join;
+	s_join_scale_pending = is_join;
+	s_join_scale_menu = nullptr;
+}
+
+void menuscale_change(cvar_t* cvar) {
+	if (menuScaleAuto) {
+		apply_auto_menu_scale();
+		return;
+	}
+	if (!cvar) return;
+	float v = cvar->value;
+	if (v < 0.25f) v = 0.25f;
+	if (v > 8.0f) v = 8.0f;
+	menuScale = round_scale_value(v);
+	if (menuScale < 0.25f) menuScale = 0.25f;
+	if (menuScale > 8.0f) menuScale = 8.0f;
+	if (v >= 0.999f && v <= 1.001f) menuScale = 1.0f;
+	if (detour_Cvar_Set2::oCvar_Set2) {
+		char buf[32];
+		std::snprintf(buf, sizeof(buf), "%.2f", menuScale);
+		detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_menu_scale_rounded"), buf, true);
+	}
+}
+
+void menu_scale_auto_change(cvar_t* cvar) {
+	menuScaleAuto = cvar && cvar->value != 0.0f;
+	if (_sofbuddy_menu_scale) menuscale_change(_sofbuddy_menu_scale);
+}
+
+void apply_auto_menu_scale(void) {
+	if (!menuScaleAuto) return;
+	menuScale = auto_scale_resolution_ratio();
+	if (menuScale >= 0.999f && menuScale <= 1.001f) menuScale = 1.0f;
+	if (detour_Cvar_Set2::oCvar_Set2) {
+		char buf[32];
+		std::snprintf(buf, sizeof(buf), "%.2f", menuScale);
+		detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_menu_scale_rounded"), buf, true);
+	}
+}
+
+namespace scaled_menu_detail {
+
+#if defined(__GNUC__) && defined(__i386__)
+// MinGW does not always pass ECX for indirect __thiscall; game hooks must set it explicitly.
+// MSVC thiscall callees use ret N — do not add esp after call (double-clean corrupts stack).
+static void* thiscall_menu_find_frame(void* menu_c, const char* name, void* fn) {
+	void* out = nullptr;
+	if (!fn || !menu_c) return out;
+	__asm__ __volatile__(
+		"movl %1, %%ecx\n\t"
+		"pushl %2\n\t"
+		"call *%3\n\t"
+		"movl %%eax, %0"
+		: "=m"(out)
+		: "m"(menu_c), "m"(name), "m"(fn)
+		: "ecx", "eax", "edx", "memory");
+	return out;
+}
+
+// sub_200C46D0(border, char* dimA, char* dimB, void* tint, float scale):
+// [border+0] = atol(dimA) * scale, [border+4] = atol(dimB), [border+8] = *(int*)tint.
+// scale is 1.0 (rect/actual-px tags) or the menu canvas scale (frame defaults).
+static void* thiscall_border_dims_init(void* border, char* dimA, char* dimB, void* tint, float scale,
+                                       void* fn) {
+	void* ret = border;
+	if (!fn) return ret;
+	uint32_t sc_bits = 0;
+	std::memcpy(&sc_bits, &scale, sizeof(sc_bits));
+	__asm__ __volatile__(
+		"pushl %5\n\t"
+		"pushl %4\n\t"
+		"pushl %3\n\t"
+		"pushl %2\n\t"
+		"movl %1, %%ecx\n\t"
+		"call *%6\n\t"
+		"movl %%eax, %0"
+		: "=m"(ret)
+		: "m"(border), "m"(dimA), "m"(dimB), "m"(tint), "m"(sc_bits), "m"(fn)
+		: "ecx", "eax", "edx", "memory");
+	return ret;
+}
+
+static const char* thiscall_token(void* token, int index, void* fn) {
+	const char* out = nullptr;
+	if (!fn || !token) return out;
+	__asm__ __volatile__(
+		"pushl %2\n\t"
+		"movl %1, %%ecx\n\t"
+		"call *%3\n\t"
+		"movl %%eax, %0"
+		: "=m"(out)
+		: "m"(token), "m"(index), "m"(fn)
+		: "ecx", "eax", "edx", "memory");
+	return out;
+}
+
+static bool thiscall_rect_parse(void* rect, void* token, void* fn) {
+	bool out = false;
+	if (!fn) return out;
+	__asm__ __volatile__(
+		"pushl %2\n\t"
+		"movl %1, %%ecx\n\t"
+		"call *%3\n\t"
+		"movb %%al, %0"
+		: "=m"(out)
+		: "m"(rect), "m"(token), "m"(fn)
+		: "ecx", "eax", "edx", "memory");
+	return out;
+}
+
+static bool thiscall_rect_get_coords(void* rect, int* x, int* y, void* fn) {
+	bool out = false;
+	if (!fn || !rect) return out;
+	__asm__ __volatile__(
+		"pushl %3\n\t"
+		"pushl %2\n\t"
+		"movl %1, %%ecx\n\t"
+		"call *%4\n\t"
+		"movb %%al, %0"
+		: "=m"(out)
+		: "m"(rect), "m"(x), "m"(y), "m"(fn)
+		: "ecx", "eax", "edx", "memory");
+	return out;
+}
+
+static void thiscall_noargs_void(void* self, void* fn) {
+	if (!fn) return;
+	__asm__ __volatile__(
+		"movl %0, %%ecx\n\t"
+		"call *%1"
+		: : "m"(self), "m"(fn)
+		: "ecx", "eax", "edx", "memory");
+}
+
+static int thiscall_noargs_int(void* self, void* fn) {
+	int out = 0;
+	if (!fn || !self) return out;
+	__asm__ __volatile__(
+		"movl %1, %%ecx\n\t"
+		"call *%2\n\t"
+		"movl %%eax, %0"
+		: "=m"(out)
+		: "m"(self), "m"(fn)
+		: "ecx", "eax", "edx", "memory");
+	return out;
+}
+
+static void thiscall_2args_void(void* self, void* a1, int a2, void* fn) {
+	if (!fn) return;
+	__asm__ __volatile__(
+		"pushl %2\n\t"
+		"pushl %1\n\t"
+		"movl %0, %%ecx\n\t"
+		"call *%3"
+		: : "m"(self), "m"(a1), "m"(a2), "m"(fn)
+		: "ecx", "eax", "edx", "memory");
+}
+
+static void thiscall_rect_set_height(void* rect, int height, void* fn) {
+	if (!fn || !rect) return;
+	__asm__ __volatile__(
+		"pushl %1\n\t"
+		"movl %0, %%ecx\n\t"
+		"call *%2"
+		: : "m"(rect), "m"(height), "m"(fn)
+		: "ecx", "edx", "memory");
+}
+
 #endif
 
-    /*
-        We are targetting specific menu only items here for now.   
-    */
-    // Split the pic string by '/' and check if the 3rd entry is "icons"
-    if (pic != nullptr) {
-        // 0-based: 2 is the 3rd entry
-        const char* thirdEntry = get_nth_entry(pic, 2); 
-        if (thirdEntry) {
-            // Find the end of the third entry
-            const char* end = thirdEntry;
-            while (*end && *end != '/') ++end;
-            size_t len = end - thirdEntry;
-            if ((len == 5 && strncmp(thirdEntry, "icons", 5) == 0) || ( len == 9 && strncmp(thirdEntry, "teamicons", 9) == 0) ) {
-                // Do not scale pics/menus/icons or teamicons
-                orig_Draw_GetPicSize (w, h, pic);
-                return;
-            } else if (len == 8 && strncmp(thirdEntry, "backdrop", 8) == 0) {
-                /*
-                  This idea is good!, except the tiling system is forcing chunks of 128 it seems?
-                  So if doesn't fully divide by 128, it gives nearest, leaving empty space.
-                */
-                orig_Draw_GetPicSize (w , h, pic);
-                *w = *w * screen_y_scale;
-                *h = *h * screen_y_scale;
-                return;
-            } else if (len == 4 && strncmp(thirdEntry, "misc", 4) == 0) {
-                // vbar_c::vbar_c
-                // Do not scale the vbar
-                size_t picLen = strlen(pic);
-                if (picLen >= 4 && strncmp(pic + picLen - 4, "vend", 4) == 0) {
-                    orig_Draw_GetPicSize(w, h, pic);
-                    // *w = *w * screen_y_scale;
-                    // *h = *h * screen_y_scale;
-                    return;
-                }
-            }
-        }
-    }
-    // orig_Com_Printf("pic %s\n",pic);
-    orig_Draw_GetPicSize (w, h, pic);
-    #if 1
-    *w = *w * screen_y_scale;
-    *h = *h * screen_y_scale;
-    #endif
+constexpr uintptr_t kRvaMenuFindFrame = 0x000CA770u;
+constexpr uintptr_t kRvaMenuStmSetClip = 0x000EA2C0u;
+constexpr uintptr_t kRvaDrawRenderRectIat = 0x004035FCu;
+constexpr uintptr_t kRvaBackdropSetClipOpen = 0x000C3F2Eu;
+constexpr uintptr_t kRvaMenuBorderDimsInit = 0x000C46D0u;
+constexpr uintptr_t kRvaRectParse = 0x000CF890u;
+constexpr uintptr_t kRvaTickerInit = 0x000D1B30u;
+constexpr uintptr_t kRvaRectGetCoords = 0x000CF570u;
+constexpr uintptr_t kRvaRectHoverMark = 0x000CEB60u;
+constexpr uintptr_t kRvaMenuCreateTip = 0x000CA9D0u;
+constexpr uintptr_t kRvaMenuSysGetMouseX = 0x000CBE80u;
+constexpr uintptr_t kRvaMenuSysGetMouseY = 0x000CBE90u;
+constexpr uintptr_t kRvaStmHoverPass = 0x000E9F30u;
+constexpr uintptr_t kRvaRectHoverPrep = 0x000CEB40u;
+constexpr uintptr_t kRvaFrameGetMouseX = 0x000C66A0u;
+constexpr uintptr_t kRvaFrameGetMouseY = 0x000C66D0u;
+constexpr uintptr_t kRvaToken = 0x000EB440u;
+constexpr uintptr_t kRvaTextVtbl = 0x00112A40u;
+constexpr uintptr_t kRvaInputVtbl = 0x001128C8u;
+constexpr uintptr_t kRvaTickerVtbl = 0x00112808u;
+constexpr uintptr_t kRvaGhoulVtbl = 0x001129E0u;
+constexpr int kExtendCacheMax = 12;
+
+constexpr ptrdiff_t kRect_MenuPtr = 0x04;
+constexpr ptrdiff_t kRect_Ox = 0x0C;
+constexpr ptrdiff_t kRect_Oy = 0x10;
+constexpr ptrdiff_t kRect_Xoff = 0x14;
+constexpr ptrdiff_t kRect_Yoff = 0x18;   // documented; not scaled (see dim fields)
+constexpr ptrdiff_t kRect_WidgetScale = 0x1C;
+constexpr ptrdiff_t kRect_W = 0x20;
+constexpr ptrdiff_t kRect_H = 0x24;
+constexpr ptrdiff_t kRect_OuterW = 0x28;
+constexpr ptrdiff_t kRect_OuterH = 0x2C;
+constexpr ptrdiff_t kRect_Border = 0x68;
+constexpr ptrdiff_t kRect_NoScale = 0x66;
+constexpr ptrdiff_t kRect_Bolted = 0x62;     // set by <bolt>/<bbolt>
+constexpr ptrdiff_t kRect_VirtualX = 0x63;
+constexpr ptrdiff_t kRect_VirtualY = 0x64;
+constexpr ptrdiff_t kRect_BoltAnchor = 0x7C;
+constexpr ptrdiff_t kRect_Align = 0x4C;      // 1=center 2=left 3=right (from layout state)
+constexpr ptrdiff_t kBorder_ThickPx = 0x04;
+
+constexpr ptrdiff_t kMenuC_ScreenScale = 0xAC;
+
+using Draw_RenderRect_t = void(__cdecl*)(int x, int y, int w, int h);
+static Draw_RenderRect_t Draw_RenderRect = nullptr;
+
+constexpr ptrdiff_t kStm_GlobalPage = 0x89;
+constexpr ptrdiff_t kMenuC_FreeX = 0x9C;
+constexpr ptrdiff_t kMenuC_FreeY = 0xA0;
+constexpr ptrdiff_t kMenuC_GlobalClipW = 0xA4;
+constexpr ptrdiff_t kMenuC_GlobalClipH = 0xA8;
+constexpr ptrdiff_t kMenuC_ResizeScreen = 0x8C;
+constexpr ptrdiff_t kFrame_OffX = 0x40;
+constexpr ptrdiff_t kFrame_OffY = 0x44;
+constexpr ptrdiff_t kFrame_W = 0x48;
+constexpr ptrdiff_t kFrame_H = 0x4C;
+constexpr ptrdiff_t kFrame_NamePtr = 0x10;
+constexpr ptrdiff_t kFrame_NameLen = 0x14;
+constexpr ptrdiff_t kFrame_Menu = 0x00;
+constexpr uintptr_t kRvaFrameResize = 0x000C6640u;
+constexpr uintptr_t kRvaFrameFinalizeDims = 0x000C6500u;
+constexpr uintptr_t kRvaFrameCtor = 0x000C60A0u;
+constexpr uintptr_t kRvaFrameLink = 0x000C6530u;
+constexpr uintptr_t kRvaTokeCtor = 0x000EAC70u;
+constexpr uintptr_t kRvaTokeInsert = 0x000EAF60u;
+
+static bool menu_c_is_resize_popup(const void* menu_c) {
+	return menu_c && *reinterpret_cast<const uint8_t*>(static_cast<const char*>(menu_c) + kMenuC_ResizeScreen) != 0;
 }
 
-//Returns endpointer that we interested in for options
-char * findClosingBracket(char * start) {
-    char * ret = start;
-    
-    while ( *ret != 0x00 && *ret != '>' )
-    {
-        ret++;
-    }
-    
-    return ret;
-}
-/*
-    For : stm_c_ParseStm, edits the string/stream to resize the rects.
-*/
-void mutateWidthTokeC_resize(void * toke_c) {
-    // Update the existing string structure to point to new data
-    char** start_ptr = (char**)((char*)toke_c + 0);
-    char** cursor_ptr = (char**)((char*)toke_c + 4);  // _DataPointer at +4
-    
-    //The index after the null character
-    char** end_ptr = (char**)((char*)toke_c + 8);  // offsetEnd at +8
-    
-    char** unknown_one = (char**)((char*)toke_c + 0xC);
-    
-    //This capacity includes null terminator.
-    size_t* length_ptr = (size_t*)((char*)toke_c + 0x10);  // Length at +10
-    
-    int preserve_cursor = *cursor_ptr - *start_ptr;
-    
-    //equal, yet when I do that, I see bug.
-    // orig_Com_Printf("%i vs %i\n", *length_ptr, strlen(*start_ptr)+1);
-    
-    bool changed = false;
-    int i = 0;
-    std::string out;
-    
-    
-    while (i < *length_ptr-1) {
-        const char * input = *start_ptr;
-        if (i + 7 < *length_ptr && strncmp(&input[i], "resize ", 7) == 0) {
-            // Tentative starting point for parsing after "resize "
-            const char* parse_ptr = &input[i + 7];
-            char* end_ptr1;
-            
-            // Parse the first integer
-            long val1 = strtol(parse_ptr, &end_ptr1, 10);
-            
-            // Check if parsing failed or if there's no space after the first number
-            if (end_ptr1 == parse_ptr || *end_ptr1 != ' ') {
-                out.push_back(input[i]);
-                ++i;
-                continue;
-            }
-            if ( val1 > 0 ) val1 = val1 * screen_y_scale;
-            // Move past the first number and the space
-            parse_ptr = end_ptr1 + 1;
-            char* end_ptr2;
-            
-            // Parse the second integer
-            long val2 = strtol(parse_ptr, &end_ptr2, 10);
-            
-            // Check if parsing failed or if there's no closing '>'
-            if (end_ptr2 == parse_ptr) {
-                // orig_Com_Printf("Not VALID PATTERN2\n");
-                out.push_back(input[i]);
-                ++i;
-                continue;
-            }
-            if ( val2 > 0 ) val2 = val2 * screen_y_scale;
-            // --- SUCCESS: The entire "resize <int> <int>" pattern was matched ---
-            if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("Mutated resize\n");
-            // Build the replacement string
-            char buf[128]; // Increased buffer size for safety with large numbers
-            int n = snprintf(buf, sizeof(buf), "resize %ld %ld", 
-            val1, 
-            val2);
-            out.append(buf, n);
-            
-            changed = true;
-            
-            // Advance i past the entire matched pattern
-            i = end_ptr2 - input;
-            
-        } else {
-            // The string at the current position doesn't start with "resize ",
-            // so just copy the character and move on.
-            out.push_back(input[i]);
-            ++i;
-        }
-    }
-    
-    int out_len = out.length();
-    
-    if (!changed) {
-        return;
-    }
-    
-    if (!orig_new_std_string) return;
-    char * new_string_data = (char*)orig_new_std_string(out_len + 1);
-    if (new_string_data == NULL) {
-        // orig_Com_Printf("ERROR: allocation failed!\n");
-        return;
-    }
-    
-    memcpy(new_string_data,out.c_str(),out_len+1);
-    new_string_data[out_len] = 0x00;
-    
-    #if 0
-    if ( printSuccess )  {
-        if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("BEFORE!\n");
-        for ( int k = 0 ; k < *length_ptr; k++ ) {
-            char p = (*start_ptr)[k];
-            if ( p != 0xD && detour_Com_Printf::oCom_Printf )
-            detour_Com_Printf::oCom_Printf("%c",p);
-        }
-        if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("\n");
-        
-        if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("AFTER!\n");
-        for ( int k = 0 ; k < out_len+1; k++ ) {
-            if ( new_string_data[k] != 0xD && detour_Com_Printf::oCom_Printf )
-            detour_Com_Printf::oCom_Printf("%c",new_string_data[k]);
-        }
-        if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("\n");
-    }
-    #endif
-    
-    if (*start_ptr != NULL) {
-        static void (*Z_Free)(void *pvAddress);
-        if (!Z_Free) Z_Free = (void(*)(void*))rvaToAbsExe((void*)0x000F9D32);
-        Z_Free(*start_ptr);
-    }
-    
-    // Update the structure to point to new data
-    *start_ptr = new_string_data;
-    *cursor_ptr = new_string_data + preserve_cursor;
-    //  *unknown_one = new_string_data;
-    *end_ptr = new_string_data + out_len + 1;
-    //If I use out_len +1 i see weird character on screen :/
-    *length_ptr = out_len+1; //includes null terminator
-    
-    // orig_Com_Printf("new length = %i\n", *length_ptr);
+static bool menu_resize_canvas_is_scaled(const void* menu_c) {
+	if (!menu_c || !menu_c_is_resize_popup(menu_c)) return false;
+	const float canvas =
+	    *reinterpret_cast<const float*>(static_cast<const char*>(menu_c) + kMenuC_ScreenScale);
+	float max_expected = scaled_menu_screen_scale();
+	if (screen_x_scale > max_expected) max_expected = screen_x_scale;
+	if (screen_y_scale > max_expected) max_expected = screen_y_scale;
+	return resize_canvas_scale_is_applied(canvas, max_expected);
 }
 
-/*
-    Called by my_rect_c_Parse to resize the width and height of the rects.
-*/
-void mutateWidthTokeC_width_height(void * toke_c, char * match) {
-    // Update the existing string structure to point to new data
-    char** start_ptr = (char**)((char*)toke_c + 0);
-    char** cursor_ptr = (char**)((char*)toke_c + 4);  // _DataPointer at +4
-    
-    //The index after the null character
-    char** end_ptr = (char**)((char*)toke_c + 8);  // offsetEnd at +8
-    
-    char** unknown_one = (char**)((char*)toke_c + 0xC);
-    
-    //This capacity includes null terminator.
-    size_t* length_ptr = (size_t*)((char*)toke_c + 0x10);  // Length at +10
-    
-    int preserve_cursor = *cursor_ptr - *start_ptr;
-    
-    //equal, yet when I do that, I see bug.
-    // orig_Com_Printf("%i vs %i\n", *length_ptr, strlen(*start_ptr)+1);
-    
-    
-    
-    bool match_within_cursor = false;
-    const char *input = *start_ptr;
-    int match_len = strlen(match);
-    
-    char * endOfOptions = findClosingBracket(*cursor_ptr);
-    
-    #if 0
-    detour_Com_Printf::oCom_Printf("\nStart...\n");
-    for ( int k = 0 ; k < endOfOptions - *cursor_ptr; k++ ) {
-        char p = (*cursor_ptr)[k];
-        if ( p != 0xD )
-        detour_Com_Printf::oCom_Printf("%c",p);
-    }
-    detour_Com_Printf::oCom_Printf("\nEnd...\n");
-    
-    #endif
-    // Scan from cursor to end for the match
-    for (char * ci = *cursor_ptr; ci + match_len <= endOfOptions; ++ci) {
-        if (strncmp(ci, match, match_len) == 0) {
-            match_within_cursor = true;
-            break;
-        }
-    }
-    if (!match_within_cursor) {
-        // No match from cursor to end, so do not mutate
-        return;
-    }
-    
-    bool changed = false;
-    
-    std::string out;
-    
-    
-    
-    // Fill 'out' with the part from *start_ptr up to (but not including) *cursor_ptr
-    if (*cursor_ptr > *start_ptr) {
-        out.append(*start_ptr, *cursor_ptr - *start_ptr);
-    }
-    
-    int i = preserve_cursor;
-    while (i < endOfOptions - *start_ptr) {
-        const char * input = *start_ptr;
-        if (i + match_len - 1 < *length_ptr - 1 && strncmp(&input[i], match, match_len) == 0) {
-            // Tentative starting point for parsing after match
-            const char* parse_ptr = &input[i + match_len];
-            char* end_ptr1;
-            
-            // Parse the integer after the match
-            long val1 = strtol(parse_ptr, &end_ptr1, 10);
-            
-            // Check if parsing failed
-            if (end_ptr1 == parse_ptr) {
-                out.push_back(input[i]);
-                ++i;
-                continue;
-            }
-            if (val1 > 0) val1 = val1 * screen_y_scale;
-            
-            if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("Mutated %s\n", match);
-            
-            // Build the replacement string
-            char buf[128];
-            int n = snprintf(buf, sizeof(buf), "%s%ld", match, val1);
-            out.append(buf, n);
-            
-            changed = true;
-            
-            // Advance i past the matched pattern and the number
-            i = end_ptr1 - input;
-        } else {
-            out.push_back(input[i]);
-            ++i;
-        }
-    }
-    
-    // Append the rest of the string after endOfOptions, if any
-    // if endOfOptions is to the left of the nullCharacter.
-    if (endOfOptions < *start_ptr + *length_ptr - 1) {
-        //append characters up to but not including the null char.
-        out.append(endOfOptions, (*start_ptr + *length_ptr - 1) - endOfOptions);
-    }
-    
-    
-    int out_len = out.length();
-    
-    
-    if (!orig_new_std_string) return;
-    char * new_string_data = (char*)orig_new_std_string(out_len + 1);
-    if (new_string_data == NULL) {
-        // orig_Com_Printf("ERROR: allocation failed!\n");
-        return;
-    }
-    
-    memcpy(new_string_data,out.c_str(),out_len+1);
-    new_string_data[out_len] = 0x00;
-    
-    
-    if (*start_ptr != NULL) {
-        static void (*Z_Free)(void *pvAddress);
-        if (!Z_Free) Z_Free = (void(*)(void*))rvaToAbsExe((void*)0x000F9D32);
-        Z_Free(*start_ptr);
-    }
-    
-    int tmp_len = endOfOptions - *cursor_ptr;
-    
-    // Update the structure to point to new data
-    *start_ptr = new_string_data;
-    *cursor_ptr = new_string_data + preserve_cursor;
-    //  *unknown_one = new_string_data;
-    *end_ptr = new_string_data + out_len + 1;
-    //If I use out_len +1 i see weird character on screen :/
-    *length_ptr = out_len+1; //includes null terminator
-    
-    #if 0
-    detour_Com_Printf::oCom_Printf("\nAFTERStart...\n");
-    for ( int k = 0 ; k < tmp_len; k++ ) {
-        char p = (*cursor_ptr)[k];
-        if ( p != 0xD )
-        detour_Com_Printf::oCom_Printf("%c",p);
-    }
-    detour_Com_Printf::oCom_Printf("\nAFTEREnd...\n");
-    #endif
-    
-    // orig_Com_Printf("new length = %i\n", *length_ptr);
+// <text> labels are the widgets whose RMF xoff/yoff are hand-tuned centring offsets.
+static bool widget_is_text(const void* widget) {
+	if (!widget) return false;
+	const void* vt = *static_cast<const void* const*>(widget);
+	return vt == rvaToAbsExe(reinterpret_cast<void*>(kRvaTextVtbl));
 }
 
-/*
-    Called by stm_c_ParseStm
-    This represents the invisibile space, like tabs and indentation
-    blank <width> <height>
-    When a page is loaded into a frame, the blank width is naturally rescaled to be a % of the frame's
-    width. "Strange".
-
-    But with larger font, the offset is too small.
-*/
-void mutateBlankTokeC_width_height(void * toke_c) {
-    // Access all relevant structure members, including the cursor
-    char** start_ptr = (char**)((char*)toke_c + 0);
-    char** cursor_ptr = (char**)((char*)toke_c + 4);
-    char** end_ptr = (char**)((char*)toke_c + 8);
-    size_t* length_ptr = (size_t*)((char*)toke_c + 0x10);
-
-    // CRITICAL FIX: Preserve the cursor's relative position
-    int preserve_cursor = *cursor_ptr - *start_ptr;
-
-    const char* input = *start_ptr;
-    std::string out;
-    int i = 0;
-    int len = *length_ptr - 1; // String length without null terminator
-    bool changed = false;
-
-    // Use a robust, non-incremental parsing strategy inside the loop
-    while (i < len) {
-        // Check for the full prefix "<blank " to be more specific and avoid partial matches
-        if (i + 7 < len && strncmp(&input[i], "<blank ", 7) == 0) {
-            const char* parse_ptr = &input[i + 7]; // Start parsing after "<blank "
-            char* end_width;
-
-            // Parse width
-            long width = strtol(parse_ptr, &end_width, 10);
-
-            // ROBUST CHECK: Ensure a number was parsed AND it's followed by a space
-            if (end_width == parse_ptr || *end_width != ' ') {
-                // Pattern is not `<blank <int> <int>`, treat as normal text
-                out.push_back(input[i]);
-                ++i;
-                continue;
-            }
-
-            // Advance parser past the width and the separating space
-            parse_ptr = end_width + 1;
-            char* end_height;
-
-            // Parse height
-            long height = strtol(parse_ptr, &end_height, 10);
-
-            // ROBUST CHECK: Ensure a number was parsed
-            if (end_height == parse_ptr) {
-                // Pattern is not `<blank <int> <int>`, treat as normal text
-                out.push_back(input[i]);
-                ++i;
-                continue;
-            }
-
-            // --- SUCCESS: Full pattern matched ---
-                        // Apply the scaling logic
-            if (width > 0) width = width * screen_y_scale;
-            // if (height > 0) height = height * screen_y_scale;
-
-            // Use snprintf for safe and efficient string construction
-            char buf[128]; // Buffer for the new formatted string
-            int n = snprintf(buf, sizeof(buf), "<blank %ld %ld", width, height);
-            out.append(buf, n);
-            if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("Rescaling a BLANK width hight to %s\n",buf);
-            changed = true;
-
-            // Advance the main loop counter past the entire matched pattern
-            i = end_height - input;
-
-        } else {
-            // Not the target pattern, just copy the character
-            out.push_back(input[i]);
-            ++i;
-        }
-    }
-
-    int out_len = out.length();
-    if (!orig_new_std_string) return;
-    char* new_string_data = (char*)orig_new_std_string(out_len + 1);
-    if (new_string_data == NULL) {
-        return; // Allocation failed
-    }
-    memcpy(new_string_data, out.c_str(), out_len + 1);
-
-    // Free the old string data
-    if (*start_ptr != NULL) {
-        static void (*Z_Free)(void *pvAddress) = (void (*)(void *))rvaToAbsExe((void*)0x000F9D32);
-        Z_Free(*start_ptr);
-    }
-
-    // Update all structure pointers to point to the new data
-    *start_ptr = new_string_data;
-    
-    // CRITICAL FIX: Restore the cursor position in the new string
-    if (preserve_cursor > out_len) preserve_cursor = out_len; // Safety clamp
-    *cursor_ptr = new_string_data + preserve_cursor;
-    
-    *end_ptr = new_string_data + out_len + 1;
-    *length_ptr = out_len + 1; // Length includes the null terminator
+// <input> sizes itself from measurement (textW/textH × scale + borders), like <text>.
+static bool widget_is_input(const void* widget) {
+	if (!widget) return false;
+	const void* vt = *static_cast<const void* const*>(widget);
+	return vt == rvaToAbsExe(reinterpret_cast<void*>(kRvaInputVtbl));
 }
 
-//stm_c::Render(void)
-void __thiscall my_master_Draw(void * self)
-{
-    //ecx = *ecx
-    //call *(ecx+0x1C)
-    
-    // Fix: Avoid arithmetic on void pointer and use correct casting
-    void **vtable = *(void ***)self;
-    void (__thiscall *func)(void *) = (void (__thiscall *)(void *))vtable[0x1C / sizeof(void *)];
-    
-    // orig_Com_Printf("vtable : %08X\n",vtable);
-    #if 0
-    if ( vtable != (void*)rvaToAbsExe((void*)0x00112A40) ) {
-        //text_c vtable
-    } 
-    #endif
-    func(self);
-    
+// <ticker> sets its band height from R_StrHeight, which we already scale.
+static bool widget_is_ticker(const void* widget) {
+	if (!widget) return false;
+	const void* vt = *static_cast<const void* const*>(widget);
+	return vt == rvaToAbsExe(reinterpret_cast<void*>(kRvaTickerVtbl));
 }
 
-/*
-Repositions the slider with Draw_StretchPic
-We were double scaling this, because Draw_GetPicSize is being used for this. duh.
-*/
-void __thiscall my_slider_c_Draw(void * self) {
-    if (orig_slider_c_Draw) orig_slider_c_Draw(self);
+// <ghoul>/<bghoul> are staged by the engine (and intro_scaler for the intro). Their
+// xoff/yoff/model scale live in the canvas/art space, not the menuScale space, so
+// scaling the rect displaces the whole staged scene (e.g. the amain background
+// ghoul drifts left/up by (canvasScale - menuScale) * offset).
+static bool widget_is_ghoul(const void* widget) {
+	if (!widget) return false;
+	const void* vt = *static_cast<const void* const*>(widget);
+	return vt == rvaToAbsExe(reinterpret_cast<void*>(kRvaGhoulVtbl));
 }
 
-/*
-Was going to try and scale the loadGame screenshots,
-but seems too hard atm. Disabled
-*/
-void __thiscall my_loadbox_c_Draw(void * self) {
-    if (orig_loadbox_c_Draw) orig_loadbox_c_Draw(self);
-}
-/*
-Disabled currently, but enables custom control of this object.
-*/
-void __thiscall my_vbar_c_Draw(void * self) {
-    // extern void (__thiscall *orig_vbar_c_Draw)(void * self);
-    // orig_vbar_c_Draw(self);
+static bool menu_actual_pixel_scale_active(const void* menu_c) {
+	if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) return false;
+	if (!scaled_menu_uniform_actual_active()) return false;
+	if (!menu_c) return false;
+	// Resize pages are pinned to actual pixels; hk_frame_resize raises their canvas to
+	// menuScale so the page itself carries the scale, and scaling the contents again would
+	// overflow. Only skip the per-widget factor when the canvas really holds such a raised
+	// scale. A re-parsed/reused menu tree can keep the +0x8C flag with a zeroed/1.0 canvas,
+	// in which case the per-widget factor is the only scaling the contents get.
+	if (menu_resize_canvas_is_scaled(menu_c)) return false;
+	return true;
 }
 
-void __thiscall my_frame_c_Constructor(void* self, void * menu_c, char * width, char * height, void * frame_name)
-{
-    if (!orig_frame_c_Constructor) return;
-
-    // orig_frame_c_Constructor(self,menu_c,width,height,frame_name);
-    // return;
-    #if 0
-    // Hex dump 64 bytes of the menu_c pointer for debugging, with ASCII output
-{
-    unsigned char *p = (unsigned char *)menu_c;
-    char hexbuf[3*16+1];
-    char asciibuf[17];
-    if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("menu_c @ %p hex dump (first 64 bytes):\n", menu_c);
-    for (int i = 0; i < 64; i += 16) {
-        int hexpos = 0;
-        int asciipos = 0;
-        for (int j = 0; j < 16; ++j) {
-            if (i + j < 64) {
-                unsigned char byte = p[i + j];
-                snprintf(&hexbuf[hexpos], 4, "%02X ", byte);
-                hexpos += 3;
-                asciibuf[asciipos++] = (byte >= 32 && byte <= 126) ? byte : '.';
-            } else {
-                snprintf(&hexbuf[hexpos], 4, "   ");
-                hexpos += 3;
-                asciibuf[asciipos++] = ' ';
-            }
-        }
-        hexbuf[hexpos] = '\0';
-        asciibuf[asciipos] = '\0';
-        if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("%04X: %s |%s|\n", i, hexbuf, asciibuf);
-    }
+// rect+0x04 → stm; stm+0 → frame; frame+0 → menu screen (GetCoords 0xCF5DB).
+static void* menu_outer_from_widget(void* widget) {
+	if (!widget) return nullptr;
+	auto* stm = *reinterpret_cast<void**>(static_cast<char*>(widget) + kRect_MenuPtr);
+	if (!stm) return nullptr;
+	auto* frame = *reinterpret_cast<void**>(stm);
+	return frame ? *reinterpret_cast<void**>(frame) : nullptr;
 }
+
+static float menu_actual_rect_dim_factor(void* rect) {
+	if (!scaled_menu_uniform_actual_active()) return 1.f;
+	if (!rect) return 1.f;
+	if (*reinterpret_cast<uint8_t*>(static_cast<char*>(rect) + kRect_NoScale)) return 1.f;
+	if (widget_is_ghoul(rect)) return 1.f;
+	void* menu = menu_outer_from_widget(rect);
+	if (!menu_actual_pixel_scale_active(menu)) return 1.f;
+	const float v = *reinterpret_cast<float*>(static_cast<char*>(rect) + kRect_WidgetScale);
+	if (v <= 1e-6f || !std::isfinite(v)) return 1.f;
+	const float s = scaled_menu_screen_scale();
+	if (!std::isfinite(s) || s <= 1e-6f) return 1.f;
+	return s / v;
+}
+
+static void* menu_find_default_frame(void* menu_c);
+
+using Menu_FindFrame_t = void*(__thiscall*)(void* menu_c, const char* name);
+
+static void* menu_find_default_frame(void* menu_c) {
+	if (!menu_c) return nullptr;
+	auto find_frame = reinterpret_cast<Menu_FindFrame_t>(
+		rvaToAbsExe(reinterpret_cast<void*>(kRvaMenuFindFrame)));
+	if (!find_frame) return nullptr;
+#if defined(__GNUC__) && defined(__i386__)
+	return thiscall_menu_find_frame(menu_c, "default", reinterpret_cast<void*>(find_frame));
+#else
+	return find_frame(menu_c, "default");
 #endif
-
-    if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("%s : %s x %s\n",frame_name, width,height);
-
-    #if 0
-    // Disabling stretched menu's becuase we handle it ourselves.
-    // If name ends with _ss, replace with _ns
-    char name_buf[256];
-
-    
-    size_t name_len = strlen(frame_name);
-    if (name_len >= 3 && strcmp(frame_name + name_len - 3, "_ss") == 0) {
-        // Only modify if it's not a string literal (i.e., not in read-only memory)
-        // If you are sure it's always mutable, you can do:
-        char *mutable_name = (char *)frame_name;
-        mutable_name[name_len - 3] = '_';
-        mutable_name[name_len - 2] = 'n';
-        mutable_name[name_len - 1] = 's';
-
-    }
-
-    #endif
-
-    //Only scale certain pages that don't break with scaling.
-    if ( ( !strcmp(width,"400") && !strcmp(height,"240") ) || 
-    isMenuSpmSettings ) {
-        if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("==SCALING FRAME %s==\n",frame_name);
-        //if width height specified, we scale it.
-
-        int scaled_width = 0, scaled_height = 0;
-        bool width_is_num = false, height_is_num = false;
-        
-        /*
-            Parse the width and height (they are in string format)
-        */
-        if (width) {
-            char *endptr;
-            long w = strtol(width, &endptr, 10);
-            if (endptr != width && *endptr == '\0') {
-                width_is_num = true;
-                if (w != 0) {
-                    scaled_width = (int)(w * screen_y_scale);
-                } else {
-                    scaled_width = 0;
-                }
-            }
-        }
-        if (height) {
-            char *endptr;
-            long h = strtol(height, &endptr, 10);
-            if (endptr != height && *endptr == '\0') {
-                height_is_num = true;
-                if (h != 0) {
-                    scaled_height = (int)(h * screen_y_scale);
-                } else {
-                    scaled_height = 0;
-                }
-            }
-        }
-        
-        char width_buf[32], height_buf[32];
-        char *final_width = width, *final_height = height;
-        if (width_is_num) {
-            snprintf(width_buf, sizeof(width_buf), "%d", scaled_width);
-            final_width = width_buf;
-        }
-        if (height_is_num) {
-            snprintf(height_buf, sizeof(height_buf), "%d", scaled_height);
-            final_height = height_buf;
-        }
-        
-        
-        orig_frame_c_Constructor(self,menu_c,final_width,final_height,frame_name);
-    } else { 
-        orig_frame_c_Constructor(self,menu_c,width,height,frame_name);
-    }
 }
 
-/*
-// Hypothetical structure for toke_c
-class toke_c {
-public:
-// [this+0]
-char* m_pBuffer;        // Pointer to the beginning of the allocated memory.
+using Menu_BorderDimsInit_t = void*(__thiscall*)(void* border, char* pad, char* thick, void* menu_c, float scale);
+static Menu_BorderDimsInit_t oMenu_BorderDimsInit = nullptr;
 
-// [this+4]
-char* m_pCursor;        // Pointer to the current read/write position (cursor) within the buffer.
+static bool scaled_menu_skip_for_intro_disclaimer(void) {
+#if FEATURE_INTRO_SCALER
+	return intro_scaler_disclaimer_menu_text_active() || intro_scaler_intro_cinematic_active();
+#else
+	return false;
+#endif
+}
 
-// [this+8]
-char* m_pEndOfBuffer;   // Pointer to the end of the allocated memory (one past the last valid byte).
+static float border_dims_init_use_scale(float scale, bool active) {
+	(void)scale;
+	if (!active) return 1.f;
+	return scaled_menu_screen_scale();
+}
 
-// [this+12]
-// This is actually how many lines have been passed
+// sub_200C46D0 is __thiscall (this in ECX + 4 stack args, callee pops 0x10):
+// hk must carry __attribute__((thiscall)) so ECX/slots line up when JMP'd into.
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static void* hk_menu_border_dims_init(void* border, char* dimA, char* dimB, void* tint, float scale) {
+	bool active = scaled_menu_uniform_actual_active();
+	if (active && scaled_menu_skip_for_intro_disclaimer()) active = false;
+	if (!active) {
+#if defined(__GNUC__) && defined(__i386__)
+		return oMenu_BorderDimsInit
+		           ? thiscall_border_dims_init(border, dimA, dimB, tint, scale,
+		                                       reinterpret_cast<void*>(oMenu_BorderDimsInit))
+		           : border;
+#else
+		return oMenu_BorderDimsInit ? oMenu_BorderDimsInit(border, dimA, dimB, tint, scale) : border;
+#endif
+	}
+	const float use = border_dims_init_use_scale(scale, active);
+#if defined(__GNUC__) && defined(__i386__)
+	void* ret = oMenu_BorderDimsInit
+	                ? thiscall_border_dims_init(border, dimA, dimB, tint, use,
+	                                            reinterpret_cast<void*>(oMenu_BorderDimsInit))
+	                : border;
+#else
+	void* ret = oMenu_BorderDimsInit ? oMenu_BorderDimsInit(border, dimA, dimB, tint, use) : border;
+#endif
+	if (border) {
+		const float ms = scaled_menu_screen_scale();
+		// [border+4] is the raw (actual-pixel) thickness the stock call site never scales.
+		int& t = *reinterpret_cast<int*>(static_cast<char*>(border) + kBorder_ThickPx);
+		if (t > 0) t = static_cast<int>(std::lround(static_cast<float>(t) * ms));
+	}
+	return ret;
+}
 
-// [this+16] ([esi+10h])
-size_t m_capacity;      // The total size/capacity of the allocated buffer.
+using Rect_Parse_t = bool(__thiscall*)(void* rect, void* token);
+static Rect_Parse_t oRect_Parse = nullptr;
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static bool hk_rect_parse(void* rect, void* token) {
+	const char* keyword = nullptr;
+#if defined(__GNUC__) && defined(__i386__)
+	keyword = thiscall_token(token, 0, rvaToAbsExe(reinterpret_cast<void*>(kRvaToken)));
+#endif
+	const bool fixed_width = keyword && std::strcmp(keyword, "width") == 0;
+	const bool fixed_height = keyword && std::strcmp(keyword, "height") == 0;
+	const bool fixed_xoff = keyword && std::strcmp(keyword, "xoff") == 0;
+	const bool fixed_yoff = keyword && std::strcmp(keyword, "yoff") == 0;
+#if defined(__GNUC__) && defined(__i386__)
+	const bool parsed = oRect_Parse
+		                    ? thiscall_rect_parse(rect, token, reinterpret_cast<void*>(oRect_Parse))
+		                    : false;
+#else
+	const bool parsed = oRect_Parse ? oRect_Parse(rect, token) : false;
+#endif
+	if (!parsed || (!fixed_width && !fixed_height && !fixed_xoff && !fixed_yoff)) return parsed;
+	char* r = static_cast<char*>(rect);
+	if (!scaled_menu_uniform_actual_active() || scaled_menu_skip_for_intro_disclaimer() ||
+	    *reinterpret_cast<uint8_t*>(r + kRect_NoScale)) {
+		return parsed;
+	}
+	float factor = menu_actual_rect_dim_factor(rect);
+	if (widget_is_ticker(rect)) {
+		// Tickers scroll inside canvas/art-space panels (usually a ghoul part), so their
+		// offsets follow the canvas scale, not menuScale. Keep the authored width: the
+		// ticker init applies the canvas scale to W the way the engine does for bolted ones.
+		if (fixed_width) {
+			factor = 1.f;
+		} else {
+			char* menu = static_cast<char*>(menu_outer_from_widget(rect));
+			float canvas = menu ? *reinterpret_cast<float*>(menu + kMenuC_ScreenScale) : 1.f;
+			float ws = *reinterpret_cast<float*>(r + kRect_WidgetScale);
+			if (!std::isfinite(canvas) || canvas <= 1e-6f) canvas = 1.f;
+			if (!std::isfinite(ws) || ws <= 1e-6f) ws = 1.f;
+			factor = canvas / ws;
+		}
+	}
+	if (std::fabs(factor - 1.f) <= 0.001f) return parsed;
+	if (fixed_width || fixed_height) {
+		const ptrdiff_t value_offset = fixed_width ? kRect_W : kRect_H;
+		const ptrdiff_t outer_offset = fixed_width ? kRect_OuterW : kRect_OuterH;
+		int& value = *reinterpret_cast<int*>(r + value_offset);
+		int& outer = *reinterpret_cast<int*>(r + outer_offset);
+		void* border = *reinterpret_cast<void**>(r + kRect_Border);
+		const int padding = border ? *reinterpret_cast<int*>(static_cast<char*>(border)) : 0;
+		const float widget_scale = *reinterpret_cast<float*>(r + kRect_WidgetScale);
+		const auto scaled = scale_fixed_rect_dimension(value, widget_scale, padding, factor);
+		value = scaled.value;
+		outer = scaled.outer;
+	} else {
+		int& px = *reinterpret_cast<int*>(r + (fixed_xoff ? kRect_Xoff : kRect_Yoff));
+		if (px != 0) {
+			char* menu = static_cast<char*>(menu_outer_from_widget(rect));
+			float canvas = menu ? *reinterpret_cast<float*>(menu + kMenuC_ScreenScale) : 1.f;
+			if (!std::isfinite(canvas) || canvas <= 1e-6f) canvas = 1.f;
+			float f = factor;
+			bool keep_authored = false;
+			if (widget_is_ticker(rect)) {
+				// Ticker x lives on the canvas/art-space panel, so it follows the canvas.
+				// The y nudge is a pixel positioning offset authored against the band: it
+				// must stay vanilla (scaling it lifted the tape ~(menuScale-1)*|yoff| px,
+				// 13 px at 1080p, which is the visible "few pixels too high").
+				float ws = *reinterpret_cast<float*>(r + kRect_WidgetScale);
+				if (!std::isfinite(ws) || ws <= 1e-6f) ws = 1.f;
+				if (fixed_xoff) {
+					f = canvas / ws;
+				} else {
+					keep_authored = true;
+				}
+			}
+			const bool hard_path =
+			    *reinterpret_cast<int*>(r + kRect_Align) == 2 ||
+			    *reinterpret_cast<int*>(r + kRect_Align) == 3 ||
+			    *reinterpret_cast<void**>(r + kRect_BoltAnchor) != nullptr;
+			const uint8_t virtual_axis =
+			    *reinterpret_cast<uint8_t*>(r + (fixed_xoff ? kRect_VirtualX : kRect_VirtualY));
+			// The engine multiplies virtual offsets by the canvas itself in the hard path
+			// (sub_200CF350), so divide it out here to avoid double scaling.
+			if (!keep_authored && hard_path && virtual_axis) f /= canvas;
+			if (!keep_authored && std::fabs(f - 1.f) > 0.001f)
+				px = static_cast<int>(std::lround(static_cast<float>(px) * f));
+		}
+	}
+	return parsed;
+}
+
+// frame_c::Resize(pad, thick) — <stm resize W H> support.
+// Stock pins the page to W×H actual pixels, centres it via (vid - W)/2, and forces
+// canvas scale (menu_c+0xAC) to 1.0. Left alone at high resolution the dialog renders
+// 320×240 in the middle of a 1920×1080 screen, i.e. effectively invisible. Scale the
+// page itself and recentre, so the contents scale with it inside the correct box.
+using Frame_Resize_t = void(__thiscall*)(void* frame, char* w, char* h);
+static Frame_Resize_t oFrame_Resize = nullptr;
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static void hk_frame_resize(void* frame, char* w, char* h) {
+	if (!frame || !oFrame_Resize) return;
+#if defined(__GNUC__) && defined(__i386__)
+	// thiscall via explicit ECX (MinGW does not reliably pass it for indirect calls).
+	__asm__ __volatile__(
+		"pushl %2\n\t"
+		"pushl %1\n\t"
+		"movl %0, %%ecx\n\t"
+		"call *%3"
+		: : "m"(frame), "m"(w), "m"(h), "m"(oFrame_Resize)
+		: "ecx", "eax", "edx", "memory");
+#else
+	oFrame_Resize(frame, w, h);
+#endif
+	if (!scaled_menu_uniform_actual_active() || scaled_menu_skip_for_intro_disclaimer()) return;
+	const float s = scaled_menu_screen_scale();
+	if (!std::isfinite(s) || std::fabs(s - 1.f) < 0.001f) return;
+	char* f = static_cast<char*>(frame);
+	// Stock pinned this page to W×H actual pixels with canvas scale 1.0. Raise the page's
+	// canvas scale instead of touching W/H: the engine then scales everything inside
+	// (frames, borders, text) uniformly, exactly as it does for a normal page. Contents of
+	// resize pages stay excluded from the per-widget factor, so this is the only scale.
+	if (char* menu = *reinterpret_cast<char**>(f + kFrame_Menu)) {
+		*reinterpret_cast<float*>(menu + kMenuC_ScreenScale) = s;
+	}
+	// Centre by the scaled size, since W/H remain in virtual units.
+	const int fw = *reinterpret_cast<int*>(f + kFrame_W);
+	const int fh = *reinterpret_cast<int*>(f + kFrame_H);
+	*reinterpret_cast<int*>(f + kFrame_OffX) =
+	    static_cast<int>(std::lround((static_cast<float>(current_vid_w) - static_cast<float>(fw) * s) * 0.5f));
+	*reinterpret_cast<int*>(f + kFrame_OffY) =
+	    static_cast<int>(std::lround((static_cast<float>(current_vid_h) - static_cast<float>(fh) * s) * 0.5f));
+}
+
+using Frame_FinalizeDims_t = void(__thiscall*)(void* frame);
+static Frame_FinalizeDims_t oFrame_FinalizeDims = nullptr;
+
+static void thiscall_frame_finalize_dims(void* frame, void* fn) {
+#if defined(__GNUC__) && defined(__i386__)
+	if (!fn) return;
+	__asm__ __volatile__(
+		"movl %0, %%ecx\n\t"
+		"call *%1"
+		: : "r"(frame), "r"(fn)
+		: "ecx", "eax", "edx", "memory");
+#else
+	if (fn) reinterpret_cast<Frame_FinalizeDims_t>(fn)(frame);
+#endif
+}
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static void hk_frame_finalize_dims(void* frame) {
+	if (frame && std::strcmp(s_pushed_menu_name, "game_ss") == 0) {
+		char* f = static_cast<char*>(frame);
+		const char* frame_name = *reinterpret_cast<const char* const*>(f + kFrame_NamePtr);
+		const size_t frame_name_len = *reinterpret_cast<const size_t*>(f + kFrame_NameLen);
+		if (frame_name && frame_name_len == 5 && std::strncmp(frame_name, "topic", 5) == 0) {
+			char* menu = *reinterpret_cast<char**>(f + kFrame_Menu);
+			if (menu) {
+				const float canvas = *reinterpret_cast<float*>(menu + kMenuC_ScreenScale);
+				if (std::isfinite(canvas) && canvas > 1e-6f)
+					*reinterpret_cast<int*>(f + kFrame_H) = static_cast<int>(96.0f * canvas);
+			}
+		}
+	}
+	thiscall_frame_finalize_dims(frame, reinterpret_cast<void*>(oFrame_FinalizeDims));
+}
+
+// Non-_ss menus author their frame boxes in 480p coordinates. The stock ctor multiplies
+// them by the canvas (vid_w/640), which overflows a 16:9 screen; convert them with the
+// vertical factor (resY/480) instead. _ss (and _ns is 480p-authored, so it converts)
+// menus that are already authored for the wide layout keep the stock canvas scaling.
+static bool tail_equals_ci(const char* s, size_t len, const char* suffix) {
+	const size_t slen = std::strlen(suffix);
+	if (len < slen) return false;
+	for (size_t i = 0; i < slen; ++i) {
+		char a = s[len - slen + i];
+		char b = suffix[i];
+		if (a >= 'A' && a <= 'Z') a = static_cast<char>(a - 'A' + 'a');
+		if (b >= 'A' && b <= 'Z') b = static_cast<char>(b - 'A' + 'a');
+		if (a != b) return false;
+	}
+	return true;
+}
+
+static void menu_source_note_name(const char* name, bool reset_if_unknown) {
+	if (!name || !*name) return;
+	const char* base = name;
+	for (const char* p = name; *p; ++p) {
+		if (*p == '/' || *p == '\\') base = p + 1;
+	}
+	if (name_contains_ci(name, "sof_buddy/") || name_contains_ci(name, "loading/"))
+		s_menu_skip_frame_convert = true;
+	size_t len = std::strlen(base);
+	if (len >= 4 && tail_equals_ci(base, len, ".rmf")) len -= 4;
+	if (tail_equals_ci(base, len, "_ss")) {
+		s_menu_source_is_ss = true;
+	} else if (tail_equals_ci(base, len, "_ns")) {
+		s_menu_source_is_ss = false;
+	} else if (reset_if_unknown) {
+		s_menu_source_is_ss = false;
+	}
+}
+
+struct FrameDimsRec {
+	void* menu;
+	void* frame;
+	int w;
+	int h;
+	bool ss;
 };
 
-*/
-char * __thiscall hkstm_c_ParseStm(void *self_stm_c, void * toke_c)
-{
-    if (!ostm_c_ParseStm) return nullptr;
-    
-    mutateWidthTokeC_resize(toke_c);
+static FrameDimsRec s_frame_dims[128];
+static int s_frame_dims_count = 0;
+static int s_frame_dims_rr = 0;
 
-    //find blank
-    mutateBlankTokeC_width_height(toke_c);
-
-    #if 0
-    int out_len = *(int*)(toke_c+0x10);
-    char * toke_data = *(char**)toke_c;
-    if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("AFTER!\n");
-    for ( int k = 0 ; k < out_len; k++ ) {
-        if ( toke_data[k] != 0xD && detour_Com_Printf::oCom_Printf )
-        detour_Com_Printf::oCom_Printf("%c",toke_data[k]);
-    }
-    if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("\n");
-
-    #endif
-    char * out_ret = ostm_c_ParseStm(self_stm_c, toke_c);
-    
-    return out_ret;
-    
+static FrameDimsRec* frame_dims_find(void* menu, void* frame) {
+	if (!menu || !frame) return nullptr;
+	for (int i = 0; i < s_frame_dims_count; ++i) {
+		if (s_frame_dims[i].menu == menu && s_frame_dims[i].frame == frame)
+			return &s_frame_dims[i];
+	}
+	return nullptr;
 }
 
-/*
-This is hooked on the toke_c::Token(int) call
-at the top of rect_c::Parse(toke_c *)
-Because hooks dont' seem to work nicely with that weird c++ stuff at top.(FreeMemory etc)
-
-This is called _VERY_ often, for every sub-token it seems.
-I mean if there is 'tip <> <>' in options
-or 'key <> <>'
-They are also rects, and so it creates another rect for these ones.
-*/
-
-char * __thiscall my_rect_c_Parse(void* toke_c, int idx)
-{
-    static char * (__thiscall *orig_call)(void* toke_c, int idx) = (char*(__thiscall*)(void*, int))rvaToAbsExe((void*)0x000EB440);
-    
-    
-    mutateWidthTokeC_width_height(toke_c, (char*)"width ");
-    mutateWidthTokeC_width_height(toke_c, (char*)"height ");
-    
-    return orig_call(toke_c, idx);
+static FrameDimsRec* frame_dims_store(void* menu, void* frame) {
+	if (!menu || !frame) return nullptr;
+	FrameDimsRec* rec = frame_dims_find(menu, frame);
+	if (rec) return rec;
+	if (s_frame_dims_count < static_cast<int>(sizeof(s_frame_dims) / sizeof(s_frame_dims[0]))) {
+		rec = &s_frame_dims[s_frame_dims_count++];
+	} else {
+		rec = &s_frame_dims[s_frame_dims_rr];
+		s_frame_dims_rr = (s_frame_dims_rr + 1) %
+		                  static_cast<int>(sizeof(s_frame_dims) / sizeof(s_frame_dims[0]));
+	}
+	rec->menu = menu;
+	rec->frame = frame;
+	rec->w = 0;
+	rec->h = 0;
+	rec->ss = false;
+	return rec;
 }
 
-void __thiscall my_stm_c_ParseBlank(void *self_stm_c, void * toke_c)
-{
-    mutateBlankTokeC_width_height(toke_c);
+using Frame_Ctor_t = void*(__thiscall*)(void* frame, void* menu, const char* w, const char* h,
+                                        const char* name);
+static Frame_Ctor_t oFrame_Ctor = nullptr;
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static void* hk_frame_ctor(void* frame, void* menu, const char* w, const char* h,
+                           const char* name) {
+	void* ret = oFrame_Ctor ? oFrame_Ctor(frame, menu, w, h, name) : frame;
+	if (!frame) return ret;
+	char* f = static_cast<char*>(frame);
+	void* owner = *reinterpret_cast<void**>(f + kFrame_Menu);
+	if (FrameDimsRec* rec = frame_dims_store(owner ? owner : menu, frame)) {
+		rec->w = *reinterpret_cast<int*>(f + kFrame_W);
+		rec->h = *reinterpret_cast<int*>(f + kFrame_H);
+		rec->ss = s_menu_source_is_ss || s_menu_skip_frame_convert;
+	}
+	return ret;
 }
 
-/*
+using Frame_Link_t = void(__thiscall*)(void* child, void* parent);
+static Frame_Link_t oFrame_Link = nullptr;
 
-Menu text is positioned and scaled in my_glVertex2f_DrawFont_1
-search characterIndex
-
-This is hooked to help resize the rects which contain the text.
-
-===MAIN MENU FONT SCALING==
-
-Somehow <center> tag is not performing under scale.
-
-Seems it applies 5px for a space? (Confirmed.)
-We remove the space from this calculation to improve centering.
-*/
-// Text measurement hooks moved to text.cpp
-
-/*
-[frame] is often ""
-menu <name> [frame]
-2nd argument to menu is rarely used
-menu players/$menu_temp_skin text
-*/
-void my_M_PushMenu(const char * name, const char * frame, bool force)
-{
-    
-    if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("M_PushMenu : %s %s %i\n",name,frame, force);
-    if ( !strcmp( name, "spm" ) || !strncmp(name,"spm_",4) ) {
-        if (detour_Com_Printf::oCom_Printf) detour_Com_Printf::oCom_Printf("Detected sofplus settings menu!\n");
-        isMenuSpmSettings = true;
-        detour_M_PushMenu::oM_PushMenu(name,frame,force);
-        isMenuSpmSettings = false;
-        return;
-    }
-    detour_M_PushMenu::oM_PushMenu(name,frame,force);
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static void hk_frame_link(void* child, void* parent) {
+	FrameDimsRec* cr = nullptr;
+	if (child) {
+		char* c = static_cast<char*>(child);
+		void* menu = *reinterpret_cast<void**>(c + kFrame_Menu);
+		cr = frame_dims_find(menu, child);
+		FrameDimsRec* pr = parent ? frame_dims_find(menu, parent) : nullptr;
+		const bool ss = (cr && cr->ss) || (pr && pr->ss);
+		if (cr) {
+			cr->ss = ss;
+			if (!ss && menu && scaled_menu_uniform_actual_active() &&
+			    !scaled_menu_skip_for_intro_disclaimer()) {
+				const float canvas =
+				    *reinterpret_cast<float*>(static_cast<char*>(menu) + kMenuC_ScreenScale);
+				const float target = scaled_menu_screen_scale();
+				if (std::isfinite(canvas) && canvas > 1e-6f && std::isfinite(target) &&
+				    target > 0.f) {
+					const float factor = target / canvas;
+					if (std::fabs(factor - 1.f) > 0.001f) {
+						int& fw = *reinterpret_cast<int*>(c + kFrame_W);
+						int& fh = *reinterpret_cast<int*>(c + kFrame_H);
+						if (cr->w != 0)
+							fw = static_cast<int>(
+							    std::lround(static_cast<float>(cr->w) * factor));
+						if (cr->h != 0)
+							fh = static_cast<int>(
+							    std::lround(static_cast<float>(cr->h) * factor));
+					}
+				}
+			}
+		}
+	}
+	if (oFrame_Link) oFrame_Link(child, parent);
 }
 
-// Hook function for M_PushMenu
-void hkM_PushMenu(const char * name, const char * frame, bool force)
-{
-    my_M_PushMenu(name, frame, force);
+using Toke_Ctor_t = void*(__thiscall*)(void* toke, const char* name);
+static Toke_Ctor_t oToke_Ctor = nullptr;
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static void* hk_toke_ctor(void* toke, const char* name) {
+	menu_source_note_name(name, false);
+	return oToke_Ctor ? oToke_Ctor(toke, name) : toke;
+}
+
+using Toke_Insert_t = void(__thiscall*)(void* toke, const char* name);
+static Toke_Insert_t oToke_Insert = nullptr;
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static void hk_toke_insert(void* toke, const char* name) {
+	menu_source_note_name(name, false);
+	if (oToke_Insert) oToke_Insert(toke, name);
+}
+
+using Ticker_Init_t = void(__thiscall*)(void* ticker);
+static Ticker_Init_t oTicker_Init = nullptr;
+
+static void thiscall_ticker_init(void* ticker, void* fn) {
+#if defined(__GNUC__) && defined(__i386__)
+	if (!fn) return;
+	__asm__ __volatile__(
+		"movl %0, %%ecx\n\t"
+		"call *%1"
+		: : "r"(ticker), "r"(fn)
+		: "ecx", "eax", "edx", "memory");
+#else
+	if (fn) reinterpret_cast<Ticker_Init_t>(fn)(ticker);
+#endif
+}
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static void hk_ticker_init(void* ticker) {
+	bool restore_delay = false;
+	float authored_delay = 0.f;
+	float speed_scale = 1.f;
+	if (ticker && scaled_menu_uniform_actual_active() && !scaled_menu_skip_for_intro_disclaimer()) {
+		char* t = static_cast<char*>(ticker);
+		if (!*reinterpret_cast<uint8_t*>(t + kRect_NoScale)) {
+			// Tickers live in the canvas/art space (they are usually bolted to a ghoul part
+			// drawn at canvas scale), while their text width comes from R_StrLen at
+			// menuScale. The engine only multiplies W by the canvas for bolted tickers;
+			// apply the same canvas scale ourselves when it does not.
+			char* menu = static_cast<char*>(menu_outer_from_widget(ticker));
+			const float canvas = menu ? *reinterpret_cast<float*>(menu + kMenuC_ScreenScale) : 1.f;
+			const bool engine_scales =
+			    *reinterpret_cast<void**>(t + kRect_BoltAnchor) != nullptr;
+			if (!engine_scales && std::isfinite(canvas) && canvas > 1e-6f &&
+			    std::fabs(canvas - 1.f) > 0.001f) {
+				int& w = *reinterpret_cast<int*>(t + kRect_W);
+				if (w > 0) w = static_cast<int>(std::lround(static_cast<float>(w) * canvas));
+				int& ow = *reinterpret_cast<int*>(t + kRect_OuterW);
+				if (ow > 0) ow = static_cast<int>(std::lround(static_cast<float>(ow) * canvas));
+			}
+			if (engine_scales) {
+				authored_delay = *reinterpret_cast<float*>(t + 0xB8);
+				restore_delay = std::isfinite(authored_delay);
+			}
+			const float height_scale = screen_y_scale;
+			if (std::isfinite(height_scale) && height_scale > 1e-6f)
+				speed_scale = height_scale;
+			// The authored yoff keeps vanilla's baseline, but the glyphs grow around the
+			// run start by (scale-1)*glyphH. Shift by half that growth in the direction of
+			// the authored nudge so the scaled tape keeps vanilla's visual centre.
+			const float s = scaled_menu_screen_scale();
+			if (std::isfinite(s) && s > 1.001f) {
+				const char* font = t + 0x8C;
+				const char* fontName = *reinterpret_cast<char* const*>(const_cast<char*>(font) + 4);
+				const int glyph_h = font_glyph_px(
+				    fontName ? getRealFontEnum(fontName) : REALFONT_TITLE);
+				int& yo = *reinterpret_cast<int*>(t + kRect_Yoff);
+				if (glyph_h > 0 && yo != 0) {
+					const int delta = static_cast<int>(
+					    std::lround(static_cast<float>(glyph_h) * (s - 1.f) * 0.5f));
+					yo += (yo < 0) ? -delta : delta;
+				}
+			}
+		}
+	}
+	thiscall_ticker_init(ticker, reinterpret_cast<void*>(oTicker_Init));
+	if (restore_delay)
+		*reinterpret_cast<float*>(static_cast<char*>(ticker) + 0xB8) = authored_delay;
+	if (ticker && std::fabs(speed_scale - 1.f) > 0.001f) {
+		int& speed = *reinterpret_cast<int*>(static_cast<char*>(ticker) + 0xAC);
+		if (speed != 0)
+			speed = static_cast<int>(std::lround(static_cast<float>(speed) * speed_scale));
+	}
+}
+
+using Menu_CreateTip_t = void(__thiscall*)(void* menu, void* rect, int stm_y);
+static Menu_CreateTip_t oMenu_CreateTip = nullptr;
+
+using Rect_HoverPrep_t = void(__thiscall*)(void* rect);
+static Rect_HoverPrep_t oRect_HoverPrep = nullptr;
+
+using Stm_HoverPass_t = void(__thiscall*)(void* stm);
+static Stm_HoverPass_t oStm_HoverPass = nullptr;
+
+struct HoverSave {
+	void* rect;
+	int ox;
+	int oy;
+};
+static HoverSave s_hover_saved[512];
+static int s_hover_saved_count = 0;
+static bool s_in_hover_pass = false;
+
+static void hover_save_and_adjust(void* rect) {
+	if (s_hover_saved_count >= static_cast<int>(sizeof(s_hover_saved) / sizeof(s_hover_saved[0]))) return;
+	void* stm = *reinterpret_cast<void**>(static_cast<char*>(rect) + kRect_MenuPtr);
+	void* frame = stm ? *reinterpret_cast<void**>(stm) : nullptr;
+	void* menu = frame ? *reinterpret_cast<void**>(frame) : nullptr;
+	void* ms = menu ? *reinterpret_cast<void**>(static_cast<char*>(menu) + 0x14) : nullptr;
+	void* gc = rvaToAbsExe(reinterpret_cast<void*>(kRvaRectGetCoords));
+	void* fmx = rvaToAbsExe(reinterpret_cast<void*>(kRvaFrameGetMouseX));
+	void* fmy = rvaToAbsExe(reinterpret_cast<void*>(kRvaFrameGetMouseY));
+	void* smx = rvaToAbsExe(reinterpret_cast<void*>(kRvaMenuSysGetMouseX));
+	void* smy = rvaToAbsExe(reinterpret_cast<void*>(kRvaMenuSysGetMouseY));
+	if (!stm || !frame || !menu || !ms || !gc || !fmx || !fmy || !smx || !smy) return;
+	int x = 0, y = 0;
+	if (!thiscall_rect_get_coords(rect, &x, &y, gc)) return;
+	const int stm_y = *reinterpret_cast<int*>(static_cast<char*>(stm) + 0x80);
+	const int kx = thiscall_noargs_int(ms, smx) - thiscall_noargs_int(frame, fmx);
+	const int ky = thiscall_noargs_int(ms, smy) -
+	               (thiscall_noargs_int(frame, fmy) + stm_y);
+	char* r = static_cast<char*>(rect);
+	HoverSave& sv = s_hover_saved[s_hover_saved_count++];
+	sv.rect = rect;
+	sv.ox = *reinterpret_cast<int*>(r + kRect_Ox);
+	sv.oy = *reinterpret_cast<int*>(r + kRect_Oy);
+	*reinterpret_cast<int*>(r + kRect_Ox) = x - kx;
+	*reinterpret_cast<int*>(r + kRect_Oy) = y - ky;
+}
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static void hk_rect_hover_prep(void* rect) {
+	if (rect && s_in_hover_pass && scaled_menu_uniform_actual_active() &&
+	    !scaled_menu_skip_for_intro_disclaimer()) {
+		hover_save_and_adjust(rect);
+	}
+	if (oRect_HoverPrep) {
+#if defined(__GNUC__) && defined(__i386__)
+		thiscall_noargs_void(rect, reinterpret_cast<void*>(oRect_HoverPrep));
+#else
+		oRect_HoverPrep(rect);
+#endif
+	}
+}
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static void hk_stm_hover_pass(void* stm) {
+	s_hover_saved_count = 0;
+	s_in_hover_pass = true;
+	if (oStm_HoverPass) {
+#if defined(__GNUC__) && defined(__i386__)
+		thiscall_noargs_void(stm, reinterpret_cast<void*>(oStm_HoverPass));
+#else
+		oStm_HoverPass(stm);
+#endif
+	}
+	s_in_hover_pass = false;
+	for (int i = 0; i < s_hover_saved_count; ++i) {
+		char* r = static_cast<char*>(s_hover_saved[i].rect);
+		*reinterpret_cast<int*>(r + kRect_Ox) = s_hover_saved[i].ox;
+		*reinterpret_cast<int*>(r + kRect_Oy) = s_hover_saved[i].oy;
+	}
+	s_hover_saved_count = 0;
+}
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static void hk_menu_create_tip(void* menu, void* rect, int stm_y) {
+	if (oMenu_CreateTip) {
+#if defined(__GNUC__) && defined(__i386__)
+		thiscall_2args_void(menu, rect, stm_y, reinterpret_cast<void*>(oMenu_CreateTip));
+#else
+		oMenu_CreateTip(menu, rect, stm_y);
+#endif
+	}
+	if (!menu || !rect) return;
+	char* tip = *reinterpret_cast<char**>(static_cast<char*>(menu) + 0x5C);
+	if (!tip) return;
+	if (_sofbuddy_menu_tip_appear) {
+		int appear = static_cast<int>(_sofbuddy_menu_tip_appear->value);
+		if (appear < 0) appear = 0;
+		const int duration = *reinterpret_cast<int*>(tip + 0x1C);
+		const int gate = duration / 4;
+		if (appear < gate) *reinterpret_cast<int*>(tip + 0x18) -= (gate - appear);
+	}
+	if (!scaled_menu_uniform_actual_active() || scaled_menu_skip_for_intro_disclaimer()) return;
+	void* gc = rvaToAbsExe(reinterpret_cast<void*>(kRvaRectGetCoords));
+	if (!gc) return;
+	int x = 0, y = 0;
+	if (!thiscall_rect_get_coords(rect, &x, &y, gc)) return;
+	const int oh = *reinterpret_cast<int*>(static_cast<char*>(rect) + kRect_OuterH);
+	*reinterpret_cast<int*>(tip + 0x14) = y + oh;
+}
+
+struct MenuExtendCache {
+	void* menu = nullptr;
+	int canvasX = 0;
+	int canvasRight = 0;
+};
+
+static MenuExtendCache s_extend_cache[kExtendCacheMax];
+
+static void extend_cache_store(void* menu_c, const void* def_frame) {
+	if (!menu_c || !def_frame) return;
+	const auto* fr = static_cast<const char*>(def_frame);
+	const int cx = *reinterpret_cast<const int*>(fr + kFrame_OffX);
+	const int right = cx + *reinterpret_cast<const int*>(fr + kFrame_W);
+	for (int i = 0; i < kExtendCacheMax; ++i) {
+		if (s_extend_cache[i].menu == menu_c) {
+			s_extend_cache[i].canvasX = cx;
+			s_extend_cache[i].canvasRight = right;
+			return;
+		}
+	}
+	for (int i = 0; i < kExtendCacheMax; ++i) {
+		if (!s_extend_cache[i].menu) {
+			s_extend_cache[i].menu = menu_c;
+			s_extend_cache[i].canvasX = cx;
+			s_extend_cache[i].canvasRight = right;
+			return;
+		}
+	}
+	s_extend_cache[0].menu = menu_c;
+	s_extend_cache[0].canvasX = cx;
+	s_extend_cache[0].canvasRight = right;
+}
+
+static bool extend_cache_lookup(const void* menu_c, int* canvasX, int* canvasRight) {
+	if (!menu_c) return false;
+	for (int i = 0; i < kExtendCacheMax; ++i) {
+		if (s_extend_cache[i].menu == menu_c) {
+			*canvasX = s_extend_cache[i].canvasX;
+			*canvasRight = s_extend_cache[i].canvasRight;
+			return true;
+		}
+	}
+	return false;
+}
+
+static void menu_extend_clip_xw(int* x, int* w, const void* menu_c) {
+	if (!x || !w || !menu_c || menu_c_is_resize_popup(menu_c)) return;
+	if (current_vid_w <= 0) return;
+	int cx = 0, right = 0;
+	if (!extend_cache_lookup(menu_c, &cx, &right)) {
+		void* def = menu_find_default_frame(const_cast<void*>(menu_c));
+		if (!def) return;
+		extend_cache_store(const_cast<void*>(menu_c), def);
+		if (!extend_cache_lookup(menu_c, &cx, &right)) return;
+	}
+	if (*x + *w >= right) *w = current_vid_w - *x;
+	if (*x <= cx) {
+		*w += *x;
+		*x = 0;
+	}
+}
+
+static bool set_clip_from_backdrop_open() {
+	void* ret = __builtin_return_address(0);
+	return ret == rvaToAbsExe(reinterpret_cast<void*>(kRvaBackdropSetClipOpen));
+}
+
+static void __cdecl hk_menu_stm_set_clip(void* stm, int, int* outX, int* outY, int* outW, int* outH) {
+	if (!stm || !outX || !outY || !outW || !outH) return;
+	auto* st = static_cast<char*>(stm);
+	auto* frame = *reinterpret_cast<char**>(stm);
+	if (!frame) return;
+	auto* menu = *reinterpret_cast<char**>(frame);
+	if (!menu) return;
+	const int ox = *reinterpret_cast<int*>(frame + kFrame_OffX);
+	const int oy = *reinterpret_cast<int*>(frame + kFrame_OffY);
+	int x, y, w, h;
+	if (st[kStm_GlobalPage]) {
+		x = *reinterpret_cast<int*>(menu + kMenuC_FreeX) + ox;
+		y = *reinterpret_cast<int*>(menu + kMenuC_FreeY) + oy;
+		w = *reinterpret_cast<int*>(menu + kMenuC_GlobalClipW);
+		h = *reinterpret_cast<int*>(menu + kMenuC_GlobalClipH);
+	} else {
+		x = *reinterpret_cast<int*>(menu + kMenuC_FreeX) + ox;
+		y = *reinterpret_cast<int*>(menu + kMenuC_FreeY) + oy;
+		w = *reinterpret_cast<int*>(frame + kFrame_W);
+		h = *reinterpret_cast<int*>(frame + kFrame_H);
+	}
+#if FEATURE_INTRO_SCALER
+	const bool intro_cine = intro_scaler_intro_cinematic_active();
+#else
+	const bool intro_cine = false;
+#endif
+	if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU) &&
+	    set_clip_from_backdrop_open() && !intro_cine)
+		menu_extend_clip_xw(&x, &w, menu);
+	*outX = x;
+	*outY = y;
+	*outW = w;
+	*outH = h;
+	if (Draw_RenderRect) Draw_RenderRect(x, y, w, h);
+}
+
+static bool install_one(void* rva, void* hook, void** orig, const char* name, size_t detour_len = 0) {
+	return GetDetourSystem().ApplyDetourAtAddress(
+		rvaToAbsExe(rva), hook, orig, name, detour_len);
+}
+
+} // namespace scaled_menu_detail
+
+using namespace scaled_menu_detail;
+
+void scaled_menu_backdrop_clip_extend(int* x, int* w, const void* menu_c) {
+	if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) return;
+	menu_extend_clip_xw(x, w, menu_c);
+}
+
+void scaled_menu_on_vid_layout_changed(void) {
+	// Rects size themselves at RMF parse time from R_Strlen/R_StrHeight, so a menu that is
+	// already open keeps the scale it was parsed with. Menus are re-parsed on next open
+	// (see scaled_menu_M_PushMenu_pre), so nothing to rebuild here.
+}
+
+void scaled_menu_sync_scale_from_engine(void) {
+	// Cheap and idempotent: recompute screen ratios from the engine's live vid size and,
+	// in auto mode, re-derive menuScale. Called before menu layout is measured so the
+	// first open uses the same scale the second open does.
+	static int s_lastW = -1, s_lastH = -1;
+	static bool s_done = false;
+	extern int* viddef_width;
+	extern int* viddef_height;
+	if (!viddef_width) viddef_width = static_cast<int*>(rvaToAbsExe(reinterpret_cast<void*>(0x0040365C)));
+	if (!viddef_height) viddef_height = static_cast<int*>(rvaToAbsExe(reinterpret_cast<void*>(0x00403660)));
+	if (!viddef_width || !viddef_height) return;
+	const int w = *viddef_width, h = *viddef_height;
+	if (w <= 0 || h <= 0) return;
+	if (s_done && w == s_lastW && h == s_lastH) return;
+	s_lastW = w;
+	s_lastH = h;
+	s_done = true;
+	current_vid_w = w;
+	current_vid_h = h;
+	screen_y_scale = static_cast<float>(h) / 480.0f;
+	screen_x_scale = static_cast<float>(w) / 640.0f;
+	if (menuScaleAuto) apply_auto_menu_scale();
+}
+
+void scaled_menu_refresh_open_canvases(void) {}
+
+bool scaled_menu_install_hooks(void) {
+	auto** rr = reinterpret_cast<void**>(rvaToAbsExe(reinterpret_cast<void*>(kRvaDrawRenderRectIat)));
+	if (rr && *rr) Draw_RenderRect = reinterpret_cast<Draw_RenderRect_t>(*rr);
+	bool ok = true;
+#if !FEATURE_INTRO_SCALER
+	ok = install_one(
+		reinterpret_cast<void*>(kRvaMenuStmSetClip),
+		reinterpret_cast<void*>(&hk_menu_stm_set_clip),
+		nullptr,
+		"menu_stm_set_clip");
+#endif
+	ok = install_one(
+		reinterpret_cast<void*>(kRvaMenuBorderDimsInit),
+		reinterpret_cast<void*>(&hk_menu_border_dims_init),
+		reinterpret_cast<void**>(&oMenu_BorderDimsInit),
+		"menu_border_dims_init") && ok;
+	ok = install_one(
+		reinterpret_cast<void*>(kRvaRectParse),
+		reinterpret_cast<void*>(&hk_rect_parse),
+		reinterpret_cast<void**>(&oRect_Parse),
+		"rect_parse") && ok;
+	ok = install_one(
+		reinterpret_cast<void*>(kRvaFrameResize),
+		reinterpret_cast<void*>(&hk_frame_resize),
+		reinterpret_cast<void**>(&oFrame_Resize),
+		"frame_resize") && ok;
+	ok = install_one(
+		reinterpret_cast<void*>(kRvaFrameFinalizeDims),
+		reinterpret_cast<void*>(&hk_frame_finalize_dims),
+		reinterpret_cast<void**>(&oFrame_FinalizeDims),
+		"frame_finalize_dims") && ok;
+	ok = install_one(
+		reinterpret_cast<void*>(kRvaFrameCtor),
+		reinterpret_cast<void*>(&hk_frame_ctor),
+		reinterpret_cast<void**>(&oFrame_Ctor),
+		"frame_ctor") && ok;
+	ok = install_one(
+		reinterpret_cast<void*>(kRvaFrameLink),
+		reinterpret_cast<void*>(&hk_frame_link),
+		reinterpret_cast<void**>(&oFrame_Link),
+		"frame_link") && ok;
+	ok = install_one(
+		reinterpret_cast<void*>(kRvaTokeCtor),
+		reinterpret_cast<void*>(&hk_toke_ctor),
+		reinterpret_cast<void**>(&oToke_Ctor),
+		"toke_ctor") && ok;
+	ok = install_one(
+		reinterpret_cast<void*>(kRvaTokeInsert),
+		reinterpret_cast<void*>(&hk_toke_insert),
+		reinterpret_cast<void**>(&oToke_Insert),
+		"toke_insert") && ok;
+	ok = install_one(
+		reinterpret_cast<void*>(kRvaTickerInit),
+		reinterpret_cast<void*>(&hk_ticker_init),
+		reinterpret_cast<void**>(&oTicker_Init),
+		"ticker_init") && ok;
+	ok = install_one(
+		reinterpret_cast<void*>(kRvaStmHoverPass),
+		reinterpret_cast<void*>(&hk_stm_hover_pass),
+		reinterpret_cast<void**>(&oStm_HoverPass),
+		"stm_hover_pass") && ok;
+	ok = install_one(
+		reinterpret_cast<void*>(kRvaRectHoverPrep),
+		reinterpret_cast<void*>(&hk_rect_hover_prep),
+		reinterpret_cast<void**>(&oRect_HoverPrep),
+		"rect_hover_prep") && ok;
+	ok = install_one(
+		reinterpret_cast<void*>(kRvaMenuCreateTip),
+		reinterpret_cast<void*>(&hk_menu_create_tip),
+		reinterpret_cast<void**>(&oMenu_CreateTip),
+		"menu_create_tip") && ok;
+	return ok && Draw_RenderRect && oMenu_BorderDimsInit && oRect_Parse &&
+	       oFrame_FinalizeDims && oFrame_Ctor && oFrame_Link && oToke_Ctor &&
+	       oToke_Insert && oTicker_Init && oStm_HoverPass && oRect_HoverPrep &&
+	       oMenu_CreateTip;
+}
+
+bool scaled_menu_uniform_actual_active(void) {
+	if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) return false;
+	const float s = effective_auto_scale(menuScale > 0.0f ? menuScale : 1.0f);
+	return std::fabs(s - 1.0f) > 0.001f;
+}
+
+float scaled_menu_screen_scale(void) {
+	float s = menuScale > 0.0f ? menuScale : 1.0f;
+	if (join_scale_active() && (menuScaleAuto || s > 1.0f)) {
+		float join_scale = s * 0.75f;
+		if (join_scale < 1.0f) join_scale = 1.0f;
+		return join_scale;
+	}
+	return effective_auto_scale(s);
+}
+
+float scaled_menu_snapped_text_scale(realFontEnum_t font) {
+	return snapped_text_scale(scaled_menu_screen_scale(), font_glyph_px(font));
 }
 
 #endif // UI_MENU
+
+
+void scaled_menu_slider_setup_post(void* slider) {
+	if (!slider || !scaled_menu_uniform_actual_active() ||
+	    scaled_menu_skip_for_intro_disclaimer()) return;
+	char* r = static_cast<char*>(slider);
+	if (*reinterpret_cast<uint8_t*>(r + kRect_NoScale)) return;
+	void* menu = menu_outer_from_widget(slider);
+	if (!menu || !menu_actual_pixel_scale_active(menu)) return;
+	float ws = *reinterpret_cast<float*>(r + kRect_WidgetScale);
+	if (!std::isfinite(ws) || ws <= 1e-6f) ws = 1.0f;
+	const float s = scaled_menu_screen_scale();
+	if (!std::isfinite(s) || s <= 1e-6f) return;
+	const float factor = s / ws;
+	if (std::fabs(factor - 1.0f) <= 0.001f) return;
+	constexpr ptrdiff_t fields[] = {
+	    kRect_W, kRect_H, kRect_OuterW, kRect_OuterH,
+	    0xA4, 0xA8, 0xBC, 0xC0, 0xD4, 0xD8,
+	};
+	for (ptrdiff_t off : fields) {
+		int& v = *reinterpret_cast<int*>(r + off);
+		if (v > 0) v = static_cast<int>(std::lround(static_cast<float>(v) * factor));
+	}
+}
 
 #endif // FEATURE_SCALED_MENU

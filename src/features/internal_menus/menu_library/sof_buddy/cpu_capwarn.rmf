@@ -1,5 +1,5 @@
 <stm>
-<font type title tint orange atint orange>
+<font type {font_title} tint orange atint orange>
 <center>
 "cl_maxfps LESS THAN monitor"
 <hbr>
@@ -7,5 +7,5 @@
 <hbr>
 "Increase It?"
 <hbr>
-<font type title tint white atint white>
+<font type {font_title} tint white atint white>
 </stm>

@@ -38,6 +38,16 @@
     "override": true
   },
   {
+    "function": "R_Strlen",
+    "callback": "hkR_Strlen",
+    "override": true
+  },
+  {
+    "function": "R_StrHeight",
+    "callback": "hkR_StrHeight",
+    "override": true
+  },
+  {
     "function": "SCR_CenterPrint",
     "callback": "hkSCR_CenterPrint",
     "override": true

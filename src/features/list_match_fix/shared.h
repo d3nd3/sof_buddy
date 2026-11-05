@@ -4,6 +4,8 @@
 
 #if FEATURE_LIST_MATCH_FIX
 
+#include "display_policy.h"
+
 // list_c (SoF.exe 2001, MSVC) field offsets. Verified against 1.06a
 // SoF.exe (ImageBase 0x20000000): GetMatchedValue 0x200D3830,
 // SetValue 0x200D3640, Handle 0x200D39E0, Draw 0x200D3AE0.

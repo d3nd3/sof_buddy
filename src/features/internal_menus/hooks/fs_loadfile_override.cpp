@@ -520,6 +520,11 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
     const char* inset = internal_menus_get_content_inset_rmf();
     const char* inset_tall = internal_menus_get_content_inset_tall_rmf();
     const char* tabs_prefix = internal_menus_get_tabs_row_prefix_rmf();
+    const char* tabs_prefix_narrow = internal_menus_get_tabs_row_prefix_narrow_rmf();
+    const char* tipfont = internal_menus_get_tipfont_rmf();
+    const char* font_small = internal_menus_get_font_rmf("small");
+    const char* font_medium = internal_menus_get_font_rmf("medium");
+    const char* font_title = internal_menus_get_font_rmf("title");
     const char* theme_tints = internal_menus_get_theme_tints_rmf();
     const char* theme_list = internal_menus_get_theme_list_rmf();
     for (std::string::size_type pos = 0; (pos = content.find("{content_inset_tall}", pos)) != std::string::npos; )
@@ -528,6 +533,16 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
         content.replace(pos, 15, inset), pos += std::strlen(inset);
     for (std::string::size_type pos = 0; (pos = content.find("{tabs_row_prefix}", pos)) != std::string::npos; )
         content.replace(pos, 17, tabs_prefix), pos += std::strlen(tabs_prefix);
+    for (std::string::size_type pos = 0; (pos = content.find("{tabs_row_prefix_narrow}", pos)) != std::string::npos; )
+        content.replace(pos, 24, tabs_prefix_narrow), pos += std::strlen(tabs_prefix_narrow);
+    for (std::string::size_type pos = 0; (pos = content.find("{tipfont}", pos)) != std::string::npos; )
+        content.replace(pos, 9, tipfont), pos += std::strlen(tipfont);
+    for (std::string::size_type pos = 0; (pos = content.find("{font_small}", pos)) != std::string::npos; )
+        content.replace(pos, 12, font_small), pos += std::strlen(font_small);
+    for (std::string::size_type pos = 0; (pos = content.find("{font_medium}", pos)) != std::string::npos; )
+        content.replace(pos, 13, font_medium), pos += std::strlen(font_medium);
+    for (std::string::size_type pos = 0; (pos = content.find("{font_title}", pos)) != std::string::npos; )
+        content.replace(pos, 12, font_title), pos += std::strlen(font_title);
     for (std::string::size_type pos = 0; (pos = content.find("{theme_tints}", pos)) != std::string::npos; )
         content.replace(pos, 13, theme_tints), pos += std::strlen(theme_tints);
     for (std::string::size_type pos = 0; (pos = content.find("{menu_theme_list}", pos)) != std::string::npos; )

@@ -35,15 +35,33 @@ extern bool isDrawingTeamicons;
 extern float hudScale;
 extern bool hudScaleAuto;
 void apply_auto_hud_scale(void);
+void apply_auto_crosshair_scale(void);
+void crosshair_scale_auto_change(cvar_t* cvar);
+void crosshair_scale_auto_axis_change(cvar_t* cvar);
 void hud_scale_auto_change(cvar_t* cvar);
+#if FEATURE_SCALED_MENU
+extern float menuScale;
+extern bool menuScaleAuto;
+void apply_auto_menu_scale(void);
+void menu_scale_auto_change(cvar_t* cvar);
+void menuscale_change(cvar_t* cvar);
+extern cvar_t* _sofbuddy_menu_scale;
+extern cvar_t* _sofbuddy_menu_scale_auto;
+extern cvar_t* _sofbuddy_menu_tip_appear;
+extern cvar_t* _sofbuddy_menu_font_size_style;
+#endif
 extern float scaleRoundRatio;
 extern bool scaleRoundAuto;
 float round_scale_value(float v);
 float effective_auto_scale(float raw);
 float snap_font_scale_to_glyph_grid(float s, int glyphPx);
 float snapped_text_scale(float raw, int glyphPx);
+void scaled_menu_text_scale_bypass(bool on);
+bool scaled_menu_version_stamp(const char* text, int font);
 float snap_ui_pixel(float v);
 extern float crosshairScale;
+extern bool crosshairScaleAuto;
+extern bool crosshairAutoAxisVertical;
 extern bool hudStretchPicCenter;
 extern bool hudDmRanking;
 extern bool hudDmRanking_wasImage;
@@ -64,6 +82,16 @@ extern bool g_iconsAutoscale;
 
 // Shared variables
 extern float screen_y_scale;
+extern float screen_x_scale;
+float auto_scale_resolution_ratio(void);
+float auto_scale_resolution_ratio_font(void);
+float auto_scale_resolution_ratio_hud(void);
+void scale_auto_axis_change(cvar_t* cvar);
+void font_scale_auto_axis_change(cvar_t* cvar);
+void hud_scale_auto_axis_change(cvar_t* cvar);
+extern cvar_t* _sofbuddy_scale_auto_axis;
+extern cvar_t* _sofbuddy_font_scale_auto_axis;
+extern cvar_t* _sofbuddy_hud_scale_auto_axis;
 
 #if FEATURE_SCALED_HUD
 // Scale HUD coords anchored to the top-right (SoFPlus FPS counter).
@@ -185,6 +213,9 @@ extern const int realFontSizes[5];
 int font_glyph_px(realFontEnum_t font);
 float snapped_text_scale_active(float raw);
 float console_font_scale(float raw);
+#if FEATURE_SCALED_MENU
+float scaled_menu_font_measure_scale(const char* fontStd);
+#endif
 
 // Font caller context enum for R_DrawFont callers (defined in text.cpp)
 enum class FontCaller;
@@ -253,6 +284,8 @@ extern cvar_t * _sofbuddy_console_size;
 extern cvar_t * _sofbuddy_hud_scale;
 extern cvar_t * _sofbuddy_hud_scale_auto;
 extern cvar_t * _sofbuddy_crossh_scale;
+extern cvar_t * _sofbuddy_crossh_scale_auto;
+extern cvar_t * _sofbuddy_crossh_scale_auto_axis;
 void create_scaled_ui_cvars(void);
 
 // Function pointer declarations for original functions
@@ -295,32 +328,6 @@ void crosshairscale_change(cvar_t * cvar);
 realFontEnum_t getRealFontEnum(const char* realFont);
 void drawCroppedPicVertex(bool top, bool left, float & x, float & y);
 void resetDmRankingFontPhase(void);
-
-// Shared rendering functions
-#ifdef UI_MENU
-// Menu scaling functions
-void my_Draw_GetPicSize(int *w, int *h, char *pic);
-int hkR_Strlen(char * str, char * fontStd);
-int hkR_StrHeight(char * fontStd);
-void my_M_PushMenu(const char * name, const char * frame, bool force);
-void hkM_PushMenu(const char * name, const char * frame, bool force);
-char * findClosingBracket(char * start);
-void mutateWidthTokeC_resize(void * toke_c);
-void mutateWidthTokeC_width_height(void * toke_c, char * match);
-void mutateBlankTokeC_width_height(void * toke_c);
-void __thiscall my_master_Draw(void * self);
-extern void (__thiscall *orig_slider_c_Draw)(void * self);
-extern void (__thiscall *orig_loadbox_c_Draw)(void * self);
-extern void (__thiscall *orig_frame_c_Constructor)(void* self, void * menu_c, char * width, char * height, void * frame_name);
-extern char * (__thiscall *ostm_c_ParseStm)(void *self_stm_c, void * toke_c);
-void __thiscall my_slider_c_Draw(void * self);
-void __thiscall my_loadbox_c_Draw(void * self);
-void __thiscall my_vbar_c_Draw(void * self);
-void __thiscall my_frame_c_Constructor(void* self, void * menu_c, char * width, char * height, void * frame_name);
-char * __thiscall hkstm_c_ParseStm(void *self_stm_c, void * toke_c);
-char * __thiscall my_rect_c_Parse(void* toke_c, int idx);
-void __thiscall my_stm_c_ParseBlank(void *self_stm_c, void * toke_c);
-#endif
 
 #endif // FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
 

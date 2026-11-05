@@ -1,0 +1,8 @@
+[
+  {
+    "function": "M_PushMenu",
+    "callback": "intro_scaler_M_PushMenu_pre",
+    "phase": "Pre",
+    "priority": 49
+  }
+]

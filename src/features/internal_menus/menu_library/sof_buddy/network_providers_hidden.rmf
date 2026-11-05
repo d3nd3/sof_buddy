@@ -1,13 +1,13 @@
 <normal>
 <hbr>
-<font type title tint cyan atint cyan>
+<font type {font_title} tint cyan atint cyan>
 HTTP Providers
 <hbr>
-<font type title tint sb_subtle atint sb_subtle>
+<font type {font_title} tint sb_subtle atint sb_subtle>
 "_____________________________"
 <hbr>
 <hbr>
-<font type title tint gray atint white>
+<font type {font_title} tint gray atint white>
 Provider fields are hidden. Set 'Provider fields' to Shown to edit URLs.<hbr>
 Random/Rotate modes only use provider slots with both DL and CRC set.<hbr>
 Updater feed URL fields are hidden here too.<hbr>

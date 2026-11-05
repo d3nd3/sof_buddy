@@ -828,6 +828,28 @@ functions:
       - type: bool
         name: rememberLastColor
 
+  - name: R_Strlen
+    module: RefDll
+    identifier: "0x000042F0"
+    return_type: int
+    calling_convention: __cdecl
+    detour_len: 7
+    params:
+      - type: char*
+        name: str
+      - type: char*
+        name: font
+
+  - name: R_StrHeight
+    module: RefDll
+    identifier: "0x000044C0"
+    return_type: int
+    calling_convention: __cdecl
+    detour_len: 7
+    params:
+      - type: char*
+        name: font
+
   - name: drawTeamIcons
     module: RefDll
     identifier: "0x00003040"
@@ -853,6 +875,16 @@ functions:
     params:
       - type: int
         name: msec
+
+  - name: slider_c__Setup
+    module: SofExe
+    identifier: "0x200D08A0"
+    return_type: void
+    calling_convention: __thiscall
+    detour_len: 5
+    params:
+      - type: void*
+        name: self
 
   - name: M_PushMenu
     module: SofExe

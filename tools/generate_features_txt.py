@@ -28,7 +28,6 @@ CATEGORIES = {
         "texture_mapping_min_mag",
         "scaled_con",
         "scaled_hud",
-        "scaled_menu",  # Will be commented by default
         "hd_textures",
         "vsync_toggle",
         "lighting_blend",
@@ -43,6 +42,8 @@ CATEGORIES = {
         "master_server_fallback",
     ],
     "Menu Features": [
+        "intro_scaler",
+        "scaled_menu",
         "internal_menus",
     ],
     "Input Features": [
@@ -52,7 +53,6 @@ CATEGORIES = {
 
 # Features that should be commented out by default
 DEFAULT_DISABLED = {
-    "scaled_menu": "Experimental menu scaling (requires UI_MENU)",
     "cbuf_limit_increase": "Deprecated: sofbuddy.cfg persistence replaced config.cfg Cbuf workaround",
     "entity_visualizer": "Map entity tools / wireframes; enable for map study builds",
 }

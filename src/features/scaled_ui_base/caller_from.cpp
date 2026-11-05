@@ -212,7 +212,7 @@ FontCaller getFontCallerFrom(Module m, uint32_t fnStartRva) {
 				case 0x000D4060: return FontCaller::InputHandle;
 				case 0x000D9F80: return FontCaller::FileboxHandle;
 				case 0x000DBF10: return FontCaller::LoadboxGetIndices;
-				case 0x000DE430: return FontCaller::ServerboxDraw;
+				case 0x000DE8D0: return FontCaller::ServerboxDraw;
 				case 0x000EA8A0: return FontCaller::TipRender;
 				default: return FontCaller::Unknown;
 			}
@@ -233,6 +233,13 @@ FontCaller getFontCallerFrom(Module m, uint32_t fnStartRva) {
 		default:
 			return FontCaller::Unknown;
 	}
+}
+
+bool is_menu_system_caller(Module m, uint32_t fnStartRva) {
+	// Menu module spans backdrop_c::Draw (0xC3EF0) through the toke_c text helpers
+	// (ends before 0xEB000). Everything calling R_DrawFont / R_Strlen in that band is
+	// menu widget/method code; HUD interface code lives below 0x20000.
+	return m == Module::SofExe && fnStartRva >= 0x000C3EF0u && fnStartRva < 0x000EB000u;
 }
 
 FontCaller getFontCallerFromRva(uint32_t fnStartRva) {

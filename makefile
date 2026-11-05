@@ -81,7 +81,8 @@ else
     $(error Unsupported BUILD='$(BUILD)' (use one of: release, debug, debug-gdb, debug-collect, xp, xp-debug))
 endif
 
-# Optional UI_MENU feature toggle (enable with: make UI_MENU=1 ...)
+# Menu UI hooks are enabled by default; disable with UI_MENU=0.
+UI_MENU ?= 1
 ifeq ($(UI_MENU),1)
     CFLAGS += -DUI_MENU
 endif

@@ -28,22 +28,25 @@ void list_match_fix_draw(void* self,
     }
     const char* cvar_str = cvar_string_of(self);
     if (!cvar_str) cvar_str = "";
-    size_t len = strlen(cvar_str);
+    const bool show_cvar_value = unmatched_value_should_be_shown_literally(cvar_str);
 
     char* elem0 = (char*)disp_first;
-    // Save original 16-byte element (MSVC string: allocator/? + Ptr + Len + Res).
     char saved[kElemStride];
-    memcpy(saved, elem0, kElemStride);
+    if (show_cvar_value) {
+        const size_t len = strlen(cvar_str);
+        // Save original 16-byte element (MSVC string: allocator/? + Ptr + Len + Res).
+        memcpy(saved, elem0, kElemStride);
 
-    // Graft cvar string; keep +0 (allocator) from the original element.
-    *(const char**)(elem0 + kElemStrOff) = cvar_str;
-    *(int*)(elem0 + 8) = (int)len;
-    *(int*)(elem0 + 12) = (int)len;
+        // Graft the cvar string; keep +0 (allocator) from the original element.
+        *(const char**)(elem0 + kElemStrOff) = cvar_str;
+        *(int*)(elem0 + 8) = (int)len;
+        *(int*)(elem0 + 12) = (int)len;
+    }
     write_int(self, kIndexOff, 0);
 
     original(self);
 
-    memcpy(elem0, saved, kElemStride);
+    if (show_cvar_value) memcpy(elem0, saved, kElemStride);
     write_int(self, kIndexOff, kUnmatchedIndex);
 }
 
