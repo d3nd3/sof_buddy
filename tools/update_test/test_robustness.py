@@ -127,9 +127,12 @@ def test_fixture_zips() -> None:
         fail(f"missing {zip_path} (run: make update-test-fixtures)")
     with zipfile.ZipFile(zip_path) as zf:
         blob = zf.read("sof_buddy.dll")
+        features = zf.read("sof_buddy/features.cfg").decode("utf-8", errors="replace")
     if b"99.0.0-test" not in blob:
         fail("fixture zip DLL is not 99.0.0-test post-update build")
-    ok("fixture zip embeds post-update test DLL")
+    if "hash_lookup" not in features:
+        fail("fixture zip features.cfg missing hash_lookup")
+    ok("fixture zip embeds post-update test DLL + recommended features.cfg")
 
 
 def test_by_tag_feeds() -> None:

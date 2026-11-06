@@ -101,6 +101,18 @@ then used. The command-line scripts accept `--fresh-settings` and
 `SOFBUDDY_UPDATER_RESET_FEATURES=1` environment variables, or prompt
 interactively.
 
+Release ZIPs also ship `sof_buddy/features.cfg` generated from the current
+`features/FEATURES.txt`. The graphical updater has a checked-by-default
+**Replace feature settings with this release's defaults (recommended)** option,
+so a normal update picks up new recommended features (such as Hash Lookup)
+without editing the file by hand. Clear the checkbox to keep your current
+feature file; the installer restores it after extraction. Headless update paths
+use the same default, controlled by `_sofbuddy_update_replace_features`
+(default `1`) on Wine/Proton and by the matching prompt (default **Yes**) in
+`update_from_zip.cmd` / `update_from_zip.sh`. If a package predates the shipped
+defaults file, replacing it removes the old `features.cfg` and the new DLL
+regenerates the file from its compiled defaults.
+
 The update ZIP is applied while SoF is closed. If `features.cfg` is edited
 manually, it is used until saved feature cvars are present; those cvars take
 precedence at the next startup by design.

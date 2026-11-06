@@ -31,6 +31,10 @@ def stage_tree(staging: str, dll_path: str) -> None:
                 os.path.join(ROOT, "rsrc", "funcmaps", name),
                 os.path.join(buddy, "funcmaps", name),
             )
+    shutil.copy2(
+        os.path.join(ROOT, "features", "FEATURES.txt"),
+        os.path.join(buddy, "features.cfg"),
+    )
     for rel in (
         "rsrc/win_scripts/update_from_zip.cmd",
         "rsrc/lin_scripts/update_from_zip.sh",

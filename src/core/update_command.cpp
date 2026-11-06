@@ -71,6 +71,7 @@ constexpr const char* kCvarUpdateReleasesUrl = "_sofbuddy_update_releases_url";
 constexpr const char* kCvarUpdateAllowProductionUrls = "_sofbuddy_update_allow_production_urls";
 constexpr const char* kCvarUpdateTargetTag = "_sofbuddy_update_target_tag";
 constexpr const char* kCvarUpdateShowAllReleases = "_sofbuddy_update_show_all_releases";
+constexpr const char* kCvarUpdateReplaceFeatures = "_sofbuddy_update_replace_features";
 constexpr const char* kCvarUpdateStableTag = "_sb_internal_update_stable_tag";
 constexpr const char* kCvarUpdateReleaseListRmf = "_sb_internal_update_release_list_rmf";
 constexpr const char* kCvarUpdateReleaseListStatus = "_sb_internal_update_release_list_status";
@@ -196,6 +197,13 @@ bool use_gui_windows_updater() {
 #else
     return false;
 #endif
+}
+
+bool update_replace_features_enabled() {
+    if (!detour_Cvar_Get::oCvar_Get) return true;
+    cvar_t* c = detour_Cvar_Get::oCvar_Get(kCvarUpdateReplaceFeatures, "1",
+        CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    return !c || c->value != 0.0f;
 }
 
 bool queue_winstart_command(const char* command) {
@@ -337,6 +345,8 @@ bool write_install_context_env(const std::string& zip_path, const std::string& r
     std::fprintf(fp, "SOFBUDDY_IS_WINE=%d\n", wine ? 1 : 0);
     std::fprintf(fp, "SOFBUDDY_IS_PROTON=%d\n", proton ? 1 : 0);
     std::fprintf(fp, "SOFBUDDY_SKIP_GUI=%d\n", update_gui_updater_enabled() ? 0 : 1);
+    std::fprintf(fp, "SOFBUDDY_UPDATER_REPLACE_FEATURES=%d\n",
+                 update_replace_features_enabled() ? 1 : 0);
     const std::string zip_abs = absolute_path_a(zip_path);
     const std::string root_abs = absolute_path_a(root_dir);
     std::string unix_zip = wine_unix_path(zip_abs.c_str());
@@ -350,10 +360,12 @@ bool write_install_context_env(const std::string& zip_path, const std::string& r
     return true;
 }
 
-bool extract_update_zip_inprocess(const std::string& zip_path, const std::string& root_dir) {
+bool extract_update_zip_inprocess(const std::string& zip_path, const std::string& root_dir,
+                                  bool replace_features) {
     mz_zip_archive za = {};
     if (!mz_zip_reader_init_file(&za, zip_path.c_str(), 0)) return false;
 
+    bool features_written = false;
     const mz_uint num_files = mz_zip_reader_get_num_files(&za);
     for (mz_uint i = 0; i < num_files; ++i) {
         mz_zip_archive_file_stat stat = {};
@@ -361,6 +373,9 @@ bool extract_update_zip_inprocess(const std::string& zip_path, const std::string
         if (stat.m_is_directory) continue;
         std::string entry = normalize_zip_entry_path(stat.m_filename);
         if (!is_safe_zip_entry_path(entry)) continue;
+
+        const bool features_cfg = to_lower_ascii(entry) == "sof_buddy/features.cfg";
+        if (features_cfg && !replace_features) continue;
 
         std::string out_path = root_dir + "\\" + entry;
         std::replace(out_path.begin(), out_path.end(), '/', '\\');
@@ -372,8 +387,14 @@ bool extract_update_zip_inprocess(const std::string& zip_path, const std::string
             mz_zip_reader_end(&za);
             return false;
         }
+        if (features_cfg) features_written = true;
     }
     mz_zip_reader_end(&za);
+    if (replace_features && !features_written) {
+        // Older packages may not carry features.cfg. Removing it makes the new
+        // DLL regenerate the file from its compiled recommended defaults.
+        DeleteFileA((root_dir + "\\sof_buddy\\features.cfg").c_str());
+    }
     return true;
 }
 
@@ -1550,6 +1571,7 @@ void print_update_usage() {
     PrintOut(PRINT_DEV, "Install target cvar: _sofbuddy_update_target_tag (stable, latest, or a tag)\n");
     PrintOut(PRINT_DEV, "  _sofbuddy_update_show_all_releases 1 shows every tag in F12 list\n");
     PrintOut(PRINT_DEV, "  _sofbuddy_update_startup_stable_only 1 limits startup notify to stable (default 0)\n");
+    PrintOut(PRINT_DEV, "  _sofbuddy_update_replace_features 1 installs the release's recommended features.cfg (default 1)\n");
     PrintOut(PRINT_DEV, "Optional overrides (for XP/proxy mirrors):\n");
     PrintOut(PRINT_DEV, "  set _sofbuddy_update_api_url <url>\n");
     PrintOut(PRINT_DEV, "  set _sofbuddy_update_releases_url <url>\n");
@@ -1748,6 +1770,7 @@ void sofbuddy_update_init(void) {
     detour_Cvar_Get::oCvar_Get(kCvarUpdateCheckStartup, "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateStartupStableOnly, "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateUseGui, update_gui_updater_default_string(), CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get(kCvarUpdateReplaceFeatures, "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateApiUrl, kUpdateApiUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
     cvar_t* releases_url_cvar = detour_Cvar_Get::oCvar_Get(kCvarUpdateReleasesUrl, kUpdateReleasesUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
 #if defined(SOFBUDDY_UPDATE_TEST_BUILD)
@@ -1982,7 +2005,7 @@ void Cmd_SoFBuddy_UpdateInstall_f(void) {
     } else if (wine) {
         const char* runtime = proton ? "Proton" : "Wine";
         PrintOut(PRINT_DEV, "sofbuddy_update_install: %s — extracting update in-process (miniz)\n", runtime);
-        if (extract_update_zip_inprocess(zip_path, root_dir)) {
+        if (extract_update_zip_inprocess(zip_path, root_dir, update_replace_features_enabled())) {
             delete_file_if_present(zip_path.c_str());
             set_update_status("update applied; exiting");
             PrintOut(PRINT_DEV, "sofbuddy_update_install: update extracted; quitting SoF\n");

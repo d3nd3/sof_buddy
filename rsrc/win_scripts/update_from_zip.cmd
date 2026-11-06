@@ -29,6 +29,8 @@ set "EXTRACT_METHOD="
 set "IS_WINE="
 set "IS_PROTON="
 set "NO_PAUSE="
+set "FEATURES_BACKUP="
+set "KEEP_FEATURES="
 if defined SOFBUDDY_UPDATER_NO_PAUSE set "NO_PAUSE=1"
 call :load_install_context
 if not defined IS_WINE reg query "HKCU\Software\Wine" >nul 2>&1 && set "IS_WINE=1"
@@ -80,8 +82,12 @@ if not defined SOFBUDDY_UPDATER_SILENT (
     echo.
 )
 
+call :prepare_features
 call :report_progress 28 "Extracting files..."
 call :extract_zip "!ZIP_PATH!"
+set "EXTRACT_RC=!ERRORLEVEL!"
+call :finish_features "!EXTRACT_RC!"
+if not "!EXTRACT_RC!"=="0" goto :extract_failed
 
 if not exist "%ROOT_DIR%\sof_buddy.dll" goto :extract_failed
 if not exist "%ROOT_DIR%\sof_buddy\update_from_zip.cmd" goto :extract_failed
@@ -149,6 +155,49 @@ if not exist "%UPDATE_DIR%\install_context.env" exit /b 0
 for /f "usebackq tokens=1,* delims==" %%A in ("%UPDATE_DIR%\install_context.env") do (
     set "%%A=%%B"
 )
+exit /b 0
+
+:prepare_features
+set "REPLACE_FEATURES=%SOFBUDDY_UPDATER_REPLACE_FEATURES%"
+if not defined REPLACE_FEATURES if defined SOFBUDDY_UPDATER_SILENT set "REPLACE_FEATURES=1"
+if defined REPLACE_FEATURES goto :prepare_features_decide
+set "REPLACE_FEATURES=Y"
+set /p "REPLACE_FEATURES=Update feature settings to this release's defaults? (Y/n^): "
+if not defined REPLACE_FEATURES set "REPLACE_FEATURES=Y"
+:prepare_features_decide
+if /i "!REPLACE_FEATURES!"=="0" goto :features_keep
+if /i "!REPLACE_FEATURES!"=="n" goto :features_keep
+if /i "!REPLACE_FEATURES!"=="no" goto :features_keep
+if /i "!REPLACE_FEATURES!"=="false" goto :features_keep
+if exist "%ROOT_DIR%\sof_buddy\features.cfg" (
+    set "FEATURES_BACKUP=%UPDATE_DIR%\features.cfg.keep"
+    copy /y "%ROOT_DIR%\sof_buddy\features.cfg" "!FEATURES_BACKUP!" >nul 2>&1
+)
+echo Updating feature settings to this release's defaults.
+del /f /q "%ROOT_DIR%\sof_buddy\features.cfg" >nul 2>&1
+exit /b 0
+:features_keep
+set "KEEP_FEATURES=1"
+if exist "%ROOT_DIR%\sof_buddy\features.cfg" (
+    set "FEATURES_BACKUP=%UPDATE_DIR%\features.cfg.keep"
+    copy /y "%ROOT_DIR%\sof_buddy\features.cfg" "!FEATURES_BACKUP!" >nul 2>&1
+    echo Keeping your current feature settings.
+)
+exit /b 0
+
+:finish_features
+if not defined FEATURES_BACKUP exit /b 0
+if not "%~1"=="0" goto :restore_features
+if defined KEEP_FEATURES goto :restore_features
+del /f /q "!FEATURES_BACKUP!" >nul 2>&1
+set "FEATURES_BACKUP="
+exit /b 0
+:restore_features
+if exist "!FEATURES_BACKUP!" (
+    copy /y "!FEATURES_BACKUP!" "%ROOT_DIR%\sof_buddy\features.cfg" >nul 2>&1
+    del /f /q "!FEATURES_BACKUP!" >nul 2>&1
+)
+set "FEATURES_BACKUP="
 exit /b 0
 
 :extract_zip
