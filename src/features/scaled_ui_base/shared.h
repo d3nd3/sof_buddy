@@ -25,28 +25,18 @@
 
 
 extern float fontScale;
-extern bool fontScaleAuto;
-void apply_auto_font_scale(void);
-void font_scale_auto_change(cvar_t* cvar);
 extern float consoleSize;
 extern bool isFontInner;
 extern bool isDrawingTeamicons;
 
 extern float hudScale;
-extern bool hudScaleAuto;
-void apply_auto_hud_scale(void);
 void apply_auto_crosshair_scale(void);
 void crosshair_scale_auto_change(cvar_t* cvar);
 void crosshair_scale_auto_axis_change(cvar_t* cvar);
-void hud_scale_auto_change(cvar_t* cvar);
 #if FEATURE_SCALED_MENU
 extern float menuScale;
-extern bool menuScaleAuto;
-void apply_auto_menu_scale(void);
-void menu_scale_auto_change(cvar_t* cvar);
 void menuscale_change(cvar_t* cvar);
 extern cvar_t* _sofbuddy_menu_scale;
-extern cvar_t* _sofbuddy_menu_scale_auto;
 extern cvar_t* _sofbuddy_menu_tip_appear;
 extern cvar_t* _sofbuddy_menu_font_size_style;
 #endif
@@ -279,10 +269,8 @@ extern int* cls_state;
 
 // CVars
 extern cvar_t * _sofbuddy_font_scale;
-extern cvar_t * _sofbuddy_font_scale_auto;
 extern cvar_t * _sofbuddy_console_size;
 extern cvar_t * _sofbuddy_hud_scale;
-extern cvar_t * _sofbuddy_hud_scale_auto;
 extern cvar_t * _sofbuddy_crossh_scale;
 extern cvar_t * _sofbuddy_crossh_scale_auto;
 extern cvar_t * _sofbuddy_crossh_scale_auto_axis;

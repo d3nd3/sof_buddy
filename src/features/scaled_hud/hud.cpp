@@ -80,33 +80,16 @@ using detour_Cvar_Set2::oCvar_Set2;
 void hudscale_change(cvar_t * cvar) {
     SOFBUDDY_ASSERT(cvar != nullptr);
 
-    if (hudScaleAuto) {
-        apply_auto_hud_scale();
-        return;
-    }
-
+    const float maxScale = auto_scale_resolution_ratio_hud();
     float v = cvar->value;
     if (v < 0.25f) v = 0.25f;
-    if (v > 8.0f) v = 8.0f;
-    hudScale = round_scale_value(v);
-    if (hudScale < 0.25f) hudScale = 0.25f;
-    if (hudScale > 8.0f) hudScale = 8.0f;
-    if (oCvar_Set2) {
-        char buf[32];
-        std::snprintf(buf, sizeof(buf), "%.2f", hudScale);
-        oCvar_Set2(const_cast<char*>("_sb_internal_hud_scale_rounded"), buf, true);
+    if (v >= maxScale - 0.0001f) {
+        hudScale = maxScale;
+    } else {
+        hudScale = round_scale_value(v);
+        if (hudScale < 0.25f) hudScale = 0.25f;
+        if (hudScale > maxScale) hudScale = maxScale;
     }
-}
-
-void hud_scale_auto_change(cvar_t* cvar) {
-    hudScaleAuto = cvar && cvar->value != 0.0f;
-    if (_sofbuddy_hud_scale) hudscale_change(_sofbuddy_hud_scale);
-}
-
-void apply_auto_hud_scale(void) {
-    if (!hudScaleAuto) return;
-    hudScale = auto_scale_resolution_ratio_hud();
-    SOFBUDDY_ASSERT(hudScale > 0.0f);
     if (oCvar_Set2) {
         char buf[32];
         std::snprintf(buf, sizeof(buf), "%.2f", hudScale);

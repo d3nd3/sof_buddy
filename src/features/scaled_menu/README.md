@@ -60,13 +60,14 @@ in-game F12 overlay; a dedicated frame-scale pass can be evaluated separately.
 Everything inside the frames — text, area rects, borders, offsets — is scaled by
 **`menuScale`**:
 
-- **Auto** (`_sofbuddy_menu_scale_auto` = 1):
-  `menuScale = auto_scale_resolution_ratio()` = `screen_y_scale` = `vid_h / 480`
+- **Max scale**:
+  `auto_scale_resolution_ratio()` = `screen_y_scale` = `vid_h / 480`
   (1.0 at 480p height, 2.25 at 1080p).
-- **Manual** (`_sofbuddy_menu_scale_auto` = 0): `_sofbuddy_menu_scale`, clamped to
-  0.25–8 and snapped with `round_scale_value()`; a value of ~1 is forced to exactly
-  `1.0` (**1 = vanilla actual pixels**). Auto mode is snapped only when
-  `_sofbuddy_scale_round_auto` is set (default off).
+- **Manual** (`_sofbuddy_menu_scale`): clamped to 0.25–max and snapped with
+  `round_scale_value()`; a value of ~1 is forced to exactly `1.0`
+  (**1 = vanilla actual pixels**). Values above the max use the exact max scale.
+  The F12 UI Scale tab adds **Auto** (`round(max × 0.75)`), **Max** (exact max),
+  and **Min** (`1`) preset buttons next to the 0.25-step list.
 
 Non-`_ss` frames use `menuScale` (the vertical design), so frame boxes and their
 contents share the same space. `_ss` frames keep the stock `C` factor because they
@@ -74,21 +75,21 @@ are already authored for the wide layout; see "Scaling ratios interact".
 
 Rounding cvars:
 
-- `_sofbuddy_scale_round_auto` (default `0`) — snap the effective scale in auto mode
-  to the round step;
+- `_sofbuddy_scale_round_auto` (default `0`) — snap the effective scale to the
+  round step;
 - `_sofbuddy_scale_round_ratio` (default `0.25`) — the step; manual `menuScale` is
   always snapped with it;
-- `_sb_internal_menu_scale_rounded` — mirror written by `menuscale_change()` /
-  `apply_auto_menu_scale()` for the settings UI.
+- `_sb_internal_menu_scale_rounded` — mirror written by `menuscale_change()` for
+  the settings UI.
 
 ### Scale synchronisation
 
 `scaled_menu_sync_scale_from_engine()` reads the engine's live
 `viddef_width` / `viddef_height` (0x40365C / 0x403660), sets
-`screen_x_scale = vid_w/640`, `screen_y_scale = vid_h/480`, and in auto mode
-re-derives `menuScale`. It runs from the `VID_CheckChanges` post-hook and from the
-first menu font measurement, so the first menu opened after startup uses the same
-scale as later opens. Menus keep the scale they were parsed with (rect geometry is
+`screen_x_scale = vid_w/640`, `screen_y_scale = vid_h/480`, and re-clamps
+`menuScale` to the new resolution max. It runs from the `VID_CheckChanges`
+post-hook and from the first menu font measurement, so the first menu opened after
+startup uses the same scale as later opens. Menus keep the scale they were parsed with (rect geometry is
 baked at RMF parse), so a scale change requires re-opening the menu.
 `scaled_menu_on_vid_layout_changed()` intentionally does nothing for open menus.
 
@@ -142,9 +143,8 @@ measurement hooks already scale them:
 - `<input>` — box from measured text + border padding
 - `<ticker>` — band height from `R_StrHeight` (width is handled by the ticker init)
 
-The **join** menu is a scoped exception: while `menu join` is current and either
-auto menu scale is on or the manual scale is above 1, its content scale is
-`max(0.75 × menuScale, 1)`. The override is tied to that menu’s `menu_c` and does
+The **join** menu is a scoped exception: while `menu join` is current and the
+menu scale is above 1, its content scale is `max(0.75 × menuScale, 1)`. The override is tied to that menu’s `menu_c` and does
 not leak onto the menu revealed when it closes.
 
 `<slider>` is picture-sized, so `slider_c::Setup` (0x200D08A0) recomputes W/H and

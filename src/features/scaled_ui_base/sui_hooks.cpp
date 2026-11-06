@@ -72,7 +72,6 @@ float screen_x_scale = 1.0f;
 
 // Variables used by base hooks (defined here, modified by feature files)
 float hudScale = 1;
-bool hudScaleAuto = true;
 float crosshairScale = 1.0f;
 bool crosshairScaleAuto = false;
 bool crosshairAutoAxisVertical = true;
@@ -96,7 +95,6 @@ bool mainMenuBgTiled = false;
 
 // Shared variables used by multiple features (moved from scaled_con for shared access)
 float fontScale = 1;
-bool fontScaleAuto = true;
 bool isDrawingTeamicons = false;
 char g_lastCenterPrintText[1024] = {0};
 unsigned int g_lastCenterPrintSeq = 0;

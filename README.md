@@ -183,7 +183,7 @@ pre-checks the first two tasks when they still make sense for your retail build;
 
 ### In-Game Commands
 
-- `**F12`** (or `**bind <key> sofbuddy_menu sof_buddy`**) — **Open the SoF Buddy menu. Use this. It’s the main entry point for all settings, updater, and profiles.** Set an additional shortcut from **Settings → Menu → Bonus menu key**; F12 remains available. Under **UI Scale**: **Auto Font Scale** / **Auto HUD Scale** toggle `_sofbuddy_font_scale_auto` / `_sofbuddy_hud_scale_auto`; manual scale lists appear when auto is off. **Auto Round Scale** and **Scale Cinematic Images** are on the same page.
+- `**F12`** (or `**bind <key> sofbuddy_menu sof_buddy`**) — **Open the SoF Buddy menu. Use this. It’s the main entry point for all settings, updater, and profiles.** Set an additional shortcut from **Settings → Menu → Bonus menu key**; F12 remains available. Under **UI Scale**: each scale has a 0.25-step manual list plus **Auto** (75% of the resolution max), **Max** (the exact resolution max), and **Min** (1) buttons. **Cinematic Images Rounding** and **Scale Cinematic Images** are on the same page.
 - `sofbuddy_list_features` — Print compiled features (and whether they are on/off).
 - `sofbuddy_master_next` — Query the next configured GameSpy master server.
 - `sofbuddy_menu <name>` — Open an embedded internal menu page (examples: `loading`, `sof_buddy`).
@@ -293,15 +293,11 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_font_scale</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Manual font scale multiplier (<code>0.25</code> … <code>8</code> in 0.25 steps). Used when auto is <code>0</code>. F12 → UI Scale.</td>
-</tr>
-<tr>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_font_scale_auto</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Auto font scale from <code>vid_h / 480</code>. <code>1</code> on, <code>0</code> off. Legacy <code>_sofbuddy_font_scale -1</code> migrates to auto on + scale <code>1</code>. F12 → UI Scale.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Manual font scale multiplier (<code>0.25</code> … <code>8</code> in 0.25 steps). Values above the resolution max use the max scale. F12 → UI Scale.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_font_scale_auto_axis</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Font auto-scale axis: <code>0</code> horizontal (<code>vid_w / 640</code>), <code>1</code> vertical (<code>vid_h / 480</code>). F12 → UI Scale.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Font max-scale axis: <code>0</code> horizontal (<code>vid_w / 640</code>), <code>1</code> vertical (<code>vid_h / 480</code>). F12 → UI Scale.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_font_pack</code></td>
@@ -309,23 +305,19 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_hud_scale</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Manual HUD scale multiplier (<code>0.25</code> … <code>8</code> in 0.25 steps). Used when auto is <code>0</code>. F12 → UI Scale.</td>
-</tr>
-<tr>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_hud_scale_auto</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Auto HUD scale from <code>vid_h / 480</code>. <code>1</code> on, <code>0</code> off. Legacy <code>_sofbuddy_hud_scale -1</code> migrates like font auto. F12 → UI Scale.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Manual HUD scale multiplier (<code>0.25</code> … <code>8</code> in 0.25 steps). Values above the resolution max use the max scale. F12 → UI Scale.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_hud_scale_auto_axis</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. HUD auto-scale axis: <code>0</code> horizontal (<code>vid_w / 640</code>), <code>1</code> vertical (<code>vid_h / 480</code>). F12 → UI Scale.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. HUD max-scale axis: <code>0</code> horizontal (<code>vid_w / 640</code>), <code>1</code> vertical (<code>vid_h / 480</code>). F12 → UI Scale.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_scale_round_auto</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Snap auto font/HUD scale to round steps instead of a continuous ratio. <code>1</code> on, <code>0</code> off. F12 → UI Scale.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Snap the effective menu and cinematic image scale to the round step. <code>1</code> on, <code>0</code> off. F12 → UI Scale.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_scale_round_ratio</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0.25</code>. Snap increment used when round auto is on (<code>0.05</code>, <code>0.1</code>, <code>0.125</code>, <code>0.25</code>, <code>0.5</code>, <code>1</code>). Also applies to cinematic image scaling. F12 → UI Scale.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0.25</code>. Snap increment for the Auto preset and manual font/HUD/menu scales (<code>0.05</code>, <code>0.1</code>, <code>0.125</code>, <code>0.25</code>, <code>0.5</code>, <code>1</code>). Also applies to cinematic image scaling when rounding is on. F12 → UI Scale.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_scale_cinematic_pics</code></td>
@@ -479,11 +471,7 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_hotkey</code></td>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_scale</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Manual actual-pixel menu scale (<code>0.25</code> … <code>8</code>) when auto is off; <code>1</code> = vanilla SoF. F12 → UI Scale.</td>
-</tr>
-<tr>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_scale_auto</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Auto menu scale from vertical resolution (<code>vid_h / 480</code>); <code>0</code> uses <code>_sofbuddy_menu_scale</code>. F12 → UI Scale.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Actual-pixel menu scale (<code>0.25</code> … <code>8</code>); values above the resolution max (<code>vid_h / 480</code>) use the max scale. <code>1</code> = vanilla SoF. F12 → UI Scale.</td>
 </tr>
 <strong>Default</strong> <code>F12</code>. Keyboard key that opens the F12 menu. F12 → General.</td>
 </tr>
