@@ -1,0 +1,3 @@
+[
+  { "hook": "PostCvarInit", "callback": "hashlookup_PostCvarInit", "priority": 50, "phase": "Post" }
+]

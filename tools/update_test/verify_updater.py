@@ -43,6 +43,18 @@ def main() -> int:
         if "start /wait /unix /usr/bin/unzip" not in text:
             print("error: update_from_zip.cmd missing Wine /unix unzip path", file=sys.stderr)
             err = 1
+        if "SOFBUDDY_UPDATER_REPLACE_FEATURES" not in text or ":prepare_features" not in text:
+            print("error: update_from_zip.cmd missing feature-settings replacement path", file=sys.stderr)
+            err = 1
+    shell = os.path.join(ROOT, "rsrc", "lin_scripts", "update_from_zip.sh")
+    if not os.path.isfile(shell):
+        print(f"error: missing {shell}", file=sys.stderr)
+        err = 1
+    else:
+        text = open(shell, encoding="utf-8", errors="replace").read()
+        if "SOFBUDDY_UPDATER_REPLACE_FEATURES" not in text:
+            print("error: update_from_zip.sh missing feature-settings replacement path", file=sys.stderr)
+            err = 1
     if err:
         return 1
     print("verify_updater: ok")

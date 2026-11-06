@@ -16,6 +16,7 @@ SECTION_OPTIONAL = "Optional / unstable features"
 
 LABELS = {
     "media_timers": "Media Timers",
+    "hash_lookup": "Hash Lookup",
     "texture_mapping_min_mag": "Texture Mapping",
     "scaled_con": "Scaled Console",
     "scaled_hud": "Scaled HUD",

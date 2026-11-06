@@ -37,6 +37,9 @@
 #include "crc32.h"
 #include "debug/parent_recorder.h"
 
+// Restores any engine patches owned by hash_lookup before this image is unmapped.
+extern "C" void HashLookup_Shutdown(void);
+
 // Vectored exception handler pointer
 static PVOID g_vectored_handler = NULL;
 static bool g_dbghelp_initialized = false;
@@ -1332,6 +1335,7 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 
 	} else if ( dwReason == DLL_PROCESS_DETACH ) { 
 		//We don't want to call PrintOut/Com_Printf here - noticed crash on linux.
+		HashLookup_Shutdown();
 		#ifndef NDEBUG
 		ParentRecorder::Instance().flushAll();
 		#endif

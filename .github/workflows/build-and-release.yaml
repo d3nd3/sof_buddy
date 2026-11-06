@@ -119,6 +119,7 @@ jobs:
           cp rsrc/assets/*.pak sof_buddy/
           mkdir -p sof_buddy/crosshairs
           cp rsrc/assets/crosshairs/*.pak sof_buddy/crosshairs/
+          cp features/FEATURES.txt sof_buddy/features.cfg
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
           cp rsrc/win_scripts/sof_install_detect.ps1 sof_buddy/
@@ -161,6 +162,7 @@ jobs:
           cp rsrc/assets/*.pak sof_buddy/
           mkdir -p sof_buddy/crosshairs
           cp rsrc/assets/crosshairs/*.pak sof_buddy/crosshairs/
+          cp features/FEATURES.txt sof_buddy/features.cfg
           rm -f sof_buddy/*.sh
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
@@ -176,6 +178,7 @@ jobs:
           cp rsrc/assets/*.pak sof_buddy/
           mkdir -p sof_buddy/crosshairs
           cp rsrc/assets/crosshairs/*.pak sof_buddy/crosshairs/
+          cp features/FEATURES.txt sof_buddy/features.cfg
           rm -f sof_buddy/*.cmd sof_buddy/*.ps1
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/
@@ -191,6 +194,7 @@ jobs:
           cp rsrc/assets/*.pak sof_buddy/
           mkdir -p sof_buddy/crosshairs
           cp rsrc/assets/crosshairs/*.pak sof_buddy/crosshairs/
+          cp features/FEATURES.txt sof_buddy/features.cfg
           rm -f sof_buddy/*.cmd sof_buddy/*.ps1
           cp rsrc/win_scripts/enable_*.cmd sof_buddy/
           cp rsrc/win_scripts/patch_sof_binary.ps1 sof_buddy/

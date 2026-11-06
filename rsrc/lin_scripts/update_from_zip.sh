@@ -25,6 +25,47 @@ if [[ -z "${ZIP_PATH}" || ! -f "${ZIP_PATH}" ]]; then
     exit 1
 fi
 
+FEATURES_FILE="${ROOT_DIR}/sof_buddy/features.cfg"
+FEATURES_BACKUP=""
+KEEP_FEATURES=0
+cleanup_features() {
+    local rc=$?
+    trap - EXIT
+    if [[ -n "${FEATURES_BACKUP}" && -f "${FEATURES_BACKUP}" ]]; then
+        if [[ ${rc} -ne 0 || "${KEEP_FEATURES}" == "1" ]]; then
+            cp -f -- "${FEATURES_BACKUP}" "${FEATURES_FILE}" || true
+        fi
+        rm -f -- "${FEATURES_BACKUP}" || true
+    fi
+    exit "${rc}"
+}
+trap cleanup_features EXIT
+
+replace_features="${SOFBUDDY_UPDATER_REPLACE_FEATURES:-}"
+if [[ -z "${replace_features}" ]]; then
+    if [[ "${SOFBUDDY_UPDATER_SILENT:-}" == "1" ]]; then
+        replace_features=1
+    else
+        read -r -p "Update feature settings to this release's defaults? [Y/n]: " replace_features
+        replace_features="${replace_features:-Y}"
+    fi
+fi
+if [[ -f "${FEATURES_FILE}" ]]; then
+    FEATURES_BACKUP="${UPDATE_DIR}/features.cfg.keep"
+    mkdir -p "${UPDATE_DIR}"
+    cp -f -- "${FEATURES_FILE}" "${FEATURES_BACKUP}"
+fi
+case "${replace_features,,}" in
+    0|n|no|false)
+        KEEP_FEATURES=1
+        echo "Keeping your current feature settings."
+        ;;
+    *)
+        echo "Updating feature settings to this release's defaults."
+        rm -f -- "${FEATURES_FILE}"
+        ;;
+esac
+
 echo "Applying update from:"
 echo "  ${ZIP_PATH}"
 echo
