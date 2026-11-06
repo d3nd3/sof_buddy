@@ -25,18 +25,18 @@ void scaled_ui_refresh_vid_dimensions_from_engine(void) {
         screen_y_scale = (float)current_vid_h / 480.0f;
         screen_x_scale = (current_vid_w > 0) ? (float)current_vid_w / 640.0f : 1.0f;
 #if FEATURE_SCALED_CON
-        if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON))
-            apply_auto_font_scale();
+        if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON) && _sofbuddy_font_scale)
+            fontscale_change(_sofbuddy_font_scale);
 #endif
 #if FEATURE_SCALED_HUD
         if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
-            apply_auto_hud_scale();
+            if (_sofbuddy_hud_scale) hudscale_change(_sofbuddy_hud_scale);
             apply_auto_crosshair_scale();
         }
 #endif
 #if FEATURE_SCALED_MENU
-        if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU))
-            apply_auto_menu_scale();
+        if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU) && _sofbuddy_menu_scale)
+            menuscale_change(_sofbuddy_menu_scale);
 #endif
     }
 }

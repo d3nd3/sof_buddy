@@ -68,16 +68,15 @@
 <font type {font_title} tint cyan atint cyan>
 "UI Scale"
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_font_scale atext "_sofbuddy_font_scale : " noshade tip "Manual font multiplier 0.25 to 8. Used when auto is 0. Default 1."><br>
+<ctext _sofbuddy_font_scale atext "_sofbuddy_font_scale : " noshade tip "Manual font multiplier 0.25 to 8. Values above the resolution max use the max scale. Default 1."><br>
 <font type {font_title} tint gray atint gray>
-"Default 1 - Manual font scale, auto off only."
+"Default 1 - Manual font scale."
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_font_scale_auto_axis atext "_sofbuddy_font_scale_auto_axis : " noshade tip "Font auto scale axis when auto is on. 0 horizontal vid_w div 640. 1 vertical vid_h div 480. Default 1 vertical."><br>
-<ctext _sofbuddy_font_scale_auto atext "_sofbuddy_font_scale_auto : " noshade tip "Auto font scale from Font Auto Scale Axis ratio. 1 on, 0 off. Default 1."><br>
+<ctext _sofbuddy_font_scale_auto_axis atext "_sofbuddy_font_scale_auto_axis : " noshade tip "Font max scale axis. 0 horizontal vid_w div 640. 1 vertical vid_h div 480. Default 1 vertical."><br>
 <font type {font_title} tint gray atint gray>
-"Default 1 - Track font scale from resolution."
+"Default 1 - Axis used for the font max scale."
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
@@ -93,28 +92,21 @@
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_hud_scale atext "_sofbuddy_hud_scale : " noshade tip "Manual HUD multiplier 0.25 to 8. Used when auto is 0. Default 1."><br>
+<ctext _sofbuddy_hud_scale atext "_sofbuddy_hud_scale : " noshade tip "Manual HUD multiplier 0.25 to 8. Values above the resolution max use the max scale. Default 1."><br>
 <font type {font_title} tint gray atint gray>
-"Default 1 - Manual HUD scale, auto off only."
+"Default 1 - Manual HUD scale."
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_hud_scale_auto_axis atext "_sofbuddy_hud_scale_auto_axis : " noshade tip "HUD auto scale axis when auto is on. 0 horizontal vid_w div 640. 1 vertical vid_h div 480. Default 1 vertical."><br>
-<ctext _sofbuddy_hud_scale_auto atext "_sofbuddy_hud_scale_auto : " noshade tip "Auto HUD scale from HUD Auto Scale Axis ratio. 1 on, 0 off. Default 1."><br>
+<ctext _sofbuddy_hud_scale_auto_axis atext "_sofbuddy_hud_scale_auto_axis : " noshade tip "HUD max scale axis. 0 horizontal vid_w div 640. 1 vertical vid_h div 480. Default 1 vertical."><br>
 <font type {font_title} tint gray atint gray>
-"Default 1 - Track HUD scale from resolution."
+"Default 1 - Axis used for the HUD max scale."
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_menu_scale atext "_sofbuddy_menu_scale : " noshade tip "Only when _sofbuddy_menu_scale_auto is 0. Actual-pixel menu scale (blanks, borders, images, text). 1 = vanilla SoF. 0.25 to 8. Scaled Menu feature."><br>
+<ctext _sofbuddy_menu_scale atext "_sofbuddy_menu_scale : " noshade tip "Actual-pixel menu scale (blanks, borders, images, text). Values above the resolution max use the max scale (vid_h / 480). 1 = vanilla SoF. 0.25 to 8. Scaled Menu feature."><br>
 <font type {font_title} tint gray atint gray>
-"Default 1 - Manual menu scale, auto off only."
-<hbr>
-<hbr>
-<font type {font_title} tint white atint white>
-<ctext _sofbuddy_menu_scale_auto atext "_sofbuddy_menu_scale_auto : " noshade tip "1: actual-pixel menuScale from vertical resolution (vid_h / 480). 0: manual _sofbuddy_menu_scale only. Default 1."><br>
-<font type {font_title} tint gray atint gray>
-"Default 1 - Track menu scale from resolution."
+"Default 1 - Manual menu scale."
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
@@ -148,15 +140,15 @@
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_scale_round_auto atext "_sofbuddy_scale_round_auto : " noshade tip "Snap cinematic image scale to round steps. 1 on, 0 off. Default 0."><br>
+<ctext _sofbuddy_scale_round_auto atext "_sofbuddy_scale_round_auto : " noshade tip "Snap effective menu and cinematic image scale to round steps. 1 on, 0 off. Default 0."><br>
 <font type {font_title} tint gray atint gray>
-"Default 0 - Round auto font and HUD scale."
+"Default 0 - Round effective menu and cinematic scale."
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_scale_round_ratio atext "_sofbuddy_scale_round_ratio : " noshade tip "Snap step when round auto is on. Default 0.25."><br>
+<ctext _sofbuddy_scale_round_ratio atext "_sofbuddy_scale_round_ratio : " noshade tip "Snap step for Auto and manual font, HUD, and menu scales; cinematics when rounding is on. Default 0.25."><br>
 <font type {font_title} tint gray atint gray>
-"Default 0.25 - Round step for auto scale."
+"Default 0.25 - Round step for scale presets and cinematics."
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>

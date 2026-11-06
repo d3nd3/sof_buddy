@@ -4,8 +4,8 @@
 	once at RMF parse and stored, so drawing, layout and cursor hit-testing agree.
 
 	Cvars:
-	- _sofbuddy_menu_scale_auto=1: menuScale = vid_h/480.
-	- _sofbuddy_menu_scale_auto=0: menuScale = _sofbuddy_menu_scale (0.25..8, oddly 1 = vanilla).
+	- _sofbuddy_menu_scale: menuScale (0.25..vid_h/480, 1 = vanilla). Values above the
+	  resolution max use the max scale.
 	- _sofbuddy_scale_round_auto / _sofbuddy_scale_round_ratio: optional scale snapping.
 
 	See README.md for the full model, engine addresses and file-specific overrides.
@@ -38,7 +38,6 @@
 #include <atomic>
 
 float menuScale = 1.0f;
-bool menuScaleAuto = true;
 
 static char s_pushed_menu_name[64] = {0};
 static bool s_join_scale_active = false;
@@ -108,34 +107,18 @@ void scaled_menu_set_pushed_menu(const char* name) {
 }
 
 void menuscale_change(cvar_t* cvar) {
-	if (menuScaleAuto) {
-		apply_auto_menu_scale();
-		return;
-	}
 	if (!cvar) return;
+	const float maxScale = auto_scale_resolution_ratio();
 	float v = cvar->value;
 	if (v < 0.25f) v = 0.25f;
-	if (v > 8.0f) v = 8.0f;
-	menuScale = round_scale_value(v);
-	if (menuScale < 0.25f) menuScale = 0.25f;
-	if (menuScale > 8.0f) menuScale = 8.0f;
-	if (v >= 0.999f && v <= 1.001f) menuScale = 1.0f;
-	if (detour_Cvar_Set2::oCvar_Set2) {
-		char buf[32];
-		std::snprintf(buf, sizeof(buf), "%.2f", menuScale);
-		detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_menu_scale_rounded"), buf, true);
+	if (v >= maxScale - 0.0001f) {
+		menuScale = maxScale;
+	} else {
+		menuScale = round_scale_value(v);
+		if (menuScale < 0.25f) menuScale = 0.25f;
+		if (menuScale > maxScale) menuScale = maxScale;
+		if (v >= 0.999f && v <= 1.001f) menuScale = 1.0f;
 	}
-}
-
-void menu_scale_auto_change(cvar_t* cvar) {
-	menuScaleAuto = cvar && cvar->value != 0.0f;
-	if (_sofbuddy_menu_scale) menuscale_change(_sofbuddy_menu_scale);
-}
-
-void apply_auto_menu_scale(void) {
-	if (!menuScaleAuto) return;
-	menuScale = auto_scale_resolution_ratio();
-	if (menuScale >= 0.999f && menuScale <= 1.001f) menuScale = 1.0f;
 	if (detour_Cvar_Set2::oCvar_Set2) {
 		char buf[32];
 		std::snprintf(buf, sizeof(buf), "%.2f", menuScale);
@@ -1187,9 +1170,9 @@ void scaled_menu_on_vid_layout_changed(void) {
 }
 
 void scaled_menu_sync_scale_from_engine(void) {
-	// Cheap and idempotent: recompute screen ratios from the engine's live vid size and,
-	// in auto mode, re-derive menuScale. Called before menu layout is measured so the
-	// first open uses the same scale the second open does.
+	// Cheap and idempotent: recompute screen ratios from the engine's live vid size and
+	// re-clamp menuScale to the new resolution max. Called before menu layout is measured
+	// so the first open uses the same scale the second open does.
 	static int s_lastW = -1, s_lastH = -1;
 	static bool s_done = false;
 	extern int* viddef_width;
@@ -1207,7 +1190,7 @@ void scaled_menu_sync_scale_from_engine(void) {
 	current_vid_h = h;
 	screen_y_scale = static_cast<float>(h) / 480.0f;
 	screen_x_scale = static_cast<float>(w) / 640.0f;
-	if (menuScaleAuto) apply_auto_menu_scale();
+	if (_sofbuddy_menu_scale) menuscale_change(_sofbuddy_menu_scale);
 }
 
 void scaled_menu_refresh_open_canvases(void) {}
@@ -1289,20 +1272,27 @@ bool scaled_menu_install_hooks(void) {
 	       oMenu_CreateTip;
 }
 
+static float menu_effective_scale(float s) {
+	float effective = effective_auto_scale(s);
+	const float maxScale = auto_scale_resolution_ratio();
+	if (effective > maxScale) effective = maxScale;
+	return effective;
+}
+
 bool scaled_menu_uniform_actual_active(void) {
 	if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) return false;
-	const float s = effective_auto_scale(menuScale > 0.0f ? menuScale : 1.0f);
+	const float s = menu_effective_scale(menuScale > 0.0f ? menuScale : 1.0f);
 	return std::fabs(s - 1.0f) > 0.001f;
 }
 
 float scaled_menu_screen_scale(void) {
 	float s = menuScale > 0.0f ? menuScale : 1.0f;
-	if (join_scale_active() && (menuScaleAuto || s > 1.0f)) {
+	if (join_scale_active() && s > 1.0f) {
 		float join_scale = s * 0.75f;
 		if (join_scale < 1.0f) join_scale = 1.0f;
 		return join_scale;
 	}
-	return effective_auto_scale(s);
+	return menu_effective_scale(s);
 }
 
 float scaled_menu_snapped_text_scale(realFontEnum_t font) {

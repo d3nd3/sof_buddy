@@ -55,15 +55,15 @@ int real_refdef_width = 0;
 void fontscale_change(cvar_t * cvar) {
 	SOFBUDDY_ASSERT(cvar != nullptr);
 
-	// Auto mode is controlled by _sofbuddy_font_scale_auto; kept in sync on
-	// resolution changes by scaled_ui_refresh_vid_dimensions_from_engine().
-    if (fontScaleAuto) {
-        apply_auto_font_scale();
-        return;
+    const float maxScale = auto_scale_resolution_ratio_font();
+    float v = cvar->value;
+    if (v <= 0.0f) v = 1.0f;
+    if (v >= maxScale - 0.0001f) {
+        fontScale = maxScale;
+    } else {
+        fontScale = round_scale_value(v);
+        if (fontScale > maxScale) fontScale = maxScale;
     }
-
-    SOFBUDDY_ASSERT(cvar->value > 0.0f);
-    fontScale = round_scale_value(cvar->value);
 	PrintOut(PRINT_LOG,"Precise fontScale change: %.10f\n", fontScale);
 
 	//Protect from divide by 0.
@@ -71,23 +71,6 @@ void fontscale_change(cvar_t * cvar) {
 		fontScale = 1;
 	}
 
-	SOFBUDDY_ASSERT(fontScale > 0.0f);
-	if (detour_Cvar_Set2::oCvar_Set2) {
-		char buf[32];
-		std::snprintf(buf, sizeof(buf), "%.2f", console_font_scale(fontScale));
-		detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_font_scale_rounded"), buf, true);
-	}
-}
-
-void font_scale_auto_change(cvar_t* cvar) {
-	fontScaleAuto = cvar && cvar->value != 0.0f;
-	if (_sofbuddy_font_scale) fontscale_change(_sofbuddy_font_scale);
-}
-
-// Sets fontScale from the current resolution ratio when auto mode is active.
-void apply_auto_font_scale(void) {
-	if (!fontScaleAuto) return;
-	fontScale = auto_scale_resolution_ratio_font();
 	SOFBUDDY_ASSERT(fontScale > 0.0f);
 	if (detour_Cvar_Set2::oCvar_Set2) {
 		char buf[32];
