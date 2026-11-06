@@ -1,6 +1,18 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
+:parse_args
+if /i "%~1"=="--reset-features" (
+    set "SOFBUDDY_UPDATER_RESET_FEATURES=1"
+    shift
+    goto :parse_args
+)
+if /i "%~1"=="--fresh-settings" (
+    set "SOFBUDDY_UPDATER_FRESH=1"
+    shift
+    goto :parse_args
+)
+
 set "SCRIPT_DIR=%~dp0"
 pushd "%SCRIPT_DIR%.." >nul 2>&1
 if errorlevel 1 (
@@ -99,6 +111,14 @@ if /i "%SOFBUDDY_UPDATER_FRESH%"=="1" (
     set "FRESH=N"
     set /p "FRESH=Start with fresh settings (y/N^): "
     if /i "!FRESH!"=="y" call :prune_sofbuddy_cfg
+)
+if /i "%SOFBUDDY_UPDATER_RESET_FEATURES%"=="1" (
+    call :reset_feature_toggles
+) else if not defined SOFBUDDY_UPDATER_SILENT (
+    echo.
+    set "RESET_FEATURES=N"
+    set /p "RESET_FEATURES=Expecting a new feature? Reset feature toggles (y/N^): "
+    if /i "!RESET_FEATURES!"=="y" call :reset_feature_toggles
 )
 call :report_progress 100 "Done"
 call :delete_if_exists "%UPDATE_DIR%\pending_update.txt"
@@ -275,6 +295,23 @@ exit /b 0
 :delete_if_exists
 if not exist "%~1" exit /b 0
 del /f /q "%~1" >nul 2>&1
+exit /b 0
+
+:reset_feature_toggles
+if not defined SOFBUDDY_UPDATER_SILENT echo Searching for saved feature toggles to reset...
+if exist "%ROOT_DIR%\sof_buddy\features.cfg" del /f /q "%ROOT_DIR%\sof_buddy\features.cfg" >nul 2>&1
+for /r "%ROOT_DIR%" %%F in (sofbuddy_features.cfg) do (
+    if exist "%%F" (
+        if not defined SOFBUDDY_UPDATER_SILENT echo   Removing: %%F
+        del /f /q "%%F" >nul 2>&1
+    )
+)
+for /r "%ROOT_DIR%" %%F in (sofbuddy.cfg) do (
+    if exist "%%F" (
+        findstr /v /i /c:"_sofbuddy_feature_" "%%F" > "%%F.tmp"
+        if exist "%%F.tmp" move /y "%%F.tmp" "%%F" >nul 2>&1
+    )
+)
 exit /b 0
 
 :prune_sofbuddy_cfg

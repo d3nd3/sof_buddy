@@ -57,6 +57,31 @@ begin
   WizardForm.TasksList.Checked[2] := False;
 end;
 
+function HasExistingSoFBuddy: Boolean;
+begin
+  Result := FileExists(ExpandConstant('{app}\sof_buddy.dll')) or
+    FileExists(ExpandConstant('{app}\sof_buddy\features.cfg')) or
+    FileExists(ExpandConstant('{app}\base\sofbuddy_features.cfg'));
+end;
+
+procedure ResetFeatureToggles;
+var
+  Lines, Kept: TArrayOfString;
+  I, Count: Integer;
+begin
+  DeleteFile(ExpandConstant('{app}\base\sofbuddy_features.cfg'));
+  if not LoadStringsFromFile(ExpandConstant('{app}\base\sofbuddy.cfg'), Lines) then exit;
+  SetArrayLength(Kept, 0);
+  for I := 0 to GetArrayLength(Lines) - 1 do begin
+    if Pos('_sofbuddy_feature_', Lines[I]) = 0 then begin
+      Count := GetArrayLength(Kept);
+      SetArrayLength(Kept, Count + 1);
+      Kept[Count] := Lines[I];
+    end;
+  end;
+  SaveStringsToFile(ExpandConstant('{app}\base\sofbuddy.cfg'), Kept, False);
+end;
+
 procedure InstallSoFPlusClient;
 var
   ResultCode: Integer;

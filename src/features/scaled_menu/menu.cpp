@@ -46,6 +46,7 @@ static bool s_join_scale_pending = false;
 static void* s_join_scale_menu = nullptr;
 static bool s_menu_source_is_ss = false;
 static bool s_menu_skip_frame_convert = false;
+static bool s_page_is_resized = false;
 
 static bool name_contains_ci(const char* s, const char* needle) {
 	if (!s || !needle || !*needle) return false;
@@ -97,6 +98,7 @@ void scaled_menu_set_pushed_menu(const char* name) {
 	                      s_pushed_menu_name[i - 2] == 's' &&
 	                      s_pushed_menu_name[i - 1] == 's';
 	s_menu_skip_frame_convert = false;
+	s_page_is_resized = false;
 	const bool is_join = std::strcmp(s_pushed_menu_name, "join") == 0 ||
 	                     std::strcmp(s_pushed_menu_name, "join_ss") == 0 ||
 	                     std::strcmp(s_pushed_menu_name, "join_ns") == 0;
@@ -292,6 +294,7 @@ constexpr uintptr_t kRvaTextVtbl = 0x00112A40u;
 constexpr uintptr_t kRvaInputVtbl = 0x001128C8u;
 constexpr uintptr_t kRvaTickerVtbl = 0x00112808u;
 constexpr uintptr_t kRvaGhoulVtbl = 0x001129E0u;
+constexpr uintptr_t kRvaPicVtbl = 0x00112848u;
 constexpr int kExtendCacheMax = 12;
 
 constexpr ptrdiff_t kRect_MenuPtr = 0x04;
@@ -366,6 +369,14 @@ static bool widget_is_input(const void* widget) {
 	return vt == rvaToAbsExe(reinterpret_cast<void*>(kRvaInputVtbl));
 }
 
+// <pic>/<image> dimensions are actual pixels; resize pages need their authored
+// dimensions scaled so hit testing follows the scaled art.
+static bool widget_is_pic(const void* widget) {
+	if (!widget) return false;
+	const void* vt = *static_cast<const void* const*>(widget);
+	return vt == rvaToAbsExe(reinterpret_cast<void*>(kRvaPicVtbl));
+}
+
 // <ticker> sets its band height from R_StrHeight, which we already scale.
 static bool widget_is_ticker(const void* widget) {
 	if (!widget) return false;
@@ -411,7 +422,12 @@ static float menu_actual_rect_dim_factor(void* rect) {
 	if (*reinterpret_cast<uint8_t*>(static_cast<char*>(rect) + kRect_NoScale)) return 1.f;
 	if (widget_is_ghoul(rect)) return 1.f;
 	void* menu = menu_outer_from_widget(rect);
-	if (!menu_actual_pixel_scale_active(menu)) return 1.f;
+	if (!menu_actual_pixel_scale_active(menu)) {
+		// Resize pages carry the page scale in their canvas, but text/input boxes
+		// keep authored widths unless their fixed dimensions get the normal factor.
+		if (!(widget_is_text(rect) || widget_is_input(rect)))
+			return 1.f;
+	}
 	const float v = *reinterpret_cast<float*>(static_cast<char*>(rect) + kRect_WidgetScale);
 	if (v <= 1e-6f || !std::isfinite(v)) return 1.f;
 	const float s = scaled_menu_screen_scale();
@@ -491,6 +507,15 @@ static void* hk_menu_border_dims_init(void* border, char* dimA, char* dimB, void
 using Rect_Parse_t = bool(__thiscall*)(void* rect, void* token);
 static Rect_Parse_t oRect_Parse = nullptr;
 
+static void scale_widget_dims(void* widget, const ptrdiff_t* fields, size_t count, float factor) {
+	if (!widget || !std::isfinite(factor) || std::fabs(factor - 1.f) <= 0.001f) return;
+	char* r = static_cast<char*>(widget);
+	for (size_t i = 0; i < count; ++i) {
+		int& v = *reinterpret_cast<int*>(r + fields[i]);
+		if (v > 0) v = static_cast<int>(std::lround(static_cast<float>(v) * factor));
+	}
+}
+
 #if defined(__GNUC__)
 __attribute__((thiscall))
 #endif
@@ -510,7 +535,8 @@ static bool hk_rect_parse(void* rect, void* token) {
 #else
 	const bool parsed = oRect_Parse ? oRect_Parse(rect, token) : false;
 #endif
-	if (!parsed || (!fixed_width && !fixed_height && !fixed_xoff && !fixed_yoff)) return parsed;
+	if (!parsed || (!fixed_width && !fixed_height && !fixed_xoff && !fixed_yoff))
+		return parsed;
 	char* r = static_cast<char*>(rect);
 	if (!scaled_menu_uniform_actual_active() || scaled_menu_skip_for_intro_disclaimer() ||
 	    *reinterpret_cast<uint8_t*>(r + kRect_NoScale)) {
@@ -584,8 +610,8 @@ static bool hk_rect_parse(void* rect, void* token) {
 // frame_c::Resize(pad, thick) — <stm resize W H> support.
 // Stock pins the page to W×H actual pixels, centres it via (vid - W)/2, and forces
 // canvas scale (menu_c+0xAC) to 1.0. Left alone at high resolution the dialog renders
-// 320×240 in the middle of a 1920×1080 screen, i.e. effectively invisible. Scale the
-// page itself and recentre, so the contents scale with it inside the correct box.
+// tiny in the middle of the screen. Scale the page canvas and its default frame box by
+// the same factor, then centre that actual-pixel size.
 using Frame_Resize_t = void(__thiscall*)(void* frame, char* w, char* h);
 static Frame_Resize_t oFrame_Resize = nullptr;
 
@@ -610,20 +636,24 @@ static void hk_frame_resize(void* frame, char* w, char* h) {
 	const float s = scaled_menu_screen_scale();
 	if (!std::isfinite(s) || std::fabs(s - 1.f) < 0.001f) return;
 	char* f = static_cast<char*>(frame);
-	// Stock pinned this page to W×H actual pixels with canvas scale 1.0. Raise the page's
-	// canvas scale instead of touching W/H: the engine then scales everything inside
-	// (frames, borders, text) uniformly, exactly as it does for a normal page. Contents of
-	// resize pages stay excluded from the per-widget factor, so this is the only scale.
+	// Stock pinned this page to W×H actual pixels with canvas scale 1.0. Scale both the
+	// canvas (contents) and the default frame box, then recentre the resulting size.
 	if (char* menu = *reinterpret_cast<char**>(f + kFrame_Menu)) {
 		*reinterpret_cast<float*>(menu + kMenuC_ScreenScale) = s;
 	}
-	// Centre by the scaled size, since W/H remain in virtual units.
-	const int fw = *reinterpret_cast<int*>(f + kFrame_W);
-	const int fh = *reinterpret_cast<int*>(f + kFrame_H);
+	s_page_is_resized = true;
+	// W/H are authored in virtual units. The canvas scales the contents, so scale the
+	// default frame box too and centre the resulting actual-pixel size.
+	int& fw = *reinterpret_cast<int*>(f + kFrame_W);
+	int& fh = *reinterpret_cast<int*>(f + kFrame_H);
+	const int scaled_w = static_cast<int>(std::lround(static_cast<float>(fw) * s));
+	const int scaled_h = static_cast<int>(std::lround(static_cast<float>(fh) * s));
+	fw = scaled_w;
+	fh = scaled_h;
 	*reinterpret_cast<int*>(f + kFrame_OffX) =
-	    static_cast<int>(std::lround((static_cast<float>(current_vid_w) - static_cast<float>(fw) * s) * 0.5f));
+	    (current_vid_w - scaled_w) / 2;
 	*reinterpret_cast<int*>(f + kFrame_OffY) =
-	    static_cast<int>(std::lround((static_cast<float>(current_vid_h) - static_cast<float>(fh) * s) * 0.5f));
+	    (current_vid_h - scaled_h) / 2;
 }
 
 using Frame_FinalizeDims_t = void(__thiscall*)(void* frame);
@@ -911,6 +941,8 @@ struct HoverSave {
 	void* rect;
 	int ox;
 	int oy;
+	int w, h, ow, oh;
+	bool pic_scaled;
 };
 static HoverSave s_hover_saved[512];
 static int s_hover_saved_count = 0;
@@ -918,6 +950,12 @@ static bool s_in_hover_pass = false;
 
 static void hover_save_and_adjust(void* rect) {
 	if (s_hover_saved_count >= static_cast<int>(sizeof(s_hover_saved) / sizeof(s_hover_saved[0]))) return;
+	HoverSave& sv = s_hover_saved[s_hover_saved_count++];
+	sv.rect = rect;
+	char* r = static_cast<char*>(rect);
+	sv.ox = *reinterpret_cast<int*>(r + kRect_Ox);
+	sv.oy = *reinterpret_cast<int*>(r + kRect_Oy);
+	sv.pic_scaled = false;
 	void* stm = *reinterpret_cast<void**>(static_cast<char*>(rect) + kRect_MenuPtr);
 	void* frame = stm ? *reinterpret_cast<void**>(stm) : nullptr;
 	void* menu = frame ? *reinterpret_cast<void**>(frame) : nullptr;
@@ -934,13 +972,19 @@ static void hover_save_and_adjust(void* rect) {
 	const int kx = thiscall_noargs_int(ms, smx) - thiscall_noargs_int(frame, fmx);
 	const int ky = thiscall_noargs_int(ms, smy) -
 	               (thiscall_noargs_int(frame, fmy) + stm_y);
-	char* r = static_cast<char*>(rect);
-	HoverSave& sv = s_hover_saved[s_hover_saved_count++];
-	sv.rect = rect;
-	sv.ox = *reinterpret_cast<int*>(r + kRect_Ox);
-	sv.oy = *reinterpret_cast<int*>(r + kRect_Oy);
 	*reinterpret_cast<int*>(r + kRect_Ox) = x - kx;
 	*reinterpret_cast<int*>(r + kRect_Oy) = y - ky;
+	if (s_page_is_resized && widget_is_pic(rect) &&
+	    !*reinterpret_cast<uint8_t*>(r + kRect_NoScale)) {
+		sv.w = *reinterpret_cast<int*>(r + kRect_W);
+		sv.h = *reinterpret_cast<int*>(r + kRect_H);
+		sv.ow = *reinterpret_cast<int*>(r + kRect_OuterW);
+		sv.oh = *reinterpret_cast<int*>(r + kRect_OuterH);
+		static constexpr ptrdiff_t fields[] = {kRect_W, kRect_H, kRect_OuterW, kRect_OuterH};
+		scale_widget_dims(rect, fields, sizeof(fields) / sizeof(fields[0]),
+		                  scaled_menu_screen_scale());
+		sv.pic_scaled = true;
+	}
 }
 
 #if defined(__GNUC__)
@@ -975,9 +1019,16 @@ static void hk_stm_hover_pass(void* stm) {
 	}
 	s_in_hover_pass = false;
 	for (int i = 0; i < s_hover_saved_count; ++i) {
-		char* r = static_cast<char*>(s_hover_saved[i].rect);
-		*reinterpret_cast<int*>(r + kRect_Ox) = s_hover_saved[i].ox;
-		*reinterpret_cast<int*>(r + kRect_Oy) = s_hover_saved[i].oy;
+		HoverSave& sv = s_hover_saved[i];
+		char* r = static_cast<char*>(sv.rect);
+		*reinterpret_cast<int*>(r + kRect_Ox) = sv.ox;
+		*reinterpret_cast<int*>(r + kRect_Oy) = sv.oy;
+		if (sv.pic_scaled) {
+			*reinterpret_cast<int*>(r + kRect_W) = sv.w;
+			*reinterpret_cast<int*>(r + kRect_H) = sv.h;
+			*reinterpret_cast<int*>(r + kRect_OuterW) = sv.ow;
+			*reinterpret_cast<int*>(r + kRect_OuterH) = sv.oh;
+		}
 	}
 	s_hover_saved_count = 0;
 }
@@ -1259,6 +1310,7 @@ float scaled_menu_snapped_text_scale(realFontEnum_t font) {
 }
 
 #endif // UI_MENU
+
 
 
 void scaled_menu_slider_setup_post(void* slider) {

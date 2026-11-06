@@ -43,5 +43,11 @@ const char* internal_menus_get_theme_list_labels_rmf(void);
 const char* internal_menus_get_theme_list_match_rmf(void);
 const char* internal_menus_get_theme_list_rmf(void);
 void internal_menus_remember_menu_page(const char* menu_file);
+void internal_menus_feature_prompt_init_cvars(void);
+void internal_menus_feature_prompt_init_command(void);
+void internal_menus_feature_prompt_note_menu(const char* menu_file);
+void internal_menus_feature_prompt_note_closed(void);
+void internal_menus_feature_prompt_tick(void);
+bool internal_menus_feature_prompt_handle_cvar(const char* cvar_name);
 
 #endif

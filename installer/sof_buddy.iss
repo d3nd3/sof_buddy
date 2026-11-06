@@ -11,6 +11,8 @@ AppendDefaultDirName=no
 DisableDirPage=no
 DirExistsWarning=no
 UsePreviousAppDir=no
+UsePreviousSetupType=no
+UsePreviousComponents=no
 DefaultGroupName=SoF Buddy
 DisableProgramGroupPage=yes
 LicenseFile=..\LICENSE
@@ -25,10 +27,12 @@ WizardStyle=modern
 SelectDirDesc=Select the Soldier of Fortune folder
 SelectDirLabel3=SoF Buddy will be installed into the selected folder:
 SelectDirBrowseLabel=Choose the folder containing SoF.exe, then click Next.
+SelectComponentsDesc=These are runtime feature selections: the Recommended set is selected by default, and you can change any feature later in-game from F12 > Features.
+SelectComponentsLabel2=Keep the Recommended features enabled unless you have a specific reason to disable one. Install-time choices that may have been disabled previously are not reused. Feature changes take effect after restarting SoF.
 
 [Types]
-Name: "full"; Description: "Recommended feature set"
-Name: "custom"; Description: "Custom feature selection"; Flags: iscustom
+Name: "full"; Description: "Recommended runtime feature set"
+Name: "custom"; Description: "Custom runtime feature selection"; Flags: iscustom
 
 [Components]
 Name: "features"; Description: "SoF Buddy features"; Types: full custom; Flags: fixed
@@ -70,6 +74,7 @@ Name: "features\optional\gameplay_features\entity_visualizer"; Description: "Ent
 Name: "appcompat_fix"; Description: "[OPTIONAL] Windows 10+ Application Compatibility fix (Raven string at 0x2015F1C0; usually skip for GOG 2022/community or SoF Plus kb kits)"; GroupDescription: "Optional installation options:"
 Name: "full_violence"; Description: "[OPTIONAL] Unlock full violence (highly recommended if not using SoFPlus spcl.dll)"; GroupDescription: "Optional installation options:"
 Name: "install_sofplus"; Description: "[OPTIONAL] Install SoF Plus client (20140531; CD or GOG kit chosen from your SoF.exe)"; GroupDescription: "Optional installation options:"
+Name: "reset_feature_toggles"; Description: "Expecting a new feature? Reset feature toggles (keeps other SoF Buddy settings)"; GroupDescription: "Optional installation options:"; Flags: unchecked; Check: HasExistingSoFBuddy
 
 [Files]
 Source: "payload\sof_buddy.dll"; DestDir: "{app}\sof_buddy"; DestName: "sof_buddy.dll.new"; Flags: ignoreversion
@@ -156,6 +161,31 @@ begin
   WizardForm.TasksList.Checked[0] := SoFRecommendAppcompat;
   WizardForm.TasksList.Checked[1] := SoFRecommendFullViolence;
   WizardForm.TasksList.Checked[2] := False;
+end;
+
+function HasExistingSoFBuddy: Boolean;
+begin
+  Result := FileExists(ExpandConstant('{app}\sof_buddy.dll')) or
+    FileExists(ExpandConstant('{app}\sof_buddy\features.cfg')) or
+    FileExists(ExpandConstant('{app}\base\sofbuddy_features.cfg'));
+end;
+
+procedure ResetFeatureToggles;
+var
+  Lines, Kept: TArrayOfString;
+  I, Count: Integer;
+begin
+  DeleteFile(ExpandConstant('{app}\base\sofbuddy_features.cfg'));
+  if not LoadStringsFromFile(ExpandConstant('{app}\base\sofbuddy.cfg'), Lines) then exit;
+  SetArrayLength(Kept, 0);
+  for I := 0 to GetArrayLength(Lines) - 1 do begin
+    if Pos('_sofbuddy_feature_', Lines[I]) = 0 then begin
+      Count := GetArrayLength(Kept);
+      SetArrayLength(Kept, Count + 1);
+      Kept[Count] := Lines[I];
+    end;
+  end;
+  SaveStringsToFile(ExpandConstant('{app}\base\sofbuddy.cfg'), Kept, False);
 end;
 
 procedure InstallSoFPlusClient;
@@ -623,6 +653,8 @@ begin
     VerifyInstalledDll;
     EnableSoFBuddy;
     WriteFeatureConfig;
+    if WizardIsTaskSelected('reset_feature_toggles') then
+      ResetFeatureToggles;
     if WizardIsTaskSelected('full_violence') then
       ApplyFullViolence;
     if WizardIsTaskSelected('appcompat_fix') then

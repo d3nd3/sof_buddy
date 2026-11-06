@@ -2,6 +2,21 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## Unreleased
+
+### Installer / menus
+
+- **Graphics → Video** now starts with a `gl_mode` resolution picker: current active mode plus the SoFPlus `_sp_cl_vid_mode_0..9` entries, applying with `vid_restart`.
+- Fixed cvar lookup missing SoFPlus cvars registered after the menu system initialized; this also restores the resolution list when `_sp_cl_vid_mode_*` were created late.
+- Legacy `cl_maxfps` quantization now rounds down to the largest listed legacy cap not above the requested value, so `150` settles to `143` (7ms) instead of `167` (6ms); the engine default `30` is also a listed cap, so it is no longer rewritten to `25`. With Exact FPS off this normalization runs on every cvar write (startup/config restore, console, and menu changes), not only when the CPU page opens. SoFPlus SPM persistence now flushes once the post-restore frame/screen hooks are live, so runtime changes are written to `User/sofplus/data/spm_settings.cfg` immediately.
+- Fixed the media-timers custom main loop bypassing the `Qcommon_Frame` hook entry; Qcommon pre/post callbacks (HTTP maps, crosshair preview, master fallback, and config/SPM saves) now run again when the custom loop is active.
+- Feature toggles now persist separately in `base/sofbuddy_features.cfg`, leaving normal SoF Buddy settings in `base/sofbuddy.cfg`. Setup resets the wizard to the **Recommended feature set** on upgrades; when Buddy is already installed it offers **Expecting a new feature? Reset feature toggles**, which clears only the feature file and legacy feature lines so new defaults apply.
+- The graphical and command-line updaters gained a separate **Reset feature toggles** option (`SOFBUDDY_UPDATER_RESET_FEATURES=1` for scripts), independent of the existing fresh-settings reset. The GUI now waits for the user to click **Install**, so the reset checkboxes are applied before extraction.
+- Changing an F12 setting whose backing feature is disabled now opens a **Feature Required** prompt and suppresses the dead cvar write; `Y` jumps to the Features tab. This also prevents the “cvar exists in config but does nothing” confusion on universal builds.
+- **Check for updates** dialogs now scale and center correctly at high resolution; the up-to-date dialog uses the same global/nopush behavior as the other update prompts.
+- The F12 → Version release picker now uses clickable Stable/Latest channel and release-tag rows plus a live **Selected install target** line instead of a one-line cycling list. Enable **Show non-stable tags** and press **Refresh release list** to load older tags.
+- **Check for updates** is now limited to once every 10 seconds with a cooldown status; release-list refresh has the same 10-second cooldown, and update checks are guarded against re-entry to prevent spam from stalling or crashing SoF.
+
 ## v8.48
 
 ### F12 menu

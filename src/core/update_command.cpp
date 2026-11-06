@@ -82,11 +82,52 @@ constexpr const char* kUpdateTargetLatest = "latest";
 constexpr const char* kUpdateTargetStable = "stable";
 constexpr const char* kStableManifestRawUrl =
     "https://raw.githubusercontent.com/d3nd3/sof_buddy/master/releases/stable.json";
-constexpr const char* kDefaultReleaseListRmf =
-    "<list \"Stable\" match \"stable\" cvar _sofbuddy_update_target_tag atext \"Install version : \" noshade tip \"Stable is the blessed release; Latest is newest CI. Refresh Release List for all tags.\"><hbr>";
 constexpr const char* kCvarOpenUrlStatus = "_sb_internal_openurl_status";
 constexpr const char* kCvarOpenUrlLast = "_sb_internal_openurl_last";
 bool g_startup_update_prompt_pending = false;
+
+constexpr DWORD kManualUpdateCheckCooldownMs = 10000;
+constexpr DWORD kManualReleaseListCooldownMs = 10000;
+
+bool g_manual_update_check_has_run = false;
+DWORD g_manual_update_check_last_tick = 0;
+bool g_manual_release_list_has_run = false;
+DWORD g_manual_release_list_last_tick = 0;
+bool g_update_flow_active = false;
+
+std::vector<std::string> g_cached_release_tags;
+
+bool cooldown_active(bool has_run, DWORD last_tick, DWORD cooldown_ms, DWORD& remaining_ms) {
+    if (!has_run) return false;
+    const DWORD elapsed = GetTickCount() - last_tick;
+    if (elapsed >= cooldown_ms) return false;
+    remaining_ms = cooldown_ms - elapsed;
+    return true;
+}
+
+std::string cooldown_status_text(const char* prefix, DWORD remaining_ms) {
+    const unsigned seconds = (remaining_ms + 999u) / 1000u;
+    return std::string(prefix) + " (" + std::to_string(seconds) + "s)";
+}
+
+bool safe_release_target(const std::string& tag) {
+    if (tag.empty() || tag.size() > 128) return false;
+    for (char c : tag) {
+        const unsigned char uc = static_cast<unsigned char>(c);
+        if (!(std::isalnum(uc) || c == '.' || c == '-' || c == '_' || c == '/')) return false;
+    }
+    return true;
+}
+
+std::string rmf_escape(const std::string& text) {
+    std::string out;
+    out.reserve(text.size());
+    for (char c : text) {
+        if (c == '"' || c == '\\') out.push_back('\\');
+        out.push_back(c);
+    }
+    return out;
+}
 
 constexpr const char* kAllowedSocialHosts[] = {
     "github.com",
@@ -1353,44 +1394,37 @@ bool startup_prompt_stable_only() {
 void cache_stable_release_tag() {
     ReleaseInfo stable;
     std::string error;
-    if (fetch_stable_release(stable, error) && !stable.tag_name.empty())
+    if (fetch_stable_release(stable, error) && !stable.tag_name.empty()) {
         set_update_cvar(kCvarUpdateStableTag, stable.tag_name);
-}
-
-static bool release_tag_in_filtered_list(const std::string& tag, const std::vector<std::string>& tags,
-                                         const std::string& stable_tag) {
-    if (!stable_tag.empty() && tag == stable_tag) return true;
-    if (!tags.empty() && tag == tags.front()) return true;
-    return false;
+    }
 }
 
 std::string build_release_list_rmf(const std::vector<std::string>& tags, const std::string& stable_tag, bool show_all) {
-    std::string labels = "Stable,Latest";
-    std::string values = std::string(kUpdateTargetStable) + "," + kUpdateTargetLatest;
-    auto append_tag = [&](const std::string& tag) {
-        if (tag.empty()) return;
-        const std::string needle = "," + tag;
-        if (values == tag || values.find(needle) != std::string::npos) return;
-        labels.push_back(',');
-        labels += tag;
-        values.push_back(',');
-        values += tag;
+    const std::string target = get_update_target_tag();
+    std::string rmf;
+    auto append_row = [&](const std::string& value, const std::string& label, const char* suffix) {
+        if (!safe_release_target(value)) return;
+        rmf += "<text \"";
+        rmf += rmf_escape(label);
+        if (suffix && suffix[0]) {
+            rmf += " [";
+            rmf += suffix;
+            rmf += "]";
+        }
+        rmf += "\" key mouse1 \"sofbuddy_update_target ";
+        rmf += value;
+        rmf += "\" border 8 1 cyan regular align center tip \"Set this install target, then use Install selected version.\"><hbr>";
     };
-    for (const auto& tag : tags) {
-        if (show_all || release_tag_in_filtered_list(tag, tags, stable_tag))
-            append_tag(tag);
-    }
 
-    std::string rmf = "<list \"";
-    rmf += labels;
-    rmf += "\" match \"";
-    rmf += values;
-    rmf += "\" cvar ";
-    rmf += kCvarUpdateTargetTag;
-    rmf += " atext \"Install version : \" noshade tip \"";
-    rmf += show_all ? "Stable recommended; Latest is newest CI; or pick any tag." :
-                      "Stable + Latest channels, blessed stable tag, and newest feed tag; enable Show non-stable tags for older builds.";
-    rmf += "\"><hbr>";
+    append_row(kUpdateTargetStable, "Stable channel", "recommended");
+    append_row(kUpdateTargetLatest, "Latest channel", "newest CI");
+
+    const std::string newest_tag = tags.empty() ? std::string() : tags.front();
+    for (const auto& tag : tags) {
+        if (!show_all && tag != stable_tag && tag != newest_tag && tag != target) continue;
+        const char* suffix = (tag == stable_tag) ? "stable" : (tag == newest_tag ? "latest" : "");
+        append_row(tag, tag, suffix);
+    }
     return rmf;
 }
 
@@ -1402,6 +1436,17 @@ bool target_tag_in_release_list(const std::vector<std::string>& tags, const std:
 }
 
 void refresh_release_list() {
+    DWORD remaining = 0;
+    if (cooldown_active(g_manual_release_list_has_run, g_manual_release_list_last_tick,
+                        kManualReleaseListCooldownMs, remaining)) {
+        set_update_status(cooldown_status_text("release list cooldown", remaining));
+        PrintOut(PRINT_BAD, "sofbuddy_update releases: wait %us before refreshing again.\n",
+                 static_cast<unsigned>((remaining + 999u) / 1000u));
+        return;
+    }
+    g_manual_release_list_has_run = true;
+    g_manual_release_list_last_tick = GetTickCount();
+
     std::vector<std::string> tags;
     std::string error;
     if (!fetch_all_release_tags(tags, error)) {
@@ -1414,6 +1459,14 @@ void refresh_release_list() {
     cache_stable_release_tag();
     const std::string stable_tag = get_update_cvar_or_default(kCvarUpdateStableTag, "");
     const bool show_all = show_all_release_tags();
+    g_cached_release_tags = tags;
+
+    const std::string target = get_update_target_tag();
+    if (!target_tag_in_release_list(tags, target)) {
+        set_update_cvar(kCvarUpdateTargetTag, kUpdateTargetStable);
+        PrintOut(PRINT_DEV, "Reset install target to stable (previous tag is no longer listed).\n");
+    }
+
     const std::string rmf = build_release_list_rmf(tags, stable_tag, show_all);
     set_update_cvar(kCvarUpdateReleaseListRmf, rmf);
     std::string status = std::to_string(tags.size()) + " releases in feed";
@@ -1422,12 +1475,6 @@ void refresh_release_list() {
                                        " (filtered: channels + stable + newest tag)";
     set_update_cvar(kCvarUpdateReleaseListStatus, status);
     sofbuddy_update_reload_update_menus();
-
-    const std::string target = get_update_target_tag();
-    if (!target_tag_in_release_list(tags, target)) {
-        set_update_cvar(kCvarUpdateTargetTag, kUpdateTargetStable);
-        PrintOut(PRINT_DEV, "Reset install target to stable (previous tag is no longer listed).\n");
-    }
 
     set_update_status("release list refreshed");
     PrintOut(PRINT_DEV, "Loaded %zu GitHub releases for install-version picker.\n", tags.size());
@@ -1539,6 +1586,15 @@ void sofbuddy_update_reload_update_menus(void) {
 }
 
 static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool startup_check, bool apply_selected) {
+    if (g_update_flow_active) {
+        PrintOut(PRINT_BAD, "sofbuddy_update: a check is already running.\n");
+        return;
+    }
+    g_update_flow_active = true;
+    struct FlowReset {
+        ~FlowReset() { g_update_flow_active = false; }
+    } flow_reset;
+
     const std::string releases_url = get_update_releases_url();
     std::string target_tag = get_update_target_tag();
     const bool startup_uses_stable = startup_check && startup_prompt_stable_only();
@@ -1711,11 +1767,12 @@ void sofbuddy_update_init(void) {
     detour_Cvar_Get::oCvar_Get(kCvarUpdateTargetTag, kUpdateTargetStable, CVAR_SOFBUDDY_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateShowAllReleases, "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateStableTag, "", 0, nullptr);
-    detour_Cvar_Get::oCvar_Get(kCvarUpdateReleaseListRmf, kDefaultReleaseListRmf, 0, nullptr);
+    detour_Cvar_Get::oCvar_Get(kCvarUpdateReleaseListRmf, "", 0, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateReleaseListStatus, "not loaded", 0, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateLocalLabel, SOFBUDDY_VERSION, 0, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateReleaseTitle, "", 0, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdatePromptNotesRmf, "", 0, nullptr);
+    set_update_cvar(kCvarUpdateReleaseListRmf, build_release_list_rmf(g_cached_release_tags, "", false));
 
 #if defined(SOFBUDDY_XP_BUILD)
     // XP builds should default to the sofvault mirror. Preserve explicit user customizations.
@@ -1776,6 +1833,17 @@ void sofbuddy_update_show_prompt_menu(void) {
 #endif
     if (!detour_Cmd_ExecuteString::oCmd_ExecuteString) return;
 
+    DWORD remaining = 0;
+    if (cooldown_active(g_manual_update_check_has_run, g_manual_update_check_last_tick,
+                        kManualUpdateCheckCooldownMs, remaining)) {
+        set_update_status(cooldown_status_text("check cooldown", remaining));
+        PrintOut(PRINT_BAD, "sofbuddy_update prompt: wait %us before checking again.\n",
+                 static_cast<unsigned>((remaining + 999u) / 1000u));
+        return;
+    }
+    g_manual_update_check_has_run = true;
+    g_manual_update_check_last_tick = GetTickCount();
+
     sofbuddy_run_update_flow(false, false, false, false);
 
     const std::string remote = get_update_cvar_or_default(kCvarUpdateLatest, "");
@@ -1834,7 +1902,51 @@ void Cmd_SoFBuddy_Update_f(void) {
         }
     }
 
+    if (!do_download) {
+        DWORD remaining = 0;
+        if (cooldown_active(g_manual_update_check_has_run, g_manual_update_check_last_tick,
+                            kManualUpdateCheckCooldownMs, remaining)) {
+            set_update_status(cooldown_status_text("check cooldown", remaining));
+            PrintOut(PRINT_BAD, "sofbuddy_update: wait %us before checking again.\n",
+                     static_cast<unsigned>((remaining + 999u) / 1000u));
+            return;
+        }
+        g_manual_update_check_has_run = true;
+        g_manual_update_check_last_tick = GetTickCount();
+    }
+
     sofbuddy_run_update_flow(do_download, force_download, false, false);
+}
+
+void Cmd_SoFBuddy_UpdateTarget_f(void) {
+    if (!detour_Cmd_Argc::oCmd_Argc || !detour_Cmd_Argv::oCmd_Argv) return;
+    if (detour_Cmd_Argc::oCmd_Argc() < 2) {
+        PrintOut(PRINT_BAD, "sofbuddy_update_target: missing install target\n");
+        return;
+    }
+    const std::string target = detour_Cmd_Argv::oCmd_Argv(1) ? detour_Cmd_Argv::oCmd_Argv(1) : "";
+    if (!safe_release_target(target)) {
+        PrintOut(PRINT_BAD, "sofbuddy_update_target: invalid target\n");
+        return;
+    }
+    if (!is_channel_target_tag(target)) {
+        bool known = false;
+        for (const auto& tag : g_cached_release_tags) {
+            if (tag == target) {
+                known = true;
+                break;
+            }
+        }
+        if (!known) {
+            PrintOut(PRINT_BAD,
+                     "sofbuddy_update_target: '%s' is not in the release list; refresh it first\n",
+                     target.c_str());
+            return;
+        }
+    }
+    set_update_cvar(kCvarUpdateTargetTag, target);
+    set_update_status("install target: " + target);
+    PrintOut(PRINT_DEV, "Install target set to %s\n", target.c_str());
 }
 
 void Cmd_SoFBuddy_UpdateInstall_f(void) {

@@ -26,6 +26,7 @@ constexpr int kIdFresh = 1003;
 constexpr int kIdOk = 1004;
 constexpr int kIdHeadline = 1005;
 constexpr int kIdNotes = 1006;
+constexpr int kIdResetFeatures = 1007;
 constexpr UINT kMsgProgress = WM_APP + 1;
 constexpr UINT kMsgDone = WM_APP + 2;
 constexpr UINT kMsgFailed = WM_APP + 3;
@@ -34,7 +35,11 @@ HWND g_hwnd = nullptr;
 HWND g_progress = nullptr;
 HWND g_status = nullptr;
 HWND g_fresh = nullptr;
+HWND g_reset_features = nullptr;
 HWND g_ok = nullptr;
+bool g_install_started = false;
+bool g_cli_fresh = false;
+bool g_cli_reset_features = false;
 HWND g_headline = nullptr;
 HWND g_notes = nullptr;
 std::wstring g_root;
@@ -359,6 +364,56 @@ void prune_sofbuddy_cfg_tree(const std::wstring& dir) {
     FindClose(h);
 }
 
+bool strip_legacy_feature_cvars(const std::wstring& path) {
+    const std::wstring temp = path + L".tmp";
+    FILE* in = _wfopen(path.c_str(), L"rb");
+    if (!in) return true;
+    FILE* out = _wfopen(temp.c_str(), L"wb");
+    if (!out) {
+        std::fclose(in);
+        return false;
+    }
+    char line[4096];
+    bool ok = true;
+    while (std::fgets(line, sizeof(line), in)) {
+        if (!std::strstr(line, "_sofbuddy_feature_"))
+            if (std::fputs(line, out) == EOF) ok = false;
+    }
+    std::fclose(in);
+    if (std::fclose(out) != 0) ok = false;
+    if (!ok) {
+        DeleteFileW(temp.c_str());
+        return false;
+    }
+    if (!MoveFileExW(temp.c_str(), path.c_str(),
+                     MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+        DeleteFileW(temp.c_str());
+        return false;
+    }
+    return true;
+}
+
+void reset_feature_toggles_tree(const std::wstring& dir) {
+    std::wstring spec = dir + L"\\*";
+    WIN32_FIND_DATAW fd = {};
+    HANDLE h = FindFirstFileW(spec.c_str(), &fd);
+    if (h == INVALID_HANDLE_VALUE) return;
+    do {
+        if (fd.cFileName[0] == L'.' &&
+            (fd.cFileName[1] == L'\0' || (fd.cFileName[1] == L'.' && fd.cFileName[2] == L'\0')))
+            continue;
+        std::wstring path = dir + L"\\" + fd.cFileName;
+        if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            reset_feature_toggles_tree(path);
+        } else if (_wcsicmp(fd.cFileName, L"sofbuddy_features.cfg") == 0) {
+            DeleteFileW(path.c_str());
+        } else if (_wcsicmp(fd.cFileName, L"sofbuddy.cfg") == 0) {
+            strip_legacy_feature_cvars(path);
+        }
+    } while (FindNextFileW(h, &fd));
+    FindClose(h);
+}
+
 bool extract_zip_inprocess(const std::wstring& zip_w, const std::wstring& root_w) {
     const std::string zip = wide_to_path(zip_w);
     const std::string root = wide_to_path(root_w);
@@ -420,10 +475,11 @@ bool extract_zip_inprocess(const std::wstring& zip_w, const std::wstring& root_w
     return true;
 }
 
-bool install_via_cmd(const bool fresh) {
+bool install_via_cmd(const bool fresh, const bool reset_features) {
     env_set(L"SOFBUDDY_UPDATER_NO_PAUSE", L"1");
     env_set(L"SOFBUDDY_UPDATER_SILENT", L"1");
     env_set(L"SOFBUDDY_UPDATER_FRESH", fresh ? L"1" : L"0");
+    env_set(L"SOFBUDDY_UPDATER_RESET_FEATURES", reset_features ? L"1" : L"0");
 
     std::wstring cmdline = L"cmd.exe /c " + quote(g_script);
     if (!g_zip.empty())
@@ -490,6 +546,8 @@ DWORD WINAPI worker_thread(LPVOID) {
     }
 
     const bool fresh = (g_fresh && SendMessageW(g_fresh, BM_GETCHECK, 0, 0) == BST_CHECKED);
+    const bool reset_features = (g_reset_features &&
+        SendMessageW(g_reset_features, BM_GETCHECK, 0, 0) == BST_CHECKED);
     g_shown_pct = 5;
     ui_progress(5, L"Preparing installation...");
     if (is_wine_runtime())
@@ -508,13 +566,17 @@ DWORD WINAPI worker_thread(LPVOID) {
         pace_stage(78, L"Verifying installation...", 450);
         pace_stage(86, L"Applying options...", 380);
         if (fresh) prune_sofbuddy_cfg_tree(g_root);
+        if (reset_features) {
+            reset_feature_toggles_tree(g_root);
+            DeleteFileW((g_root + L"\\sof_buddy\\features.cfg").c_str());
+        }
         DeleteFileW(g_zip.c_str());
         DeleteFileW((g_root + L"\\sof_buddy\\update\\pending_update.txt").c_str());
         DeleteFileW((g_root + L"\\sof_buddy\\update\\install_context.env").c_str());
         pace_stage(94, L"Cleaning up...", 360);
         pace_stage(100, L"Installation complete", 500);
     } else if (!is_wine_runtime() && !g_script.empty() && file_exists(g_script)) {
-        ok = install_via_cmd(fresh);
+        ok = install_via_cmd(fresh, reset_features);
     } else if (!ok) {
         append_install_log(is_wine_runtime()
             ? "Wine: in-process extract failed (cmd fallback disabled for spaced install paths)"
@@ -540,7 +602,8 @@ void layout_controls(HWND hwnd, int w, int h) {
     const int btn_h = 26;
     const int bottom = h - pad - btn_h;
     const int fresh_y = bottom - 24;
-    const int progress_y = fresh_y - bar_h - 8;
+    const int features_y = fresh_y - 24;
+    const int progress_y = features_y - bar_h - 8;
     const int status_y = progress_y - 22;
     const int notes_y = 34;
     const int notes_h = status_y - notes_y - 8;
@@ -552,6 +615,8 @@ void layout_controls(HWND hwnd, int w, int h) {
         MoveWindow(g_status, pad, status_y, w - pad * 2, 20, TRUE);
     if (g_progress)
         MoveWindow(g_progress, pad, progress_y, w - pad * 2, bar_h, TRUE);
+    if (g_reset_features)
+        MoveWindow(g_reset_features, pad, features_y, w - pad * 2, 20, TRUE);
     if (g_fresh)
         MoveWindow(g_fresh, pad, fresh_y, w - pad * 2, 20, TRUE);
     if (g_ok)
@@ -570,7 +635,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         g_notes = CreateWindowW(L"EDIT", L"",
             WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL | ES_READONLY,
             0, 0, 10, 10, hwnd, (HMENU)kIdNotes, nullptr, nullptr);
-        g_status = CreateWindowW(L"STATIC", L"Preparing installation...",
+        g_status = CreateWindowW(L"STATIC", L"Review options, then click Install.",
             WS_CHILD | WS_VISIBLE | SS_LEFT, 0, 0, 10, 10, hwnd, (HMENU)kIdStatus, nullptr, nullptr);
         if (font) {
             SendMessageW(g_headline, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
@@ -583,13 +648,21 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         SendMessageW(g_progress, PBM_SETBARCOLOR, 0, RGB(46, 160, 67));
         g_fresh = CreateWindowW(L"BUTTON", L"Start with fresh settings (removes sofbuddy.cfg)",
             WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 0, 0, 10, 10, hwnd, (HMENU)kIdFresh, nullptr, nullptr);
-        g_ok = CreateWindowW(L"BUTTON", L"Close",
-            WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | WS_DISABLED, 0, 0, 10, 10, hwnd, (HMENU)kIdOk, nullptr, nullptr);
+        g_reset_features = CreateWindowW(L"BUTTON", L"Reset feature toggles (for new features)",
+            WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 0, 0, 10, 10, hwnd, (HMENU)kIdResetFeatures, nullptr, nullptr);
+        g_ok = CreateWindowW(L"BUTTON", L"Install",
+            WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, 0, 0, 10, 10, hwnd, (HMENU)kIdOk, nullptr, nullptr);
+        if (g_cli_fresh) SendMessageW(g_fresh, BM_SETCHECK, BST_CHECKED, 0);
+        if (g_cli_reset_features) SendMessageW(g_reset_features, BM_SETCHECK, BST_CHECKED, 0);
+        if (font) {
+            SendMessageW(g_fresh, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
+            SendMessageW(g_reset_features, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
+            SendMessageW(g_ok, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
+        }
         RECT rc;
         GetClientRect(hwnd, &rc);
         layout_controls(hwnd, rc.right, rc.bottom);
         apply_version_ui();
-        start_worker();
         return 0;
     }
     case WM_SIZE:
@@ -622,6 +695,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         MessageBeep(MB_OK);
         MessageBoxW(hwnd, done_msg.c_str(), L"SoF Buddy Update — complete",
             MB_OK | MB_ICONINFORMATION | MB_SETFOREGROUND);
+        SetWindowTextW(g_ok, L"Close");
         EnableWindow(g_ok, TRUE);
         SetFocus(g_ok);
         return 0;
@@ -629,6 +703,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case kMsgFailed: {
         set_status(L"Update failed. See the log for details.");
         set_percent(0);
+        SetWindowTextW(g_ok, L"Close");
         EnableWindow(g_ok, TRUE);
         std::wstring text = L"The update could not be applied.\n\n" + read_install_log_text();
         MessageBoxW(hwnd, text.c_str(), L"SoF Buddy Update", MB_ICONERROR | MB_OK);
@@ -636,7 +711,16 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     }
     case WM_COMMAND:
         if (LOWORD(wp) == kIdOk && HIWORD(wp) == BN_CLICKED) {
-            DestroyWindow(hwnd);
+            if (!g_install_started) {
+                g_install_started = true;
+                EnableWindow(g_ok, FALSE);
+                EnableWindow(g_fresh, FALSE);
+                EnableWindow(g_reset_features, FALSE);
+                SetWindowTextW(g_ok, L"Installing...");
+                start_worker();
+            } else if (IsWindowEnabled(g_ok)) {
+                DestroyWindow(hwnd);
+            }
             return 0;
         }
         break;
@@ -659,8 +743,17 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR cmd_line, int) {
     int argc = 0;
     LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
     std::wstring zip;
-    if (argv && argc >= 2) zip = argv[1];
-    if (argv) LocalFree(argv);
+    if (argv) {
+        for (int i = 1; i < argc; ++i) {
+            if (_wcsicmp(argv[i], L"--fresh-settings") == 0)
+                g_cli_fresh = true;
+            else if (_wcsicmp(argv[i], L"--reset-features") == 0)
+                g_cli_reset_features = true;
+            else if (zip.empty())
+                zip = argv[i];
+        }
+        LocalFree(argv);
+    }
 
     if (!resolve_paths(zip)) {
         MessageBoxW(nullptr, L"Could not find sof_buddy\\update_from_zip.cmd next to the game folder.",
@@ -681,7 +774,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR cmd_line, int) {
     RegisterClassW(&wc);
 
     const int win_w = 520;
-    const int win_h = 440;
+    const int win_h = 464;
     RECT desk;
     SystemParametersInfoW(SPI_GETWORKAREA, 0, &desk, 0);
     const int x = desk.left + ((desk.right - desk.left) - win_w) / 2;

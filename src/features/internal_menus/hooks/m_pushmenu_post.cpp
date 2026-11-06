@@ -15,6 +15,7 @@ bool g_internal_menus_main_menu_seen = false;
 void internal_menus_M_PushMenu_post(char const* menu_file, char const* parentFrame, bool lock_input) {
     (void)parentFrame;
     (void)lock_input;
+    internal_menus_feature_prompt_note_menu(menu_file);
     internal_menus_remember_menu_page(menu_file);
     if (menu_file && std::strstr(menu_file, "sof_buddy")) {
         auto* ms = *reinterpret_cast<void**>(rvaToAbsExe(reinterpret_cast<void*>(0x00406554)));

@@ -91,7 +91,7 @@ bool mainMenuBgTiled = false;
 
 // Feature-specific variables defined in their respective feature files:
 // - Console: scaled_con/console.cpp (consoleSize, isFontInner, draw_con_frac, cls_state, real_refdef_width)
-// - Menu: scaled_menu/menu.cpp (isMenuSpmSettings, menuLoadboxFirstItemX, menuLoadboxFirstItemY)
+// - Menu: scaled_menu/menu.cpp (menu layout helpers)
 // They are declared as extern in shared.h for use by base hooks
 
 // Shared variables used by multiple features (moved from scaled_con for shared access)

@@ -102,73 +102,136 @@ std::wstring widen(const char* value) {
     return result;
 }
 
-void add_config_candidate(std::vector<std::wstring>& paths, std::wstring base) {
+void add_config_candidate(std::vector<std::wstring>& paths, std::wstring base,
+                          const wchar_t* filename) {
     while (base.size() > 1 && (base.back() == L'\\' || base.back() == L'/'))
         base.pop_back();
-    if (base.empty()) return;
-    const std::wstring path = base + L"\\base\\sofbuddy.cfg";
+    if (base.empty() || !filename || !filename[0]) return;
+    const std::wstring path = base + L"\\base\\" + filename;
     for (const std::wstring& existing : paths)
         if (existing == path) return;
     paths.push_back(path);
 }
 
-bool load_persisted_features() {
+std::vector<std::wstring> config_candidates(const wchar_t* filename) {
     std::vector<std::wstring> candidates;
     cvar_t* basedir = findCvar(const_cast<char*>("basedir"));
-    if (basedir && basedir->string) add_config_candidate(candidates, widen(basedir->string));
-
-    wchar_t path[MAX_PATH] = {};
-    DWORD length = GetCurrentDirectoryW(ARRAYSIZE(path), path);
-    if (length && length < ARRAYSIZE(path)) add_config_candidate(candidates, path);
+    if (basedir && basedir->string) add_config_candidate(candidates, widen(basedir->string), filename);
 
     const std::wstring module_dir = module_directory();
-    add_config_candidate(candidates, module_dir);
+    add_config_candidate(candidates, module_dir, filename);
+
+    wchar_t path[MAX_PATH] = {};
     if (GetModuleFileNameW(nullptr, path, ARRAYSIZE(path))) {
         std::wstring exe(path);
         const size_t slash = exe.find_last_of(L"\\/");
-        if (slash != std::wstring::npos) add_config_candidate(candidates, exe.substr(0, slash));
+        if (slash != std::wstring::npos) add_config_candidate(candidates, exe.substr(0, slash), filename);
     }
 
+    DWORD length = GetCurrentDirectoryW(ARRAYSIZE(path), path);
+    if (length && length < ARRAYSIZE(path)) add_config_candidate(candidates, path, filename);
+    return candidates;
+}
+
+std::wstring game_base_directory() {
+    cvar_t* basedir = findCvar(const_cast<char*>("basedir"));
+    if (basedir && basedir->string && basedir->string[0]) {
+        std::wstring base = widen(basedir->string);
+        while (base.size() > 1 && (base.back() == L'\\' || base.back() == L'/'))
+            base.pop_back();
+        if (!base.empty()) return base;
+    }
+    const std::wstring module_dir = module_directory();
+    if (!module_dir.empty()) return module_dir;
+
+    wchar_t path[MAX_PATH] = {};
+    if (GetModuleFileNameW(nullptr, path, ARRAYSIZE(path))) {
+        std::wstring exe(path);
+        const size_t slash = exe.find_last_of(L"\\/");
+        if (slash != std::wstring::npos) return exe.substr(0, slash);
+    }
+    DWORD length = GetCurrentDirectoryW(ARRAYSIZE(path), path);
+    if (length && length < ARRAYSIZE(path)) return std::wstring(path, length);
+    return L"";
+}
+
+bool parse_feature_stream(FILE* file) {
+    bool found = false;
+    char buffer[512];
+    while (std::fgets(buffer, sizeof(buffer), file)) {
+        std::string line = trim(buffer);
+        const char* prefix = "set _sofbuddy_feature_";
+        if (line.compare(0, std::strlen(prefix), prefix) != 0) continue;
+
+        const size_t value_start = line.find_first_of(" \t", std::strlen(prefix));
+        if (value_start == std::string::npos) continue;
+        const std::string name = line.substr(std::strlen(prefix),
+                                             value_start - std::strlen(prefix));
+        std::string value = trim(line.substr(value_start));
+        if (value.size() >= 2 && value.front() == '"') {
+            const size_t end = value.find('"', 1);
+            if (end == std::string::npos) continue;
+            value = value.substr(1, end - 1);
+        } else {
+            const size_t end = value.find_first_of(" \t");
+            if (end != std::string::npos) value.resize(end);
+        }
+
+        char* end = nullptr;
+        const long selection = std::strtol(value.c_str(), &end, 10);
+        const std::string trailing = end ? trim(end) : "";
+        if (!end || !trailing.empty() || selection < 0 || selection > 1)
+            continue;
+        const Feature feature = feature_from_name(name.c_str());
+        if (feature != Feature::Count && kCompiledFeatures[static_cast<size_t>(feature)]) {
+            set_enabled(feature, selection != 0);
+            found = true;
+        }
+    }
+    return found;
+}
+
+bool load_feature_candidates(const std::vector<std::wstring>& candidates) {
     for (const std::wstring& candidate : candidates) {
         FILE* file = _wfopen(candidate.c_str(), L"rb");
         if (!file) continue;
-
-        bool found = false;
-        char buffer[512];
-        while (std::fgets(buffer, sizeof(buffer), file)) {
-            std::string line = trim(buffer);
-            const char* prefix = "set _sofbuddy_feature_";
-            if (line.compare(0, std::strlen(prefix), prefix) != 0) continue;
-
-            const size_t value_start = line.find_first_of(" \t", std::strlen(prefix));
-            if (value_start == std::string::npos) continue;
-            const std::string name = line.substr(std::strlen(prefix),
-                                                 value_start - std::strlen(prefix));
-            std::string value = trim(line.substr(value_start));
-            if (value.size() >= 2 && value.front() == '"') {
-                const size_t end = value.find('"', 1);
-                if (end == std::string::npos) continue;
-                value = value.substr(1, end - 1);
-            } else {
-                const size_t end = value.find_first_of(" \t");
-                if (end != std::string::npos) value.resize(end);
-            }
-
-            char* end = nullptr;
-            const long selection = std::strtol(value.c_str(), &end, 10);
-            const std::string trailing = end ? trim(end) : "";
-            if (!end || !trailing.empty() || selection < 0 || selection > 1)
-                continue;
-            const Feature feature = feature_from_name(name.c_str());
-            if (feature != Feature::Count && kCompiledFeatures[static_cast<size_t>(feature)]) {
-                set_enabled(feature, selection != 0);
-                found = true;
-            }
-        }
+        parse_feature_stream(file);
         std::fclose(file);
-        if (found) return true;
+        return true;
     }
     return false;
+}
+
+bool load_persisted_features() {
+    if (load_feature_candidates(config_candidates(L"sofbuddy_features.cfg")))
+        return true;
+    return load_feature_candidates(config_candidates(L"sofbuddy.cfg"));
+}
+
+void write_feature_state() {
+    const std::wstring base = game_base_directory();
+    if (base.empty()) return;
+    const std::wstring dir = base + L"\\base";
+    CreateDirectoryW(dir.c_str(), nullptr);
+    const std::wstring path = dir + L"\\sofbuddy_features.cfg";
+    const std::wstring temp_path = path + L".tmp";
+    FILE* file = _wfopen(temp_path.c_str(), L"wb");
+    if (!file) {
+        PrintOut(PRINT_BAD, "Runtime features: unable to write sofbuddy_features.cfg\n");
+        return;
+    }
+    std::fprintf(file, "# Generated feature toggles. Restart SoF after changing them.\n\n");
+#define WRITE_FEATURE_STATE(macro, name, label) \
+    std::fprintf(file, "set _sofbuddy_feature_%s \"%d\"\n", name, \
+                 Enabled(Feature::RUNTIME_##macro) ? 1 : 0);
+    FEATURE_LIST(WRITE_FEATURE_STATE)
+#undef WRITE_FEATURE_STATE
+    std::fclose(file);
+    if (!MoveFileExW(temp_path.c_str(), path.c_str(),
+                     MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+        DeleteFileW(temp_path.c_str());
+        PrintOut(PRINT_BAD, "Runtime features: unable to replace sofbuddy_features.cfg\n");
+    }
 }
 
 void write_config() {
@@ -196,6 +259,7 @@ void write_config() {
         DeleteFileW(temp_path.c_str());
         PrintOut(PRINT_BAD, "Runtime features: unable to replace features.cfg\n");
     }
+    write_feature_state();
 }
 
 void set_override(std::string name, bool enabled) {
@@ -235,7 +299,11 @@ void Load() {
         std::fclose(file);
     }
 
-    if (load_persisted_features() || !config_present) write_config();
+    const bool persisted = load_persisted_features();
+    if (persisted || !config_present)
+        write_config();
+    else
+        write_feature_state();
 
     const std::uint32_t scaledFeatures =
         (std::uint32_t(1) << static_cast<size_t>(Feature::RUNTIME_FEATURE_SCALED_CON)) |

@@ -71,7 +71,6 @@ extern bool hudHealthArmor;
 
 extern int DrawPicWidth;
 extern int DrawPicHeight;
-extern bool isMenuSpmSettings;
 extern bool g_scaleCinematicPics;
 
 extern int menuLoadboxFirstItemX;

@@ -1,0 +1,35 @@
+<stm>
+<include tints>
+
+<backdrop bgcolor black>
+<key escape "sofbuddy_feature_prompt_close">
+<key n "sofbuddy_feature_prompt_close">
+<key y "sofbuddy_feature_prompt_close;sofbuddy_menu sof_buddy/features">
+
+<vbar tint orange>
+
+<left>
+<blank 16 1>
+<right>
+<blank 16 1>
+<normal>
+
+<center>
+<font type {font_title} tint orange atint orange>
+"FEATURE REQUIRED"
+<hbr>
+<hbr>
+
+<font type {font_medium} tint white atint white>
+<ctext _sb_internal_feature_prompt_feature atext "Feature : " noshade><hbr>
+<ctext _sb_internal_feature_prompt_cvar atext "Setting : " noshade><hbr>
+<hbr>
+<text "Enable it in F12"><hbr>
+<text "Features tab, then"><hbr>
+<text "restart SoF."><hbr>
+<text "Press Y for Features."><hbr>
+<text "Universal if Unavailable."><hbr>
+<hbr>
+
+<text "Close (N)" border 16 1 gray key mouse1 "sofbuddy_feature_prompt_close">
+</stm>

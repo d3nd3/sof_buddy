@@ -28,20 +28,20 @@
 "_____________________________"
 <hbr>
 <hbr>
-<left>
+<center>
 <font type {font_title} tint white atint white>
 Ask a server admin to mint your MP profile GUID.<hbr>
 Paste it below, then Save and Apply. Primary backup: Documents\sof_buddy_mp_profile.cfg.<hbr>
 <hbr>
 <ctext _sb_internal_mp_profile_status atext "Status : " noshade><hbr>
 <hbr>
-<input width 520 cvar _sofbuddy_mp_profile_guid border 8 1 gray maxchars 64 tip "Profile GUID from your admin (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)."><hbr>
+<input width 520 cvar _sofbuddy_mp_profile_guid border 8 1 gray maxchars 64 align center tip "Profile GUID from your admin (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)."><hbr>
 <hbr>
 <text "Save and Apply" key mouse1 "sofbuddy_mp_profile_apply;refresh" border 8 1 cyan regular align center><br>
 <text "Export Backup" key mouse1 "sofbuddy_mp_profile_export" tip "Writes Documents\sof_buddy_mp_profile.cfg and refreshes user\sf_login.cfg." border 8 1 cyan regular align center><br>
 <text "Import Backup" key mouse1 "sofbuddy_mp_profile_import;refresh" tip "Reads import path below, or Documents\sof_buddy_mp_profile.cfg if blank." border 8 1 cyan regular align center><hbr>
 <hbr>
-<input width 520 cvar _sofbuddy_mp_profile_import_path border 8 1 gray maxchars 255 tip "Optional: full path to a backup .cfg (leave blank for Documents default)."><hbr>
+<input width 520 cvar _sofbuddy_mp_profile_import_path border 8 1 gray maxchars 255 align center tip "Optional: full path to a backup .cfg (leave blank for Documents default)."><hbr>
 <hbr>
 <font type {font_title} tint sb_subtle atint sb_subtle>
 "_____________________________"

@@ -9,7 +9,15 @@ selected runtime feature set to:
 ```
 
 The initial selections mirror `features/FEATURES.txt`: uncommented feature names
-are enabled and commented feature names are disabled. The custom setup page keeps
+are enabled and commented feature names are disabled. Setup does not reuse a
+previous installation's setup type or component selection, so the Recommended
+feature set is selected again on upgrades even when an older `features.cfg`
+disabled some tested features. Setup does not overwrite saved feature toggles on a normal upgrade. If Buddy is
+already installed, the wizard shows **Expecting a new feature? Reset feature
+toggles**, which removes `base/sofbuddy_features.cfg` and legacy feature lines
+from `base/sofbuddy.cfg` so `features.cfg` defaults apply. The Components page labels these as **runtime feature selections** and points
+players to **F12 > Features**, where the same toggles can be changed after
+installation. The custom setup page keeps
 the recommended/tested and un-recommended/unstable split, then groups features
 by type (for example Security Fixes, Bug Fixes, Graphics, Input, and
 Networking). Core / Performance and Security Fixes are always selected and
@@ -22,10 +30,11 @@ features.
 
 When the universal DLL is present, the F12 menu has a **Features** tab. Each
 feature is represented by an archived `_sofbuddy_feature_<name>` cvar with
-`Off`, `On`, and `Unavailable` states. The cvars are saved in:
+`Off`, `On`, and `Unavailable` states. The cvars are saved separately from
+the other SoF Buddy settings in:
 
 ```text
-<SoF basedir>\base\sofbuddy.cfg
+<SoF basedir>\base\sofbuddy_features.cfg
 ```
 
 Feature hooks and low-level patches are registered during startup, so changing a
@@ -35,7 +44,9 @@ shows **Restart SoF to apply changes.**
 On startup, before feature registration:
 
 1. The DLL loads its installed `sof_buddy/features.cfg`.
-2. It reads saved `_sofbuddy_feature_*` selections from `base/sofbuddy.cfg`.
+2. It reads saved `_sofbuddy_feature_*` selections from
+   `base/sofbuddy_features.cfg` (falling back to legacy lines in
+   `base/sofbuddy.cfg` once for migration).
 3. Saved selections override the installed defaults and are written back to
    `sof_buddy/features.cfg`.
 4. Feature registration uses that resulting `features.cfg` selection.
@@ -78,11 +89,17 @@ replacement; otherwise Setup verifies the installed DLL's SHA-256 immediately.
 If the replacement cannot complete, Setup reports an error instead of claiming
 the old DLL was updated.
 
-Existing `base/sofbuddy.cfg` is retained during a normal update. On the next
-launch, a universal DLL reads its archived feature cvars and regenerates
-`sof_buddy/features.cfg`, so a universal update does not silently reset a user's
-feature choices. The updater's optional **fresh settings** prompt removes saved
-`sofbuddy.cfg`; after that, the selected package's defaults are used.
+Existing `base/sofbuddy.cfg` and `base/sofbuddy_features.cfg` are retained
+during a normal update. On the next launch, a universal DLL reads the saved
+feature toggles and regenerates `sof_buddy/features.cfg`, so a universal update
+does not silently reset a user's feature choices. The updater has separate
+options: **fresh settings** removes `sofbuddy.cfg`, while **Reset feature
+toggles** removes `sofbuddy_features.cfg`, legacy `_sofbuddy_feature_*` lines in
+`sofbuddy.cfg`, and `sof_buddy/features.cfg`; the selected package's defaults are
+then used. The command-line scripts accept `--fresh-settings` and
+`--reset-features`, the matching `SOFBUDDY_UPDATER_FRESH=1` /
+`SOFBUDDY_UPDATER_RESET_FEATURES=1` environment variables, or prompt
+interactively.
 
 The update ZIP is applied while SoF is closed. If `features.cfg` is edited
 manually, it is used until saved feature cvars are present; those cvars take

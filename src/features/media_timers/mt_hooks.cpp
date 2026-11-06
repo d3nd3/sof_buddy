@@ -273,33 +273,32 @@ void sleep_busyticks_change(cvar_t * cvar)
 }
 
 // Framerate steps mirrored from the Framerate Cap list in cpu_content.rmf (excluding the
-// 923 sentinel): ceil(1000/n) for n = 1..16, 20, 25, 30, 40, and 100ms. Keep the two in sync.
+// 923 sentinel): ceil(1000/n) for n = 1..16, 20, 25, 30, 40, and 100ms, plus the engine
+// default 30. Keep the two in sync.
 static const float kFramerateSteps[] = {
-    10.0f, 25.0f, 34.0f, 40.0f, 50.0f, 63.0f, 67.0f, 72.0f,
-    77.0f, 84.0f, 91.0f, 100.0f, 112.0f, 125.0f, 143.0f, 167.0f,
-    200.0f, 250.0f, 334.0f, 500.0f, 1000.0f
+    10.0f, 25.0f, 30.0f, 34.0f, 40.0f, 50.0f, 63.0f, 67.0f,
+    72.0f, 77.0f, 84.0f, 91.0f, 100.0f, 112.0f, 125.0f, 143.0f,
+    167.0f, 200.0f, 250.0f, 334.0f, 500.0f, 1000.0f
 };
 static const size_t kFramerateStepCount = sizeof(kFramerateSteps) / sizeof(kFramerateSteps[0]);
 
-// Smallest step not below want. Rounds UP so the implied budget always fits inside the
-// millisecond quantum (1000/7 = 142.857, so 143 with its 6.993ms budget is correct for 7ms;
-// rounding down to 142 would need 7.042ms and overshoot it).
-static float cl_maxfps_ceil_step(float want)
+// Largest step not above want. Rounds DOWN so the resulting whole-ms budget never
+// exceeds the requested cap (150 -> 143/7ms; 167 would use 6ms and run faster).
+static float cl_maxfps_floor_step(float want)
 {
-    float best = kFramerateSteps[kFramerateStepCount - 1];
+    float best = kFramerateSteps[0];
     for (size_t i = 0; i < kFramerateStepCount; ++i) {
-        if (kFramerateSteps[i] >= want) {
-            best = kFramerateSteps[i];
-            break;
-        }
+        if (kFramerateSteps[i] > want) break;
+        best = kFramerateSteps[i];
     }
     return best;
 }
 
-// Snap the live value to the first whole-ms step at or above it. String-compared
+// Snap the live value to the first legacy step at or below it. String-compared
 // like the widget's own match scan, so float-formatted strings ("30.000000") get cleaned too.
 // Idempotent: in-list values produce no write. Called before the CPU page parses so first
-// paint already shows the settled value instead of the fallback label.
+// paint already shows the settled value instead of the fallback label; cl_maxfps_change
+// also enforces the same normalization on every cvar write.
 void sofbuddy_quantize_cl_maxfps(void)
 {
     if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_MEDIA_TIMERS)) return;
@@ -309,7 +308,7 @@ void sofbuddy_quantize_cl_maxfps(void)
     if (sofbuddy_cl_maxfps_exact_enabled()) {
         snprintf(buf, sizeof(buf), "%d", sofbuddy_exact_fps_quantize(cl_maxfps->value));
     } else {
-        const float best = cl_maxfps_ceil_step(cl_maxfps->value);
+        const float best = cl_maxfps_floor_step(cl_maxfps->value);
         snprintf(buf, sizeof(buf), "%g", static_cast<double>(best));
     }
     if (strcmp(cl_maxfps->string, buf) != 0)
@@ -327,9 +326,9 @@ void cl_maxfps_change(cvar_t *cvar)
 
     // Reserved sentinel 923: the F12 Framerate list's first match entry. An off-list value
     // resolves to fallback index 0 on page open, so the widget writes "923" - which lands
-    // here, where we round the PRE-reset value (still in previous_cl_maxfps) UP to the
-    // smallest list entry that covers it - so the implied budget always fits inside the
-    // millisecond quantum (1000/7 = 142.857, so 143 with its 6.993ms budget is correct).
+    // here, where we round the PRE-reset value (still in previous_cl_maxfps) DOWN to the
+    // largest list entry not above it - so the implied budget never exceeds the requested
+    // cap (150 -> 143's 6.993ms budget instead of 167's 5.988ms).
     // "923" can therefore never be held. Keep in sync with the Framerate Cap list in
     // cpu_content.rmf (excluding the sentinel itself).
     // NOTE: exact == is safe - our own normalize writes the literal string "923".
@@ -340,13 +339,14 @@ void cl_maxfps_change(cvar_t *cvar)
         if (sofbuddy_cl_maxfps_exact_enabled()) {
             snprintf(buf, sizeof(buf), "%d", sofbuddy_exact_fps_quantize(want));
         } else {
-            const float best = cl_maxfps_ceil_step(want);
-            PrintOut(PRINT_DEV, "cl_maxfps %f off-list, rounding up to step %f\n",
+            const float best = cl_maxfps_floor_step(want);
+            PrintOut(PRINT_DEV, "cl_maxfps %f off-list, rounding down to step %f\n",
                      static_cast<double>(want), static_cast<double>(best));
             snprintf(buf, sizeof(buf), "%g", static_cast<double>(best));
         }
         detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("cl_maxfps"), buf, true);
         s_settling = false;
+        sofbuddy_cfg_save_sofplus_settings();
         return;
     }
 
@@ -358,6 +358,7 @@ void cl_maxfps_change(cvar_t *cvar)
             s_settling = true;
             detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("cl_maxfps"), const_cast<char*>("10"), true);
             s_settling = false;
+            sofbuddy_cfg_save_sofplus_settings();
             return;
         }
         if (std::fabs(cvar->value - static_cast<float>(fps)) > 0.01f) {
@@ -366,15 +367,31 @@ void cl_maxfps_change(cvar_t *cvar)
             snprintf(buf, sizeof(buf), "%d", fps);
             detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("cl_maxfps"), buf, true);
             s_settling = false;
+            sofbuddy_cfg_save_sofplus_settings();
             return;
         }
-    } else if (cvar->value < 10.0f && !s_settling) {
-        PrintOut(PRINT_DEV, "cl_maxfps %f below minimum, raising to 10\n",
-                 static_cast<double>(cvar->value));
-        s_settling = true;
-        detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("cl_maxfps"), const_cast<char*>("10"), true);
-        s_settling = false;
-        return;
+    } else if (!s_settling) {
+        if (cvar->value < 10.0f) {
+            PrintOut(PRINT_DEV, "cl_maxfps %f below minimum, raising to 10\n",
+                     static_cast<double>(cvar->value));
+            s_settling = true;
+            detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("cl_maxfps"), const_cast<char*>("10"), true);
+            s_settling = false;
+            sofbuddy_cfg_save_sofplus_settings();
+            return;
+        }
+        const float best = cl_maxfps_floor_step(cvar->value);
+        char buf[32];
+        snprintf(buf, sizeof(buf), "%g", static_cast<double>(best));
+        if (cvar->value != best || strcmp(cvar->string, buf) != 0) {
+            PrintOut(PRINT_DEV, "cl_maxfps %f off-list, rounding down to step %f\n",
+                     static_cast<double>(cvar->value), static_cast<double>(best));
+            s_settling = true;
+            detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("cl_maxfps"), buf, true);
+            s_settling = false;
+            sofbuddy_cfg_save_sofplus_settings();
+            return;
+        }
     }
 
     previous_cl_maxfps = cvar->value;
@@ -417,7 +434,7 @@ void cl_maxfps_exact_change(cvar_t* cvar)
         // Literal integer FPS — do not remap through legacy ceil(1000/x) ms budgets.
         snprintf(buf, sizeof(buf), "%d", sofbuddy_exact_fps_quantize(v));
     } else {
-        const float best = cl_maxfps_ceil_step(v);
+        const float best = cl_maxfps_floor_step(v);
         snprintf(buf, sizeof(buf), "%g", static_cast<double>(best));
     }
     if (strcmp(cl_maxfps->string, buf) != 0)
@@ -660,7 +677,7 @@ int winmain_loop(void)
 	//Time is applied to extratime here: 
 	SOFBUDDY_ASSERT(detour_Qcommon_Frame::oQcommon_Frame != nullptr);
 	SOFBUDDY_ASSERT(timedelta >= 0);
-	detour_Qcommon_Frame::oQcommon_Frame(timedelta);
+	detour_Qcommon_Frame::hkQcommon_Frame(timedelta);
 
 	//does not matter what we return here because we have jmp instruction immidiately after.
 	return 0;
@@ -730,7 +747,7 @@ int winmain_loop(void)
 	#endif
 
 	oldtime = newtime;
-	detour_Qcommon_Frame::oQcommon_Frame(time);
+	detour_Qcommon_Frame::hkQcommon_Frame(time);
 
 	//fake return because we are implementing everything
 	return 0;

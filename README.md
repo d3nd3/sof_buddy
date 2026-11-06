@@ -72,7 +72,7 @@ extraction or feature-enable scripts are needed.
 
 1. [Download the latest Windows installer](https://github.com/d3nd3/sof_buddy/releases) (`sof_buddy_setup_v<version>.exe`).
 2. Run it and select the SoF folder containing `SoF.exe`.
-3. Keep **Recommended feature set** or choose **Custom feature selection**, then finish setup.
+3. Keep **Recommended feature set** or choose **Custom feature selection**, then finish setup. Setup reselects the Recommended feature set on upgrades instead of reusing an older custom/disabled selection.
 4. Setup automatically enables SoF Buddy and saves the original as `SoF.exe.bak`.
 5. Launch SoF.
 
@@ -122,11 +122,15 @@ Its initial selections are generated from `features/FEATURES.txt`. The file can 
 edited later (`feature` enables it, `// feature` disables it); restart SoF after changes.
 If `features.cfg` is missing, the universal DLL falls back to those same defaults.
 The F12 **Features** tab exposes the same choices at runtime as archived
-`_sofbuddy_feature_<name>` cvars. Changes are written to `base/sofbuddy.cfg`,
+`_sofbuddy_feature_<name>` cvars. Changing a setting whose feature is disabled
+opens a **Feature Required** prompt with a shortcut to the Features tab instead
+of silently doing nothing. Changes are written to `base/sofbuddy_features.cfg`,
 shown as **Unavailable** when the installed non-universal DLL does not contain a
 feature, and take effect after restarting SoF. On startup, those saved selections
 are read before hooks are registered and synchronized back to
 `sof_buddy/features.cfg`; that file remains the early-startup source of truth.
+The installer and updater offer **Reset feature toggles** separately from the
+normal settings reset, for users expecting a newly added feature.
 It also offers a **Select Additional Tasks** page with **Optional installation
 options**. After you pick the game directory, Setup probes `SoF.exe` and
 pre-checks the first two tasks when they still make sense for your retail build;
@@ -143,6 +147,13 @@ pre-checks the first two tasks when they still make sense for your retail build;
   The installer sets SoF parental-control values for the volume that contains
   the chosen game folder, for the current Windows user only. Uninstalling SoF
   Buddy does not remove those per-user settings.
+
+- **[OPTIONAL] Expecting a new feature? Reset feature toggles** — Shown only
+  when an existing SoF Buddy install is detected. Clears saved feature toggles
+  (`base/sofbuddy_features.cfg` and legacy feature lines) while keeping normal
+  SoF Buddy settings, then uses the features selected in the installer.
+  The graphical updater and update scripts offer the same reset separately from
+  **fresh settings**.
 
 - **[OPTIONAL] Install SoF Plus client (20140531)** — Bundles all four retail
   patch kits (`cd`, `gog`, `cd-kb4571756`, `gog-kb4571756`); Setup selects one
@@ -168,6 +179,10 @@ pre-checks the first two tasks when they still make sense for your retail build;
   - **Windows universal / installer:** `sof_buddy/sof_buddy_update.exe` (or `update_from_zip.cmd`)
   - **Windows compile-time channel:** `sof_buddy/update_from_zip.cmd` only
   - **Linux/Wine:** `sof_buddy/update_from_zip.sh`
+  - Put `--reset-features` before the optional zip path to reset only saved
+    feature toggles for a newly added feature; use `--fresh-settings` to remove
+    `sofbuddy.cfg`. Scripts also accept
+    `SOFBUDDY_UPDATER_RESET_FEATURES=1` / `SOFBUDDY_UPDATER_FRESH=1`.
 
 ### Enable SoF Plus Only
 
@@ -543,7 +558,7 @@ so they do not appear in the console and the **Map Study** section is hidden fro
 them.
 
 - See [OpenGL glBlendFunc docs](https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glBlendFunc.xhtml) for blend values.
-- Cvars with `CVAR_SOFBUDDY_ARCHIVE` persist to `base/sofbuddy.cfg` and are reapplied on startup.
+- Cvars with `CVAR_SOFBUDDY_ARCHIVE` persist to `base/sofbuddy.cfg` and are reapplied on startup. `_sofbuddy_feature_*` toggles persist separately in `base/sofbuddy_features.cfg`.
 
 ### Server-visible client info
 

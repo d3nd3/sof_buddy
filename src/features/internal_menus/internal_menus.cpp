@@ -462,7 +462,7 @@ void internal_menus_refresh_vid_mode_list_rmf(void) {
     rmf += "\" match \"";
     rmf += values;
     rmf += "\" cvar gl_mode atext \"Resolution : \" key mouse1 \"vid_restart\" key mouse2 \"vid_restart\" "
-            "noshade tip \"gl_mode index into SoFPlus _sp_cl_vid_mode_N entries. Takes effect after vid_restart.\"><hbr>";
+            "noshade tip \"Pick a gl_mode entry (0-9). Each entry maps to _sp_cl_vid_mode_N. Takes effect after vid_restart.\"><hbr>";
     detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_vid_mode_list_rmf"),
                                  const_cast<char*>(rmf.c_str()), true);
 }
@@ -674,7 +674,8 @@ void internal_menus_remember_menu_page(const char* menu_file) {
             return;
         }
     }
-    if (n == "sof_buddy/update_prompt" || n == "sof_buddy/update_uptodate" || n == "sof_buddy/update_downgrade") {
+    if (n == "sof_buddy/update_prompt" || n == "sof_buddy/update_uptodate" ||
+        n == "sof_buddy/update_downgrade" || n == "sof_buddy/feature_prompt") {
         return;
     }
     set_runtime_cvar_str("_sb_internal_menu_last_page", n.c_str());
@@ -1033,6 +1034,7 @@ void internal_menus_PostCvarInit(void) {
 
     create_loading_cvars();
     create_layout_cvars();
+    internal_menus_feature_prompt_init_cvars();
     update_layout_cvars(false);
 
     if (!detour_Cmd_AddCommand::oCmd_AddCommand) {
@@ -1041,6 +1043,7 @@ void internal_menus_PostCvarInit(void) {
     }
 
     register_sofbuddy_menu_command();
+    internal_menus_feature_prompt_init_command();
     detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_f12_menu"), Cmd_SoFBuddy_F12_Menu_f);
     internal_menus_install_sound_quiet_filter();
     detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_apply_menu_hotkey"), Cmd_SoFBuddy_Apply_Menu_Hotkey_f);
@@ -1224,6 +1227,7 @@ void internal_menus_note_loading_shown(void) { g_loading_menu_shown = true; }
 
 void internal_menus_scr_updatescreen_post(bool force) {
     (void)force;
+    internal_menus_feature_prompt_tick();
     if (!g_loading_menu_shown) return;
     auto* state = (int*)rvaToAbsExe((void*)0x1C1F00);
     auto* prepped = (unsigned char*)rvaToAbsExe((void*)0x1E7594);

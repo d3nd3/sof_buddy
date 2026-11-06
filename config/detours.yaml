@@ -886,6 +886,13 @@ functions:
       - type: void*
         name: self
 
+  - name: M_ForceMenuOff
+    module: SofExe
+    identifier: "0x200C7380"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 7
+
   - name: M_PushMenu
     module: SofExe
     identifier: "0x200C7630"

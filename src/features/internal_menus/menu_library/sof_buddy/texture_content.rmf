@@ -29,6 +29,17 @@
 <hbr>
 <hbr>
 <font type {font_title} tint cyan atint cyan>
+"Video"
+<font type {font_title} tint white atint white>
+<ctext _sp_cl_info_vid_mode atext "Current : " noshade><br>
+<ctext gl_mode atext "gl_mode : " noshade><br>
+<includecvar _sb_internal_vid_mode_list_rmf>
+
+<font type {font_title} tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type {font_title} tint cyan atint cyan>
 "Texture Filtering"
 <font type {font_title} tint white atint white>
 <list "NEAREST,LINEAR" match "GL_NEAREST,GL_LINEAR" cvar _sofbuddy_minfilter_unmipped atext "Unmipped Min : " noshade tip "No mipmaps on sky/detail — MIPMAP modes make textures incomplete."><br>
@@ -56,21 +67,12 @@
 <list "Off,On" cvar gl_ext_multitexture atext "gl_ext_multitexture : " noshade><br>
 <list "Off,On" cvar gl_ext_anisotropic atext "gl_ext_anisotropic : " noshade><br>
 <ctext _sp_cl_vid_gl_texture_max_anisotropy_ext atext "_sp_cl_vid_gl_texture_max_anisotropy_ext : " noshade tip "Recommended 16x as provides smoother lines in the world"><br>
-<slider cvar _sp_cl_vid_gl_texture_max_anisotropy_ext min 0 max 16 step 2 tip "Recommended 16x as provides smoother lines in the world"><br>
+<slider cvari _sp_cl_vid_gl_texture_max_anisotropy_ext min 0 max 16 step 2 tip "Recommended 16x as provides smoother lines in the world"><br>
 <list "0,1,2,3" cvar gl_detailtexturing atext "gl_detailtexturing : " noshade><br>
 <ctext gl_detailtexturingdistance atext "gl_detailtexturingdistance : " noshade><br>
 <slider cvar gl_detailtexturingdistance min 50 max 500 step 50><br>
 <list "Off,On" cvar ghl_no_texture_stack atext "ghl_no_texture_stack : " noshade><br>
 <list "16,32" match "16,32" cvar gl_bitdepth atext "gl_bitdepth : " noshade><br>
-
-<font type {font_title} tint sb_subtle atint sb_subtle>
-"_____________________________"
-<hbr>
-<hbr>
-<font type {font_title} tint cyan atint cyan>
-"Video"
-<font type {font_title} tint white atint white>
-<includecvar _sb_internal_vid_mode_list_rmf>
 
 <font type {font_title} tint sb_subtle atint sb_subtle>
 "_____________________________"

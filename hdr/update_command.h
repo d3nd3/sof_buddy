@@ -7,5 +7,6 @@ void sofbuddy_update_show_prompt_menu(void);
 void sofbuddy_update_reload_update_menus(void);
 const char* sofbuddy_update_prompt_notes_rmf(void);
 void Cmd_SoFBuddy_Update_f(void);
+void Cmd_SoFBuddy_UpdateTarget_f(void);
 void Cmd_SoFBuddy_UpdateInstall_f(void);
 void Cmd_SoFBuddy_OpenUrl_f(void);

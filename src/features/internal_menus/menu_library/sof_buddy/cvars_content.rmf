@@ -461,7 +461,7 @@
 <hbr>
 <center>
 <font type {font_title} tint gray atint gray>
-"Archived cvars persist to sofbuddy.cfg on change."
+"Archived cvars persist to sofbuddy.cfg on change. Feature toggles persist to sofbuddy_features.cfg."
 <hbr>
 <font type {font_title} tint white atint white>
 <text "Close" key mouse1 "popmenu" border 8 1 cyan regular align center>

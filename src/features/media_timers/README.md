@@ -21,6 +21,10 @@ None
   - Custom frame timing integration for SoFPlus compatibility
 - **Memory patches** at `0x20066412` - Main loop timing adjustments
 
+The replaced main loop calls the `Qcommon_Frame` hook entry rather than the raw original
+trampoline, so Qcommon pre/post callbacks (HTTP maps, crosshair preview, master fallback,
+config/SPM saves) keep running alongside the custom timing loop.
+
 ## Technical Details
 
 ### High-Precision Timing
@@ -48,6 +52,13 @@ non-numeric strings, both of which read as `0.0`) is raised to `10`, since uncap
 caps freeze weak hardware — and menu `<input>` fields write every keystroke, so backspacing to `""`
 would otherwise uncap mid-edit. The re-set from inside the callback terminates: the engine skips
 callbacks on unchanged strings, and a guard bounds it to one extra pass landing on `10`.
+
+When Exact FPS is off, every legacy `cl_maxfps` write is normalized immediately to the largest
+listed legacy cap not above the requested value (`150` → `143`) before the frame budget is
+recomputed. The list includes the engine default `30` so a fresh install is not rewritten to `25`.
+This applies to startup/config restore, console writes, and menu selections, so the cvar does not
+keep an off-list value until the CPU page is opened. Exact FPS values are left as integer FPS in
+the `10`–`360` range.
 
 ### SoFPlus Integration
 Works seamlessly with SoFPlus addon system:

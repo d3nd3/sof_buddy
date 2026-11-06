@@ -142,10 +142,18 @@ measurement hooks already scale them:
 - `<input>` — box from measured text + border padding
 - `<ticker>` — band height from `R_StrHeight` (width is handled by the ticker init)
 
+Resize pages carry their page scale in the raised canvas, but `<text>` and
+`<input>` fixed widths/offsets still get the normal menu-scale factor. Image/pic
+hitboxes are scaled inside the hover pass so clicks match the canvas-scaled art
+without changing their construction or draw state. This applies to every resize
+page, with no menu-name/spm-specific filters.
+
 The **join** menu is a scoped exception: while `menu join` is current and either
 auto menu scale is on or the manual scale is above 1, its content scale is
 `max(0.75 × menuScale, 1)`. The override is tied to that menu’s `menu_c` and does
 not leak onto the menu revealed when it closes.
+
+`<hbar>` keeps its stock layout and size; scaling it after construction shifts its stream centring and lets the clip tiles overflow.
 
 `<slider>` is picture-sized, so `slider_c::Setup` (0x200D08A0) recomputes W/H and
 the bar/button/cap dimensions from native pictures after rect parsing. A post-
@@ -518,7 +526,7 @@ patched `M_PushMenu` entry), not `detour_M_PushMenu::oM_PushMenu`.
 | `menu_stm_set_clip` | 0xEA2C0 | clip recompute + backdrop-open extension (only when `intro_scaler` is disabled) |
 | `menu_border_dims_init` | 0xC46D0 | border pad with `menuScale`, linewidth post-scale |
 | `rect_c::Parse` | 0xCF890 | persistent scaling of `width`/`height`/`xoff`/`yoff`, file overrides |
-| `frame_c::Resize` | 0xC6640 | resize-page canvas scale + recentre |
+| `frame_c::Resize` | 0xC6640 | resize-page canvas/frame scale + recentre |
 | `frame_c` ctor | 0xC60A0 | record authored 480p frame dims and source `_ss` state |
 | `frame_c` parent link/cut | 0xC6530 | convert non-`_ss` frame dims; inherit `_ss` from parent |
 | `frame_c::ParseFrame` finalize | 0xC6500 | `game_ss` `topic` height override |

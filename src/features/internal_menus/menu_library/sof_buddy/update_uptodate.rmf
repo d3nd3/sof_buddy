@@ -1,4 +1,4 @@
-<stm resize 640 360>
+<stm resize 640 360 global nopush>
 <include tints>
 
 <frame main 0 0 border 40 1 gray backfill black>

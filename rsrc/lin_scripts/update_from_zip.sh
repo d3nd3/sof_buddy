@@ -5,6 +5,14 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 UPDATE_DIR="${ROOT_DIR}/sof_buddy/update"
 
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --reset-features) SOFBUDDY_UPDATER_RESET_FEATURES=1; shift ;;
+        --fresh-settings) SOFBUDDY_UPDATER_FRESH=1; shift ;;
+        *) break ;;
+    esac
+done
+
 ZIP_PATH="${1:-}"
 if [[ -n "${ZIP_PATH}" ]]; then
     if [[ ! -f "${ZIP_PATH}" && -f "${ROOT_DIR}/${ZIP_PATH}" ]]; then
@@ -50,6 +58,16 @@ if rm -f -- "${ZIP_PATH}"; then
 else
     echo "Warning: could not delete ${ZIP_PATH}"
 fi
+reset_feature_toggles() {
+    echo "Searching for saved feature toggles to reset..."
+    rm -f -- "${ROOT_DIR}/sof_buddy/features.cfg"
+    find "${ROOT_DIR}" -type f -name "sofbuddy_features.cfg" -print -delete 2>/dev/null || true
+    while IFS= read -r -d '' cfg; do
+        grep -v "_sofbuddy_feature_" "${cfg}" > "${cfg}.tmp" || true
+        mv -f "${cfg}.tmp" "${cfg}"
+    done < <(find "${ROOT_DIR}" -type f -name "sofbuddy.cfg" -print0 2>/dev/null)
+}
+
 if [[ "${SOFBUDDY_UPDATER_FRESH:-}" == "1" ]]; then
     find "${ROOT_DIR}" -type f -name "sofbuddy.cfg" -print -delete 2>/dev/null || true
 elif [[ "${SOFBUDDY_UPDATER_NO_PAUSE:-}" != "1" ]]; then
@@ -58,6 +76,15 @@ elif [[ "${SOFBUDDY_UPDATER_NO_PAUSE:-}" != "1" ]]; then
     if [[ "${ans,,}" =~ ^y(es)?$ ]]; then
         echo "Searching for old configuration to prune..."
         find "${ROOT_DIR}" -type f -name "sofbuddy.cfg" -print -delete 2>/dev/null || true
+    fi
+fi
+if [[ "${SOFBUDDY_UPDATER_RESET_FEATURES:-}" == "1" ]]; then
+    reset_feature_toggles
+elif [[ "${SOFBUDDY_UPDATER_NO_PAUSE:-}" != "1" ]]; then
+    echo
+    read -r -p "Expecting a new feature? Reset feature toggles [y/N]: " ans
+    if [[ "${ans,,}" =~ ^y(es)?$ ]]; then
+        reset_feature_toggles
     fi
 fi
 echo

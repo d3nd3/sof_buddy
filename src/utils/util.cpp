@@ -319,8 +319,7 @@ void sof_fs_create_path(const char* path) {
 cvar_t * findCvar(char * cvarname)
 {
 	cvar_t	*var;
-    static cvar_t * cvar_vars;
-    if (!cvar_vars) cvar_vars = (cvar_t *)*(unsigned int*)rvaToAbsExe((void*)0x0024B1D8);
+    cvar_t *cvar_vars = (cvar_t *)*(unsigned int*)rvaToAbsExe((void*)0x0024B1D8);
 	
 	for (var=cvar_vars ; var ; var=var->next)
 		if (!strcmp (cvarname, var->name))
