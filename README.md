@@ -461,7 +461,7 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_update_replace_features</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Install the release's recommended <code>sof_buddy/features.cfg</code> when updating without the GUI (Wine/Proton in-DLL extract). The graphical updater exposes the same choice as a checked-by-default tick box; <code>update_from_zip.cmd</code>/<code>.sh</code> prompt with <strong>Yes</strong> as the default.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code> on <strong>universal</strong> builds; ignored on compile-time channels (they always keep <code>features.cfg</code>). Install the release's recommended <code>sof_buddy/features.cfg</code> when updating without the GUI (Wine/Proton in-DLL extract). The graphical updater exposes the same choice as a checked-by-default tick box; <code>update_from_zip.cmd</code>/<code>.sh</code> prompt with <strong>Yes</strong> as the default. Non-universal builds cannot change features in-game, so their updater never prompts for or replaces <code>features.cfg</code>.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_update_api_url</code></td>

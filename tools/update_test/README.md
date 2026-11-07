@@ -27,6 +27,9 @@ Production URLs are **blocked** unless `_sofbuddy_update_allow_production_urls 1
 9. Second launch: startup check should be **up to date** (same fixture tag as installed DLL).
 
 That is the real production path: download → exit → external installer → user starts game again.
+The fixture packages ship `update_from_zip.cmd.new` / `.sh.new`; the new DLL promotes
+them on the next launch, so the currently running updater script is never overwritten
+mid-install.
 
 ## Remote fixture host
 

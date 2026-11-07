@@ -200,10 +200,16 @@ bool use_gui_windows_updater() {
 }
 
 bool update_replace_features_enabled() {
+#if !defined(SOFBUDDY_UNIVERSAL_BUILD)
+    // Only universal builds expose feature toggles in-game; compile-time
+    // channels must not replace the user's features.cfg.
+    return false;
+#else
     if (!detour_Cvar_Get::oCvar_Get) return true;
     cvar_t* c = detour_Cvar_Get::oCvar_Get(kCvarUpdateReplaceFeatures, "1",
         CVAR_SOFBUDDY_ARCHIVE, nullptr);
     return !c || c->value != 0.0f;
+#endif
 }
 
 bool queue_winstart_command(const char* command) {
@@ -344,6 +350,11 @@ bool write_install_context_env(const std::string& zip_path, const std::string& r
     const bool proton = is_running_under_proton();
     std::fprintf(fp, "SOFBUDDY_IS_WINE=%d\n", wine ? 1 : 0);
     std::fprintf(fp, "SOFBUDDY_IS_PROTON=%d\n", proton ? 1 : 0);
+#if defined(SOFBUDDY_UNIVERSAL_BUILD)
+    std::fprintf(fp, "SOFBUDDY_IS_UNIVERSAL=1\n");
+#else
+    std::fprintf(fp, "SOFBUDDY_IS_UNIVERSAL=0\n");
+#endif
     std::fprintf(fp, "SOFBUDDY_SKIP_GUI=%d\n", update_gui_updater_enabled() ? 0 : 1);
     std::fprintf(fp, "SOFBUDDY_UPDATER_REPLACE_FEATURES=%d\n",
                  update_replace_features_enabled() ? 1 : 0);
@@ -1571,7 +1582,7 @@ void print_update_usage() {
     PrintOut(PRINT_DEV, "Install target cvar: _sofbuddy_update_target_tag (stable, latest, or a tag)\n");
     PrintOut(PRINT_DEV, "  _sofbuddy_update_show_all_releases 1 shows every tag in F12 list\n");
     PrintOut(PRINT_DEV, "  _sofbuddy_update_startup_stable_only 1 limits startup notify to stable (default 0)\n");
-    PrintOut(PRINT_DEV, "  _sofbuddy_update_replace_features 1 installs the release's recommended features.cfg (default 1)\n");
+    PrintOut(PRINT_DEV, "  _sofbuddy_update_replace_features 1 installs the release's recommended features.cfg (universal default 1; non-universal always keeps the file)\n");
     PrintOut(PRINT_DEV, "Optional overrides (for XP/proxy mirrors):\n");
     PrintOut(PRINT_DEV, "  set _sofbuddy_update_api_url <url>\n");
     PrintOut(PRINT_DEV, "  set _sofbuddy_update_releases_url <url>\n");
@@ -1755,7 +1766,38 @@ static void sofbuddy_run_update_flow(bool do_download, bool force_download, bool
     PrintOut(PRINT_DEV, "If you prefer manual install: extract that zip into your SoF root and relaunch normally.\n");
 }
 
+static void promote_pending_update_scripts(void) {
+    char exe[MAX_PATH] = {};
+    const DWORD n = GetModuleFileNameA(nullptr, exe, static_cast<DWORD>(sizeof(exe)));
+    if (!n || n >= sizeof(exe)) return;
+
+    std::string root(exe, n);
+    const size_t slash = root.find_last_of("\\/");
+    if (slash == std::string::npos) return;
+    root.resize(slash);
+
+    const char* pairs[][2] = {
+        {"\\sof_buddy\\update_from_zip.cmd.new", "\\sof_buddy\\update_from_zip.cmd"},
+        {"\\sof_buddy\\update_from_zip.sh.new", "\\sof_buddy\\update_from_zip.sh"},
+    };
+    for (const auto& pair : pairs) {
+        const std::string from = root + pair[0];
+        const std::string to = root + pair[1];
+        if (!is_regular_file(from.c_str())) continue;
+        if (MoveFileExA(from.c_str(), to.c_str(),
+                        MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+            PrintOut(PRINT_DEV, "Updater: installed %s\n", to.c_str());
+        } else {
+            PrintOut(PRINT_BAD, "Updater: could not install %s (error %lu)\n", to.c_str(),
+                     static_cast<unsigned long>(GetLastError()));
+        }
+    }
+}
+
 void sofbuddy_update_init(void) {
+    // Packages ship updater scripts as .new so a running (possibly older)
+    // update_from_zip script is never overwritten mid-extraction.
+    promote_pending_update_scripts();
     if (!detour_Cvar_Get::oCvar_Get) return;
 #if defined(SOFBUDDY_UPDATE_TEST_BUILD)
     PrintOut(PRINT_LOG,
@@ -1770,7 +1812,11 @@ void sofbuddy_update_init(void) {
     detour_Cvar_Get::oCvar_Get(kCvarUpdateCheckStartup, "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateStartupStableOnly, "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateUseGui, update_gui_updater_default_string(), CVAR_SOFBUDDY_ARCHIVE, nullptr);
+#if defined(SOFBUDDY_UNIVERSAL_BUILD)
     detour_Cvar_Get::oCvar_Get(kCvarUpdateReplaceFeatures, "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+#else
+    detour_Cvar_Get::oCvar_Get(kCvarUpdateReplaceFeatures, "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+#endif
     detour_Cvar_Get::oCvar_Get(kCvarUpdateApiUrl, kUpdateApiUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
     cvar_t* releases_url_cvar = detour_Cvar_Get::oCvar_Get(kCvarUpdateReleasesUrl, kUpdateReleasesUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
 #if defined(SOFBUDDY_UPDATE_TEST_BUILD)

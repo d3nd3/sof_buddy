@@ -2,6 +2,15 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## Unreleased
+
+### Updater
+
+- Fixed corrupt updater output (`'ho.' is not recognized`, repeated prompts) by shipping `.cmd` scripts with CRLF line endings, running the updater from a temporary copy, and installing updated scripts as `.new` sidecars that the DLL promotes on the next game start. The running script is no longer overwritten mid-extraction.
+- Fixed Wine updates: host script extraction is invoked through `bash -c`, waits for the completion marker instead of trusting `start /unix`'s exit code, and correctly passes paths containing spaces.
+- Feature-setting prompts and `features.cfg` replacement now apply to **universal** builds only. Compile-time channels keep their existing `features.cfg` and are never asked about feature toggles.
+- Fixed literal `^` characters showing in `(y/N)` prompts.
+
 ## v8.49
 
 ### Installer / menus

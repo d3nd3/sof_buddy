@@ -80,6 +80,8 @@ Name: "reset_feature_toggles"; Description: "Expecting a new feature? Reset feat
 [Files]
 Source: "payload\sof_buddy.dll"; DestDir: "{app}\sof_buddy"; DestName: "sof_buddy.dll.new"; Flags: ignoreversion
 Source: "payload\sof_buddy\*"; DestDir: "{app}\sof_buddy"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "payload\sof_buddy\update_from_zip.cmd.new"; DestDir: "{app}\sof_buddy"; DestName: "update_from_zip.cmd"; Flags: ignoreversion
+Source: "payload\sof_buddy\update_from_zip.sh.new"; DestDir: "{app}\sof_buddy"; DestName: "update_from_zip.sh"; Flags: ignoreversion
 Source: "..\rsrc\win_scripts\replace_sof_buddy_dll.cmd"; DestDir: "{app}\sof_buddy"; Flags: ignoreversion
 Source: "..\rsrc\win_scripts\patch_windows_compat.ps1"; DestDir: "{app}\sof_buddy"; Tasks: appcompat_fix; Flags: ignoreversion
 Source: "..\rsrc\win_scripts\sof_install_detect.ps1"; Flags: dontcopy

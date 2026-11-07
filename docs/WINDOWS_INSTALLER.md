@@ -108,10 +108,19 @@ so a normal update picks up new recommended features (such as Hash Lookup)
 without editing the file by hand. Clear the checkbox to keep your current
 feature file; the installer restores it after extraction. Headless update paths
 use the same default, controlled by `_sofbuddy_update_replace_features`
-(default `1`) on Wine/Proton and by the matching prompt (default **Yes**) in
-`update_from_zip.cmd` / `update_from_zip.sh`. If a package predates the shipped
-defaults file, replacing it removes the old `features.cfg` and the new DLL
-regenerates the file from its compiled defaults.
+(default `1` on universal builds; ignored on compile-time channels) on
+Wine/Proton and by the matching prompt (default **Yes**, universal only) in
+`update_from_zip.cmd` / `update_from_zip.sh`. Non-universal builds cannot change
+features in-game, so their update path never prompts for or replaces
+`features.cfg`. If a package predates the shipped defaults file, replacing it
+removes the old `features.cfg` and the new DLL regenerates the file from its
+compiled defaults.
+
+Update packages ship `update_from_zip.cmd`/`.sh` as `.new` sidecar files. The
+running script is therefore never overwritten during extraction (cmd.exe and
+bash read scripts by file offset while executing). On the next game start the
+new DLL promotes the sidecars into place, so later updates use the new script.
+This also keeps older LF-only updater scripts from being corrupted mid-run.
 
 The update ZIP is applied while SoF is closed. If `features.cfg` is edited
 manually, it is used until saved feature cvars are present; those cvars take
