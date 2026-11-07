@@ -35,14 +35,16 @@ def stage_tree(staging: str, dll_path: str) -> None:
         os.path.join(ROOT, "features", "FEATURES.txt"),
         os.path.join(buddy, "features.cfg"),
     )
-    for rel in (
-        "rsrc/win_scripts/update_from_zip.cmd",
-        "rsrc/lin_scripts/update_from_zip.sh",
-        "rsrc/lin_scripts/patch_sof_binary.sh",
+    with open(os.path.join(buddy, "flavor.txt"), "w", encoding="utf-8") as f:
+        f.write("universal\n")
+    for rel, name in (
+        ("rsrc/win_scripts/update_from_zip.cmd", "update_from_zip.cmd.new"),
+        ("rsrc/lin_scripts/update_from_zip.sh", "update_from_zip.sh.new"),
+        ("rsrc/lin_scripts/patch_sof_binary.sh", "patch_sof_binary.sh"),
     ):
         src = os.path.join(ROOT, rel)
         if os.path.isfile(src):
-            shutil.copy2(src, os.path.join(buddy, os.path.basename(src)))
+            shutil.copy2(src, os.path.join(buddy, name))
     updater = os.path.join(ROOT, "bin", "sof_buddy_update.exe")
     if os.path.isfile(updater):
         shutil.copy2(updater, os.path.join(buddy, "sof_buddy_update.exe"))

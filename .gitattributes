@@ -1,1 +1,6 @@
 * text=auto
+
+# cmd.exe reads batch files by byte offset; LF-only files corrupt goto/call
+# targets and truncate commands such as "echo." into "ho.".
+*.cmd text eol=crlf
+*.bat text eol=crlf

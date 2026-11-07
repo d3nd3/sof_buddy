@@ -126,13 +126,21 @@ def test_fixture_zips() -> None:
     if not os.path.isfile(zip_path):
         fail(f"missing {zip_path} (run: make update-test-fixtures)")
     with zipfile.ZipFile(zip_path) as zf:
+        names = set(zf.namelist())
         blob = zf.read("sof_buddy.dll")
         features = zf.read("sof_buddy/features.cfg").decode("utf-8", errors="replace")
     if b"99.0.0-test" not in blob:
         fail("fixture zip DLL is not 99.0.0-test post-update build")
     if "hash_lookup" not in features:
         fail("fixture zip features.cfg missing hash_lookup")
-    ok("fixture zip embeds post-update test DLL + recommended features.cfg")
+    for name in ("sof_buddy/update_from_zip.cmd.new", "sof_buddy/update_from_zip.sh.new",
+                 "sof_buddy/flavor.txt"):
+        if name not in names:
+            fail(f"fixture zip missing {name}")
+    for name in ("sof_buddy/update_from_zip.cmd", "sof_buddy/update_from_zip.sh"):
+        if name in names:
+            fail(f"fixture zip must not overwrite the running updater script: {name}")
+    ok("fixture zip embeds DLL, features.cfg, flavor marker, and .new updater scripts")
 
 
 def test_by_tag_feeds() -> None:

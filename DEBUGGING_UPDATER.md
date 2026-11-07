@@ -21,7 +21,7 @@ That zip includes:
 - `sof_buddy-universal-update-test-old.dll` — install as `sof_buddy.dll` to **start** (`0.0.0-test`)
 - `sof_buddy-universal-update-test-new.dll` — what the fixture “release” installs (`99.0.0-test`)
 - `sof_buddy/sof_buddy_update.exe` — GUI updater (must be **static**; see Wine notes below)
-- `sof_buddy/update_from_zip.cmd` and `sof_buddy/update_from_zip.sh` — install scripts (keep in sync with the game tree)
+- `sof_buddy/update_from_zip.cmd` and `sof_buddy/update_from_zip.sh` — install scripts (keep in sync with the game tree; release zips ship them as `.new` sidecars)
 - `fixtures/` — JSON + release zips served locally
 - `serve.py`, `README.md` — run the fake release server
 
@@ -74,6 +74,8 @@ You should see progress reach 100% and **Close** enabled—not an immediate erro
 | **Invalid Name** / ShellExecute errors under Wine | Game path contains spaces (`Soldier of Fortune`); `start /unix` + host `unzip` breaks | Current **`sof_buddy_update.exe`** extracts the zip **in-process** (miniz) and only falls back to `.cmd` if that fails. Rebuild with `make win-updater`. |
 | GUI fails; terminal shows **dbus** / **unzip** under Wine | Fallback `.cmd` path on Wine | Prefer in-process GUI extract; fix `.cmd` or use `update_from_zip.sh` from Linux. |
 | Update “succeeds” then next run still broken | Fixture zip overwrote `sof_buddy/` with an old `.cmd` | Re-copy scripts from kit or repo, then `make update-test-fixtures` before serving. |
+| `update_from_zip.cmd` still shows the old script after an update | Packages ship `update_from_zip.cmd.new`; the DLL promotes it on the **next game start** | Launch SoF once, or rename `.cmd.new` → `.cmd` manually. Never overwrite the running script while it is installing. |
+| `'ho.' is not recognized` / garbled prompts | LF-only or self-overwritten `.cmd` | Use the CRLF scripts from `rsrc/win_scripts`; packages now install `.new` sidecars so the running script is untouched. |
 
 ### Logs and artifacts
 
