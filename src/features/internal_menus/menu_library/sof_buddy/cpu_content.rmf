@@ -59,14 +59,14 @@
 "Improve Frame-rate here."
 <font type {font_title} tint white atint white>
 <list "Competitive/Lowest,High Visual,Low Visual,Custom/Current" match "0,1,2,3" cvari _sofbuddy_perf_profile atext "Profile : " key mouse1 "refresh" noshade><hbr>
-<font type {font_title} tint cyan atint cyan>
+<font type {font_title} tint sb_accent atint sb_accent>
 <ctext _sb_internal_profile_state_label><hbr>
-<font type {font_title} tint white atint white>
 <ctext _sb_internal_profile_target_fx_maxdebrisonscreen atext "fx_maxdebrisonscreen : " noshade><hbr>
 <ctext _sb_internal_profile_target_cl_max_debris atext "cl_max_debris : " noshade><hbr>
 <ctext _sb_internal_profile_target_ghl_shadows atext "ghl_shadows : " noshade><hbr>
 <ctext _sb_internal_profile_target_ghl_specular atext "ghl_specular : " noshade><hbr>
 <ctext _sb_internal_profile_target_cl_max_quads atext "cl_max_quads : " noshade><hbr>
+<font type {font_title} tint white atint white>
 <text "Apply Profile" key mouse1 "sofbuddy_apply_profile" border 8 1 cyan regular align center><hbr>
 <font type {font_title} tint sb_subtle atint sb_subtle>
 "_____________________________"
@@ -75,14 +75,14 @@
 <font type {font_title} tint cyan atint cyan>
 "Effects / debris"
 <font type {font_title} tint white atint white>
-<ctext cl_max_debris atext "cl_max_debris : " noshade tip "Max debris pieces. Recommend 128 or lower for performance."><br>
+<ctext cl_max_debris atext "cl_max_debris : " tint sb_accent atint sb_accent noshade tip "Max debris pieces. Recommend 128 or lower for performance."><br>
 <slider cvar cl_max_debris min 0 max 1024 step 1><br>
-<ctext fx_maxdebrisonscreen atext "fx_maxdebrisonscreen : " noshade tip "Max on-screen FX debris. Recommend 128 or lower for performance."><br>
+<ctext fx_maxdebrisonscreen atext "fx_maxdebrisonscreen : " tint sb_accent atint sb_accent noshade tip "Max on-screen FX debris. Recommend 128 or lower for performance."><br>
 <slider cvar fx_maxdebrisonscreen min 0 max 1024 step 16><br>
 <list "Off,On" cvar cl_quads atext "cl_quads : " noshade tip "Keep On (1) to see gun fire and weapon FX."><br>
 <list "Off,On" cvar cl_freezequads atext "cl_freezequads : " noshade tip "Keep Off (0) to see gun fire and weapon FX."><br>
 <list "0,50,250,1024" match "0,50,250,1024" cvar cl_max_quads atext "cl_max_quads : " noshade><br>
-<ctext gl_effectfill atext "gl_effectfill : " noshade><br>
+<ctext gl_effectfill atext "gl_effectfill : " tint sb_accent atint sb_accent noshade><br>
 <slider cvar gl_effectfill min 500 max 20000 step 500><br>
 <hbr>
 

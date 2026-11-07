@@ -27,6 +27,12 @@
     "priority": 100
   },
   {
+    "function": "Qcommon_Frame",
+    "callback": "scaled_ui_slider_defer_tick",
+    "phase": "Post",
+    "priority": 90
+  },
+  {
     "function": "VID_CheckChanges",
     "callback": "vid_checkchanges_post",
     "phase": "Post",

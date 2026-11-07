@@ -39,7 +39,34 @@ void hkDraw_Pic(int x, int y, char const * imgname, int palette, detour_Draw_Pic
                 if (p[0] == 'w' && p[1] == 'e' && p[2] == 'b' && p[3] == '_' &&
                     p[4] == 'b' && p[5] == 'g' && (p[6] == '.' || p[6] == '\0' || p[6] == '/')) {
                     mainMenuBgTiled = true;
-                    original(x, y, imgname, palette);
+                #if FEATURE_SCALED_HUD
+    void* image = nullptr;
+    int* image_texnum = nullptr;
+    int saved_texnum = 0;
+    unsigned int proxy_texnum = 0;
+    float proxy_scale = 0.0f;
+    if (g_activeRenderType == uiRenderType::Scoreboard || g_activeRenderType == uiRenderType::HudCtfFlag)
+        proxy_scale = hudScale;
+    else if (g_currentPicCaller == PicCaller::SCR_DrawCrosshair)
+        proxy_scale = crosshairScale;
+    if (proxy_scale > 0.0f) {
+        image = scaled_ui_find_image(imgname);
+        if (image) {
+            proxy_texnum = scaled_ui_image_proxy_texnum(image, proxy_scale);
+            if (proxy_texnum) {
+                image_texnum = reinterpret_cast<int*>(static_cast<char*>(image) + 80);
+                saved_texnum = *image_texnum;
+                *image_texnum = static_cast<int>(proxy_texnum);
+            }
+        }
+    }
+#endif
+
+    original(x, y, imgname, palette);
+#if FEATURE_SCALED_HUD
+    if (proxy_texnum && image_texnum)
+        *image_texnum = saved_texnum;
+#endif
                     mainMenuBgTiled = false;
                     g_currentPicCaller = PicCaller::Unknown;
                     g_activeDrawCall = DrawRoutineType::None;

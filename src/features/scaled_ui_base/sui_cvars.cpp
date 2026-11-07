@@ -12,9 +12,7 @@
 - _sofbuddy_icons_autoscale: Scale team icons + playernames with HUD scale (default: 0)
 	- _sofbuddy_scale_round_auto: Snap cinematic image scale to round steps (default: 0)
 	- _sofbuddy_scale_round_ratio: Round step for scale values (default: 0.25)
-	- _sofbuddy_font_scale_auto_axis: Font max-scale axis 0=vid_w/640, 1=vid_h/480 (default: 1)
-	- _sofbuddy_hud_scale_auto_axis: HUD max-scale axis 0=vid_w/640, 1=vid_h/480 (default: 1)
-	- _sofbuddy_menu_tip_appear: milliseconds before a menu tooltip appears (default: 250)
+	- _sofbuddy_menu_tip_appear: milliseconds before a menu tooltip appears (default: 750)
 	- _sofbuddy_menu_font_size_style: F12 menu text preset 0=Small, 1=Normal, 2=Large, 3=Extra Large (default: 0)
 */
 
@@ -26,38 +24,55 @@
 #include "sof_compat.h"
 #include "generated_detours.h"
 #include "runtime_features.h"
+#include "sofbuddy_cfg.h"
+#include "shared.h"
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 
-#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
-cvar_t* _sofbuddy_scale_auto_axis = nullptr;
-#endif
+cvar_t * _sofbuddy_scale_mode = NULL;
+
 #if FEATURE_SCALED_CON
-cvar_t* _sofbuddy_font_scale_auto_axis = nullptr;
-#endif
-#if FEATURE_SCALED_HUD
-cvar_t* _sofbuddy_hud_scale_auto_axis = nullptr;
-#endif
-#if FEATURE_SCALED_CON
+cvar_t * _sofbuddy_font_scale_pct = NULL;
 cvar_t * _sofbuddy_font_scale = NULL;
 cvar_t * _sofbuddy_console_size = NULL;
 #endif
 #if FEATURE_SCALED_MENU
+cvar_t* _sofbuddy_menu_scale_pct = nullptr;
 cvar_t* _sofbuddy_menu_scale = nullptr;
 cvar_t* _sofbuddy_menu_tip_appear = nullptr;
 cvar_t* _sofbuddy_menu_font_size_style = nullptr;
 #endif
 #if FEATURE_SCALED_HUD
+cvar_t * _sofbuddy_hud_scale_pct = NULL;
 cvar_t * _sofbuddy_hud_scale = NULL;
 cvar_t * _sofbuddy_crossh_scale = NULL;
 cvar_t * _sofbuddy_crossh_scale_auto = NULL;
-cvar_t * _sofbuddy_crossh_scale_auto_axis = NULL;
 cvar_t * _sofbuddy_scale_cinematic_pics = NULL;
 cvar_t * _sofbuddy_icons_autoscale = NULL;
 #endif
 #if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
 cvar_t * _sofbuddy_font_pack = NULL;
 #endif
+
+bool g_applyingScalePercent = false;
+constexpr int kCvarInteger = 0x20;
+
+static void refresh_scaled_cvar_ptrs(void) {
+    if (cvar_t* cv = findCvar(const_cast<char*>("_sofbuddy_scale_mode"))) _sofbuddy_scale_mode = cv;
+#if FEATURE_SCALED_CON
+    if (cvar_t* cv = findCvar(const_cast<char*>("_sofbuddy_font_scale_pct"))) _sofbuddy_font_scale_pct = cv;
+    if (cvar_t* cv = findCvar(const_cast<char*>("_sofbuddy_font_scale"))) _sofbuddy_font_scale = cv;
+#endif
+#if FEATURE_SCALED_HUD
+    if (cvar_t* cv = findCvar(const_cast<char*>("_sofbuddy_hud_scale_pct"))) _sofbuddy_hud_scale_pct = cv;
+    if (cvar_t* cv = findCvar(const_cast<char*>("_sofbuddy_hud_scale"))) _sofbuddy_hud_scale = cv;
+#endif
+#if FEATURE_SCALED_MENU
+    if (cvar_t* cv = findCvar(const_cast<char*>("_sofbuddy_menu_scale_pct"))) _sofbuddy_menu_scale_pct = cv;
+    if (cvar_t* cv = findCvar(const_cast<char*>("_sofbuddy_menu_scale"))) _sofbuddy_menu_scale = cv;
+#endif
+}
 
 #if FEATURE_SCALED_CON
 extern void fontscale_change(cvar_t * cvar);
@@ -70,11 +85,11 @@ extern void menuscale_change(cvar_t* cvar);
 extern void hudscale_change(cvar_t * cvar);
 extern void crosshairscale_change(cvar_t * cvar);
 extern void crosshair_scale_auto_change(cvar_t * cvar);
-extern void crosshair_scale_auto_axis_change(cvar_t * cvar);
 extern bool g_scaleCinematicPics;
 static void scalecinematicpics_change(cvar_t * cvar) {
     g_scaleCinematicPics = cvar && cvar->value != 0.0f;
 }
+extern void apply_auto_crosshair_scale(void);
 extern bool g_iconsAutoscale;
 static void iconsautoscale_change(cvar_t * cvar) {
     g_iconsAutoscale = cvar && cvar->value != 0.0f;
@@ -82,75 +97,177 @@ static void iconsautoscale_change(cvar_t * cvar) {
 #endif
 extern void scale_round_auto_change(cvar_t * cvar);
 extern void scale_round_ratio_change(cvar_t * cvar);
-extern void scale_auto_axis_change(cvar_t* cvar);
-extern void font_scale_auto_axis_change(cvar_t* cvar);
-extern void hud_scale_auto_axis_change(cvar_t* cvar);
 extern float auto_scale_resolution_ratio(void);
 extern float auto_scale_resolution_ratio_font(void);
 extern float auto_scale_resolution_ratio_hud(void);
 extern float round_scale_value(float v);
 
-static void apply_scale_preset(cvar_t* scale, const char* preset, float maxScale) {
-	if (!scale || !preset || !detour_Cvar_Set2::oCvar_Set2) return;
-	float value;
-	if (std::strcmp(preset, "auto") == 0) {
-		value = round_scale_value(maxScale * 0.75f);
-		if (value > maxScale) value = maxScale;
-	} else if (std::strcmp(preset, "max") == 0)
-		value = maxScale;
-	else if (std::strcmp(preset, "min") == 0)
-		value = 1.0f;
-	else
-		return;
-	char buf[32];
-	std::snprintf(buf, sizeof(buf), "%.6g", value);
-	detour_Cvar_Set2::oCvar_Set2(scale->name, buf, true);
+static bool scale_mode_is_smooth_cvar(const cvar_t* cvar) {
+	if (!cvar) return true;
+	const char* text = cvar->string;
+	if (text && text[0]) {
+		if (!std::strcmp(text, "Smooth")) return true;
+		if (!std::strcmp(text, "Integer")) return false;
+		return std::atof(text) >= 0.5;
+	}
+	return cvar->value >= 0.5f;
 }
 
-static void Cmd_SoFBuddy_ScalePreset_f(void) {
+bool scale_mode_is_smooth(void) {
+	cvar_t* mode = findCvar(const_cast<char*>("_sofbuddy_scale_mode"));
+	return scale_mode_is_smooth_cvar(mode ? mode : _sofbuddy_scale_mode);
+}
+
+float scale_mode_apply(float scale) {
+	if (g_applyingScalePercent)
+		return scale;
+	if (scale_mode_is_smooth())
+		return scale;
+	const float floored = std::floor(scale);
+	return (floored < 1.0f) ? 1.0f : floored;
+}
+
+static float scale_smooth_value(float pct, float max_scale) {
+	if (max_scale <= 1.0f || pct <= 0.0f)
+		return 1.0f;
+	if (pct >= 100.0f)
+		return max_scale;
+	const float raw = 1.0f + (max_scale - 1.0f) * (pct / 100.0f);
+	if (raw < 2.0f && max_scale >= 2.0f)
+		return std::round(raw);
+	return raw;
+}
+
+static float scale_from_percent(float pct, float max_scale) {
+	if (max_scale < 1.0f) max_scale = 1.0f;
+	if (pct < 0.0f) pct = 0.0f;
+	if (pct > 100.0f) pct = 100.0f;
+	return scale_mode_apply(scale_smooth_value(pct, max_scale));
+}
+
+static void apply_percent_to_scale(cvar_t* pct, cvar_t* scale, float max_scale) {
+	if (!pct || !scale || !detour_Cvar_Set2::oCvar_Set2) return;
+	if (cvar_t* cv = findCvar(pct->name)) pct = cv;
+	if (cvar_t* cv = findCvar(scale->name)) scale = cv;
+	scale->flags &= ~kCvarInteger;
+	char buf[32];
+	std::snprintf(buf, sizeof(buf), "%.6g", scale_from_percent(pct->value, max_scale));
+	g_applyingScalePercent = true;
+	detour_Cvar_Set2::oCvar_Set2(scale->name, buf, true);
+	g_applyingScalePercent = false;
+}
+
+static void font_scale_pct_change(cvar_t* cvar) {
+	apply_percent_to_scale(cvar, _sofbuddy_font_scale, auto_scale_resolution_ratio_font());
+}
+
+static void hud_scale_pct_change(cvar_t* cvar) {
+	apply_percent_to_scale(cvar, _sofbuddy_hud_scale, auto_scale_resolution_ratio_hud());
+}
+
+static void menu_scale_pct_change(cvar_t* cvar) {
+	apply_percent_to_scale(cvar, _sofbuddy_menu_scale, auto_scale_resolution_ratio());
+}
+
+static void apply_integer_scale(cvar_t* scale, float max_scale) {
+	if (!scale || !detour_Cvar_Set2::oCvar_Set2) return;
+	if (cvar_t* cv = findCvar(scale->name)) scale = cv;
+	float value = std::floor(scale->value);
+	if (value < 1.0f) value = 1.0f;
+	if (max_scale >= 1.0f && value > max_scale) value = max_scale;
+	char buf[32];
+	std::snprintf(buf, sizeof(buf), "%.0f", value);
+	if (std::strcmp(scale->string ? scale->string : "", buf) != 0)
+		detour_Cvar_Set2::oCvar_Set2(scale->name, buf, true);
+}
+
+static void reapply_scale_percentages_for_mode(bool integer_mode) {
+	refresh_scaled_cvar_ptrs();
+#if FEATURE_SCALED_CON
+	if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON)) {
+		if (integer_mode)
+			apply_integer_scale(_sofbuddy_font_scale, auto_scale_resolution_ratio_font());
+		else if (_sofbuddy_font_scale_pct)
+			font_scale_pct_change(_sofbuddy_font_scale_pct);
+	}
+#endif
+#if FEATURE_SCALED_HUD
+	if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
+		if (integer_mode)
+			apply_integer_scale(_sofbuddy_hud_scale, auto_scale_resolution_ratio_hud());
+		else if (_sofbuddy_hud_scale_pct)
+			hud_scale_pct_change(_sofbuddy_hud_scale_pct);
+		apply_auto_crosshair_scale();
+	}
+#endif
+#if FEATURE_SCALED_MENU
+	if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
+		if (integer_mode)
+			apply_integer_scale(_sofbuddy_menu_scale, auto_scale_resolution_ratio());
+		else if (_sofbuddy_menu_scale_pct)
+			menu_scale_pct_change(_sofbuddy_menu_scale_pct);
+	}
+#endif
+}
+
+void reapply_scale_percentages(void) {
+	reapply_scale_percentages_for_mode(!scale_mode_is_smooth());
+}
+
+static void scale_reset_default(cvar_t* pct, cvar_t* scale, float max_scale, bool integer_mode) {
+	if (integer_mode) {
+		float value = std::round(1.0f + (max_scale - 1.0f) * 0.75f);
+		if (value < 1.0f) value = 1.0f;
+		if (max_scale >= 1.0f && value > max_scale) value = max_scale;
+		char buf[32];
+		std::snprintf(buf, sizeof(buf), "%.0f", value);
+		if (scale && detour_Cvar_Set2::oCvar_Set2) detour_Cvar_Set2::oCvar_Set2(scale->name, buf, true);
+	} else if (pct && detour_Cvar_Set2::oCvar_Set2) {
+		detour_Cvar_Set2::oCvar_Set2(pct->name, const_cast<char*>("75"), true);
+	}
+}
+
+static void Cmd_SoFBuddy_ScaleReset_f(void) {
 	if (!detour_Cmd_Argc::oCmd_Argc || !detour_Cmd_Argv::oCmd_Argv) return;
-	if (detour_Cmd_Argc::oCmd_Argc() < 3) return;
+	if (detour_Cmd_Argc::oCmd_Argc() < 2) return;
 	const char* target = detour_Cmd_Argv::oCmd_Argv(1);
-	const char* preset = detour_Cmd_Argv::oCmd_Argv(2);
-	if (!target || !preset) return;
+	if (!target) return;
+	const bool integer_mode = !scale_mode_is_smooth();
 #if FEATURE_SCALED_CON
 	if (std::strcmp(target, "font") == 0) {
-		apply_scale_preset(_sofbuddy_font_scale, preset, auto_scale_resolution_ratio_font());
+		scale_reset_default(_sofbuddy_font_scale_pct, _sofbuddy_font_scale, auto_scale_resolution_ratio_font(), integer_mode);
+		sofbuddy_cfg_save_now();
 		return;
 	}
 #endif
 #if FEATURE_SCALED_HUD
 	if (std::strcmp(target, "hud") == 0) {
-		apply_scale_preset(_sofbuddy_hud_scale, preset, auto_scale_resolution_ratio_hud());
+		scale_reset_default(_sofbuddy_hud_scale_pct, _sofbuddy_hud_scale, auto_scale_resolution_ratio_hud(), integer_mode);
+		sofbuddy_cfg_save_now();
 		return;
 	}
 #endif
 #if FEATURE_SCALED_MENU
 	if (std::strcmp(target, "menu") == 0) {
-		apply_scale_preset(_sofbuddy_menu_scale, preset, auto_scale_resolution_ratio());
+		scale_reset_default(_sofbuddy_menu_scale_pct, _sofbuddy_menu_scale, auto_scale_resolution_ratio(), integer_mode);
+		sofbuddy_cfg_save_now();
 		return;
 	}
 #endif
 }
 
-static void migrate_split_auto_axis(void) {
-	if (!detour_Cvar_Get::oCvar_Get || !detour_Cvar_Set2::oCvar_Set2) return;
-	cvar_t* flag = detour_Cvar_Get::oCvar_Get("_sb_internal_axis_split_migrated", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
-	if (flag && flag->value != 0.0f) return;
-	cvar_t* legacy = detour_Cvar_Get::oCvar_Get("_sofbuddy_scale_auto_axis", "1", 0, nullptr);
-	if (legacy && legacy->modified) {
-		char buf[16];
-		std::snprintf(buf, sizeof(buf), "%.0f", legacy->value);
-#if FEATURE_SCALED_CON
-		if (_sofbuddy_font_scale_auto_axis && !_sofbuddy_font_scale_auto_axis->modified)
-			detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_font_scale_auto_axis"), buf, true);
+static void scale_mode_change(cvar_t* cvar) {
+	if (cvar) _sofbuddy_scale_mode = cvar;
+	refresh_scaled_cvar_ptrs();
+	reapply_scale_percentages_for_mode(!scale_mode_is_smooth_cvar(cvar));
+	scaled_ui_request_scale_reapply();
+#if FEATURE_SCALED_MENU
+	scaled_ui_request_menu_reload();
 #endif
 #if FEATURE_SCALED_HUD
-		if (_sofbuddy_hud_scale_auto_axis && !_sofbuddy_hud_scale_auto_axis->modified)
-			detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_hud_scale_auto_axis"), buf, true);
+	if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD))
+		apply_auto_crosshair_scale();
 #endif
-	}
-	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_axis_split_migrated"), const_cast<char*>("1"), true);
 }
 
 static void font_pack_change(cvar_t*) {
@@ -164,22 +281,16 @@ static void migrate_legacy_negative_scale(cvar_t* scale) {
 		detour_Cvar_Set2::oCvar_Set2(scale->name, const_cast<char*>("1"), true);
 }
 
-static bool scale_preset_command_registered = false;
-
-static void register_scale_preset_command(void) {
-	if (scale_preset_command_registered || !detour_Cmd_AddCommand::oCmd_AddCommand) return;
-	detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_scale_preset"),
-	                                       Cmd_SoFBuddy_ScalePreset_f);
-	scale_preset_command_registered = true;
-}
-
 void create_scaled_ui_cvars(void) {
+    _sofbuddy_scale_mode = detour_Cvar_Get::oCvar_Get("_sofbuddy_scale_mode", "1", CVAR_SOFBUDDY_ARCHIVE, scale_mode_change);
+    if (detour_Cmd_AddCommand::oCmd_AddCommand)
+        detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_scale_reset"), Cmd_SoFBuddy_ScaleReset_f);
 #if FEATURE_SCALED_CON
     if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON)) {
-    _sofbuddy_font_scale_auto_axis = detour_Cvar_Get::oCvar_Get("_sofbuddy_font_scale_auto_axis", "1", CVAR_SOFBUDDY_ARCHIVE, font_scale_auto_axis_change);
-    font_scale_auto_axis_change(_sofbuddy_font_scale_auto_axis);
+    _sofbuddy_font_scale_pct = detour_Cvar_Get::oCvar_Get("_sofbuddy_font_scale_pct", "75", CVAR_SOFBUDDY_ARCHIVE, font_scale_pct_change);
     _sofbuddy_font_scale = detour_Cvar_Get::oCvar_Get("_sofbuddy_font_scale", "1", CVAR_SOFBUDDY_ARCHIVE, fontscale_change);
     migrate_legacy_negative_scale(_sofbuddy_font_scale);
+    if (_sofbuddy_font_scale) _sofbuddy_font_scale->flags &= ~kCvarInteger;
     fontscale_change(_sofbuddy_font_scale);
     _sofbuddy_console_size = detour_Cvar_Get::oCvar_Get("_sofbuddy_console_size", "0.5", CVAR_SOFBUDDY_ARCHIVE, consolesize_change);
     detour_Cvar_Get::oCvar_Get("_sb_internal_font_scale_rounded", "1", 0, nullptr);
@@ -187,13 +298,11 @@ void create_scaled_ui_cvars(void) {
 #endif
 #if FEATURE_SCALED_HUD
     if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
-    _sofbuddy_hud_scale_auto_axis = detour_Cvar_Get::oCvar_Get("_sofbuddy_hud_scale_auto_axis", "1", CVAR_SOFBUDDY_ARCHIVE, hud_scale_auto_axis_change);
-    hud_scale_auto_axis_change(_sofbuddy_hud_scale_auto_axis);
+    _sofbuddy_hud_scale_pct = detour_Cvar_Get::oCvar_Get("_sofbuddy_hud_scale_pct", "75", CVAR_SOFBUDDY_ARCHIVE, hud_scale_pct_change);
     _sofbuddy_hud_scale = detour_Cvar_Get::oCvar_Get("_sofbuddy_hud_scale", "1", CVAR_SOFBUDDY_ARCHIVE, hudscale_change);
     migrate_legacy_negative_scale(_sofbuddy_hud_scale);
+    if (_sofbuddy_hud_scale) _sofbuddy_hud_scale->flags &= ~kCvarInteger;
     hudscale_change(_sofbuddy_hud_scale);
-    _sofbuddy_crossh_scale_auto_axis = detour_Cvar_Get::oCvar_Get("_sofbuddy_crossh_scale_auto_axis", "1", CVAR_SOFBUDDY_ARCHIVE, crosshair_scale_auto_axis_change);
-    crosshair_scale_auto_axis_change(_sofbuddy_crossh_scale_auto_axis);
     _sofbuddy_crossh_scale_auto = detour_Cvar_Get::oCvar_Get("_sofbuddy_crossh_scale_auto", "0", CVAR_SOFBUDDY_ARCHIVE, crosshair_scale_auto_change);
     crosshair_scale_auto_change(_sofbuddy_crossh_scale_auto);
     _sofbuddy_crossh_scale = detour_Cvar_Get::oCvar_Get("_sofbuddy_crossh_scale", "1", CVAR_SOFBUDDY_ARCHIVE, crosshairscale_change);
@@ -207,24 +316,15 @@ void create_scaled_ui_cvars(void) {
 #endif
 #if FEATURE_SCALED_MENU
     if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
-    _sofbuddy_scale_auto_axis = detour_Cvar_Get::oCvar_Get("_sofbuddy_scale_auto_axis", "1", 0, scale_auto_axis_change);
-    scale_auto_axis_change(_sofbuddy_scale_auto_axis);
+    _sofbuddy_menu_scale_pct = detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_scale_pct", "75", CVAR_SOFBUDDY_ARCHIVE, menu_scale_pct_change);
     _sofbuddy_menu_scale = detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_scale", "1", CVAR_SOFBUDDY_ARCHIVE, menuscale_change);
-    _sofbuddy_menu_tip_appear = detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_tip_appear", "250", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    _sofbuddy_menu_tip_appear = detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_tip_appear", "750", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     _sofbuddy_menu_font_size_style = detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_font_size_style", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     migrate_legacy_negative_scale(_sofbuddy_menu_scale);
+    if (_sofbuddy_menu_scale) _sofbuddy_menu_scale->flags &= ~kCvarInteger;
     menuscale_change(_sofbuddy_menu_scale);
     detour_Cvar_Get::oCvar_Get("_sb_internal_menu_scale_rounded", "1", 0, nullptr);
     }
-#endif
-#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD
-    migrate_split_auto_axis();
-#if FEATURE_SCALED_CON
-    if (_sofbuddy_font_scale_auto_axis) font_scale_auto_axis_change(_sofbuddy_font_scale_auto_axis);
-#endif
-#if FEATURE_SCALED_HUD
-    if (_sofbuddy_hud_scale_auto_axis) hud_scale_auto_axis_change(_sofbuddy_hud_scale_auto_axis);
-#endif
 #endif
 #if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
     if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON) ||
@@ -235,7 +335,8 @@ void create_scaled_ui_cvars(void) {
         detour_Cvar_Get::oCvar_Get("_sofbuddy_scale_round_auto", "0", CVAR_SOFBUDDY_ARCHIVE, scale_round_auto_change);
     }
 #endif
-    register_scale_preset_command();
+    refresh_scaled_cvar_ptrs();
+    reapply_scale_percentages();
 }
 
 #endif // FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU

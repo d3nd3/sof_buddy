@@ -4,7 +4,7 @@
 <hbr>
 <hbr>
 <font type {font_title} tint cyan atint cyan>
-"Menus"
+<text "==MENU==" tip "Menu rects+text" tint cyan atint cyan><hbr>
 <font type {font_title} tint white atint white>
 <include sof_buddy/ui_scale_menu_manual>
 </stm>

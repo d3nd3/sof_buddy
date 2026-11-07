@@ -57,7 +57,34 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
         return;
         #else
         // FEATURE_SCALED_CON not enabled, just call original
-        original(x, y, w, h, palette, name, flags);
+    #if FEATURE_SCALED_HUD
+    void* image = nullptr;
+    int* image_texnum = nullptr;
+    int saved_texnum = 0;
+    unsigned int proxy_texnum = 0;
+    float proxy_scale = 0.0f;
+    if (g_activeRenderType == uiRenderType::Scoreboard || g_activeRenderType == uiRenderType::HudCtfFlag)
+        proxy_scale = hudScale;
+    else if (g_currentStretchPicCaller == StretchPicCaller::TeamIconDraw && g_iconsAutoscale)
+        proxy_scale = hudScale;
+    if (proxy_scale > 0.0f && name) {
+        image = scaled_ui_find_image(name);
+        if (image) {
+            proxy_texnum = scaled_ui_image_proxy_texnum(image, proxy_scale);
+            if (proxy_texnum) {
+                image_texnum = reinterpret_cast<int*>(static_cast<char*>(image) + 80);
+                saved_texnum = *image_texnum;
+                *image_texnum = static_cast<int>(proxy_texnum);
+            }
+        }
+    }
+#endif
+
+    original(x, y, w, h, palette, name, flags);
+#if FEATURE_SCALED_HUD
+    if (proxy_texnum && image_texnum)
+        *image_texnum = saved_texnum;
+#endif
         g_currentStretchPicCaller = StretchPicCaller::Unknown;
         g_activeDrawCall = DrawRoutineType::None;
         resetGlVertexQuadState();
@@ -66,6 +93,7 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
     }
     
 #if FEATURE_SCALED_HUD
+    extern bool g_iconsAutoscale;
     if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
         if (g_activeRenderType == uiRenderType::HudCtfFlag) {
             SOFBUDDY_ASSERT(hudScale > 0.0f);

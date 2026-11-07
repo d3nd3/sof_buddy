@@ -21,6 +21,9 @@
 #include <vector>
 
 extern void* o_sofplus;
+#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
+extern void scaled_ui_slider_defer_flush(void);
+#endif
 
 namespace {
 
@@ -360,6 +363,9 @@ void sofbuddy_cfg_exec_startup(void) {
 }
 
 void sofbuddy_cfg_save_now(void) {
+#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_UI_BASE
+    scaled_ui_slider_defer_flush();
+#endif
     const CvarSnapshot snapshot = capture_snapshot();
     write_snapshot_to_disk(snapshot);
 }

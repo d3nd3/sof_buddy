@@ -38,7 +38,10 @@ _ss:     frame W/H = authored * C      (stock)
 ```
 
 A 640×480 frame authored at 480p therefore becomes 1440×1080 at 1080p (4:3 fitted
-to the screen height) instead of 1920×1440 (cropped). A dimension of 0 keeps the
+to the screen height) instead of 1920×1440 (cropped). The conversion is first a
+**vertical virtual-space correction**: at 16:9 `V=360`, so a 480-unit-tall frame
+scaled by `C` would be 480 units tall in a 360-unit viewport. `authored × menuScale`
+is equivalent to `authored × V/480` in virtual units. A dimension of 0 keeps the
 engine's inherit/split behaviour. The source file is tracked through `toke_c`
 construction and `toke_c::Insert` (include/exinclude); a frame stays stock if its
 source name ends in `_ss` **or any ancestor frame is `_ss`** (propagated in the
@@ -52,8 +55,12 @@ The embedded `sof_buddy/*` and `loading/*` pages are excluded from the frame
 conversion. They keep the stock frame canvas (`authored × C`) while their text,
 rects and layout continue to use `menuScale`; the F12 redesign authors the tab
 grid and content spacers in 640×480 units so the two tab rows and page body stay
-together at the source resolution. This is the conservative path used for the
-in-game F12 overlay; a dedicated frame-scale pass can be evaluated separately.
+together at the source resolution. This is **not** a claim that these menus are
+immune to the 4:3→16:9 height problem: it is the conservative choice used for the
+in-game F12 overlay, with dynamic prefixes/insets and scrolling handling the
+layout. A dedicated frame-scale pass for `sof_buddy` pages is still an open
+question; `loading/*` is engine/intro-owned and is skipped to avoid double-scaling
+the transition.
 
 ### Content is scaled by the vertical design (menuScale)
 
@@ -63,11 +70,18 @@ Everything inside the frames — text, area rects, borders, offsets — is scale
 - **Max scale**:
   `auto_scale_resolution_ratio()` = `screen_y_scale` = `vid_h / 480`
   (1.0 at 480p height, 2.25 at 1080p).
-- **Manual** (`_sofbuddy_menu_scale`): clamped to 0.25–max and snapped with
-  `round_scale_value()`; a value of ~1 is forced to exactly `1.0`
-  (**1 = vanilla actual pixels**). Values above the max use the exact max scale.
-  The F12 UI Scale tab adds **Auto** (`round(max × 0.75)`), **Max** (exact max),
-  and **Min** (`1`) preset buttons next to the 0.25-step list.
+- **Percentage** (`_sofbuddy_menu_scale_pct`, default `75`): integer `0`–`100`.
+  The effective menu scale is
+  `1 + (max − 1) × pct / 100`; `0%` = `1×`, `100%` = the vertical max.
+  The F12 UI Scale tab uses a percentage slider plus a **Reset to default (75%)**
+  button in Smooth mode: `0%` = `1×`, `100%` = `max`, with linear scales in
+  between. Values below `2×` round to the nearest integer (`1×` or `2×`); `2×`
+  and above stay fractional. Integer mode uses an integer slider bound to the
+  vertical max instead. `_sofbuddy_menu_scale` is the computed scale cvar.
+  The menu-scale slider defers its cvar update but previews the knob at the
+  pending value during the drag, then commits and re-parses the open UI Scale
+  page after the mouse button is released; menu rect/frame geometry is baked at
+  RMF parse time, so the displayed scale alone cannot resize an already open page.
 
 Non-`_ss` frames use `menuScale` (the vertical design), so frame boxes and their
 contents share the same space. `_ss` frames keep the stock `C` factor because they
@@ -411,20 +425,129 @@ normally**, exactly like any other menu:
   and ticker normalisation are **not** disabled for `_ss` menus;
 - frame W/H conversion is skipped for `_ss` files: they keep the stock
   authored × `C` dimensions, while non-`_ss` frames use the vertical `resY/480`
-  factor. The only other frame mutation is the explicit `game_ss` correction below;
+  factor. `game_ss` gets a load-time border inset and topic-height correction, described below; other `_ss` menus keep their authored borders;
 - the `M_PushMenu` pre-hook still normalises and records the pushed name (leaf,
-  `.rmf` stripped, lowercase) because the frame correction keys off it.
+  `.rmf` stripped, lowercase) for `_ss` scaling decisions and menu-specific behavior.
 
-### `game_ss.rmf` override
+### `_ss` border and topic correction
 
-`game_ss.rmf` contains `<frame topic 0 92 page t_game center>`; the correct height is
-96. A frame-finalize hook (`0xC6500`, just before the engine snapshots frame dims
-into the border rect and before `frame_c::CreatePage`) rewrites only that case:
+SoFPlus's 16:9 `game_ss.rmf` uses `<frame main 426 0 border 0 0 ...>`, while the
+vanilla 4:3 page uses `border 40 0`. The missing text clearance is small, so the FS
+hook restores only a small design inset for that one menu:
 
 ```
-if (pushed menu == "game_ss" && frame name == "topic")
-    frame->H = (int)(96.0f * canvasScale)
+<frame main ... border 0 0 ...> -> <frame main ... border 8 0 ...
 ```
+
+The full vanilla `40` was tested and is wrong for the `_ss` geometry: the `_ss` main
+panel is a different 16:9 layout, and a scaled `40` border becomes a large gutter
+(~90px at 1080p). The authored `0` is otherwise intentional for the other `_ss`
+menus.
+
+The existing `menu_border_dims_init` hook still scales border values. To avoid
+double-scaling, it separates frame borders from rect borders:
+
+```
+frame border = call-site scale != 1.0
+if (frame border)
+    use = vid_h / 480        // vertical virtual-space correction only
+else
+    use = menuScale          // normal content/rect border path
+```
+
+So the `game_ss` main-frame `8` becomes `8 * (vid_h / 480)` pixels (18px at 1080p).
+This also fixes existing `_ss` frame borders such as `border 8 1` in `join_ss.rmf`:
+they use the vertical path instead of the content `menuScale` and are no longer
+over-scaled. Rect borders keep the normal `menuScale` path; other `_ss` menus keep
+their authored `border 0 0`. `game_ss.rmf` additionally gets its authored topic height
+corrected:
+
+```
+<frame topic 0 92 -> <frame topic 0 96
+```
+
+The patch works whether the `_ss` file is pushed directly or included by a wrapper
+such as `game.rmf` through `_spf_cl_video_shortscreen`; `_ns`/4:3 pages are
+untouched. Patching the RMF text is deliberate: mutating the live
+`frame_c`/`border_c` objects after parsing is unsafe because the border object is
+already initialized and linked.
+
+The border correction restores the vanilla inset that the `_ss` author removed
+(`border 0 0`) to keep the wide panel seamless. At high resolution the missing
+inset clipped the first content row (e.g. “Change codename”); the converted
+`40 × menuScale` border gives it the same proportional clearance as the 4:3 page.
+The topic correction makes `game_ss` consistent with `game2_ss`/`game3_ss`.
+
+### Why `_ss` pages clip at high resolution
+
+This is a layout difference in the SoFPlus `_ss` art, not a general engine scaling
+bug. The vanilla 4:3 page uses a bordered main frame:
+
+```
+<frame main 640 372 border 40 0 clear backfill clear>
+```
+
+`game_ss.rmf` replaces that with a flush 16:9 panel:
+
+```
+<frame main 426 0 border 0 0 clear backfill clear cut 16_9_center>
+```
+
+The vanilla border is what gives `m_game`/`m_joystick`/etc. their content inset. Its
+first token is the border thickness, and the engine multiplies that by the menu
+canvas scale. Keeping `40` on a 1920-wide 16:9 panel would therefore create a 120px
+gutter, so the `_ss` author set it to `0` to keep the wide black panel seamless and
+let the 16:9 side art meet the panel edge. Scaled Menu restores the authored `40`
+but converts it through `menuScale` (`40 × menuScale` pixels) instead of
+reintroducing the raw C-scaled gutter. At 480p the first content row is small
+enough that the glyph and shadow still fit; at high resolution the text is scaled
+while the frame top remains the exact clip edge, so the top of the first row is cut.
+It is most visible in `game_ss` because its first `m_game` row is a large
+title-style text, but any `_ss` page whose `m_*` content starts at `y=0` has the
+same latent issue.
+
+The preferred fix when authoring new `_ss` assets is to keep the shared chrome and
+put the inset in the common content frame, or add a leading blank to each `m_*`
+page. The runtime `_ss.rmf` text patch above is only a compatibility workaround for
+the existing SoFPlus pak, which we do not control.
+
+### Suggested `_ss` template
+
+The repeated five-frame chrome can be shared. Keep the per-menu file as a thin
+wrapper:
+
+```
+<stm>
+<strings menu_generic>
+<strings menu_keys>
+<include tints>
+<set scr_menuoverlay 1>
+<exitcfg joystick>
+
+<frame topic 0 96 page t_joystick center>
+<include sof_buddy/ss_shell>
+<frame joystick 0 8 page m_joystick cut main>
+</stm>
+```
+
+`ss_shell.rmf` owns the common 16:9 chrome:
+
+```
+<stm>
+<frame 16_9_center 0 228>
+<frame 16_9_left 107 0 page 16_9_l cut 16_9_center>
+<frame main 426 0 border 40 0 clear backfill clear cut 16_9_center>
+<frame 16_9_right 0 0 page 16_9_r cut 16_9_center>
+<frame 16_9_bottom 0 0 page 16_9_b>
+</stm>
+```
+
+This removes five duplicated frames per menu, makes the topic height consistent
+(`96`; the `game_ss` 92 is the outlier fixed at runtime above), and gives new pages
+one obvious place for the content inset via the shared `main` border (the feature
+converts the authored `40` through `menuScale`). A common shell also makes it much easier to
+change the 16:9 panel geometry or add a scaled top inset once rather than in every
+`_ss` file.
 
 ## Tooltips
 
@@ -469,11 +592,18 @@ Fix:
   mouse-based value, so the tooltip appears at the cursor horizontally and just
   under the drawn item.
 - The engine does not draw a fresh tip until `elapsed > duration/4` (2.5 s at the
-  Buddy `tip_duration` default of 5500). The same hook moves `tip->start(+0x18)` back by
-  `duration/4 − _sofbuddy_menu_tip_appear`, so the tooltip appears after the
-  configured delay (default **250 ms**, `0` = immediate, `2500` = stock). The
-  fade-out threshold moves with the start, so the visible time is unchanged. The
-  value is exposed as **Menu tooltip Appear (ms)** in F12 → General → Menu. The tooltip font is selectable there as **Tooltip font** (Small default, Medium, Title) and applies when the menu is reopened. **Menu font size style** (Small/Normal/Large/Extra Large) selects the F12 font-tier template; F12 is reparsed so the authored `<font type>` tags stay consistent.
+  Buddy `tip_duration` default of 15000). `hk_menu_create_tip` records the new
+  `(menu, tip, source rect)` and rewrites `tip->start(+0x18)` to
+  `created − duration/4 + _sofbuddy_menu_tip_appear`, so the tooltip appears after
+  exactly the configured delay (default **750 ms**, `0` = immediate, `2500` =
+  stock). The fade-out threshold moves with the start, so the visible time is
+  unchanged.
+- `hk_tip_render` (`0x200EA8A0`) calls the original render only while
+  `menu_c+0xBC` still equals the recorded source rect. Moving off the hotspot
+  suppresses the draw immediately instead of firing after the delay; re-entering
+  creates a fresh tip and restarts the full delay. The hook only reads engine
+  state and skips the call — it never writes menu/tip fields or frees the tip.
+  The value is exposed as **Menu tooltip Appear (ms)** in F12 → General → Menu. The tooltip font is selectable there as **Tooltip font** (Small default, Medium, Title) and applies when the menu is reopened. **Menu font size style** (Small/Normal/Large/Extra Large) selects the F12 font-tier template; F12 is reparsed so the authored `<font type>` tags stay consistent.
 
 No validation/rejection is used: the hitbox itself now matches the drawing.
 
@@ -536,7 +666,8 @@ patched `M_PushMenu` entry), not `detour_M_PushMenu::oM_PushMenu`.
 | ticker init (vtable `+0x28`) | 0xD1B30 | ticker `W`/`OuterW` canvas normalisation |
 | `stm_c` hover pass | 0xE9F30 | save/restore rect `ox/oy` around the engine hover pass |
 | rect hover prep | 0xCEB40 | rewrite `ox/oy` to the drawn position during the hover pass |
-| `menu_c::CreateTip` | 0xCA9D0 | re-anchor tooltip to the drawn rect bottom |
+| `menu_c::CreateTip` | 0xCA9D0 | re-anchor tooltip to the drawn rect bottom; record source rect |
+| `tip_c::Render` | 0xEA8A0 | suppress drawing once the cursor leaves the source rect |
 
 Font measurement and glyph scaling are handled by `scaled_ui_base` (`R_DrawFont`,
 `R_Strlen`, `R_StrHeight`); menu images by its `GL_FindImage` hook. At

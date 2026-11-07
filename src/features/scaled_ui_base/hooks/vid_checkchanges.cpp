@@ -38,6 +38,9 @@ void scaled_ui_refresh_vid_dimensions_from_engine(void) {
         if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU) && _sofbuddy_menu_scale)
             menuscale_change(_sofbuddy_menu_scale);
 #endif
+#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
+        reapply_scale_percentages();
+#endif
     }
 }
 

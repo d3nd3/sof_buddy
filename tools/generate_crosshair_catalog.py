@@ -9,6 +9,24 @@ import subprocess
 import sys
 from pathlib import Path
 
+def write_bytes_if_changed(path: Path, data: bytes, touch_if_same: bool = False) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists() and path.read_bytes() == data:
+        if touch_if_same:
+            path.touch()
+        return
+    path.write_bytes(data)
+
+
+def write_text_if_changed(path: Path, text: str, touch_if_same: bool = False) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists() and path.read_text(encoding="utf-8") == text:
+        if touch_if_same:
+            path.touch()
+        return
+    path.write_text(text, encoding="utf-8")
+
+
 ROOT = Path(__file__).resolve().parents[1]
 ASSET_DIR = ROOT / "rsrc" / "assets" / "crosshairs"
 OUT_RMF = ROOT / "src" / "features" / "internal_menus" / "menu_library" / "sof_buddy" / "more_crosshair_list.rmf"
@@ -83,8 +101,7 @@ def write_pak_bytes(path: Path, entries: list[tuple[str, bytes]]) -> None:
         name = vpath.encode("ascii", errors="replace")[:56]
         out.extend(name.ljust(56, b"\x00"))
         out.extend(struct.pack("<II", header + off, size))
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(out)
+    write_bytes_if_changed(path, bytes(out))
 
 
 def build_none_crosshair_m32() -> bytes:
@@ -241,12 +258,13 @@ def write_placeholder_inc(out_dir: Path) -> None:
     blob = build_none_crosshair_m32()
     out = out_dir / "crosshair_placeholder.inc"
     if not blob:
-        out.write_text(
+        write_text_if_changed(
+            out,
             "/* No sauron_crosshairs.pak ch0 — placeholder disabled */\n"
             "#pragma once\n"
             "static const unsigned char kCrosshairNoneM32[] = {0};\n"
             "static const unsigned int kCrosshairNoneM32Size = 0u;\n",
-            encoding="utf-8",
+            True,
         )
         return
     lines = [
@@ -261,7 +279,7 @@ def write_placeholder_inc(out_dir: Path) -> None:
         lines.append("    " + ", ".join(f"0x{b:02x}" for b in chunk) + ",")
     lines.append("};")
     lines.append("")
-    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    write_text_if_changed(out, "\n".join(lines) + "\n", True)
 
 
 def write_outputs(
@@ -328,12 +346,9 @@ def write_outputs(
     lines.append(f'static const char kCrosshairMenuListLabels[] = "{label_blob}";')
     lines.append(f'static const char kCrosshairMenuListMatch[] = "{match_blob}";')
     lines.append("")
-    out_inc.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    write_text_if_changed(out_inc, "\n".join(lines) + "\n", True)
 
-    OUT_RMF.write_text(
-        "{crosshair_list}\n{crosshair_preview}\n",
-        encoding="utf-8",
-    )
+    write_text_if_changed(OUT_RMF, "{crosshair_list}\n{crosshair_preview}\n")
 
 
 def main() -> int:

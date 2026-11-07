@@ -74,7 +74,6 @@
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_font_scale_auto_axis atext "_sofbuddy_font_scale_auto_axis : " noshade tip "Font max scale axis. 0 horizontal vid_w div 640. 1 vertical vid_h div 480. Default 1 vertical."><br>
 <font type {font_title} tint gray atint gray>
 "Default 1 - Axis used for the font max scale."
 <hbr>
@@ -98,7 +97,6 @@
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_hud_scale_auto_axis atext "_sofbuddy_hud_scale_auto_axis : " noshade tip "HUD max scale axis. 0 horizontal vid_w div 640. 1 vertical vid_h div 480. Default 1 vertical."><br>
 <font type {font_title} tint gray atint gray>
 "Default 1 - Axis used for the HUD max scale."
 <hbr>
@@ -122,7 +120,6 @@
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_crossh_scale_auto_axis atext "_sofbuddy_crossh_scale_auto_axis : " noshade tip "Crosshair auto-scale axis: 0 horizontal (vid_w/640), 1 vertical (vid_h/480). Default 1."><br>
 <font type {font_title} tint gray atint gray>
 "Default 1 - Vertical crosshair auto-scale axis."
 <hbr>
@@ -399,9 +396,9 @@
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_menu_tip_appear atext "_sofbuddy_menu_tip_appear : " noshade tip "Tooltip appear delay in ms. 0 immediate. Default 250."><br>
+<ctext _sofbuddy_menu_tip_appear atext "_sofbuddy_menu_tip_appear : " noshade tip "Tooltip appear delay in ms. 0 immediate. Default 750."><br>
 <font type {font_title} tint gray atint gray>
-"Default 250 - Tooltip appearance delay (ms)."
+"Default 750 - Tooltip appearance delay (ms)."
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>

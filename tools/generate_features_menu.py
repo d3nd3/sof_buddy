@@ -118,6 +118,7 @@ def main() -> int:
     content = generate(features_path)
     OUT.parent.mkdir(parents=True, exist_ok=True)
     if OUT.exists() and OUT.read_text(encoding="utf-8") == content:
+        OUT.touch()
         return 0
     fd, tmp = tempfile.mkstemp(prefix="features_rows.", suffix=".rmf", dir=OUT.parent)
     try:

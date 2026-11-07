@@ -110,15 +110,22 @@ void menuscale_change(cvar_t* cvar) {
 	if (!cvar) return;
 	const float maxScale = auto_scale_resolution_ratio();
 	float v = cvar->value;
-	if (v < 0.25f) v = 0.25f;
-	if (v >= maxScale - 0.0001f) {
-		menuScale = maxScale;
+	const bool smooth_mode = scale_mode_is_smooth();
+	if (g_applyingScalePercent || smooth_mode) {
+		menuScale = (v > maxScale) ? maxScale : v;
+		if (menuScale < 1.0f) menuScale = 1.0f;
 	} else {
-		menuScale = round_scale_value(v);
-		if (menuScale < 0.25f) menuScale = 0.25f;
-		if (menuScale > maxScale) menuScale = maxScale;
-		if (v >= 0.999f && v <= 1.001f) menuScale = 1.0f;
+		if (v < 0.25f) v = 0.25f;
+		if (v >= maxScale - 0.0001f) {
+			menuScale = maxScale;
+		} else {
+			menuScale = round_scale_value(v);
+			if (menuScale < 0.25f) menuScale = 0.25f;
+			if (menuScale > maxScale) menuScale = maxScale;
+			if (v >= 0.999f && v <= 1.001f) menuScale = 1.0f;
+		}
 	}
+	menuScale = scale_mode_apply(menuScale);
 	if (detour_Cvar_Set2::oCvar_Set2) {
 		char buf[32];
 		std::snprintf(buf, sizeof(buf), "%.2f", menuScale);
@@ -244,6 +251,17 @@ static void thiscall_2args_void(void* self, void* a1, int a2, void* fn) {
 		: "ecx", "eax", "edx", "memory");
 }
 
+static void thiscall_1arg_void(void* self, void* a1, void* fn) {
+	if (!fn) return;
+	__asm__ __volatile__(
+		"pushl %1\n\t"
+		"movl %0, %%ecx\n\t"
+		"call *%2"
+		: : "m"(self), "m"(a1), "m"(fn)
+		: "ecx", "eax", "edx", "memory");
+}
+
+
 static void thiscall_rect_set_height(void* rect, int height, void* fn) {
 	if (!fn || !rect) return;
 	__asm__ __volatile__(
@@ -266,6 +284,7 @@ constexpr uintptr_t kRvaTickerInit = 0x000D1B30u;
 constexpr uintptr_t kRvaRectGetCoords = 0x000CF570u;
 constexpr uintptr_t kRvaRectHoverMark = 0x000CEB60u;
 constexpr uintptr_t kRvaMenuCreateTip = 0x000CA9D0u;
+constexpr uintptr_t kRvaTipRender = 0x000EA8A0u;
 constexpr uintptr_t kRvaMenuSysGetMouseX = 0x000CBE80u;
 constexpr uintptr_t kRvaMenuSysGetMouseY = 0x000CBE90u;
 constexpr uintptr_t kRvaStmHoverPass = 0x000E9F30u;
@@ -445,9 +464,14 @@ static bool scaled_menu_skip_for_intro_disclaimer(void) {
 #endif
 }
 
-static float border_dims_init_use_scale(float scale, bool active) {
-	(void)scale;
+static float border_dims_init_use_scale(float scale, bool active, bool frame_border) {
 	if (!active) return 1.f;
+	if (frame_border) {
+		// Frame borders use the same virtual authoring space as frame W/H.
+		// Apply the vertical virtual-space correction only, not the manual menu scale.
+		return (current_vid_h > 0) ? (static_cast<float>(current_vid_h) / 480.0f) : 1.f;
+	}
+	(void)scale;
 	return scaled_menu_screen_scale();
 }
 
@@ -459,6 +483,7 @@ __attribute__((thiscall))
 static void* hk_menu_border_dims_init(void* border, char* dimA, char* dimB, void* tint, float scale) {
 	bool active = scaled_menu_uniform_actual_active();
 	if (active && scaled_menu_skip_for_intro_disclaimer()) active = false;
+	const bool frame_border = std::fabs(scale - 1.0f) > 0.001f;
 	if (!active) {
 #if defined(__GNUC__) && defined(__i386__)
 		return oMenu_BorderDimsInit
@@ -469,7 +494,7 @@ static void* hk_menu_border_dims_init(void* border, char* dimA, char* dimB, void
 		return oMenu_BorderDimsInit ? oMenu_BorderDimsInit(border, dimA, dimB, tint, scale) : border;
 #endif
 	}
-	const float use = border_dims_init_use_scale(scale, active);
+	const float use = border_dims_init_use_scale(scale, active, frame_border);
 #if defined(__GNUC__) && defined(__i386__)
 	void* ret = oMenu_BorderDimsInit
 	                ? thiscall_border_dims_init(border, dimA, dimB, tint, use,
@@ -478,7 +503,7 @@ static void* hk_menu_border_dims_init(void* border, char* dimA, char* dimB, void
 #else
 	void* ret = oMenu_BorderDimsInit ? oMenu_BorderDimsInit(border, dimA, dimB, tint, use) : border;
 #endif
-	if (border) {
+	if (border && !frame_border) {
 		const float ms = scaled_menu_screen_scale();
 		// [border+4] is the raw (actual-pixel) thickness the stock call site never scales.
 		int& t = *reinterpret_cast<int*>(static_cast<char*>(border) + kBorder_ThickPx);
@@ -659,19 +684,6 @@ static void thiscall_frame_finalize_dims(void* frame, void* fn) {
 __attribute__((thiscall))
 #endif
 static void hk_frame_finalize_dims(void* frame) {
-	if (frame && std::strcmp(s_pushed_menu_name, "game_ss") == 0) {
-		char* f = static_cast<char*>(frame);
-		const char* frame_name = *reinterpret_cast<const char* const*>(f + kFrame_NamePtr);
-		const size_t frame_name_len = *reinterpret_cast<const size_t*>(f + kFrame_NameLen);
-		if (frame_name && frame_name_len == 5 && std::strncmp(frame_name, "topic", 5) == 0) {
-			char* menu = *reinterpret_cast<char**>(f + kFrame_Menu);
-			if (menu) {
-				const float canvas = *reinterpret_cast<float*>(menu + kMenuC_ScreenScale);
-				if (std::isfinite(canvas) && canvas > 1e-6f)
-					*reinterpret_cast<int*>(f + kFrame_H) = static_cast<int>(96.0f * canvas);
-			}
-		}
-	}
 	thiscall_frame_finalize_dims(frame, reinterpret_cast<void*>(oFrame_FinalizeDims));
 }
 
@@ -914,6 +926,10 @@ static void hk_ticker_init(void* ticker) {
 using Menu_CreateTip_t = void(__thiscall*)(void* menu, void* rect, int stm_y);
 static Menu_CreateTip_t oMenu_CreateTip = nullptr;
 
+using Tip_Render_t = void(__thiscall*)(void* tip, void* menu);
+static Tip_Render_t oTip_Render = nullptr;
+
+
 using Rect_HoverPrep_t = void(__thiscall*)(void* rect);
 static Rect_HoverPrep_t oRect_HoverPrep = nullptr;
 
@@ -930,6 +946,41 @@ struct HoverSave {
 static HoverSave s_hover_saved[512];
 static int s_hover_saved_count = 0;
 static bool s_in_hover_pass = false;
+
+constexpr ptrdiff_t kMenu_HoveredRect = 0xBC;
+
+struct TipSource {
+	void* menu;
+	void* tip;
+	void* rect;
+};
+static TipSource s_tip_sources[64];
+static int s_tip_source_next = 0;
+
+static void tip_source_store(void* menu, void* tip, void* rect) {
+	if (!menu || !tip || !rect) return;
+	const int count = static_cast<int>(sizeof(s_tip_sources) / sizeof(s_tip_sources[0]));
+	for (int i = 0; i < count; ++i) {
+		if (s_tip_sources[i].menu == menu && s_tip_sources[i].tip == tip) {
+			s_tip_sources[i].rect = rect;
+			return;
+		}
+	}
+	TipSource& entry = s_tip_sources[s_tip_source_next++ % count];
+	entry.menu = menu;
+	entry.tip = tip;
+	entry.rect = rect;
+}
+
+static void* tip_source_lookup(void* menu, void* tip) {
+	if (!menu || !tip) return nullptr;
+	const int count = static_cast<int>(sizeof(s_tip_sources) / sizeof(s_tip_sources[0]));
+	for (int i = 0; i < count; ++i) {
+		if (s_tip_sources[i].menu == menu && s_tip_sources[i].tip == tip)
+			return s_tip_sources[i].rect;
+	}
+	return nullptr;
+}
 
 static void hover_save_and_adjust(void* rect) {
 	if (s_hover_saved_count >= static_cast<int>(sizeof(s_hover_saved) / sizeof(s_hover_saved[0]))) return;
@@ -1030,12 +1081,16 @@ static void hk_menu_create_tip(void* menu, void* rect, int stm_y) {
 	if (!menu || !rect) return;
 	char* tip = *reinterpret_cast<char**>(static_cast<char*>(menu) + 0x5C);
 	if (!tip) return;
+	tip_source_store(menu, tip, rect);
 	if (_sofbuddy_menu_tip_appear) {
 		int appear = static_cast<int>(_sofbuddy_menu_tip_appear->value);
 		if (appear < 0) appear = 0;
 		const int duration = *reinterpret_cast<int*>(tip + 0x1C);
-		const int gate = duration / 4;
-		if (appear < gate) *reinterpret_cast<int*>(tip + 0x18) -= (gate - appear);
+		if (duration > 0) {
+			const int gate = duration / 4;
+			const int created = *reinterpret_cast<int*>(tip + 0x18);
+			*reinterpret_cast<int*>(tip + 0x18) = created - gate + appear;
+		}
 	}
 	if (!scaled_menu_uniform_actual_active() || scaled_menu_skip_for_intro_disclaimer()) return;
 	void* gc = rvaToAbsExe(reinterpret_cast<void*>(kRvaRectGetCoords));
@@ -1044,6 +1099,25 @@ static void hk_menu_create_tip(void* menu, void* rect, int stm_y) {
 	if (!thiscall_rect_get_coords(rect, &x, &y, gc)) return;
 	const int oh = *reinterpret_cast<int*>(static_cast<char*>(rect) + kRect_OuterH);
 	*reinterpret_cast<int*>(tip + 0x14) = y + oh;
+}
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static void hk_tip_render(void* tip, void* menu) {
+	if (!tip || !menu) return;
+	void* source = tip_source_lookup(menu, tip);
+	if (source) {
+		void* hovered = *reinterpret_cast<void**>(static_cast<char*>(menu) + kMenu_HoveredRect);
+		if (hovered != source) return;
+	}
+	if (oTip_Render) {
+#if defined(__GNUC__) && defined(__i386__)
+		thiscall_1arg_void(tip, menu, reinterpret_cast<void*>(oTip_Render));
+#else
+		oTip_Render(tip, menu);
+#endif
+	}
 }
 
 struct MenuExtendCache {
@@ -1163,6 +1237,19 @@ void scaled_menu_backdrop_clip_extend(int* x, int* w, const void* menu_c) {
 	menu_extend_clip_xw(x, w, menu_c);
 }
 
+void scaled_menu_reload_open_page(void) {
+	if (!detour_Cmd_ExecuteString::oCmd_ExecuteString) return;
+	if (!scaled_menu_current_menu()) return;
+	if (!detour_Cvar_Get::oCvar_Get) return;
+	cvar_t* cv = detour_Cvar_Get::oCvar_Get("_sb_internal_menu_last_page", "", 0, nullptr);
+	if (!cv || !cv->string || !cv->string[0] ||
+	    std::strncmp(cv->string, "sof_buddy/", 10) != 0)
+		return;
+	char cmd[160];
+	std::snprintf(cmd, sizeof(cmd), "sofbuddy_menu %s", cv->string);
+	detour_Cmd_ExecuteString::oCmd_ExecuteString(cmd);
+}
+
 void scaled_menu_on_vid_layout_changed(void) {
 	// Rects size themselves at RMF parse time from R_Strlen/R_StrHeight, so a menu that is
 	// already open keeps the scale it was parsed with. Menus are re-parsed on next open
@@ -1190,7 +1277,8 @@ void scaled_menu_sync_scale_from_engine(void) {
 	current_vid_h = h;
 	screen_y_scale = static_cast<float>(h) / 480.0f;
 	screen_x_scale = static_cast<float>(w) / 640.0f;
-	if (_sofbuddy_menu_scale) menuscale_change(_sofbuddy_menu_scale);
+	cvar_t* menu_cv = findCvar(const_cast<char*>("_sofbuddy_menu_scale"));
+	if (menu_cv) menuscale_change(menu_cv);
 }
 
 void scaled_menu_refresh_open_canvases(void) {}
@@ -1266,10 +1354,15 @@ bool scaled_menu_install_hooks(void) {
 		reinterpret_cast<void*>(&hk_menu_create_tip),
 		reinterpret_cast<void**>(&oMenu_CreateTip),
 		"menu_create_tip") && ok;
+	ok = install_one(
+		reinterpret_cast<void*>(kRvaTipRender),
+		reinterpret_cast<void*>(&hk_tip_render),
+		reinterpret_cast<void**>(&oTip_Render),
+		"tip_render") && ok;
 	return ok && Draw_RenderRect && oMenu_BorderDimsInit && oRect_Parse &&
 	       oFrame_FinalizeDims && oFrame_Ctor && oFrame_Link && oToke_Ctor &&
 	       oToke_Insert && oTicker_Init && oStm_HoverPass && oRect_HoverPrep &&
-	       oMenu_CreateTip;
+	       oMenu_CreateTip && oTip_Render;
 }
 
 static float menu_effective_scale(float s) {
@@ -1285,7 +1378,16 @@ bool scaled_menu_uniform_actual_active(void) {
 	return std::fabs(s - 1.0f) > 0.001f;
 }
 
+static bool menu_page_skips_scale(void) {
+	const char* n = s_pushed_menu_name;
+	return std::strcmp(n, "load") == 0 || std::strcmp(n, "load_ss") == 0 ||
+	       std::strcmp(n, "load_ns") == 0 || std::strcmp(n, "save") == 0 ||
+	       std::strcmp(n, "save_ss") == 0 || std::strcmp(n, "save_ns") == 0 ||
+	       std::strcmp(n, "m_load") == 0 || std::strcmp(n, "m_save") == 0;
+}
+
 float scaled_menu_screen_scale(void) {
+	if (menu_page_skips_scale()) return 1.0f;
 	float s = menuScale > 0.0f ? menuScale : 1.0f;
 	if (join_scale_active() && s > 1.0f) {
 		float join_scale = s * 0.75f;

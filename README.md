@@ -199,7 +199,7 @@ pre-checks the first two tasks when they still make sense for your retail build;
 
 ### In-Game Commands
 
-- `**F12`** (or `**bind <key> sofbuddy_menu sof_buddy`**) — **Open the SoF Buddy menu. Use this. It’s the main entry point for all settings, updater, and profiles.** Set an additional shortcut from **Settings → Menu → Bonus menu key**; F12 remains available. Under **UI Scale**: each scale has a 0.25-step manual list plus **Auto** (75% of the resolution max), **Max** (the exact resolution max), and **Min** (1) buttons. **Cinematic Images Rounding** and **Scale Cinematic Images** are on the same page.
+- `**F12`** (or `**bind <key> sofbuddy_menu sof_buddy`**) — **Open the SoF Buddy menu. Use this. It’s the main entry point for all settings, updater, and profiles.** Set an additional shortcut from **Settings → Menu → Bonus menu key**; F12 remains available. Under **UI Scale**: each scale has an integer percentage slider (**0%** = 1×, **100%** = the vertical resolution max; scale sliders commit on mouse release, and the menu-scale slider reparses the open page at the new scale) and a **Reset to default (75%)** button. The percentage is saved and reapplied after startup and resolution/video changes. **Scaling Mode** selects **Smooth** (integer-prescaled cached textures for HUD/crosshair/scoreboard images; 0% = 1×, 100% = the vertical max, linear in between, with sub-2× results rounded to the nearest integer) or **Integer** (integer slider; floors font/HUD/menu/crosshair scales to 1×, 2×, 3×…). **Cinematic Images Rounding** and **Scale Cinematic Images** are on the same page.
 - `sofbuddy_list_features` — Print compiled features (and whether they are on/off).
 - `sofbuddy_master_next` — Query the next configured GameSpy master server.
 - `sofbuddy_menu <name>` — Open an embedded internal menu page (examples: `loading`, `sof_buddy`).
@@ -313,11 +313,7 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_font_scale</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Manual font scale multiplier (<code>0.25</code> … <code>8</code> in 0.25 steps). Values above the resolution max use the max scale. F12 → UI Scale.</td>
-</tr>
-<tr>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_font_scale_auto_axis</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Font max-scale axis: <code>0</code> horizontal (<code>vid_w / 640</code>), <code>1</code> vertical (<code>vid_h / 480</code>). F12 → UI Scale.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Computed font scale, driven by <code>_sofbuddy_font_scale_pct</code> (<code>0%</code> = 1×, <code>100%</code> = vertical max). F12 → UI Scale.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_font_pack</code></td>
@@ -325,11 +321,7 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_hud_scale</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Manual HUD scale multiplier (<code>0.25</code> … <code>8</code> in 0.25 steps). Values above the resolution max use the max scale. F12 → UI Scale.</td>
-</tr>
-<tr>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_hud_scale_auto_axis</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. HUD max-scale axis: <code>0</code> horizontal (<code>vid_w / 640</code>), <code>1</code> vertical (<code>vid_h / 480</code>). F12 → UI Scale.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Computed HUD scale, driven by <code>_sofbuddy_hud_scale_pct</code> (<code>0%</code> = 1×, <code>100%</code> = vertical max). F12 → UI Scale.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_scale_round_auto</code></td>
@@ -337,7 +329,7 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_scale_round_ratio</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0.25</code>. Snap increment for the Auto preset and manual font/HUD/menu scales (<code>0.05</code>, <code>0.1</code>, <code>0.125</code>, <code>0.25</code>, <code>0.5</code>, <code>1</code>). Also applies to cinematic image scaling when rounding is on. F12 → UI Scale.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0.25</code>. Snap increment for direct console font/HUD/menu scale values (<code>0.05</code>, <code>0.1</code>, <code>0.125</code>, <code>0.25</code>, <code>0.5</code>, <code>1</code>). Also applies to cinematic image scaling when rounding is on. F12 → UI Scale.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_scale_cinematic_pics</code></td>
@@ -349,11 +341,7 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_crossh_scale_auto</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code> (Off). Auto-scale the crosshair from the selected axis; hides the manual scale control when On. F12 → Gameplay.</td>
-</tr>
-<tr>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_crossh_scale_auto_axis</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code> (Vertical). Crosshair auto-scale axis: <code>0</code> horizontal (<code>vid_w / 640</code>), <code>1</code> vertical (<code>vid_h / 480</code>). F12 → Gameplay.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code> (Off). Auto-scale the crosshair from the vertical scale; hides the manual scale control when On. F12 → Gameplay.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_crosshair_theme</code></td>
@@ -495,13 +483,13 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_hotkey</code></td>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_scale</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Actual-pixel menu scale (<code>0.25</code> … <code>8</code>); values above the resolution max (<code>vid_h / 480</code>) use the max scale. <code>1</code> = vanilla SoF. F12 → UI Scale.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Computed menu scale, driven by <code>_sofbuddy_menu_scale_pct</code> (<code>0%</code> = 1×, <code>100%</code> = vertical max). F12 → UI Scale.</td>
 </tr>
 <strong>Default</strong> <code>F12</code>. Keyboard key that opens the F12 menu. F12 → General.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_tip_appear</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>250</code>. Tooltip appearance delay in milliseconds (<code>0</code> immediate). F12 → General.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>750</code>. Tooltip appearance delay in milliseconds (<code>0</code> immediate). F12 → General.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_tip_font</code></td>

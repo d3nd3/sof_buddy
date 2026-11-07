@@ -58,7 +58,11 @@ void fontscale_change(cvar_t * cvar) {
     const float maxScale = auto_scale_resolution_ratio_font();
     float v = cvar->value;
     if (v <= 0.0f) v = 1.0f;
-    if (v >= maxScale - 0.0001f) {
+    const bool smooth_mode = !_sofbuddy_scale_mode || _sofbuddy_scale_mode->value >= 0.5f;
+    if (g_applyingScalePercent || smooth_mode) {
+        fontScale = (v > maxScale) ? maxScale : v;
+        if (fontScale < 1.0f) fontScale = 1.0f;
+    } else if (v >= maxScale - 0.0001f) {
         fontScale = maxScale;
     } else {
         fontScale = round_scale_value(v);
@@ -71,6 +75,7 @@ void fontscale_change(cvar_t * cvar) {
 		fontScale = 1;
 	}
 
+	fontScale = scale_mode_apply(fontScale);
 	SOFBUDDY_ASSERT(fontScale > 0.0f);
 	if (detour_Cvar_Set2::oCvar_Set2) {
 		char buf[32];

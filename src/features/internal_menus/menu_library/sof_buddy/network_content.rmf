@@ -34,8 +34,9 @@
 <list "Off,Primary,Random,Rotate" match "0,1,2,3" cvar _sofbuddy_http_maps atext "HTTP map assist : " noshade tip "0=Off, 1=Primary, 2=Random provider, 3=Rotate providers."><hbr>
 <cinclude _sb_internal_feature_master_server_fallback sof_buddy/network_master_gamespy>
 
-<font type {font_title} tint white atint white>
+<font type {font_title} tint sb_accent atint sb_accent>
 <ctext mapname atext "Current map : " noshade align center><hbr>
+<font type {font_title} tint white atint white>
 
 <center>
 <font type {font_title} tint sb_subtle atint sb_subtle>

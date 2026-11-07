@@ -1,0 +1,8 @@
+<stm>
+<ctext _sofbuddy_hud_scale_pct atext "HUD Scale % : " tint sb_accent atint sb_accent noshade tip "0% = 1x. 100% = the vertical max. Below 2x, values round to nearest integer (1x or 2x)."><br>
+<slider cvari _sofbuddy_hud_scale_pct min 0 max 100 step 1><br>
+<font type {font_title} tint sb_accent atint sb_accent>
+<ctext _sb_internal_hud_scale_rounded atext "Current hud scale : " noshade><br>
+<font type {font_title} tint white atint white>
+<text "Reset to default (75%)" key mouse1 "sofbuddy_scale_reset hud" border 8 1 cyan regular align center><br>
+</stm>

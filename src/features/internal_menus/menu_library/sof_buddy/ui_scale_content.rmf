@@ -28,12 +28,24 @@
 "_____________________________"
 <hbr>
 <hbr>
-<font type {font_title} tint cyan atint cyan>
-"Font & HUD"
 <font type {font_title} tint white atint white>
-<list "Horizontal,Vertical" match "0,1" cvari _sofbuddy_font_scale_auto_axis atext "Font Max Scale Axis : " key mouse1 "sofbuddy_menu sof_buddy/ui_scale" noshade tip "Axis used for the font max scale: Horizontal vid_w div 640, Vertical vid_h div 480. Default Vertical."><br>
+<list "Integer,Smooth" match "0,1" cvari _sofbuddy_scale_mode atext "Scaling Mode : " noshade tip "Integer floors font, HUD, menu, and crosshair scales to 1x/2x/3x. Smooth scales linearly from 1x to max (sub-2x values round to nearest integer) and uses cached integer-prescaled textures for HUD, crosshair, and scoreboard images before linear downscaling."><br>
+<hbr>
+<font type {font_title} tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type {font_title} tint cyan atint cyan>
+<text "==FONT==" tip "Font - chat/killfeed+console" tint cyan atint cyan><hbr>
+<font type {font_title} tint white atint white>
 <include sof_buddy/ui_scale_font_manual>
-<list "Horizontal,Vertical" match "0,1" cvari _sofbuddy_hud_scale_auto_axis atext "HUD Max Scale Axis : " key mouse1 "sofbuddy_menu sof_buddy/ui_scale" noshade tip "Axis used for the HUD max scale: Horizontal vid_w div 640, Vertical vid_h div 480. Default Vertical."><br>
+<font type {font_title} tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type {font_title} tint cyan atint cyan>
+<text "==HUD==" tip "Hud - in-game ui" tint cyan atint cyan><hbr>
+<font type {font_title} tint white atint white>
 <include sof_buddy/ui_scale_hud_manual>
 <cinclude _sb_internal_feature_scaled_menu sof_buddy/ui_scale_menu_block>
 
@@ -42,7 +54,7 @@
 <hbr>
 <hbr>
 <font type {font_title} tint cyan atint cyan>
-"Sprites & cinematics"
+<text "==SPRITES==" tip "Sprites & cinematics" tint cyan atint cyan><hbr>
 <font type {font_title} tint white atint white>
 <list "Off,On" cvari _sofbuddy_icons_autoscale atext "2d PlayerName+TeamIcons Autoscale : " noshade tip "The sprite directly above a player model in multiplayer."><br>
 <list "Off,On" cvari _sofbuddy_scale_cinematic_pics atext "Scale Cinematic Images : " noshade tip "Scales cinematic credit/fade images (SCR_FadePic) up from 640x480."><br>
@@ -54,10 +66,10 @@
 <hbr>
 <hbr>
 <font type {font_title} tint cyan atint cyan>
-"Console"
+<text "==CONSOLE==" tip "Console font and size" tint cyan atint cyan><hbr>
 <font type {font_title} tint white atint white>
 <list "Default,Force SoFPlus,Force Vanilla" cvari _sofbuddy_font_pack atext "Font Pack (reloads renderer) : " noshade tip "Default uses normal game/translation search. Force SoFPlus uses base/sofplus-fonts.pak. Force Vanilla uses stock pak*.pak fonts. Changing this reloads the renderer; the game itself keeps running."><br>
-<ctext _sofbuddy_console_size atext "Console Size : " noshade tip "Height of the in-game console as a fraction of screen. Independent of font scale above."><br>
+<ctext _sofbuddy_console_size atext "Console Size : " tint sb_accent atint sb_accent noshade tip "Height of the in-game console as a fraction of screen. Independent of font scale above."><br>
 <slider cvar _sofbuddy_console_size min 0.00 max 1.00 step 0.01 tip "Height of the in-game console as a fraction of screen."><br>
 
 <font type {font_title} tint sb_subtle atint sb_subtle>
@@ -65,6 +77,6 @@
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<text "Restore Scaling Defaults" key mouse1 "set _sofbuddy_font_pack 0;set _sofbuddy_font_scale 1;set _sofbuddy_font_scale_auto_axis 1;set _sofbuddy_console_size 0.5;set _sofbuddy_hud_scale 1;set _sofbuddy_hud_scale_auto_axis 1;set _sofbuddy_menu_scale 1;set _sofbuddy_scale_cinematic_pics 1;set _sofbuddy_icons_autoscale 1;set _sofbuddy_scale_round_auto 0;set _sofbuddy_scale_round_ratio 0.25;set _sofbuddy_crossh_scale_auto 0;set _sofbuddy_crossh_scale_auto_axis 1;sofbuddy_menu sof_buddy/ui_scale" border 8 1 cyan regular align center>
+<text "Restore Scaling Defaults" key mouse1 "set _sofbuddy_font_pack 0;set _sofbuddy_font_scale 1;set _sofbuddy_console_size 0.5;set _sofbuddy_hud_scale 1;set _sofbuddy_menu_scale 1;set _sofbuddy_scale_cinematic_pics 1;set _sofbuddy_icons_autoscale 1;set _sofbuddy_scale_round_auto 0;set _sofbuddy_scale_round_ratio 0.25;set _sofbuddy_crossh_scale_auto 0;sofbuddy_menu sof_buddy/ui_scale" border 8 1 cyan regular align center>
 <text "Close" key mouse1 "popmenu" border 8 1 cyan regular align center>
 </stm>

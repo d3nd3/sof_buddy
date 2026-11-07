@@ -461,7 +461,7 @@ void internal_menus_refresh_vid_mode_list_rmf(void) {
     rmf += labels;
     rmf += "\" match \"";
     rmf += values;
-    rmf += "\" cvar gl_mode atext \"Resolution : \" key mouse1 \"vid_restart\" key mouse2 \"vid_restart\" "
+    rmf += "\" cvar gl_mode atext \"Resolution : \" key mouse1 \"vid_restart;sofbuddy_menu sof_buddy/texture\" key mouse2 \"vid_restart;sofbuddy_menu sof_buddy/texture\" "
             "noshade tip \"Pick a gl_mode entry (0-9). Each entry maps to _sp_cl_vid_mode_N. Takes effect after vid_restart.\"><hbr>";
     detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_vid_mode_list_rmf"),
                                  const_cast<char*>(rmf.c_str()), true);
@@ -489,13 +489,15 @@ void create_layout_cvars() {
     detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_theme", "21", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get("_sofbuddy_snd_quiet_alt_tab", "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
 
-    // SoF.exe menu init (RVA 0xC8400): Cvar_Get("tip_duration", "2500", …). Buddy default 5500 ms.
+    // SoF.exe menu init (RVA 0xC8400): Cvar_Get("tip_duration", "2500", …). Buddy default 15000 ms.
     cvar_t* tip_duration = detour_Cvar_Get::oCvar_Get("tip_duration", "2500", 0, nullptr);
     if (tip_duration && tip_duration->string && detour_Cvar_Set2::oCvar_Set2) {
         const char* s = tip_duration->string;
+        const double duration = std::atof(s);
         if (!std::strcmp(s, "2500") || !std::strcmp(s, "5000") ||
+            (duration >= 5480.0 && duration <= 5520.0) ||
             !std::strcmp(s, "10000"))
-            detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("tip_duration"), const_cast<char*>("5500"), true);
+            detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("tip_duration"), const_cast<char*>("15000"), true);
     }
 }
 
@@ -613,6 +615,7 @@ void update_layout_cvars(bool trigger_reloadall_if_changed) {
     const int tabs_prefix_narrow_px =
         std::max(0, (vid_w - static_cast<int>(std::lround(392.0f * s))) / 2);
     const bool tabs_wide = (vid_w * 3 > vid_h * 4);
+    const int scale_int_max = std::max(1, static_cast<int>(std::floor(static_cast<float>(vid_h) / 480.0f)));
 
     char row1_rmf[64];
     char row2_rmf[64];
@@ -625,6 +628,7 @@ void update_layout_cvars(bool trigger_reloadall_if_changed) {
     set_runtime_cvar_int("_sb_internal_menu_vid_h", vid_h);
     set_runtime_cvar_int("_sb_internal_center_panel_px", center_panel_px);
     set_runtime_cvar_int("_sb_internal_tabs_wide", tabs_wide ? 1 : 0);
+    set_runtime_cvar_int("_sb_internal_scale_int_max", scale_int_max);
     set_runtime_cvar_int("_sb_internal_tabs_row1_prefix_px", tabs_prefix_px);
     set_runtime_cvar_int("_sb_internal_tabs_row2_prefix_px", tabs_prefix_px);
     set_runtime_cvar_str("_sb_internal_tabs_row1_prefix_rmf", row1_rmf);

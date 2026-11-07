@@ -78,7 +78,7 @@ Created in `PostCvarInit` and recomputed on vid changes:
 - `_sofbuddy_snd_quiet_alt_tab` (`CVAR_SOFBUDDY_ARCHIVE`, default `1`): filters DirectSound `Com_Printf` buffer messages (`Creating DS buffers`, `...using secondary sound buffer`, `Destroying DS buffers`) when enabled.
 - `_sofbuddy_menu_font_size_style` (`CVAR_SOFBUDDY_ARCHIVE`, default `0` = Small; `1` = Normal, `2` = Large, `3` = Extra Large); selects the F12 font-tier template at RMF load and requires reopening F12.
 
-The tab bar is **adaptive**: wide aspects (`vid_w * 3 > vid_h * 4`, i.e. 16:9/16:10/ultrawide) use **6×2**; 4:3 and 5:4 use **3×4**. All layouts use 12 medium-font tabs, `width 90`, `border 2 1`, `blank 4` gaps. Wide labels are Version, General, Cpu, UI Scale, Network, Graphics / Lighting, Gameplay, Features, Cvars, Profile, WebLinks; narrow rows are Version, General, Cpu, UI Scale / Network, Graphics, Lighting, Gameplay / Features, Cvars, Profile, WebLinks.
+The tab bar is **adaptive**: wide aspects (`vid_w * 3 > vid_h * 4`, i.e. 16:9/16:10/ultrawide) use **6×2**; 4:3 and 5:4 use **3×4**. All layouts use 12 medium-font tabs, `width 90`, `border 2 1`, `blank 4` gaps. Wide labels are Version, General, Cpu, UI Scale, Graphics, Gameplay / Lighting, Network, Features, Cvars, Profile, WebLinks; narrow rows are Version, General, Cpu, UI Scale / Graphics, Gameplay, Lighting, Network / Features, Cvars, Profile, WebLinks.
 
 Each `tabs/<page>.rmf` is a selector:
 ```rmf

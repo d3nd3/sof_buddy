@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <climits>
+#include <cmath>
 #include <windows.h>
 #include <string>
 #include <vector>
@@ -24,6 +25,9 @@
 #include "features/more_crosshairs/shared.h"
 #endif
 #include "update_command.h"
+#if FEATURE_SCALED_MENU
+#include "features/scaled_menu/shared.h"
+#endif
 
 namespace {
 
@@ -36,6 +40,56 @@ std::string normalize_path(const char* path) {
     while (!s.empty() && s[0] == '/') s.erase(0, 1);
     if (s.compare(0, 5, "base/") == 0) s.erase(0, 5);
     return s;
+}
+
+struct TabLabelWidth {
+    const char* label;
+    int width;
+};
+
+const TabLabelWidth kTabLabelWidths[] = {
+    {"Version", 53}, {"General", 51}, {"Cpu", 21}, {"UI Scale", 59},
+    {"Graphics", 61}, {"Gameplay", 61}, {"Lighting", 61}, {"Network", 54},
+    {"Features", 61}, {"Cvars", 37}, {"Profile", 53}, {"WebLinks", 62},
+};
+
+int tab_label_spaces(const std::string& label, float scale) {
+    for (const TabLabelWidth& entry : kTabLabelWidths) {
+        if (label == entry.label) {
+            const float pad = (90.0f - static_cast<float>(entry.width)) * 0.5f * scale;
+            int spaces = static_cast<int>(std::lround(pad / 5.0f));
+            if (spaces < 0) spaces = 0;
+            if (spaces > 24) spaces = 24;
+            return spaces;
+        }
+    }
+    return 0;
+}
+
+std::string tab_label_padding(const std::string& content, float scale) {
+    std::string out;
+    out.reserve(content.size() + 64);
+    const std::string tag = "<text \"";
+    std::string::size_type pos = 0;
+    for (;;) {
+        const std::string::size_type start = content.find(tag, pos);
+        if (start == std::string::npos) {
+            out.append(content, pos, std::string::npos);
+            break;
+        }
+        const std::string::size_type label_start = start + tag.size();
+        const std::string::size_type label_end = content.find('"', label_start);
+        if (label_end == std::string::npos) {
+            out.append(content, pos, std::string::npos);
+            break;
+        }
+        out.append(content, pos, label_start - pos);
+        const std::string label = content.substr(label_start, label_end - label_start);
+        out.append(static_cast<std::string::size_type>(tab_label_spaces(label, scale)), ' ');
+        out.append(label);
+        pos = label_end;
+    }
+    return out;
 }
 
 bool switchable_font_path(const std::string& path) {
@@ -503,6 +557,56 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
     std::string filename = path_to_filename(path);
     if (menu_name.empty() || filename.empty()) return original(path, buffer, override_pak);
 
+    // SoFPlus 16:9 game menu: the authored topic is 92 and main has no border.
+    // The missing inset only needs a small design value; the full vanilla 40
+    // border is too large for the 16:9 main-panel geometry.
+    if (menu_name == "game_ss" && filename == "game_ss.rmf") {
+        const int len = original(path, buffer, override_pak);
+#if FEATURE_SCALED_MENU
+        if (len > 0 && buffer && *buffer && scaled_menu_uniform_actual_active()) {
+            char* data = static_cast<char*>(*buffer);
+            std::string content(data, static_cast<size_t>(len));
+            bool changed = false;
+            const auto replace_same = [&](const char* from, const char* to) {
+                const size_t flen = std::strlen(from);
+                const size_t pos = content.find(from);
+                if (pos == std::string::npos) return;
+                content.replace(pos, flen, to);
+                changed = true;
+            };
+            replace_same("<frame topic 0 92", "<frame topic 0 96");
+
+            const size_t frame_pos = content.find("<frame main");
+            if (frame_pos != std::string::npos) {
+                const size_t frame_end = content.find('>', frame_pos);
+                const size_t border_pos = content.find("border 0 0", frame_pos);
+                if (frame_end != std::string::npos && border_pos != std::string::npos &&
+                    border_pos < frame_end) {
+                    content.replace(border_pos, 10, "border 8 0");
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                if (content.size() == static_cast<size_t>(len)) {
+                    std::memcpy(data, content.data(), static_cast<size_t>(len));
+                } else if (detour_Z_Malloc::oZ_Malloc) {
+                    const size_t size = content.size() + 1;
+                    void* copy = detour_Z_Malloc::oZ_Malloc(static_cast<int>(size));
+                    if (copy) {
+                        std::memcpy(copy, content.c_str(), size);
+                        if (detour_FS_FreeFile::oFS_FreeFile)
+                            detour_FS_FreeFile::oFS_FreeFile(*buffer);
+                        *buffer = copy;
+                        return static_cast<int>(content.size());
+                    }
+                }
+            }
+        }
+#endif
+        return len;
+    }
+
     // SP (deathmatch==0): vanilla pak loading.rmf — same rule as stock <exinclude deathmatch> in loading.rmf.
     if (menu_name == "loading" && internal_menus_use_vanilla_loading_menu())
         return original(path, buffer, override_pak);
@@ -558,9 +662,22 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
     for (std::string::size_type pos = 0; (pos = content.find("{crosshair_preview}", pos)) != std::string::npos; )
         content.replace(pos, 19, crosshair_preview), pos += std::strlen(crosshair_preview);
 #endif
+    const char* scale_int_max = "8";
+    if (auto* cv = detour_Cvar_Get::oCvar_Get("_sb_internal_scale_int_max", "8", 0, nullptr))
+        if (cv->string) scale_int_max = cv->string;
+    for (std::string::size_type pos = 0; (pos = content.find("{scale_int_max}", pos)) != std::string::npos; )
+        content.replace(pos, 15, scale_int_max), pos += std::strlen(scale_int_max);
     for (std::string::size_type pos = 0; (pos = content.find("tall}", pos)) != std::string::npos; )
         content.replace(pos, 5, "");
     expand_rmf_includecvars(content);
+    if (menu_name == "sof_buddy/tabs") {
+        float tab_scale = 1.0f;
+#if FEATURE_SCALED_MENU
+        tab_scale = scaled_menu_screen_scale();
+        if (tab_scale <= 0.0f) tab_scale = 1.0f;
+#endif
+        content = tab_label_padding(content, tab_scale);
+    }
 
     const int size = static_cast<int>(content.size() + 1);
     if (!detour_Z_Malloc::oZ_Malloc) return original(path, buffer, override_pak);

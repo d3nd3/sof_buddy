@@ -2,7 +2,7 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
-## Unreleased
+## v8.49
 
 ### Installer / menus
 
@@ -16,6 +16,23 @@ User-facing highlights. Older detail is summarized at the bottom.
 - **Check for updates** dialogs now scale and center correctly at high resolution; the up-to-date dialog uses the same global/nopush behavior as the other update prompts.
 - The F12 → Version release picker now uses clickable Stable/Latest channel and release-tag rows plus a live **Selected install target** line instead of a one-line cycling list. Enable **Show non-stable tags** and press **Refresh release list** to load older tags.
 - **Check for updates** is now limited to once every 10 seconds with a cooldown status; release-list refresh has the same 10-second cooldown, and update checks are guarded against re-entry to prevent spam from stalling or crashing SoF.
+- Removed the `_sofbuddy_font_scale_auto_axis`, `_sofbuddy_hud_scale_auto_axis`, and `_sofbuddy_scale_auto_axis` cvars; font, HUD, and menu auto scaling are now always vertical (`vid_h / 480`). The UI Scale axis rows were removed.
+- Removed `_sofbuddy_crossh_scale_auto_axis` as well; crosshair auto scaling is now always vertical (`vid_h / 480`).
+- UI Scale now uses per-scale integer percentage sliders (`0%` = `1×`, `100%` = vertical max) with a **Reset to default (75%)** button, replacing the manual step list and Manual/Auto/Max/Min preset cvars. Percentages are archived and reapplied on startup and resolution/video changes.
+- Added a **Scaling Mode** toggle. **Smooth** maps 0% = 1× linearly up to the vertical max at 100% (`1 + (max − 1) × pct/100`); sub-2× results round to the nearest integer (1× or 2×), while 2× and above stay fractional. It uses cached integer-prescaled textures for HUD/crosshair/scoreboard images before linear downscaling. **Integer** shows an integer scale slider and floors font, HUD, menu, and crosshair scales to whole numbers.
+- Smooth mode now bypasses the 0.25 scale snapping for direct/direct-cvar scale values as well; switching modes reloads the conditional slider pages.
+- Scale sliders now defer cvar updates until mouse release (120 ms settle), while the slider knob previews the pending value during the drag. Menu-scale sliders reparse the open UI Scale page after release, so the menu actually resizes instead of only updating the displayed value.
+- Menu tooltip default appear delay is now 750 ms (was 250 ms); Restore Defaults writes the new value.
+- Menu tooltip duration default is now 15000 ms (was 5500 ms), and the duration slider range extends to 30000 ms.
+- F12 scale changes now persist immediately instead of relying on the shutdown save, and any pending deferred slider value is flushed before saving. Font/HUD/menu scale changes survive restarts.
+- Load Game and Save Game pages now ignore the scaled-menu layout and stay in stock scale. This keeps the save/load box populated when the integer menu scale is changed at runtime (previously the save list could render empty at 2x).
+- Fixed switching between Integer and Smooth scaling modes leaving the old mode's slider (and therefore the wrong max percentage) on the UI Scale page. The mode change now schedules a page reparse after the cvar has actually changed, instead of relying on the list's early reload. The engine's integer cvar flag is also cleared before applying smooth percentages, so values like `2.25` are no longer truncated back to `2.0` after visiting Integer mode.
+- Tooltips now appear only after the configured continuous hover delay and disappear immediately when the cursor leaves the hotspot; the tip renderer checks `menu_c+0xBC` against the source rect it recorded at creation.
+- F12 tab labels now use scale-aware leading padding instead of fixed leading spaces, so labels stay centered inside their boxes at 1× and higher menu scales.
+- F12 styling cleanup: **Scaling Mode** is now a normal setting row instead of inheriting the green section-title color; non-interactable info lines use the CPU tab info color (`Current`/`gl_mode`/current scale/profile values), including labels above sliders. UI Scale sections use short `==FONT==`/`==HUD==`/`==MENU==`/`==SPRITES==`/`==CONSOLE==` headings with descriptive tooltips, and the page has separators between each section.
+- Changing the Graphics resolution now restarts video and reopens the Graphics page, so the menu is re-parsed at the new resolution instead of staying at the old layout.
+- Navigation now orders **Graphics, Gameplay, Lighting** before **Network**.
+- `game_ss` now gets a small `border 8` content inset plus its authored 92→96 topic-height correction. The border-scaling hook applies the vertical `vid_h/480` factor only for `_ss` frame borders, avoiding double-scaling; other `_ss` menus keep their authored `border 0 0`.
 
 ## v8.48
 

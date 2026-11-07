@@ -82,14 +82,21 @@ void hudscale_change(cvar_t * cvar) {
 
     const float maxScale = auto_scale_resolution_ratio_hud();
     float v = cvar->value;
-    if (v < 0.25f) v = 0.25f;
-    if (v >= maxScale - 0.0001f) {
-        hudScale = maxScale;
+    const bool smooth_mode = !_sofbuddy_scale_mode || _sofbuddy_scale_mode->value >= 0.5f;
+    if (g_applyingScalePercent || smooth_mode) {
+        hudScale = (v > maxScale) ? maxScale : v;
+        if (hudScale < 1.0f) hudScale = 1.0f;
     } else {
-        hudScale = round_scale_value(v);
-        if (hudScale < 0.25f) hudScale = 0.25f;
-        if (hudScale > maxScale) hudScale = maxScale;
+        if (v < 0.25f) v = 0.25f;
+        if (v >= maxScale - 0.0001f) {
+            hudScale = maxScale;
+        } else {
+            hudScale = round_scale_value(v);
+            if (hudScale < 0.25f) hudScale = 0.25f;
+            if (hudScale > maxScale) hudScale = maxScale;
+        }
     }
+    hudScale = scale_mode_apply(hudScale);
     if (oCvar_Set2) {
         char buf[32];
         std::snprintf(buf, sizeof(buf), "%.2f", hudScale);
@@ -99,18 +106,15 @@ void hudscale_change(cvar_t * cvar) {
 
 void apply_auto_crosshair_scale(void) {
     if (!crosshairScaleAuto) return;
-    const float raw = crosshairAutoAxisVertical ? screen_y_scale : screen_x_scale;
-    crosshairScale = (raw > 0.0f) ? raw : 1.0f;
+    float raw = (screen_y_scale > 0.0f) ? screen_y_scale : 1.0f;
+    if (_sofbuddy_scale_mode && _sofbuddy_scale_mode->value >= 0.5f && raw < 2.0f)
+        raw = std::round(raw);
+    crosshairScale = scale_mode_apply(raw);
     if (crosshairScale <= 0.0f) crosshairScale = 1.0f;
 }
 
 void crosshair_scale_auto_change(cvar_t* cvar) {
     crosshairScaleAuto = cvar && cvar->value != 0.0f;
-    if (_sofbuddy_crossh_scale) crosshairscale_change(_sofbuddy_crossh_scale);
-}
-
-void crosshair_scale_auto_axis_change(cvar_t* cvar) {
-    crosshairAutoAxisVertical = !cvar || cvar->value != 0.0f;
     if (_sofbuddy_crossh_scale) crosshairscale_change(_sofbuddy_crossh_scale);
 }
 

@@ -43,7 +43,6 @@
 <font type {font_title} tint white atint white>
 <include sof_buddy/more_crosshair_list>
 <list "White,Red,Green,Blue,Yellow,Cyan,Magenta,Orange,Purple" match "0,1,2,3,4,5,6,7,8" cvar _sofbuddy_crosshair_tint atext "Stock tint : " noshade tip "Color tint for stock crosshairs S0-S4 only (theme 0)."><hbr>
-<list "Horizontal,Vertical" match "0,1" cvari _sofbuddy_crossh_scale_auto_axis atext "Crosshair Auto Scale Axis : " key mouse1 "sofbuddy_menu sof_buddy/misc" noshade tip "Axis used when Auto Crosshair Scale is on. Default Vertical."><br>
 <list "Off,On" cvari _sofbuddy_crossh_scale_auto atext "Auto Crosshair Scale : " key mouse1 "sofbuddy_menu sof_buddy/misc" noshade tip "Track crosshair scale from the selected resolution axis. Hides the manual scale control when on."><br>
 <cninclude _sofbuddy_crossh_scale_auto sof_buddy/misc_crosshair_manual>
 
@@ -64,7 +63,7 @@
 "Audio"
 <font type {font_title} tint white atint white>
 <list "Yes,No" match "1,0" cvar s_musicenabled atext "Play Music : " noshade tip "Background music in-game."><hbr>
-<ctext s_volume atext "Volume : " noshade><br>
+<ctext s_volume atext "Volume : " tint sb_accent atint sb_accent noshade><br>
 <slider cvar s_volume min 0 max 1 step 0.05><hbr>
 <list "11 kHz,22 kHz,44 kHz,48 kHz" match "11,22,44,48" cvar s_khz atext "Sound Frequency : " noshade tip "Mixer sample rate; snd_restart applies changes."><hbr>
 <list "16-bit,8-bit" match "0,1" cvar s_loadas8bit atext "Sample Rate : " noshade tip "16-bit (0) or 8-bit (1) sample loading."><hbr>
@@ -93,7 +92,7 @@
 <font type {font_title} tint cyan atint cyan>
 "Game"
 <font type {font_title} tint white atint white>
-<ctext ai_maxcorpses atext "ai_maxcorpses : " noshade><br>
+<ctext ai_maxcorpses atext "ai_maxcorpses : " tint sb_accent atint sb_accent noshade><br>
 <slider cvar ai_maxcorpses min 1 max 20 step 1><hbr>
 
 <font type {font_title} tint sb_subtle atint sb_subtle>

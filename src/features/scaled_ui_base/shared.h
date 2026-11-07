@@ -32,7 +32,6 @@ extern bool isDrawingTeamicons;
 extern float hudScale;
 void apply_auto_crosshair_scale(void);
 void crosshair_scale_auto_change(cvar_t* cvar);
-void crosshair_scale_auto_axis_change(cvar_t* cvar);
 #if FEATURE_SCALED_MENU
 extern float menuScale;
 void menuscale_change(cvar_t* cvar);
@@ -51,7 +50,6 @@ bool scaled_menu_version_stamp(const char* text, int font);
 float snap_ui_pixel(float v);
 extern float crosshairScale;
 extern bool crosshairScaleAuto;
-extern bool crosshairAutoAxisVertical;
 extern bool hudStretchPicCenter;
 extern bool hudDmRanking;
 extern bool hudDmRanking_wasImage;
@@ -75,13 +73,19 @@ extern float screen_x_scale;
 float auto_scale_resolution_ratio(void);
 float auto_scale_resolution_ratio_font(void);
 float auto_scale_resolution_ratio_hud(void);
-void scale_auto_axis_change(cvar_t* cvar);
-void font_scale_auto_axis_change(cvar_t* cvar);
-void hud_scale_auto_axis_change(cvar_t* cvar);
-extern cvar_t* _sofbuddy_scale_auto_axis;
-extern cvar_t* _sofbuddy_font_scale_auto_axis;
-extern cvar_t* _sofbuddy_hud_scale_auto_axis;
-
+void reapply_scale_percentages(void);
+float scale_mode_apply(float scale);
+extern cvar_t* _sofbuddy_scale_mode;
+void* scaled_ui_find_image(const char* name);
+unsigned int scaled_ui_image_proxy_texnum(void* image, float scale);
+void scaled_ui_image_cache_invalidate(void);
+void scaled_ui_slider_defer_init(void);
+void scaled_ui_slider_defer_tick(int msec);
+void scaled_ui_slider_defer_flush(void);
+void scaled_ui_request_menu_reload(void);
+void scaled_ui_request_scale_reapply(void);
+bool scale_mode_is_smooth(void);
+extern bool g_applyingScalePercent;
 #if FEATURE_SCALED_HUD
 // Scale HUD coords anchored to the top-right (SoFPlus FPS counter).
 inline void scale_hud_from_top_right(float& x, float& y, float scale) {
@@ -272,7 +276,6 @@ extern cvar_t * _sofbuddy_console_size;
 extern cvar_t * _sofbuddy_hud_scale;
 extern cvar_t * _sofbuddy_crossh_scale;
 extern cvar_t * _sofbuddy_crossh_scale_auto;
-extern cvar_t * _sofbuddy_crossh_scale_auto_axis;
 void create_scaled_ui_cvars(void);
 
 // Function pointer declarations for original functions

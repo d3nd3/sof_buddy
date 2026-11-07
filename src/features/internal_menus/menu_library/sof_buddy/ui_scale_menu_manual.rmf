@@ -1,4 +1,4 @@
 <stm>
-<list "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" match "0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4,4.25,4.5,4.75,5,5.25,5.5,5.75,6,6.25,6.5,6.75,7,7.25,7.5,7.75,8" cvar _sofbuddy_menu_scale atext "Menu Scale : " key mouse1 "sofbuddy_menu sof_buddy/ui_scale" key mouse2 "sofbuddy_menu sof_buddy/ui_scale" noshade tip "Manual actual-pixel menu scale. Values above the current resolution max use the max scale. 1 = vanilla SoF. Requires Scaled Menu on Features tab."><br>
-<text "Auto" key mouse1 "sofbuddy_scale_preset menu auto;sofbuddy_menu sof_buddy/ui_scale" tip "Set menu scale to 75 percent of the current resolution max." border 8 1 cyan regular align center width 52><blank 4 1><text "Max" key mouse1 "sofbuddy_scale_preset menu max;sofbuddy_menu sof_buddy/ui_scale" tip "Set menu scale to the current resolution max." border 8 1 cyan regular align center width 52><blank 4 1><text "Min" key mouse1 "sofbuddy_scale_preset menu min;sofbuddy_menu sof_buddy/ui_scale" tip "Set menu scale to 1 (vanilla)." border 8 1 cyan regular align center width 52><br>
+<cinclude _sofbuddy_scale_mode sof_buddy/ui_scale_menu_smooth>
+<cninclude _sofbuddy_scale_mode sof_buddy/ui_scale_menu_integer>
 </stm>

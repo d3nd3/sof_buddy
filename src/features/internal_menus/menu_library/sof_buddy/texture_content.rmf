@@ -30,9 +30,10 @@
 <hbr>
 <font type {font_title} tint cyan atint cyan>
 "Video"
-<font type {font_title} tint white atint white>
+<font type {font_title} tint sb_accent atint sb_accent>
 <ctext _sp_cl_info_vid_mode atext "Current : " noshade><br>
 <ctext gl_mode atext "gl_mode : " noshade><br>
+<font type {font_title} tint white atint white>
 <includecvar _sb_internal_vid_mode_list_rmf>
 
 <font type {font_title} tint sb_subtle atint sb_subtle>
@@ -48,7 +49,7 @@
 <list "NEAREST,LINEAR" match "GL_NEAREST,GL_LINEAR" cvar _sofbuddy_magfilter_mipped atext "Mipped Mag : " noshade><br>
 <list "NEAREST,LINEAR" match "GL_NEAREST,GL_LINEAR" cvar _sofbuddy_minfilter_ui atext "UI Min : " noshade tip "No mipmaps on UI — MIPMAP modes make fonts/menus unreadable."><br>
 <list "NEAREST,LINEAR" match "GL_NEAREST,GL_LINEAR" cvar _sofbuddy_magfilter_ui atext "UI Mag : " noshade><br>
-<ctext _sofbuddy_water_size atext "Warp Texture ( water+lava+sky) ChunkSize : " noshade tip "Warp surface tessellation for water, lava, and sky turbulence. Smaller = finer motion, more GPU work. Min 16."><br>
+<ctext _sofbuddy_water_size atext "Warp Texture ( water+lava+sky) ChunkSize : " tint sb_accent atint sb_accent noshade tip "Warp surface tessellation for water, lava, and sky turbulence. Smaller = finer motion, more GPU work. Min 16."><br>
 <slider cvari _sofbuddy_water_size min 16 max 256 step 1><br>
 
 <font type {font_title} tint sb_subtle atint sb_subtle>
@@ -58,7 +59,7 @@
 <font type {font_title} tint cyan atint cyan>
 "Mip / format"
 <font type {font_title} tint white atint white>
-<ctext gl_picmip atext "gl_picmip : " noshade><br>
+<ctext gl_picmip atext "gl_picmip : " tint sb_accent atint sb_accent noshade><br>
 <slider cvari gl_picmip min -10 max 10 step 1><br>
 <list "Off,On" cvar gl_pictip atext "gl_pictip : " noshade tip "Low-polygon models and lower-resolution textures."><br>
 <list "0,1,2" match "0,1,2" cvar ghl_mip atext "ghl_mip : " noshade tip "Skin texture quality. 0=best, higher values reduce quality."><br>
@@ -66,10 +67,10 @@
 <list "SOLID,ALPHA" match "GL_SOLID_FORMAT,GL_ALPHA_FORMAT" cvar r_iaf atext "r_iaf : " noshade><br>
 <list "Off,On" cvar gl_ext_multitexture atext "gl_ext_multitexture : " noshade><br>
 <list "Off,On" cvar gl_ext_anisotropic atext "gl_ext_anisotropic : " noshade><br>
-<ctext _sp_cl_vid_gl_texture_max_anisotropy_ext atext "_sp_cl_vid_gl_texture_max_anisotropy_ext : " noshade tip "Recommended 16x as provides smoother lines in the world"><br>
+<ctext _sp_cl_vid_gl_texture_max_anisotropy_ext atext "_sp_cl_vid_gl_texture_max_anisotropy_ext : " tint sb_accent atint sb_accent noshade tip "Recommended 16x as provides smoother lines in the world"><br>
 <slider cvari _sp_cl_vid_gl_texture_max_anisotropy_ext min 0 max 16 step 2 tip "Recommended 16x as provides smoother lines in the world"><br>
 <list "0,1,2,3" cvar gl_detailtexturing atext "gl_detailtexturing : " noshade><br>
-<ctext gl_detailtexturingdistance atext "gl_detailtexturingdistance : " noshade><br>
+<ctext gl_detailtexturingdistance atext "gl_detailtexturingdistance : " tint sb_accent atint sb_accent noshade><br>
 <slider cvar gl_detailtexturingdistance min 50 max 500 step 50><br>
 <list "Off,On" cvar ghl_no_texture_stack atext "ghl_no_texture_stack : " noshade><br>
 <list "16,32" match "16,32" cvar gl_bitdepth atext "gl_bitdepth : " noshade><br>

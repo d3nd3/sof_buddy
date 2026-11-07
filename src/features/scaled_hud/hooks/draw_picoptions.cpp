@@ -69,7 +69,33 @@ void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int pal, char
         h_scale *= hudScale;
     }
 
+    float proxy_scale = 0.0f;
+    if (g_activeRenderType == uiRenderType::HudDmRanking ||
+        g_activeRenderType == uiRenderType::HudInventory ||
+        g_currentPicOptionsCaller == PicOptionsCaller::spcl_DrawFPS)
+        proxy_scale = hudScale;
+    else if (g_currentPicOptionsCaller == PicOptionsCaller::SCR_DrawCrosshair)
+        proxy_scale = crosshairScale;
+
+    void* image = nullptr;
+    int* image_texnum = nullptr;
+    int saved_texnum = 0;
+    unsigned int proxy_texnum = 0;
+    if (proxy_scale > 0.0f && name) {
+        image = scaled_ui_find_image(name);
+        if (image) {
+            proxy_texnum = scaled_ui_image_proxy_texnum(image, proxy_scale);
+            if (proxy_texnum) {
+                image_texnum = reinterpret_cast<int*>(static_cast<char*>(image) + 80);
+                saved_texnum = *image_texnum;
+                *image_texnum = static_cast<int>(proxy_texnum);
+            }
+        }
+    }
+
     original(x, y, w_scale, h_scale, pal, name);
+    if (proxy_texnum && image_texnum)
+        *image_texnum = saved_texnum;
 
     g_currentPicOptionsCaller = PicOptionsCaller::Unknown;
     g_activeDrawCall = DrawRoutineType::None;

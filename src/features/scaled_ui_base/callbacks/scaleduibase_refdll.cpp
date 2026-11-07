@@ -23,6 +23,8 @@ extern void __stdcall my_glVertex2f_DrawFont_4(float x, float y);
 void scaledUIBase_RefDllLoaded(char const* name)
 {
     SOFBUDDY_ASSERT(name != nullptr);
+    scaled_ui_image_cache_invalidate();
+    scaled_ui_slider_defer_init();
 
     PrintOut(PRINT_LOG, "scaled_ui_base: Installing ref.dll hooks\n");
 

@@ -74,7 +74,6 @@ float screen_x_scale = 1.0f;
 float hudScale = 1;
 float crosshairScale = 1.0f;
 bool crosshairScaleAuto = false;
-bool crosshairAutoAxisVertical = true;
 bool hudStretchPicCenter = false;
 bool hudDmRanking = false;
 bool hudDmRanking_wasImage = false;
