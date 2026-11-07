@@ -286,12 +286,19 @@ void prime_crosshair_slot_zero_dims() {
     if (clamp_crosshair_slot(crosshair ? crosshair->value : 0.0f) != 0) return;
     char* pic = crosshair_pic_ptr_buf();
     if (!pic || !pic[0]) return;
-    auto get_size = reinterpret_cast<Draw_GetPicSize_t>(
+    // 0x4035B4 is the import/data slot that holds ref_gl's Draw_GetPicSize,
+    // not the function entry. SCR_DrawCrosshair does `call dword ptr [0x204035B4]`;
+    // calling the slot address itself executed pointer bytes and crashed on
+    // slot-0 pack picks (e.g. jay0/rep0/sau0).
+    auto get_size_slot = reinterpret_cast<Draw_GetPicSize_t*>(
         rvaToAbsExe(reinterpret_cast<void*>(kDrawGetPicSizeRva)));
-    int* w = static_cast<int*>(rvaToAbsExe(reinterpret_cast<void*>(kCrosshairWidthRva)));
-    int* h = static_cast<int*>(rvaToAbsExe(reinterpret_cast<void*>(kCrosshairHeightRva)));
-    if (!get_size || !w || !h) return;
-    get_size(w, h, pic);
+    if (!get_size_slot || !*get_size_slot) return;
+    const Draw_GetPicSize_t get_size = *get_size_slot;
+    // Mirror SCR_DrawCrosshair's argument order exactly.
+    int* dim_a = static_cast<int*>(rvaToAbsExe(reinterpret_cast<void*>(kCrosshairHeightRva)));
+    int* dim_b = static_cast<int*>(rvaToAbsExe(reinterpret_cast<void*>(kCrosshairWidthRva)));
+    if (!dim_a || !dim_b) return;
+    get_size(dim_a, dim_b, pic);
 }
 
 void invalidate_crosshair_pic() {
