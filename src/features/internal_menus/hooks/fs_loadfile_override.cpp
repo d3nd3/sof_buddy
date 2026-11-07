@@ -53,20 +53,25 @@ const TabLabelWidth kTabLabelWidths[] = {
     {"Features", 61}, {"Cvars", 37}, {"Profile", 53}, {"WebLinks", 62},
 };
 
-int tab_label_spaces(const std::string& label, float scale) {
+int tab_label_spaces(const std::string& label, float menu_scale, float text_scale) {
     for (const TabLabelWidth& entry : kTabLabelWidths) {
         if (label == entry.label) {
-            const float pad = (90.0f - static_cast<float>(entry.width)) * 0.5f * scale;
-            int spaces = static_cast<int>(std::lround(pad / 5.0f));
+            // Label widths are measured at 1x with the medium font. The box scales with
+            // the menu, while the glyphs (leading spaces included) scale with the snapped
+            // text scale, so convert the box back to text units before padding.
+            const float ratio =
+                (text_scale > 1e-6f) ? (menu_scale / text_scale) : 1.0f;
+            const float pad = (90.0f * ratio - static_cast<float>(entry.width)) * 0.5f;
+            int spaces = static_cast<int>(std::lround(pad / 3.0f));
             if (spaces < 0) spaces = 0;
-            if (spaces > 24) spaces = 24;
+            if (spaces > 40) spaces = 40;
             return spaces;
         }
     }
     return 0;
 }
 
-std::string tab_label_padding(const std::string& content, float scale) {
+std::string tab_label_padding(const std::string& content, float menu_scale, float text_scale) {
     std::string out;
     out.reserve(content.size() + 64);
     const std::string tag = "<text \"";
@@ -85,7 +90,7 @@ std::string tab_label_padding(const std::string& content, float scale) {
         }
         out.append(content, pos, label_start - pos);
         const std::string label = content.substr(label_start, label_end - label_start);
-        out.append(static_cast<std::string::size_type>(tab_label_spaces(label, scale)), ' ');
+        out.append(static_cast<std::string::size_type>(tab_label_spaces(label, menu_scale, text_scale)), ' ');
         out.append(label);
         pos = label_end;
     }
@@ -672,11 +677,14 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
     expand_rmf_includecvars(content);
     if (menu_name == "sof_buddy/tabs") {
         float tab_scale = 1.0f;
+        float tab_text_scale = 1.0f;
 #if FEATURE_SCALED_MENU
         tab_scale = scaled_menu_screen_scale();
         if (tab_scale <= 0.0f) tab_scale = 1.0f;
+        tab_text_scale = scaled_menu_snapped_text_scale(REALFONT_MEDIUM);
+        if (tab_text_scale <= 0.0f) tab_text_scale = 1.0f;
 #endif
-        content = tab_label_padding(content, tab_scale);
+        content = tab_label_padding(content, tab_scale, tab_text_scale);
     }
 
     const int size = static_cast<int>(content.size() + 1);

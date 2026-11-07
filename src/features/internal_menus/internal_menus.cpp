@@ -610,10 +610,18 @@ void update_layout_cvars(bool trigger_reloadall_if_changed) {
 
     const int center_panel_px = (vid_w * kSofBuddyCenterPanelVirtualWidth + 320) / 640;
     const float s = internal_menus_design_scale();
-    const int tabs_prefix_px =
-        std::max(0, (vid_w - static_cast<int>(std::lround(560.0f * s + 24.0f))) / 2);
-    const int tabs_prefix_narrow_px =
-        std::max(0, (vid_w - static_cast<int>(std::lround(392.0f * s))) / 2);
+    const float layout_scale = (std::isfinite(s) && s > 1e-6f) ? s : 1.0f;
+    // `<blank>` widths are authored 640x480 units, and the Scaled Menu parse hook
+    // multiplies them by menuScale at load. Center the scaled row on screen first,
+    // then convert that pixel prefix back to authored units so it is not scaled twice
+    // (which pushed the sixth tab past the screen edge and wrapped it at 2x).
+    const auto centered_tab_prefix = [&](float row_width_units) {
+        const float row_width_px = row_width_units * layout_scale;
+        return std::max(0, static_cast<int>(std::lround(
+            (static_cast<float>(vid_w) - row_width_px) / (2.0f * layout_scale))));
+    };
+    const int tabs_prefix_px = centered_tab_prefix(584.0f);
+    const int tabs_prefix_narrow_px = centered_tab_prefix(392.0f);
     const bool tabs_wide = (vid_w * 3 > vid_h * 4);
     const int scale_int_max = std::max(1, static_cast<int>(std::floor(static_cast<float>(vid_h) / 480.0f)));
 

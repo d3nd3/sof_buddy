@@ -30,8 +30,9 @@
 <hbr>
 <center>
 <font type {font_title} tint white atint white>
-Ask a server admin to mint your MP profile GUID.<hbr>
-Paste it below, then Save and Apply. Primary backup: Documents\sof_buddy_mp_profile.cfg.<hbr>
+<text "Ask a server admin to mint your MP profile GUID."><hbr>
+<text "Paste it below, then Save and Apply."><hbr>
+<text "Primary backup: Documents\sof_buddy_mp_profile.cfg."><hbr>
 <hbr>
 <ctext _sb_internal_mp_profile_status atext "Status : " noshade><hbr>
 <hbr>
