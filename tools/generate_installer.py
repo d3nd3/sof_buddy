@@ -76,7 +76,6 @@ def generate(features_path, output_path):
         "DirExistsWarning=no",
         "UsePreviousAppDir=no",
         "UsePreviousSetupType=no",
-        "UsePreviousComponents=no",
         "DefaultGroupName=SoF Buddy",
         "DisableProgramGroupPage=yes",
         "LicenseFile=..\\LICENSE",
