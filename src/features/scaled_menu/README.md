@@ -168,7 +168,13 @@ menu scale is above 1, its content scale is `max(0.75 × menuScale, 1)`. The
 override is tied to that menu’s `menu_c` and does not leak onto the menu revealed
 when it closes.
 
-`<hbar>` keeps its stock layout and size; scaling it after construction shifts its stream centring and lets the clip tiles overflow.
+`<hbar>` is picture-sized: its ctor sets W/H from the cap picture and stores the
+repeated tile's native W/H, so `<width>`/`<height>` never reach the rect parse
+hook. A post-`Parse` hook scales W/H/Outer and the tile pitch by the normal content
+factor, and `hbar_c::Draw` (0x200D5050) is replaced with a draw that stretches the
+cap and tile pictures to those scaled fields via `Draw_StretchPic`. That keeps the
+layout centring, tile count, progress fraction and art size on the same scale. The
+bevel (non-picture) form scales its box the same way.
 
 `<slider>` is picture-sized, so `slider_c::Setup` (0x200D08A0) recomputes W/H and
 the bar/button/cap dimensions from native pictures after rect parsing. A post-
