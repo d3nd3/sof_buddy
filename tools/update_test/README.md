@@ -51,8 +51,8 @@ Private LAN IPs are allowed; `github.com` / `sofvault.org` are not.
 | Release list UI | `sofbuddy_update releases` |
 | Disable startup check | `_sofbuddy_update_check_startup 0` |
 | Graphical updater (progress bar) | `sof_buddy/sof_buddy_update.exe` required when `_sofbuddy_update_use_gui` is 1 (default on universal) |
-| Keep your feature file | Clear the graphical updater's **Replace feature settings…** box, or set `SOFBUDDY_UPDATER_REPLACE_FEATURES=0`; the update restores your existing `sof_buddy/features.cfg` |
-| Pick up new recommended features | Leave the box checked (default), or set `SOFBUDDY_UPDATER_REPLACE_FEATURES=1`; the package's `sof_buddy/features.cfg` is installed |
+| Keep your feature overrides | Clear the graphical updater's **Merge new recommended feature defaults…** box, or set `SOFBUDDY_UPDATER_REPLACE_FEATURES=0`; the update restores your existing `sof_buddy/features.cfg` |
+| Merge new recommended features | Leave the box checked (default), or set `SOFBUDDY_UPDATER_REPLACE_FEATURES=1`; new/promoted recommended defaults are applied while explicit overrides are kept |
 
 ## Verify updater artifacts
 

@@ -131,7 +131,7 @@ elif [[ "${is_universal}" == "1" ]]; then
         if [[ "${interactive}" == "0" ]]; then
             replace_features=1
         else
-            read -r -p "Update feature settings to this release's defaults? [Y/n]: " replace_features || true
+            read -r -p "Merge new recommended feature settings with your overrides? [Y/n]: " replace_features || true
             replace_features="${replace_features:-Y}"
         fi
     fi
@@ -143,10 +143,14 @@ elif [[ "${is_universal}" == "1" ]]; then
     case "${replace_features,,}" in
         0|n|no|false)
             KEEP_FEATURES=1
+            rm -f -- "${ROOT_DIR}/sof_buddy/features.cfg.prev"
             echo "Keeping your current feature settings."
             ;;
         *)
-            echo "Updating feature settings to this release's defaults."
+            echo "Merging new recommended feature settings with your overrides."
+            if [[ -f "${FEATURES_FILE}" ]]; then
+                cp -f -- "${FEATURES_FILE}" "${ROOT_DIR}/sof_buddy/features.cfg.prev"
+            fi
             rm -f -- "${FEATURES_FILE}"
             ;;
     esac
@@ -199,6 +203,7 @@ fi
 reset_feature_toggles() {
     echo "Searching for saved feature toggles to reset..."
     rm -f -- "${ROOT_DIR}/sof_buddy/features.cfg"
+    rm -f -- "${ROOT_DIR}/sof_buddy/features.cfg.prev"
     find "${ROOT_DIR}" -type f -name "sofbuddy_features.cfg" -print -delete 2>/dev/null || true
     while IFS= read -r -d '' cfg; do
         grep_rc=0

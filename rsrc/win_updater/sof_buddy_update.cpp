@@ -689,7 +689,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         g_reset_features = CreateWindowW(L"BUTTON", L"Reset feature toggles (for new features)",
             WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 0, 0, 10, 10, hwnd, (HMENU)kIdResetFeatures, nullptr, nullptr);
         g_replace_features = CreateWindowW(L"BUTTON",
-            L"Replace feature settings with this release's defaults (recommended)",
+            L"Merge new recommended feature defaults (keep my current overrides) (recommended)",
             WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 0, 0, 10, 10, hwnd,
             (HMENU)kIdReplaceFeatures, nullptr, nullptr);
         SendMessageW(g_replace_features, BM_SETCHECK,

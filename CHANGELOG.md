@@ -2,14 +2,29 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
-## Unreleased
+## v8.50
 
 ### Updater
 
 - Fixed corrupt updater output (`'ho.' is not recognized`, repeated prompts) by shipping `.cmd` scripts with CRLF line endings, running the updater from a temporary copy, and installing updated scripts as `.new` sidecars that the DLL promotes on the next game start. The running script is no longer overwritten mid-extraction.
 - Fixed Wine updates: host script extraction is invoked through `bash -c`, waits for the completion marker instead of trusting `start /unix`'s exit code, and correctly passes paths containing spaces.
-- Feature-setting prompts and `features.cfg` replacement now apply to **universal** builds only. Compile-time channels keep their existing `features.cfg` and are never asked about feature toggles.
+- Feature-setting prompts now apply to **universal** builds only. Compile-time channels keep their existing `features.cfg` and are never asked about feature toggles.
+- On universal builds, updates now **merge** newly recommended feature defaults into the saved toggles instead of replacing the feature file, preserving explicit overrides. The installer/updater backs up the previous `features.cfg` as `features.cfg.prev`; the DLL applies the merge at the next start and removes the backup. The GUI checkbox, headless prompt, and `_sofbuddy_update_replace_features` default to merging; **Reset feature toggles** still discards the package file, archive overrides, backup, and legacy entries so compiled defaults apply.
 - Fixed literal `^` characters showing in `(y/N)` prompts.
+- README, installer/updater docs, and the new `docs/FEATURES_FLOW.md` now describe feature-file ownership, startup order, reset, and merge behavior.
+
+### F12 menu
+
+- Menu `<pic>`/`<image>` widgets now scale with `_sofbuddy_menu_scale`, so weapon-info and tab images follow the menu scale. Bolted tab icons, images marked `noscale`, and resize pages whose canvas already carries the scale are left authored.
+- Deleting `base/sofbuddy_features.cfg` now resets feature toggles to the installed defaults (or compiled defaults when `features.cfg` is missing/auto-generated). Runtime selections no longer overwrite `sof_buddy/features.cfg`.
+- `<hbar>` progress bars now scale their cap, repeated-tile pitch, and tile art with `_sofbuddy_menu_scale`, keeping layout centring and the progress fraction correct.
+- Menu frames now keep the stock canvas-scaled width, with only a height-only 4:3→widescreen correction for non-`_ss` frames. `_sofbuddy_menu_scale` no longer resizes frames, fixing shrunken/misaligned Join and other framed menus at 1×–2× scales (for example 800×600 at 1.19).
+- Smooth scaling now stays at 1× when the vertical maximum is below 2× (for example 800×600), matching the nearest-integer sub-2 rule instead of allowing fractional 1.19× scales.
+- Internal `loading/*` menus no longer bypass the frame height correction. They now receive the same non-4:3 vertical frame adjustment as stock loading pages, fixing the bottom-anchored Disconnect layout at high menu scales.
+- Removed the join-wide 0.75 content-scale workaround. `join_ss` now gets a targeted load-time layout correction: the server frame Y offset is scaled from 120 to 90 using the fixed 16:9 virtual height (360/480).
+- Images with explicit `width`/`height` (such as the GameSpy logo in `join_ss`) are no longer scaled twice; the rect parse handles their fixed dimensions and `pic_c::Setup` skips them.
+- F12 tab labels now account for separate menu and text scales when centering, and the tab-row prefix is centered in authored units before scaling, so the sixth tab no longer wraps off-screen at 2×.
+- Profile GUID help text now wraps onto separate lines, and slot-0 crosshair picks from some packs no longer crash from an incorrect `Draw_GetPicSize` lookup.
 
 ## v8.49
 

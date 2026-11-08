@@ -40,9 +40,6 @@
 float menuScale = 1.0f;
 
 static char s_pushed_menu_name[64] = {0};
-static bool s_join_scale_active = false;
-static bool s_join_scale_pending = false;
-static void* s_join_scale_menu = nullptr;
 static bool s_menu_source_is_ss = false;
 static bool s_menu_skip_frame_convert = false;
 static bool s_page_is_resized = false;
@@ -71,20 +68,7 @@ static void* scaled_menu_current_menu(void) {
 	return ms ? *reinterpret_cast<void**>(static_cast<char*>(ms) + 4) : nullptr;
 }
 
-static bool join_scale_active(void) {
-	if (!s_join_scale_active) return false;
-	if (s_join_scale_pending) return true;
-	void* current = scaled_menu_current_menu();
-	return current && current == s_join_scale_menu;
-}
-
-void scaled_menu_M_PushMenu_post(char const*, char const*, bool) {
-	if (!s_join_scale_pending) return;
-	if (void* current = scaled_menu_current_menu()) {
-		s_join_scale_menu = current;
-		s_join_scale_pending = false;
-	}
-}
+void scaled_menu_M_PushMenu_post(char const*, char const*, bool) {}
 
 void scaled_menu_set_pushed_menu(const char* name) {
 	size_t i = 0;
@@ -98,12 +82,6 @@ void scaled_menu_set_pushed_menu(const char* name) {
 	                      s_pushed_menu_name[i - 1] == 's';
 	s_menu_skip_frame_convert = false;
 	s_page_is_resized = false;
-	const bool is_join = std::strcmp(s_pushed_menu_name, "join") == 0 ||
-	                     std::strcmp(s_pushed_menu_name, "join_ss") == 0 ||
-	                     std::strcmp(s_pushed_menu_name, "join_ns") == 0;
-	s_join_scale_active = is_join;
-	s_join_scale_pending = is_join;
-	s_join_scale_menu = nullptr;
 }
 
 void menuscale_change(cvar_t* cvar) {
@@ -301,6 +279,7 @@ constexpr uintptr_t kRvaInputVtbl = 0x001128C8u;
 constexpr uintptr_t kRvaTickerVtbl = 0x00112808u;
 constexpr uintptr_t kRvaGhoulVtbl = 0x001129E0u;
 constexpr uintptr_t kRvaPicVtbl = 0x00112848u;
+constexpr uintptr_t kRvaPicSetup = 0x000D2290u;
 constexpr int kExtendCacheMax = 12;
 
 constexpr ptrdiff_t kRect_MenuPtr = 0x04;
@@ -528,6 +507,26 @@ static void* hk_menu_border_dims_init(void* border, char* dimA, char* dimB, void
 	return ret;
 }
 
+static void* s_pic_fixed_scaled[128] = {};
+static int s_pic_fixed_next = 0;
+
+static void pic_fixed_mark(void* pic) {
+	if (!pic) return;
+	s_pic_fixed_scaled[s_pic_fixed_next++ %
+	                   (sizeof(s_pic_fixed_scaled) / sizeof(s_pic_fixed_scaled[0]))] = pic;
+}
+
+static bool pic_fixed_consume(void* pic) {
+	if (!pic) return false;
+	for (void*& entry : s_pic_fixed_scaled) {
+		if (entry == pic) {
+			entry = nullptr;
+			return true;
+		}
+	}
+	return false;
+}
+
 using Rect_Parse_t = bool(__thiscall*)(void* rect, void* token);
 static Rect_Parse_t oRect_Parse = nullptr;
 
@@ -584,6 +583,7 @@ static bool hk_rect_parse(void* rect, void* token) {
 	}
 	if (std::fabs(factor - 1.f) <= 0.001f) return parsed;
 	if (fixed_width || fixed_height) {
+		if (widget_is_pic(rect)) pic_fixed_mark(rect);
 		const ptrdiff_t value_offset = fixed_width ? kRect_W : kRect_H;
 		const ptrdiff_t outer_offset = fixed_width ? kRect_OuterW : kRect_OuterH;
 		int& value = *reinterpret_cast<int*>(r + value_offset);
@@ -629,6 +629,34 @@ static bool hk_rect_parse(void* rect, void* token) {
 		}
 	}
 	return parsed;
+}
+
+using Pic_Setup_t = char(__thiscall*)(void* pic);
+static Pic_Setup_t oPic_Setup = nullptr;
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static char hk_pic_setup(void* pic) {
+	char ret = 0;
+	if (oPic_Setup) {
+#if defined(__GNUC__) && defined(__i386__)
+		ret = static_cast<char>(thiscall_noargs_int(pic, reinterpret_cast<void*>(oPic_Setup)));
+#else
+		ret = oPic_Setup(pic);
+#endif
+	}
+	if (pic && !scaled_menu_skip_for_intro_disclaimer()) {
+		char* p = static_cast<char*>(pic);
+		const bool bolted = *reinterpret_cast<uint8_t*>(p + kRect_Bolted) ||
+		                    *reinterpret_cast<void**>(p + kRect_BoltAnchor);
+		if (!bolted && !pic_fixed_consume(pic)) {
+			const float factor = menu_actual_rect_dim_factor(pic);
+			static constexpr ptrdiff_t fields[] = {kRect_W, kRect_H, kRect_OuterW, kRect_OuterH};
+			scale_widget_dims(pic, fields, sizeof(fields) / sizeof(fields[0]), factor);
+		}
+	}
+	return ret;
 }
 
 // <hbar> sizes itself from its pictures in the ctor (cap W/H, repeated-tile W/H), so the
@@ -843,10 +871,10 @@ static void hk_frame_finalize_dims(void* frame) {
 	thiscall_frame_finalize_dims(frame, reinterpret_cast<void*>(oFrame_FinalizeDims));
 }
 
-// Non-_ss menus author their frame boxes in 480p coordinates. The stock ctor multiplies
-// them by the canvas (vid_w/640), which overflows a 16:9 screen; convert them with the
-// vertical factor (resY/480) instead. _ss (and _ns is 480p-authored, so it converts)
-// menus that are already authored for the wide layout keep the stock canvas scaling.
+// Frames always use the stock canvas scale (vid_w/640). They are authored as
+// percentages of the screen and must not follow menuScale; only their content and
+// explicit resize dialogs are scaled. The source-name flag below is retained for
+// other menu-source decisions.
 static bool tail_equals_ci(const char* s, size_t len, const char* suffix) {
 	const size_t slen = std::strlen(suffix);
 	if (len < slen) return false;
@@ -866,7 +894,7 @@ static void menu_source_note_name(const char* name, bool reset_if_unknown) {
 	for (const char* p = name; *p; ++p) {
 		if (*p == '/' || *p == '\\') base = p + 1;
 	}
-	if (name_contains_ci(name, "sof_buddy/") || name_contains_ci(name, "loading/"))
+	if (name_contains_ci(name, "sof_buddy/"))
 		s_menu_skip_frame_convert = true;
 	size_t len = std::strlen(base);
 	if (len >= 4 && tail_equals_ci(base, len, ".rmf")) len -= 4;
@@ -956,24 +984,18 @@ static void hk_frame_link(void* child, void* parent) {
 		const bool ss = (cr && cr->ss) || (pr && pr->ss);
 		if (cr) {
 			cr->ss = ss;
-			if (!ss && menu && scaled_menu_uniform_actual_active() &&
+			if (!ss && !s_page_is_resized && menu && cr->h != 0 &&
 			    !scaled_menu_skip_for_intro_disclaimer()) {
 				const float canvas =
 				    *reinterpret_cast<float*>(static_cast<char*>(menu) + kMenuC_ScreenScale);
-				const float target = scaled_menu_screen_scale();
+				// Frame boxes are screen percentages. Only their height needs the
+				// 4:3 -> wide vertical correction; menuScale must not resize them.
+				const float target = auto_scale_resolution_ratio();
 				if (std::isfinite(canvas) && canvas > 1e-6f && std::isfinite(target) &&
-				    target > 0.f) {
-					const float factor = target / canvas;
-					if (std::fabs(factor - 1.f) > 0.001f) {
-						int& fw = *reinterpret_cast<int*>(c + kFrame_W);
-						int& fh = *reinterpret_cast<int*>(c + kFrame_H);
-						if (cr->w != 0)
-							fw = static_cast<int>(
-							    std::lround(static_cast<float>(cr->w) * factor));
-						if (cr->h != 0)
-							fh = static_cast<int>(
-							    std::lround(static_cast<float>(cr->h) * factor));
-					}
+				    target > 0.f && std::fabs(target - canvas) > 0.001f) {
+					int& fh = *reinterpret_cast<int*>(c + kFrame_H);
+					fh = static_cast<int>(
+					    std::lround(static_cast<float>(cr->h) * target / canvas));
 				}
 			}
 		}
@@ -1084,7 +1106,6 @@ static Menu_CreateTip_t oMenu_CreateTip = nullptr;
 
 using Tip_Render_t = void(__thiscall*)(void* tip, void* menu);
 static Tip_Render_t oTip_Render = nullptr;
-
 
 using Rect_HoverPrep_t = void(__thiscall*)(void* rect);
 static Rect_HoverPrep_t oRect_HoverPrep = nullptr;
@@ -1496,6 +1517,11 @@ bool scaled_menu_install_hooks(void) {
 		reinterpret_cast<void**>(&oTicker_Init),
 		"ticker_init") && ok;
 	ok = install_one(
+		reinterpret_cast<void*>(kRvaPicSetup),
+		reinterpret_cast<void*>(&hk_pic_setup),
+		reinterpret_cast<void**>(&oPic_Setup),
+		"pic_setup") && ok;
+	ok = install_one(
 		reinterpret_cast<void*>(kRvaHbarParse),
 		reinterpret_cast<void*>(&hk_hbar_parse),
 		reinterpret_cast<void**>(&oHbar_Parse),
@@ -1527,7 +1553,7 @@ bool scaled_menu_install_hooks(void) {
 		"tip_render") && ok;
 	return ok && Draw_RenderRect && oMenu_BorderDimsInit && oRect_Parse &&
 	       oFrame_FinalizeDims && oFrame_Ctor && oFrame_Link && oToke_Ctor &&
-	       oToke_Insert && oTicker_Init && oHbar_Parse && oHbar_Draw &&
+	       oToke_Insert && oTicker_Init && oPic_Setup && oHbar_Parse && oHbar_Draw &&
 	       oStm_HoverPass && oRect_HoverPrep && oMenu_CreateTip && oTip_Render;
 }
 
@@ -1554,12 +1580,7 @@ static bool menu_page_skips_scale(void) {
 
 float scaled_menu_screen_scale(void) {
 	if (menu_page_skips_scale()) return 1.0f;
-	float s = menuScale > 0.0f ? menuScale : 1.0f;
-	if (join_scale_active() && s > 1.0f) {
-		float join_scale = s * 0.75f;
-		if (join_scale < 1.0f) join_scale = 1.0f;
-		return join_scale;
-	}
+	const float s = menuScale > 0.0f ? menuScale : 1.0f;
 	return menu_effective_scale(s);
 }
 

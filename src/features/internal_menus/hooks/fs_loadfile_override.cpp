@@ -561,6 +561,29 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
     std::string menu_name = path_to_menu_name(path);
     std::string filename = path_to_filename(path);
     if (menu_name.empty() || filename.empty()) return original(path, buffer, override_pak);
+    // SoFPlus 16:9 join menu: frame-local Y is authored in 480p units, but the
+    // visible 16:9 virtual height is 360. Move the server list by 360/480.
+    if (menu_name == "join_ss" && filename == "join_ss.rmf") {
+        const int len = original(path, buffer, override_pak);
+#if FEATURE_SCALED_MENU
+        if (len > 0 && buffer && *buffer && scaled_menu_uniform_actual_active()) {
+            char* data = static_cast<char*>(*buffer);
+            std::string content(data, static_cast<size_t>(len));
+            const char* from = "<frame servers 0 120";
+            const size_t pos = content.find(from);
+            if (pos != std::string::npos) {
+                char to[32];
+                std::snprintf(to, sizeof(to), "<frame servers 0  %d",
+                              (120 * 360) / 480);
+                if (std::strlen(to) == std::strlen(from)) {
+                    content.replace(pos, std::strlen(from), to);
+                    std::memcpy(data, content.data(), static_cast<size_t>(len));
+                }
+            }
+        }
+#endif
+        return len;
+    }
 
     // SoFPlus 16:9 game menu: the authored topic is 92 and main has no border.
     // The missing inset only needs a small design value; the full vanilla 40

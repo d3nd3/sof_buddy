@@ -377,6 +377,10 @@ bool extract_update_zip_inprocess(const std::string& zip_path, const std::string
     if (!mz_zip_reader_init_file(&za, zip_path.c_str(), 0)) return false;
 
     bool features_written = false;
+    const std::string old_features_cfg = root_dir + "\\sof_buddy\\features.cfg";
+    const std::string prev_features_cfg = old_features_cfg + ".prev";
+    if (replace_features && GetFileAttributesA(old_features_cfg.c_str()) != INVALID_FILE_ATTRIBUTES)
+        CopyFileA(old_features_cfg.c_str(), prev_features_cfg.c_str(), FALSE);
     const mz_uint num_files = mz_zip_reader_get_num_files(&za);
     for (mz_uint i = 0; i < num_files; ++i) {
         mz_zip_archive_file_stat stat = {};
@@ -404,7 +408,9 @@ bool extract_update_zip_inprocess(const std::string& zip_path, const std::string
     if (replace_features && !features_written) {
         // Older packages may not carry features.cfg. Removing it makes the new
         // DLL regenerate the file from its compiled recommended defaults.
-        DeleteFileA((root_dir + "\\sof_buddy\\features.cfg").c_str());
+        DeleteFileA(prev_features_cfg.c_str());
+        DeleteFileA(old_features_cfg.c_str());
+        DeleteFileA((root_dir + "\\base\\sofbuddy_features.cfg").c_str());
     }
     return true;
 }
@@ -1582,7 +1588,7 @@ void print_update_usage() {
     PrintOut(PRINT_DEV, "Install target cvar: _sofbuddy_update_target_tag (stable, latest, or a tag)\n");
     PrintOut(PRINT_DEV, "  _sofbuddy_update_show_all_releases 1 shows every tag in F12 list\n");
     PrintOut(PRINT_DEV, "  _sofbuddy_update_startup_stable_only 1 limits startup notify to stable (default 0)\n");
-    PrintOut(PRINT_DEV, "  _sofbuddy_update_replace_features 1 installs the release's recommended features.cfg (universal default 1; non-universal always keeps the file)\n");
+    PrintOut(PRINT_DEV, "  _sofbuddy_update_replace_features 1 merges new/promoted recommended defaults into saved toggles (universal default 1; non-universal always keeps the file)\n");
     PrintOut(PRINT_DEV, "Optional overrides (for XP/proxy mirrors):\n");
     PrintOut(PRINT_DEV, "  set _sofbuddy_update_api_url <url>\n");
     PrintOut(PRINT_DEV, "  set _sofbuddy_update_releases_url <url>\n");

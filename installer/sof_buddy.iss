@@ -1,5 +1,5 @@
 ; Generated from features/FEATURES.txt. Do not edit by hand.
-#define AppVersion "8.49"
+#define AppVersion "8.50"
 
 [Setup]
 AppId={{B0F7F5D4-4A1E-4F4A-A7B4-8CF2E7C9B1A6}}
@@ -179,6 +179,7 @@ var
   I, Count: Integer;
 begin
   DeleteFile(ExpandConstant('{app}\base\sofbuddy_features.cfg'));
+  DeleteFile(ExpandConstant('{app}\sof_buddy\features.cfg.prev'));
   if not LoadStringsFromFile(ExpandConstant('{app}\base\sofbuddy.cfg'), Lines) then exit;
   SetArrayLength(Kept, 0);
   for I := 0 to GetArrayLength(Lines) - 1 do begin
@@ -609,6 +610,9 @@ begin
   AddFeatureLine(Config, 'raw_mouse', 'features\recommended\input_features\raw_mouse');
   AddFeatureLine(Config, 'cbuf_limit_increase', 'features\optional\bug_fixes\cbuf_limit_increase');
   AddFeatureLine(Config, 'entity_visualizer', 'features\optional\gameplay_features\entity_visualizer');
+  if FileExists(ExpandConstant('{app}\sof_buddy\features.cfg')) then
+    FileCopy(ExpandConstant('{app}\sof_buddy\features.cfg'),
+             ExpandConstant('{app}\sof_buddy\features.cfg.prev'), False);
   if not SaveStringToFile(ExpandConstant('{app}\sof_buddy\features.cfg'), Config, False) then
     MsgBox('Could not save the selected feature settings.', mbError, MB_OK);
 end;

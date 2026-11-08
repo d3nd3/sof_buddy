@@ -50,7 +50,7 @@
 - 🖼️ **HD textures & extended skins** — High-resolution texture support plus extra multiplayer player models.
 - 🌙 **Better lighting** — Optional WhiteMagicRaven lighting blend tweaks for a sharper, more atmospheric look.
 - 🌐 **Multiplayer quality of life** — HTTP map downloads, a GameSpy master selector with known-host fallback, and faster server setup.
-- ⬆️ **In-game updater** — Check, download, and install releases without leaving the game; choose stable or latest, get an optional startup prompt, and (in the graphical updater) keep feature settings fresh with a checked-by-default replacement option.
+- ⬆️ **In-game updater** — Check, download, and install releases without leaving the game; choose stable or latest, get an optional startup prompt, and (in the graphical updater) merge new recommended feature defaults while keeping explicit overrides.
 - 🎮 **One-click Windows installer** — Installs SoF Buddy and can optionally set up the official SoF Plus client, with automatic CD/GOG detection.
 - 🛡️ **Rock-solid compatibility** — Console crash fixes, large-config handling, Windows XP builds, and Wine/Proton support.
 - 📚 **Learn more** — Feature guides live under `src/features/`; start with `scaled_menu/`, `internal_menus/`, and `more_crosshairs/`.
@@ -113,6 +113,8 @@ extraction or feature-enable scripts are needed.
 
 See [WINDOWS_INSTALLER.md](docs/WINDOWS_INSTALLER.md) for the complete packaging,
 runtime-selection, and updater behavior.
+See [FEATURES_FLOW.md](docs/FEATURES_FLOW.md) for feature-file ownership, startup
+load order, reset behavior, and updater handling.
 
 The Windows installer uses one universal DLL and writes the selected features to
 `sof_buddy/features.cfg`; it does not compile a custom DLL for each installation.
@@ -128,8 +130,10 @@ opens a **Feature Required** prompt with a shortcut to the Features tab instead
 of silently doing nothing. Changes are written to `base/sofbuddy_features.cfg`,
 shown as **Unavailable** when the installed non-universal DLL does not contain a
 feature, and take effect after restarting SoF. On startup, those saved selections
-are read before hooks are registered and synchronized back to
-`sof_buddy/features.cfg`; that file remains the early-startup source of truth.
+override the installed `sof_buddy/features.cfg`; the installed file is treated as
+the default set and is not overwritten by runtime toggles. Deleting
+`base/sofbuddy_features.cfg` therefore falls back to the installed defaults (or
+the compiled defaults when `features.cfg` is missing or was auto-generated).
 The installer and updater offer **Reset feature toggles** separately from the
 normal settings reset, for users expecting a newly added feature.
 It also offers a **Select Additional Tasks** page with **Optional installation
@@ -199,7 +203,7 @@ pre-checks the first two tasks when they still make sense for your retail build;
 
 ### In-Game Commands
 
-- `**F12`** (or `**bind <key> sofbuddy_menu sof_buddy`**) — **Open the SoF Buddy menu. Use this. It’s the main entry point for all settings, updater, and profiles.** Set an additional shortcut from **Settings → Menu → Bonus menu key**; F12 remains available. Under **UI Scale**: each scale has an integer percentage slider (**0%** = 1×, **100%** = the vertical resolution max; scale sliders commit on mouse release, and the menu-scale slider reparses the open page at the new scale) and a **Reset to default (75%)** button. The percentage is saved and reapplied after startup and resolution/video changes. **Scaling Mode** selects **Smooth** (integer-prescaled cached textures for HUD/crosshair/scoreboard images; 0% = 1×, 100% = the vertical max, linear in between, with sub-2× results rounded to the nearest integer) or **Integer** (integer slider; floors font/HUD/menu/crosshair scales to 1×, 2×, 3×…). **Cinematic Images Rounding** and **Scale Cinematic Images** are on the same page.
+- `**F12`** (or `**bind <key> sofbuddy_menu sof_buddy`**) — **Open the SoF Buddy menu. Use this. It’s the main entry point for all settings, updater, and profiles.** Set an additional shortcut from **Settings → Menu → Bonus menu key**; F12 remains available. Under **UI Scale**: each scale has an integer percentage slider (**0%** = 1×, **100%** = the vertical resolution max; scale sliders commit on mouse release, and the menu-scale slider reparses the open page at the new scale) and a **Reset to default (75%)** button. The percentage is saved and reapplied after startup and resolution/video changes. **Scaling Mode** selects **Smooth** (integer-prescaled cached textures for HUD/crosshair/scoreboard images; 0% = 1×, 100% = the vertical max, linear in between, with sub-2× results rounded to the nearest integer; if the vertical max is below 2×, Smooth stays at 1×) or **Integer** (integer slider; floors font/HUD/menu/crosshair scales to 1×, 2×, 3×…). **Cinematic Images Rounding** and **Scale Cinematic Images** are on the same page.
 - `sofbuddy_list_features` — Print compiled features (and whether they are on/off).
 - `sofbuddy_master_next` — Query the next configured GameSpy master server.
 - `sofbuddy_menu <name>` — Open an embedded internal menu page (examples: `loading`, `sof_buddy`).
@@ -461,7 +465,7 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_update_replace_features</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code> on <strong>universal</strong> builds; ignored on compile-time channels (they always keep <code>features.cfg</code>). Install the release's recommended <code>sof_buddy/features.cfg</code> when updating without the GUI (Wine/Proton in-DLL extract). The graphical updater exposes the same choice as a checked-by-default tick box; <code>update_from_zip.cmd</code>/<code>.sh</code> prompt with <strong>Yes</strong> as the default. Non-universal builds cannot change features in-game, so their updater never prompts for or replaces <code>features.cfg</code>.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code> on <strong>universal</strong> builds; ignored on compile-time channels (they always keep <code>features.cfg</code>). Merge newly recommended feature defaults into saved toggles when updating (Wine/Proton in-DLL extract), preserving explicit overrides. The graphical updater exposes the same choice as a checked-by-default tick box; <code>update_from_zip.cmd</code>/<code>.sh</code> prompt with <strong>Yes</strong> as the default. Choose <strong>Reset feature toggles</strong> to discard both the package file and saved overrides and use compiled defaults. Non-universal builds cannot change features in-game, so their updater never prompts for or replaces <code>features.cfg</code>.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_update_api_url</code></td>

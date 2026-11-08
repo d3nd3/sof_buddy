@@ -218,7 +218,7 @@ set "REPLACE_FEATURES=%SOFBUDDY_UPDATER_REPLACE_FEATURES%"
 if not defined REPLACE_FEATURES if defined SOFBUDDY_UPDATER_SILENT set "REPLACE_FEATURES=1"
 if defined REPLACE_FEATURES goto :prepare_features_decide
 set "REPLACE_FEATURES=Y"
-set /p "REPLACE_FEATURES=Update feature settings to this release's defaults? (Y/n): "
+set /p "REPLACE_FEATURES=Merge new recommended feature settings with your overrides? (Y/n): "
 if not defined REPLACE_FEATURES set "REPLACE_FEATURES=Y"
 :prepare_features_decide
 if /i "!REPLACE_FEATURES!"=="0" goto :features_keep
@@ -228,12 +228,14 @@ if /i "!REPLACE_FEATURES!"=="false" goto :features_keep
 if exist "%ROOT_DIR%\sof_buddy\features.cfg" (
     set "FEATURES_BACKUP=%UPDATE_DIR%\features.cfg.keep"
     copy /y "%ROOT_DIR%\sof_buddy\features.cfg" "!FEATURES_BACKUP!" >nul 2>&1
+    copy /y "%ROOT_DIR%\sof_buddy\features.cfg" "%ROOT_DIR%\sof_buddy\features.cfg.prev" >nul 2>&1
 )
-echo Updating feature settings to this release's defaults.
+echo Merging new recommended feature settings with your overrides.
 del /f /q "%ROOT_DIR%\sof_buddy\features.cfg" >nul 2>&1
 exit /b 0
 :features_keep
 set "KEEP_FEATURES=1"
+del /f /q "%ROOT_DIR%\sof_buddy\features.cfg.prev" >nul 2>&1
 if exist "%ROOT_DIR%\sof_buddy\features.cfg" (
     set "FEATURES_BACKUP=%UPDATE_DIR%\features.cfg.keep"
     copy /y "%ROOT_DIR%\sof_buddy\features.cfg" "!FEATURES_BACKUP!" >nul 2>&1
@@ -449,6 +451,7 @@ exit /b 0
 :reset_feature_toggles
 if not defined SOFBUDDY_UPDATER_SILENT echo Searching for saved feature toggles to reset...
 if exist "%ROOT_DIR%\sof_buddy\features.cfg" del /f /q "%ROOT_DIR%\sof_buddy\features.cfg" >nul 2>&1
+del /f /q "%ROOT_DIR%\sof_buddy\features.cfg.prev" >nul 2>&1
 for /r "%ROOT_DIR%" %%F in (sofbuddy_features.cfg) do (
     if exist "%%F" (
         if not defined SOFBUDDY_UPDATER_SILENT echo   Removing: %%F

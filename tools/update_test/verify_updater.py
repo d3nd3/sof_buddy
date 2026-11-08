@@ -26,7 +26,7 @@ def check_cmd(path: str, err: list[str]) -> None:
         "SOFBUDDY_IS_UNIVERSAL",
         "--delegated",
         'set /p "FRESH=Start with fresh settings (y/N): "',
-        'set /p "REPLACE_FEATURES=Update feature settings to this release\'s defaults? (Y/n): "',
+        'set /p "REPLACE_FEATURES=Merge new recommended feature settings with your overrides? (Y/n): "',
         'set /p "RESET_FEATURES=Expecting a new feature? Reset feature toggles (y/N): "',
     ):
         if needle not in text:
@@ -68,8 +68,11 @@ def main() -> int:
             print("error: update_from_zip.cmd missing Wine /unix unzip path", file=sys.stderr)
             err.append("missing unix unzip")
         if "SOFBUDDY_UPDATER_REPLACE_FEATURES" not in text or ":prepare_features" not in text:
-            print("error: update_from_zip.cmd missing feature-settings replacement path", file=sys.stderr)
+            print("error: update_from_zip.cmd missing feature-settings merge path", file=sys.stderr)
             err.append("missing feature path")
+        if "features.cfg.prev" not in text or "Merging new recommended" not in text:
+            print("error: update_from_zip.cmd missing feature merge backup", file=sys.stderr)
+            err.append("missing feature merge backup")
         check_cmd(CMD, err)
         if os.path.isfile(CMD_INSTALLED):
             if open(CMD_INSTALLED, "rb").read() != open(CMD, "rb").read():
@@ -95,6 +98,8 @@ def main() -> int:
             "--delegated",
             ".extract_ok",
             "flavor.txt",
+            "features.cfg.prev",
+            "Merging new recommended",
         ):
             if needle not in text:
                 print(f"error: update_from_zip.sh missing {needle!r}", file=sys.stderr)

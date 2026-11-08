@@ -26,41 +26,37 @@ V = vid_h / C = (vid_h / vid_w) * 640
 - 16:10 → `V = 400`
 - 4:3 → `V = 480`
 
-### Frames follow the authored 480p design
+### Frames use the stock screen canvas
 
 The stock `frame_c` ctor (0xC60A0) multiplies authored frame W/H by `C`
-(`vid_w/640`). Scaled Menu hooks the ctor and, for menus that are **not** `_ss`,
-replaces that factor with `menuScale` (`resY/480`, the same factor as content):
+(`vid_w/640`). Frames are authored as percentages of the screen, so their width
+always keeps that stock canvas scale. `menuScale` applies only to frame content
+(text, rects, borders, offsets); it must not resize frames.
 
-```
-non-_ss: frame W/H = authored * menuScale
-_ss:     frame W/H = authored * C      (stock)
-```
+The only frame correction is height-only and resolution-driven: on non-4:3
+screens, non-`_ss` frames have their height converted from the stock horizontal
+canvas to the vertical design ratio (`authored_h × vid_h/480`, implemented as
+`stock_h × (vid_h/480) / C`). A zero authored height is left alone. This restores
+the original 4:3→wide vertical fit without tying frames to menuScale.
 
-A 640×480 frame authored at 480p therefore becomes 1440×1080 at 1080p (4:3 fitted
-to the screen height) instead of 1920×1440 (cropped). The conversion is first a
-**vertical virtual-space correction**: at 16:9 `V=360`, so a 480-unit-tall frame
-scaled by `C` would be 480 units tall in a 360-unit viewport. `authored × menuScale`
-is equivalent to `authored × V/480` in virtual units. A dimension of 0 keeps the
-engine's inherit/split behaviour. The source file is tracked through `toke_c`
-construction and `toke_c::Insert` (include/exinclude); a frame stays stock if its
-source name ends in `_ss` **or any ancestor frame is `_ss`** (propagated in the
-frame parent-link hook). This also covers non-`_ss` pages that include `_ss`
-content (e.g. `m_join.rmf` → `m_join_ss.rmf`) and frames cut from an `_ss` parent.
-The `game_ss` override is still applied at frame finalize.
+The old non-`_ss` conversion to `authored × menuScale` has been removed: it made
+frames shrink and drift at menu scales below `C` (for example 800×600 with a 1.19
+menu scale) and broke `m_join` and other framed menus. At 4:3 the height factor is
+1.0, so frame geometry is identical at 1.0 and 1.19.
+
+`_ss` frames are wide-authored and keep their stock dimensions. `_ss` content
+still scales normally, and the `game_ss` topic/border correction is still applied
+at frame finalize.
 
 ### Internal F12 and loading menus
 
-The embedded `sof_buddy/*` and `loading/*` pages are excluded from the frame
-conversion. They keep the stock frame canvas (`authored × C`) while their text,
-rects and layout continue to use `menuScale`; the F12 redesign authors the tab
-grid and content spacers in 640×480 units so the two tab rows and page body stay
-together at the source resolution. This is **not** a claim that these menus are
-immune to the 4:3→16:9 height problem: it is the conservative choice used for the
-in-game F12 overlay, with dynamic prefixes/insets and scrolling handling the
-layout. A dedicated frame-scale pass for `sof_buddy` pages is still an open
-question; `loading/*` is engine/intro-owned and is skipped to avoid double-scaling
-the transition.
+The embedded `sof_buddy/*` pages keep the stock frame canvas (`authored × C`)
+while their text, rects and layout continue to use `menuScale`; the F12 redesign
+authors the tab grid and content spacers in 640×480 units so the two tab rows and
+page body stay together at the source resolution. Internal `loading/*` pages are
+not excluded from the normal frame height correction: the loading page is a real
+scaled menu and must get the same 4:3→widescreen frame-height treatment as stock
+loading pages.
 
 ### Content is scaled by the vertical design (menuScale)
 
@@ -76,16 +72,19 @@ Everything inside the frames — text, area rects, borders, offsets — is scale
   The F12 UI Scale tab uses a percentage slider plus a **Reset to default (75%)**
   button in Smooth mode: `0%` = `1×`, `100%` = `max`, with linear scales in
   between. Values below `2×` round to the nearest integer (`1×` or `2×`); `2×`
-  and above stay fractional. Integer mode uses an integer slider bound to the
-  vertical max instead. `_sofbuddy_menu_scale` is the computed scale cvar.
+  and above stay fractional. If the vertical max itself is below `2×` (e.g.
+  800×600 → `1.25×`), Smooth stays at `1×` instead of producing a fractional
+  sub-2× scale. Integer mode uses an integer slider bound to the vertical max
+  instead. `_sofbuddy_menu_scale` is the computed scale cvar.
   The menu-scale slider defers its cvar update but previews the knob at the
   pending value during the drag, then commits and re-parses the open UI Scale
   page after the mouse button is released; menu rect/frame geometry is baked at
   RMF parse time, so the displayed scale alone cannot resize an already open page.
 
-Non-`_ss` frames use `menuScale` (the vertical design), so frame boxes and their
-contents share the same space. `_ss` frames keep the stock `C` factor because they
-are already authored for the wide layout; see "Scaling ratios interact".
+Frame width always keeps the stock `C` factor. Non-`_ss` frames get only the
+resolution-driven height correction on non-4:3 screens; this is independent of
+`menuScale`. `_ss` frames keep the stock `C` factor on both axes because they are
+already authored for the wide layout; see "Scaling ratios interact".
 
 Rounding cvars:
 
@@ -163,10 +162,10 @@ hitboxes are scaled inside the hover pass so clicks match the canvas-scaled art
 without changing their construction or draw state. This applies to every resize
 page, with no menu-name/spm-specific filters.
 
-The **join** menu is a scoped exception: while `menu join` is current and the
-menu scale is above 1, its content scale is `max(0.75 × menuScale, 1)`. The
-override is tied to that menu’s `menu_c` and does not leak onto the menu revealed
-when it closes.
+The 16:9 `join_ss` page is corrected at load time instead of scaling all join
+content: its `<frame servers>` Y offset moves from `120` to `90`, the `360/480`
+vertical virtual-space ratio. This keeps the normal menu scale for join content
+while placing the server list correctly in the 16:9 frame.
 
 `<hbar>` is picture-sized: its ctor sets W/H from the cap picture and stores the
 repeated tile's native W/H, so `<width>`/`<height>` never reach the rect parse
@@ -399,9 +398,9 @@ and offsets from `vid_w/640`, then the letterbox shift).
 
 ## Scaling ratios interact
 
-Non-`_ss` frames use `menuScale` (`resY/480`) just like their contents, so frame
-boxes and menu areas share the vertical design space. `_ss` frames keep the stock
-`C` (percent-of-`V`) factor because they are already authored for the wide layout.
+Frame width keeps the stock `C` (percent-of-`V`) factor. Non-`_ss` frames get a
+height-only 4:3→widescreen correction (`vid_h/480`); `_ss` frames keep the stock
+`C` factor on both axes. `menuScale` affects only their contents.
 Staged art — ghouls/bghouls, button anchors, backdrops — follows the canvas space
 and is explicitly excluded from content scaling (see Ghouls and bghouls), so the
 scene stays anchored while menu areas/text use the vertical scale.
@@ -429,9 +428,11 @@ normally**, exactly like any other menu:
 
 - rect dimensions/offsets, borders, rect-parse fixed dims, text measurement/glyphs
   and ticker normalisation are **not** disabled for `_ss` menus;
-- frame W/H conversion is skipped for `_ss` files: they keep the stock
-  authored × `C` dimensions, while non-`_ss` frames use the vertical `resY/480`
-  factor. `game_ss` gets a load-time border inset and topic-height correction, described below; other `_ss` menus keep their authored borders;
+- frame width always uses the stock authored × `C` dimensions; non-`_ss`
+  heights get the resolution-driven vertical correction above. `menuScale` only
+  affects content. `_ss` frames keep their stock dimensions. `game_ss` gets a
+  load-time border inset and topic-height correction, described below; other
+  `_ss` menus keep their authored borders;
 - the `M_PushMenu` pre-hook still normalises and records the pushed name (leaf,
   `.rmf` stripped, lowercase) for `_ss` scaling decisions and menu-specific behavior.
 
@@ -604,6 +605,7 @@ Fix:
   exactly the configured delay (default **750 ms**, `0` = immediate, `2500` =
   stock). The fade-out threshold moves with the start, so the visible time is
   unchanged.
+- `<pic>`/`<image>` widgets are scaled at `pic_c::Setup` (`0x200D2290`) by the same menu-scale factor as other actual-pixel widgets; `noscale` images, bolted tab icons, images with explicit `width`/`height` (already scaled by rect parse), and resize canvases that already carry the scale are skipped.
 - `hk_tip_render` (`0x200EA8A0`) calls the original render only while
   `menu_c+0xBC` still equals the recorded source rect. Moving off the hotspot
   suppresses the draw immediately instead of firing after the delay; re-entering
@@ -664,8 +666,8 @@ patched `M_PushMenu` entry), not `detour_M_PushMenu::oM_PushMenu`.
 | `menu_border_dims_init` | 0xC46D0 | border pad with `menuScale`, linewidth post-scale |
 | `rect_c::Parse` | 0xCF890 | persistent scaling of `width`/`height`/`xoff`/`yoff`, file overrides |
 | `frame_c::Resize` | 0xC6640 | resize-page canvas/frame scale + recentre |
-| `frame_c` ctor | 0xC60A0 | record authored 480p frame dims and source `_ss` state |
-| `frame_c` parent link/cut | 0xC6530 | convert non-`_ss` frame dims; inherit `_ss` from parent |
+| `frame_c` ctor | 0xC60A0 | record frame metadata for source tracking |
+| `frame_c` parent link/cut | 0xC6530 | height-only non-4:3 correction for non-`_ss` frames; original link |
 | `frame_c::ParseFrame` finalize | 0xC6500 | `game_ss` `topic` height override |
 | `toke_c` ctor | 0xEAC70 | track the menu source file name |
 | `toke_c::Insert` | 0xEAF60 | track `_ss`/`_ns` includes |

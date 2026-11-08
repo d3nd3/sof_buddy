@@ -130,10 +130,12 @@ float scale_mode_apply(float scale) {
 static float scale_smooth_value(float pct, float max_scale) {
 	if (max_scale <= 1.0f || pct <= 0.0f)
 		return 1.0f;
+	if (max_scale < 2.0f)
+		return 1.0f;
 	if (pct >= 100.0f)
 		return max_scale;
 	const float raw = 1.0f + (max_scale - 1.0f) * (pct / 100.0f);
-	if (raw < 2.0f && max_scale >= 2.0f)
+	if (raw < 2.0f)
 		return std::round(raw);
 	return raw;
 }

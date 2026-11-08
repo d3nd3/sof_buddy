@@ -593,6 +593,9 @@ def generate(features_path, output_path):
     for name, component in feature_components:
         lines.append(f"  AddFeatureLine(Config, '{name}', '{component}');")
     lines += [
+        "  if FileExists(ExpandConstant('{app}\\sof_buddy\\features.cfg')) then",
+        "    FileCopy(ExpandConstant('{app}\\sof_buddy\\features.cfg'),",
+        "             ExpandConstant('{app}\\sof_buddy\\features.cfg.prev'), False);",
         "  if not SaveStringToFile(ExpandConstant('{app}\\sof_buddy\\features.cfg'), Config, False) then",
         "    MsgBox('Could not save the selected feature settings.', mbError, MB_OK);",
         "end;",

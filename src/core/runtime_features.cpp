@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -131,6 +132,137 @@ std::vector<std::wstring> config_candidates(const wchar_t* filename) {
     DWORD length = GetCurrentDirectoryW(ARRAYSIZE(path), path);
     if (length && length < ARRAYSIZE(path)) add_config_candidate(candidates, path, filename);
     return candidates;
+}
+
+bool candidate_exists(const std::vector<std::wstring>& paths) {
+    for (const std::wstring& path : paths) {
+        const DWORD attrs = GetFileAttributesW(path.c_str());
+        if (attrs != INVALID_FILE_ATTRIBUTES && !(attrs & FILE_ATTRIBUTE_DIRECTORY)) return true;
+    }
+    return false;
+}
+
+bool candidate_has_feature_lines(const std::vector<std::wstring>& paths) {
+    for (const std::wstring& path : paths) {
+        FILE* file = _wfopen(path.c_str(), L"rb");
+        if (!file) continue;
+        bool found = false;
+        char buffer[512];
+        while (std::fgets(buffer, sizeof(buffer), file)) {
+            if (std::strstr(buffer, "set _sofbuddy_feature_")) {
+                found = true;
+                break;
+            }
+        }
+        std::fclose(file);
+        if (found) return true;
+    }
+    return false;
+}
+
+bool config_is_runtime_generated() {
+    FILE* file = _wfopen(config_path().c_str(), L"rb");
+    if (!file) return false;
+    char buffer[512] = {};
+    const bool generated = std::fgets(buffer, sizeof(buffer), file) &&
+                           std::strstr(buffer, "Generated from _sofbuddy_feature_");
+    std::fclose(file);
+    return generated;
+}
+
+bool read_feature_defaults_file(const std::wstring& path,
+                                std::map<std::string, bool>& out) {
+    FILE* file = _wfopen(path.c_str(), L"rb");
+    if (!file) return false;
+    char buffer[512];
+    while (std::fgets(buffer, sizeof(buffer), file)) {
+        std::string line = trim(buffer);
+        if (line.empty()) continue;
+        bool enabled = true;
+        if (line.compare(0, 2, "//") == 0) {
+            enabled = false;
+            line = trim(line.substr(2));
+        } else if (line[0] == '#') {
+            enabled = false;
+            line = trim(line.substr(1));
+        }
+        const size_t comment = line.find_first_of("#");
+        if (comment != std::string::npos) line = trim(line.substr(0, comment));
+        const size_t slash = line.find("//");
+        if (slash != std::string::npos) line = trim(line.substr(0, slash));
+        if (line.empty()) continue;
+        if (feature_from_name(line.c_str()) != Feature::Count)
+            out[line] = enabled;
+    }
+    std::fclose(file);
+    return true;
+}
+
+bool read_archive_values(const std::wstring& path, std::map<std::string, int>& out) {
+    FILE* file = _wfopen(path.c_str(), L"rb");
+    if (!file) return false;
+    char buffer[512];
+    const char* prefix = "set _sofbuddy_feature_";
+    while (std::fgets(buffer, sizeof(buffer), file)) {
+        std::string line = trim(buffer);
+        if (line.compare(0, std::strlen(prefix), prefix) != 0) continue;
+        const size_t value_start = line.find_first_of(" \t", std::strlen(prefix));
+        if (value_start == std::string::npos) continue;
+        const std::string name = line.substr(std::strlen(prefix),
+                                             value_start - std::strlen(prefix));
+        std::string value = trim(line.substr(value_start));
+        if (value.size() >= 2 && value.front() == '"') {
+            const size_t end = value.find('"', 1);
+            if (end == std::string::npos) continue;
+            value = value.substr(1, end - 1);
+        } else {
+            const size_t end = value.find_first_of(" \t");
+            if (end != std::string::npos) value.resize(end);
+        }
+        char* end = nullptr;
+        const long parsed = std::strtol(value.c_str(), &end, 10);
+        if (!end || *end || parsed < 0 || parsed > 2) continue;
+        out[name] = static_cast<int>(parsed);
+    }
+    std::fclose(file);
+    return true;
+}
+
+void write_feature_state();
+
+bool merge_previous_feature_defaults() {
+    const std::wstring prev_path = config_path() + L".prev";
+    const DWORD prev_attrs = GetFileAttributesW(prev_path.c_str());
+    if (prev_attrs == INVALID_FILE_ATTRIBUTES || (prev_attrs & FILE_ATTRIBUTE_DIRECTORY))
+        return false;
+
+    std::map<std::string, bool> old_defaults;
+    std::map<std::string, bool> new_defaults;
+    if (!read_feature_defaults_file(prev_path, old_defaults)) {
+        DeleteFileW(prev_path.c_str());
+        return false;
+    }
+    read_feature_defaults_file(config_path(), new_defaults);
+
+    std::map<std::string, int> archive;
+    for (const std::wstring& candidate : config_candidates(L"sofbuddy_features.cfg")) {
+        if (read_archive_values(candidate, archive)) break;
+    }
+
+#define MERGE_FEATURE(macro, name, label) { \
+        const bool old_default = old_defaults.count(name) ? old_defaults[name] : false; \
+        const bool new_default = new_defaults.count(name) ? new_defaults[name] : false; \
+        const auto it = archive.find(name); \
+        const bool explicit_override = it != archive.end() && it->second != 2 && \
+                                       ((it->second != 0) != old_default); \
+        set_enabled(Feature::RUNTIME_##macro, explicit_override ? it->second != 0 : new_default); \
+    }
+    FEATURE_LIST(MERGE_FEATURE)
+#undef MERGE_FEATURE
+
+    write_feature_state();
+    DeleteFileW(prev_path.c_str());
+    return true;
 }
 
 std::wstring game_base_directory() {
@@ -280,30 +412,40 @@ void Load() {
         set_enabled(static_cast<Feature>(i), kDefaultFeatures[i]);
     }
 
-    bool config_present = false;
-    FILE* file = _wfopen(config_path().c_str(), L"rb");
-    if (file) {
-        config_present = true;
-        char buffer[512];
-        while (std::fgets(buffer, sizeof(buffer), file)) {
-            std::string line = trim(buffer);
-            if (line.empty()) continue;
-            if (line.compare(0, 2, "//") == 0) {
-                set_override(line.substr(2), false);
-            } else if (line[0] == '#') {
-                set_override(line.substr(1), false);
-            } else {
-                set_override(line, true);
+    if (!merge_previous_feature_defaults()) {
+        const bool archive_present = candidate_exists(config_candidates(L"sofbuddy_features.cfg"));
+        const bool legacy_present =
+            candidate_has_feature_lines(config_candidates(L"sofbuddy.cfg"));
+        const bool reset_to_defaults =
+            !archive_present && !legacy_present && config_is_runtime_generated();
+
+        bool config_present = false;
+        if (!reset_to_defaults) {
+            FILE* file = _wfopen(config_path().c_str(), L"rb");
+            if (file) {
+                config_present = true;
+                char buffer[512];
+                while (std::fgets(buffer, sizeof(buffer), file)) {
+                    std::string line = trim(buffer);
+                    if (line.empty()) continue;
+                    if (line.compare(0, 2, "//") == 0) {
+                        set_override(line.substr(2), false);
+                    } else if (line[0] == '#') {
+                        set_override(line.substr(1), false);
+                    } else {
+                        set_override(line, true);
+                    }
+                }
+                std::fclose(file);
             }
         }
-        std::fclose(file);
-    }
 
-    const bool persisted = load_persisted_features();
-    if (persisted || !config_present)
-        write_config();
-    else
-        write_feature_state();
+        const bool persisted = load_persisted_features();
+        if (reset_to_defaults || !config_present)
+            write_config();
+        else
+            write_feature_state();
+    }
 
     const std::uint32_t scaledFeatures =
         (std::uint32_t(1) << static_cast<size_t>(Feature::RUNTIME_FEATURE_SCALED_CON)) |

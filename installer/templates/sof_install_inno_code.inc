@@ -70,6 +70,7 @@ var
   I, Count: Integer;
 begin
   DeleteFile(ExpandConstant('{app}\base\sofbuddy_features.cfg'));
+  DeleteFile(ExpandConstant('{app}\sof_buddy\features.cfg.prev'));
   if not LoadStringsFromFile(ExpandConstant('{app}\base\sofbuddy.cfg'), Lines) then exit;
   SetArrayLength(Kept, 0);
   for I := 0 to GetArrayLength(Lines) - 1 do begin
