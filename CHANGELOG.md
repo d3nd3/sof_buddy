@@ -2,6 +2,16 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## Unreleased
+
+### Updater / release channels
+
+- Replaced the `stable.json` pointer with a branch-based channel model: stable releases are the newest non-prerelease GitHub release from `master`, while unstable builds are prereleases tagged `vX.Y-buildN-unstable` from the `unstable` branch. Removed `releases/stable.json` and `tools/set_stable_release.py`.
+- The F12 → Version page now shows **Stable tag** and **Unstable tag**, with **Install stable release** and **Install unstable build** actions; legacy `_sofbuddy_update_target_tag latest` values map to `unstable`.
+- The release list now lives in its own framed, independently scrolling `<vbar>` pane and is capped at 12 recent rows, so version history no longer grows indefinitely.
+- Unstable builds include the local build number in update comparisons, so users on an older unstable build are offered newer prereleases even when `VERSION` has not changed.
+- CI now builds and publishes prereleases from the `unstable` branch; stable releases are still published from `master` when `VERSION` changes.
+
 ## v8.50
 
 ### Updater

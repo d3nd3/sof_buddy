@@ -46,7 +46,7 @@ Private LAN IPs are allowed; `github.com` / `sofvault.org` are not.
 
 | Goal | Command / setting |
 |------|-------------------|
-| Stable vs latest channels | Default target **stable** → `stable.json` (99.0.0-test); **latest** → `latest.json` (99.1.0-test) |
+| Stable vs unstable channels | Default target **stable** → newest non-prerelease (`99.0.0-test`); **unstable** → newest prerelease (`99.1.0-test`) from `list.json` |
 | Long release notes in prompt | `set _sofbuddy_update_target_tag 99.1.0-test` then `sofbuddy_update prompt` |
 | Release list UI | `sofbuddy_update releases` |
 | Disable startup check | `_sofbuddy_update_check_startup 0` |
@@ -73,7 +73,7 @@ make update-test-serve   # in another terminal
 make update-test-robustness
 ```
 
-HTTP fixtures, version/list-filter logic, zip payload, updater binary checks, and (when `SoF.exe` starts under Wine) startup manifest tests for **startup stable-only** vs **install target = latest**.
+HTTP fixtures, channel extraction, zip payload, updater binary checks, and (when `SoF.exe` starts under Wine) startup manifest tests for **startup stable-only** vs **install target = unstable**.
 
 ## Rebuild fixture zips after code changes
 

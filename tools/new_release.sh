@@ -56,7 +56,8 @@ for r in json.load(sys.stdin):
     t = r.get('tag_name', '')
     if product == 'sof2' and re.match(r'^sof2-v[0-9]', t):
         print(t); break
-    if product == 'sof1' and re.match(r'^v[0-9]', t) and not t.startswith('sof2-'):
+    if (product == 'sof1' and re.match(r'^v[0-9.]+-build[0-9]+$', t)
+            and not t.startswith('sof2-') and not r.get('prerelease')):
         print(t); break
 " "$PRODUCT"
 }

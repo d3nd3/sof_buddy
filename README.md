@@ -50,7 +50,7 @@
 - 🖼️ **HD textures & extended skins** — High-resolution texture support plus extra multiplayer player models.
 - 🌙 **Better lighting** — Optional WhiteMagicRaven lighting blend tweaks for a sharper, more atmospheric look.
 - 🌐 **Multiplayer quality of life** — HTTP map downloads, a GameSpy master selector with known-host fallback, and faster server setup.
-- ⬆️ **In-game updater** — Check, download, and install releases without leaving the game; choose stable or latest, get an optional startup prompt, and (in the graphical updater) merge new recommended feature defaults while keeping explicit overrides.
+- ⬆️ **In-game updater** — Check, download, and install releases without leaving the game; choose the stable master channel or unstable prerelease builds, get an optional startup prompt, and (in the graphical updater) merge new recommended feature defaults while keeping explicit overrides.
 - 🎮 **One-click Windows installer** — Installs SoF Buddy and can optionally set up the official SoF Plus client, with automatic CD/GOG detection.
 - 🛡️ **Rock-solid compatibility** — Console crash fixes, large-config handling, Windows XP builds, and Wine/Proton support.
 - 📚 **Learn more** — Feature guides live under `src/features/`; start with `scaled_menu/`, `internal_menus/`, and `more_crosshairs/`.
@@ -210,8 +210,9 @@ pre-checks the first two tasks when they still make sense for your retail build;
 - `sofbuddy_menu <menu>/<page>` — Open a specific embedded page (e.g. `sofbuddy_menu sof_buddy/cpu`).
 - `sofbuddy_apply_profile_comp` — Apply competitive/low-visual profile preset.
 - `sofbuddy_apply_profile_visual` — Apply visual/high-fidelity profile preset.
-- `sofbuddy_update` — Check latest release from configured update API endpoint and compare with your current version.
-- `sofbuddy_update download` — Download latest release zip to `sof_buddy/update/` (apply after closing game; release zips are preferred over debug zips).
+- `sofbuddy_update` — Check the selected channel/tag from the configured update feed and compare with your current version.
+- `sofbuddy_update stable` / `sofbuddy_update unstable` — Select the stable master channel or the unstable prerelease channel and open the install prompt.
+- `sofbuddy_update download` — Download the selected release zip to `sof_buddy/update/` (apply after closing game; release zips are preferred over debug zips).
 - `sofbuddy_update_install` — On **universal** builds with graphical updater enabled (default), queue `sof_buddy_update.exe`; otherwise `update_from_zip.cmd` / in-DLL extract on Wine/Proton, via `winstart`, then quit SoF.
 - `sofbuddy_openurl <https_url>` — Open trusted community links in your default browser (used by the Social Links menu page).
 
@@ -453,11 +454,11 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_update_show_all_releases</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. List every release tag in F12 after Refresh release list. F12 → Version.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Show up to 12 recent release tags in F12 after Refresh release list; off shows channels plus the latest stable/unstable tags. F12 → Version.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_update_startup_stable_only</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Startup prompt only when stable.json is newer; <code>1</code> stable only, <code>0</code> use the selected install target. F12 → General.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Startup prompt only for the stable channel (master); <code>1</code> stable only, <code>0</code> use the selected install target. F12 → General.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_update_use_gui</code></td>
@@ -477,7 +478,7 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_update_target_tag</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>stable</code>. Release target: <code>stable</code> (blessed release), <code>latest</code> (newest CI), or a tag. Run <code>sofbuddy_update releases</code> to refresh the tag list after changing. F12 → Cvars (or console).</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>stable</code>. Release target: <code>stable</code> (latest non-prerelease from master), <code>unstable</code> (latest prerelease from the unstable branch), or a tag. Legacy <code>latest</code> is treated as <code>unstable</code>. Run <code>sofbuddy_update releases</code> to refresh the tag list after changing. F12 → Cvars (or console).</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_theme</code></td>
@@ -621,7 +622,7 @@ Written by sof_buddy itself. Values are recomputed each launch, so editing them 
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Pic path for the loading-screen download indicator.</td>
 </tr>
 <tr>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_update_status</code> / <code>_sb_internal_update_latest</code> / <code>_sb_internal_update_download_path</code> / <code>_sb_internal_update_downloaded_asset</code> / <code>_sb_internal_update_checked_utc</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_update_status</code> / <code>_sb_internal_update_latest</code> / <code>_sb_internal_update_stable_tag</code> / <code>_sb_internal_update_unstable_tag</code> / <code>_sb_internal_update_download_path</code> / <code>_sb_internal_update_downloaded_asset</code> / <code>_sb_internal_update_checked_utc</code></td>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Updater progress read-outs (Version tab and startup prompt).</td>
 </tr>
 <tr>
@@ -662,18 +663,20 @@ SoF Buddy uses two version numbers:
 | **Version** (`MAJOR.MINOR`) | `VERSION` file (bump manually) | `8.1` |
 | **Build** | GitHub Actions `run_number` (automatic) | `189` |
 
-Published tags look like **`v8.1-build189`**. Pushing to `master` always builds; a **GitHub Release is created only when `VERSION` changes** in that commit.
+Published stable tags look like **`v8.1-build189`**; unstable builds use **`v8.1-build190-unstable`** and are GitHub prereleases. Develop on `unstable`, then merge to `master` when the build is ready for stable.
 
-**Cut a release:**
+**Unstable build:** push to `unstable`. CI builds and publishes a prerelease automatically; its release notes come from `## Unreleased` in `CHANGELOG.md`.
+
+**Cut a stable release:** merge `unstable` into `master`, then bump `VERSION` and add the matching `## vX.Y` changelog section on `master`:
 
 ```sh
-./tools/new_release.sh          # bump VERSION, stage hdr/version.h
+./tools/new_release.sh X.Y      # bump VERSION, stage hdr/version.h
 # update CHANGELOG.md with ## vX.Y
 ./tools/new_release.sh --check  # verify bump + changelog
 ./tools/new_release.sh --commit -m "Release vX.Y: summary"
 ```
 
-`--commit` runs `--check` automatically. Feature fixes on `master` without a `VERSION` bump still CI-build but do not publish a new GitHub release.
+`--commit` runs `--check` automatically. Pushing to `master` without a `VERSION` change only runs the gate; it does not publish a new stable release.
 
 </details>
 

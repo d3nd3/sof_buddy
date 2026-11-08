@@ -6,7 +6,13 @@ import sys
 
 
 def extract_section(text: str, version: str) -> str:
-    pat = rf"^## v{re.escape(version)}\s*\n(.*?)(?=^## v|\Z)"
+    pat = rf"^## v{re.escape(version)}\s*\n(.*?)(?=^## |\Z)"
+    m = re.search(pat, text, re.MULTILINE | re.DOTALL)
+    return m.group(1).strip() if m else ""
+
+
+def extract_unreleased(text: str) -> str:
+    pat = r"^## Unreleased\s*\n(.*?)(?=^## |\Z)"
     m = re.search(pat, text, re.MULTILINE | re.DOTALL)
     return m.group(1).strip() if m else ""
 
@@ -39,6 +45,7 @@ def main() -> int:
     ap.add_argument("--product", default="SoF Buddy", help="Title prefix (use sof2bud for SoF2)")
     ap.add_argument("--discord", action="store_true", help="Discord-friendly formatting")
     ap.add_argument("--build", help="CI build number for announce title")
+    ap.add_argument("--unstable", action="store_true", help="Extract the Unreleased section for an unstable build")
     args = ap.parse_args()
 
     version = (args.version or "").strip()
@@ -53,11 +60,12 @@ def main() -> int:
         version = open(version_file, encoding="utf-8").read().strip()
 
     text = open(changelog, encoding="utf-8").read()
-    body = extract_section(text, version)
+    body = extract_unreleased(text) if args.unstable else extract_section(text, version)
     if not body:
-        fallback = f"{product} v{version}. See {changelog} on GitHub for details."
-        print(fallback)
-        return 0
+        if args.unstable:
+            body = f"Unstable build from the `unstable` branch (v{version}). See {changelog} on GitHub for details."
+        else:
+            body = f"{product} v{version}. See {changelog} on GitHub for details."
 
     if args.discord:
         print(to_discord(body, product, version, args.build))

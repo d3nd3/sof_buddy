@@ -8,5 +8,6 @@
 
 <cinclude _sb_internal_tabs_wide sof_buddy/nav_frame_main_wide>
 <cninclude _sb_internal_tabs_wide sof_buddy/nav_frame_main_narrow>
-<frame center_panel 640 0 page sof_buddy/main_content border 0 0 clear backfill clear>
+<frame center_panel 0 190 page sof_buddy/main_content border 0 0 clear backfill clear>
+<includecvar _sb_internal_update_release_list_frame_rmf>
 </stm>
