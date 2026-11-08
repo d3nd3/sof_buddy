@@ -281,6 +281,10 @@ constexpr uintptr_t kRvaBackdropSetClipOpen = 0x000C3F2Eu;
 constexpr uintptr_t kRvaMenuBorderDimsInit = 0x000C46D0u;
 constexpr uintptr_t kRvaRectParse = 0x000CF890u;
 constexpr uintptr_t kRvaTickerInit = 0x000D1B30u;
+constexpr uintptr_t kRvaHbarParse = 0x000D51D0u;
+constexpr uintptr_t kRvaHbarDraw = 0x000D5050u;
+constexpr uintptr_t kRvaBorderRender = 0x000C48F0u;
+constexpr uintptr_t kRvaDrawBeveledBoxIat = 0x004035E8u;
 constexpr uintptr_t kRvaRectGetCoords = 0x000CF570u;
 constexpr uintptr_t kRvaRectHoverMark = 0x000CEB60u;
 constexpr uintptr_t kRvaMenuCreateTip = 0x000CA9D0u;
@@ -317,6 +321,18 @@ constexpr ptrdiff_t kRect_VirtualY = 0x64;
 constexpr ptrdiff_t kRect_BoltAnchor = 0x7C;
 constexpr ptrdiff_t kRect_Align = 0x4C;      // 1=center 2=left 3=right (from layout state)
 constexpr ptrdiff_t kBorder_ThickPx = 0x04;
+
+// hbar_c (picture progress bar). W/H come from the cap picture and Outer from W, so the
+// generic rect parse hook never sees a <width>/<height> token for the stock tags.
+constexpr ptrdiff_t kHbar_Cvar = 0x50;
+constexpr ptrdiff_t kHbar_CapName = 0x8C;   // std::string: data at +4, size at +8
+constexpr ptrdiff_t kHbar_TileName = 0x9C;
+constexpr ptrdiff_t kHbar_Bevel = 0xAC;
+constexpr ptrdiff_t kHbar_Invisible = 0xAD;
+constexpr ptrdiff_t kHbar_TileW = 0xB0;
+constexpr ptrdiff_t kHbar_TileH = 0xB4;
+constexpr ptrdiff_t kStdString_Data = 0x04;
+constexpr ptrdiff_t kStdString_Size = 0x08;
 
 constexpr ptrdiff_t kMenuC_ScreenScale = 0xAC;
 
@@ -613,6 +629,146 @@ static bool hk_rect_parse(void* rect, void* token) {
 		}
 	}
 	return parsed;
+}
+
+// <hbar> sizes itself from its pictures in the ctor (cap W/H, repeated-tile W/H), so the
+// generic rect parse hook never sees <width>/<height>. Scale those fields after the
+// hbar's own Parse; hk_hbar_draw then stretches the pictures to the scaled fields.
+using Hbar_Parse_t = bool(__thiscall*)(void* hbar, void* token);
+static Hbar_Parse_t oHbar_Parse = nullptr;
+
+static void hbar_scale_dims(void* hbar) {
+	if (!hbar) return;
+	// Picture tiles are stretched by the draw hook; without ref_gl's stretch draw the
+	// scaled pitch would overflow an unscaled cap, so leave the widget stock instead.
+	if (!detour_Draw_StretchPic::oDraw_StretchPic) return;
+	char* r = static_cast<char*>(hbar);
+	if (*reinterpret_cast<uint8_t*>(r + kRect_NoScale)) return;
+	void* menu = menu_outer_from_widget(hbar);
+	if (!menu_actual_pixel_scale_active(menu)) return;
+	const float s = scaled_menu_screen_scale();
+	if (!std::isfinite(s) || s <= 1e-6f || std::fabs(s - 1.f) <= 0.001f) return;
+	float ws = *reinterpret_cast<float*>(r + kRect_WidgetScale);
+	if (!std::isfinite(ws) || ws <= 1e-6f) ws = 1.f;
+	void* border = *reinterpret_cast<void**>(r + kRect_Border);
+	const int padding = border ? *reinterpret_cast<int*>(static_cast<char*>(border)) : 0;
+	int& w = *reinterpret_cast<int*>(r + kRect_W);
+	int& h = *reinterpret_cast<int*>(r + kRect_H);
+	int& ow = *reinterpret_cast<int*>(r + kRect_OuterW);
+	int& oh = *reinterpret_cast<int*>(r + kRect_OuterH);
+	const auto sw = scale_fixed_rect_dimension(w, ws, padding, s);
+	const auto sh = scale_fixed_rect_dimension(h, ws, padding, s);
+	w = sw.value;
+	ow = sw.outer;
+	h = sh.value;
+	oh = sh.outer;
+	if (!*reinterpret_cast<uint8_t*>(r + kHbar_Bevel)) {
+		// Picture mode: the engine repeats the tile at the native pitch and the cap at
+		// native size. Keep the scaled pitch/size so the draw hook can stretch them.
+		int& tw = *reinterpret_cast<int*>(r + kHbar_TileW);
+		int& th = *reinterpret_cast<int*>(r + kHbar_TileH);
+		if (tw > 0) tw = static_cast<int>(std::lround(static_cast<float>(tw) * s));
+		if (th > 0) th = static_cast<int>(std::lround(static_cast<float>(th) * s));
+	}
+}
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static bool hk_hbar_parse(void* hbar, void* token) {
+	const bool parsed = oHbar_Parse
+	                        ? thiscall_rect_parse(hbar, token, reinterpret_cast<void*>(oHbar_Parse))
+	                        : false;
+	if (!parsed || !hbar) return parsed;
+	if (!scaled_menu_uniform_actual_active() || scaled_menu_skip_for_intro_disclaimer())
+		return parsed;
+	hbar_scale_dims(hbar);
+	return parsed;
+}
+
+using Hbar_Draw_t = void(__thiscall*)(void* hbar);
+static Hbar_Draw_t oHbar_Draw = nullptr;
+
+using Hbar_DrawBeveledBox_t = void(__cdecl*)(int x, int y, int w, int h, void* tint);
+
+static const char* hbar_string_data(const char* string_obj) {
+	if (!string_obj) return nullptr;
+	const char* data = *reinterpret_cast<char* const*>(string_obj + kStdString_Data);
+	return (data && *data) ? data : nullptr;
+}
+
+static int hbar_string_size(const char* string_obj) {
+	return string_obj ? *reinterpret_cast<const int*>(string_obj + kStdString_Size) : 0;
+}
+
+static void hbar_draw_stretch_pic(int x, int y, int w, int h, const char* pic) {
+	if (!pic || !*pic || w <= 0 || h <= 0) return;
+	if (!detour_Draw_StretchPic::oDraw_StretchPic) return;
+	using tDrawStretchPic = detour_Draw_StretchPic::tDraw_StretchPic;
+	char path[160];
+	std::snprintf(path, sizeof(path), "pics/menus/%s", pic);
+	// ref_gl's Draw_StretchPic takes the palette as a pointer; the detour typedef keeps
+	// the same 4-byte argument slot, so pass the address of a local palette.
+	int palette = -1;
+	reinterpret_cast<tDrawStretchPic>(detour_Draw_StretchPic::oDraw_StretchPic)(
+	    x, y, w, h, static_cast<int>(reinterpret_cast<intptr_t>(&palette)), path, 0);
+}
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static void hk_hbar_draw(void* hbar) {
+	if (!hbar) return;
+	bool active = scaled_menu_uniform_actual_active();
+	if (active && scaled_menu_skip_for_intro_disclaimer()) active = false;
+	char* r = static_cast<char*>(hbar);
+	if (!active || *reinterpret_cast<uint8_t*>(r + kRect_NoScale) ||
+	    !detour_Draw_StretchPic::oDraw_StretchPic) {
+		thiscall_noargs_void(hbar, reinterpret_cast<void*>(oHbar_Draw));
+		return;
+	}
+	int x = 0, y = 0;
+	if (!thiscall_rect_get_coords(hbar, &x, &y,
+	                              rvaToAbsExe(reinterpret_cast<void*>(kRvaRectGetCoords))))
+		return;
+	float progress = 0.f;
+	if (void* cv = *reinterpret_cast<void**>(r + kHbar_Cvar))
+		progress = *reinterpret_cast<float*>(static_cast<char*>(cv) + 0x18);
+	if (!std::isfinite(progress)) progress = 0.f;
+	if (progress < 0.f) progress = 0.f;
+	if (progress > 1.f) progress = 1.f;
+	if (*reinterpret_cast<uint8_t*>(r + kHbar_Invisible) && progress <= 0.f) return;
+	const int w = *reinterpret_cast<int*>(r + kRect_W);
+	const int h = *reinterpret_cast<int*>(r + kRect_H);
+	if (*reinterpret_cast<uint8_t*>(r + kHbar_Bevel)) {
+		if (progress > 0.f) {
+			auto** iat = reinterpret_cast<void**>(rvaToAbsExe(
+			    reinterpret_cast<void*>(kRvaDrawBeveledBoxIat)));
+			void* fn = iat ? *iat : nullptr;
+			if (fn) {
+				const int fill_w = static_cast<int>(static_cast<float>(w) * progress);
+				reinterpret_cast<Hbar_DrawBeveledBox_t>(fn)(x, y, fill_w, h, r + 0x38);
+			}
+		}
+	} else {
+		const int tile_w = *reinterpret_cast<int*>(r + kHbar_TileW);
+		const int tile_h = *reinterpret_cast<int*>(r + kHbar_TileH);
+		if (tile_w > 0) {
+			// Round so a fractional menuScale still fills the last tile at 100%;
+			// truncating the rounded pitch can leave the bar one tile short.
+			const int count = static_cast<int>(std::lround(static_cast<float>(w) * progress /
+			                                              static_cast<float>(tile_w)));
+			const char* tile = hbar_string_data(r + kHbar_TileName);
+			for (int i = 0; i < count; ++i)
+				hbar_draw_stretch_pic(x + i * tile_w, y, tile_w, tile_h, tile);
+		}
+		const char* cap = hbar_string_data(r + kHbar_CapName);
+		if (cap && hbar_string_size(r + kHbar_CapName) > 0)
+			hbar_draw_stretch_pic(x, y, w, h, cap);
+	}
+	if (void* border = *reinterpret_cast<void**>(r + kRect_Border))
+		thiscall_1arg_void(border, hbar,
+		                   rvaToAbsExe(reinterpret_cast<void*>(kRvaBorderRender)));
 }
 
 // frame_c::Resize(pad, thick) — <stm resize W H> support.
@@ -1340,6 +1496,16 @@ bool scaled_menu_install_hooks(void) {
 		reinterpret_cast<void**>(&oTicker_Init),
 		"ticker_init") && ok;
 	ok = install_one(
+		reinterpret_cast<void*>(kRvaHbarParse),
+		reinterpret_cast<void*>(&hk_hbar_parse),
+		reinterpret_cast<void**>(&oHbar_Parse),
+		"hbar_parse") && ok;
+	ok = install_one(
+		reinterpret_cast<void*>(kRvaHbarDraw),
+		reinterpret_cast<void*>(&hk_hbar_draw),
+		reinterpret_cast<void**>(&oHbar_Draw),
+		"hbar_draw") && ok;
+	ok = install_one(
 		reinterpret_cast<void*>(kRvaStmHoverPass),
 		reinterpret_cast<void*>(&hk_stm_hover_pass),
 		reinterpret_cast<void**>(&oStm_HoverPass),
@@ -1361,8 +1527,8 @@ bool scaled_menu_install_hooks(void) {
 		"tip_render") && ok;
 	return ok && Draw_RenderRect && oMenu_BorderDimsInit && oRect_Parse &&
 	       oFrame_FinalizeDims && oFrame_Ctor && oFrame_Link && oToke_Ctor &&
-	       oToke_Insert && oTicker_Init && oStm_HoverPass && oRect_HoverPrep &&
-	       oMenu_CreateTip && oTip_Render;
+	       oToke_Insert && oTicker_Init && oHbar_Parse && oHbar_Draw &&
+	       oStm_HoverPass && oRect_HoverPrep && oMenu_CreateTip && oTip_Render;
 }
 
 static float menu_effective_scale(float s) {
