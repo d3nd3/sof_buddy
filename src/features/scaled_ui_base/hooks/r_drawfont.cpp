@@ -67,6 +67,9 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
     }
     resetGlVertexQuadState();
     g_activeDrawCall = DrawRoutineType::Font;
+#if FEATURE_SCALED_MENU
+    if (g_scaledMenuLoadboxDrawActive) screenY += g_scaledMenuLoadboxTextDy;
+#endif
     if (g_currentFontCaller == FontCaller::Unknown) {
         g_currentFontCaller = fontCallerFromRenderType(g_activeRenderType);
         if (g_currentFontCaller == FontCaller::Unknown) {
@@ -233,15 +236,8 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 			}
 		}
 	}
-		// Menu text: SoF layout (R_Strlen / R_StrHeight, scaled by font_measure_scale) picks
-		// the position; glyphs grow from the run start, so nothing shifts here. Small
-		// black stamped text (the version string on the panel art) must stay stock-sized:
-		// scaling it pushes it off its panel and makes it invisible.
-		const bool stockStamp = scaled_menu_version_stamp(text, static_cast<int>(realFont));
-		if (stockStamp) scaled_menu_text_scale_bypass(true);
-		if (stockStamp) {
-			// The version ctext sets a right-clip around its (scaled) rect; the stock-size
-			// stamp then falls outside it. Give the stamp a full-screen scissor.
+		const bool versionStamp = scaled_menu_version_stamp(text, static_cast<int>(realFont));
+		if (versionStamp) {
 			auto** rr = reinterpret_cast<void**>(
 			    rvaToAbsExe(reinterpret_cast<void*>(0x004035FC)));
 			using DrawRenderRect_t = void(__cdecl*)(int, int, int, int);
@@ -249,7 +245,6 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 				reinterpret_cast<DrawRenderRect_t>(*rr)(0, 0, current_vid_w, current_vid_h);
 		}
 		original(screenX, screenY, text, colorPalette, font, rememberLastColor);
-		if (stockStamp) scaled_menu_text_scale_bypass(false);
 
 	if (g_currentFontCaller != FontCaller::MissionStatus &&
 	    g_currentFontCaller != FontCaller::SCR_DrawCenterPrint)

@@ -7,6 +7,7 @@
 #ifdef UI_MENU
 
 #include "../scaled_ui_base/shared.h"
+#include "menu_variant.h"
 
 void scaled_menu_refresh_open_canvases(void);
 void scaled_menu_reload_open_page(void);

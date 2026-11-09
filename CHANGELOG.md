@@ -4,6 +4,12 @@ User-facing highlights. Older detail is summarized at the bottom.
 
 ## Unreleased
 
+### Scaled menu
+
+- The small black version stamp `ctext` in `version.rmf` now scales with the rest of the menu text instead of being forced to stock size.
+- Load Game and Save Game pages scale again. The loadbox width is divided by the engine canvas scale before `loadbox_c::Parse` applies it, so the save list stays onscreen instead of rendering empty at higher menu scales. Save preview thumbnails and their text lines now scale and recenter with the menu scale too.
+- SoFPlus `_ss` menus are deprecated: any `_ss` menu name is redirected to its `_ns` variant at load time (toke hooks plus an FS-path fallback), and the `_ss`-specific frame, border, topic, and join-menu corrections were removed. When SoFPlus selects the `_ss` variant (its `_spf_cl_video_shortscreen` wide-screen test), the `_ns` replacement gets the 16:9 chrome injected: a full-height `16_9_center`, 80-wide side frames, and a 480-wide `ss_content` frame (at 1920×1080) carrying the `_ns` page with `cut ss_content`. The `_ns` page's `bghoul` `xoff`/`yoff`/`scale`, `ss_content` frame widths, and bolted ticker box are adjusted by the vertical-vs-canvas ratio (0.75 at 16:9); frame borders use the same scale. This also fixes the full-screen main-menu ticker, which has no `ss_content` wrapper. Bolted tickers draw with a full-screen scissor, and their vanilla 480p speed scales with resolution, independent of `_ns`/`_ss`. Frame height correction now applies to every frame except the internal `sof_buddy/*` pages. `<vbar>` widths, cap pictures, and scrollbar thumb width now scale with the menu scale instead of staying at the authored 16 px.
+
 ### Updater / release channels
 
 - Replaced the `stable.json` pointer with a branch-based channel model: stable releases are the newest non-prerelease GitHub release from `master`, while unstable builds are prereleases tagged `vX.Y-buildN-unstable` from the `unstable` branch. Removed `releases/stable.json` and `tools/set_stable_release.py`.
@@ -61,7 +67,7 @@ User-facing highlights. Older detail is summarized at the bottom.
 - F12 scale changes now persist immediately instead of relying on the shutdown save, and any pending deferred slider value is flushed before saving. Font/HUD/menu scale changes survive restarts.
 - Load Game and Save Game pages now ignore the scaled-menu layout and stay in stock scale. This keeps the save/load box populated when the integer menu scale is changed at runtime (previously the save list could render empty at 2x).
 - Fixed switching between Integer and Smooth scaling modes leaving the old mode's slider (and therefore the wrong max percentage) on the UI Scale page. The mode change now schedules a page reparse after the cvar has actually changed, instead of relying on the list's early reload. The engine's integer cvar flag is also cleared before applying smooth percentages, so values like `2.25` are no longer truncated back to `2.0` after visiting Integer mode.
-- Tooltips now appear only after the configured continuous hover delay and disappear immediately when the cursor leaves the hotspot; the tip renderer checks `menu_c+0xBC` against the source rect it recorded at creation.
+- Tooltips now appear only after the configured continuous hover delay and disappear immediately when the cursor leaves the hotspot. The tip renderer tracks each `stm_c`'s current hovered rect instead of the shared `menu_c+0xBC` cache, so tooltips on every stock and F12 frame behave consistently.
 - F12 tab labels now use scale-aware leading padding instead of fixed leading spaces, so labels stay centered inside their boxes at 1× and higher menu scales.
 - F12 styling cleanup: **Scaling Mode** is now a normal setting row instead of inheriting the green section-title color; non-interactable info lines use the CPU tab info color (`Current`/`gl_mode`/current scale/profile values), including labels above sliders. UI Scale sections use short `==FONT==`/`==HUD==`/`==MENU==`/`==SPRITES==`/`==CONSOLE==` headings with descriptive tooltips, and the page has separators between each section.
 - Changing the Graphics resolution now restarts video and reopens the Graphics page, so the menu is re-parsed at the new resolution instead of staying at the old layout.

@@ -1,7 +1,9 @@
 // Intercepts FS_LoadFile so menu file requests can be served from embedded RMF
 // in g_menu_internal_files instead of disk. If the path matches an internal menu,
 // we allocate with the engine's Z_Malloc, copy the embedded bytes, and return;
-// otherwise we call the original FS_LoadFile.
+// otherwise we call the original FS_LoadFile. The fall-through path also applies
+// the Scaled Menu `_ss` -> `_ns` redirect and RMF transforms (see
+// menu_rmf_transform.h).
 
 #include "feature_config.h"
 #if FEATURE_INTERNAL_MENUS
@@ -27,6 +29,7 @@
 #include "update_command.h"
 #if FEATURE_SCALED_MENU
 #include "features/scaled_menu/shared.h"
+#include "menu_rmf_transform.h"
 #endif
 
 namespace {
@@ -527,6 +530,37 @@ static void trim_inplace(std::string& s) {
     while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back()))) s.pop_back();
 }
 
+static int load_menu_file(char* path, void** buffer, bool override_pak,
+                          detour_FS_LoadFile::tFS_LoadFile original) {
+#if FEATURE_SCALED_MENU
+    // Never rewrite the caller's path in place: some FS_LoadFile callers pass a
+    // string literal. Use a local copy for the `_ss` -> `_ns` fallback.
+    char redirected[260];
+    if (path && std::strlen(path) < sizeof(redirected)) {
+        std::strcpy(redirected, path);
+        if (scaled_menu_redirect_ss_path(redirected))
+            path = redirected;
+    }
+#endif
+    const int len = original(path, buffer, override_pak);
+#if FEATURE_SCALED_MENU
+    if (len <= 0 || !buffer || !*buffer) return len;
+
+    std::string content(static_cast<const char*>(*buffer), static_cast<size_t>(len));
+    if (!scaled_menu_transform_rmf_content(path, content)) return len;
+    if (!detour_Z_Malloc::oZ_Malloc) return len;
+    const size_t size = content.size() + 1;
+    void* copy = detour_Z_Malloc::oZ_Malloc(static_cast<int>(size));
+    if (!copy) return len;
+    std::memcpy(copy, content.c_str(), size);
+    if (detour_FS_FreeFile::oFS_FreeFile) detour_FS_FreeFile::oFS_FreeFile(*buffer);
+    *buffer = copy;
+    return static_cast<int>(content.size());
+#else
+    return len;
+#endif
+}
+
 // Engine includecvar runs at page-cache time; expand when serving embedded menus so notes/lists stay current.
 static void expand_rmf_includecvars(std::string& content) {
     if (!detour_Cvar_Get::oCvar_Get) return;
@@ -556,96 +590,23 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
     if (load_selected_font(path, buffer, font_length)) return font_length;
     int crosshair_length = 0;
     if (load_crosshair_art(path, buffer, crosshair_length)) return crosshair_length;
-    if (g_menu_internal_files.empty()) return original(path, buffer, override_pak);
+    if (g_menu_internal_files.empty()) return load_menu_file(path, buffer, override_pak, original);
 
     std::string menu_name = path_to_menu_name(path);
     std::string filename = path_to_filename(path);
-    if (menu_name.empty() || filename.empty()) return original(path, buffer, override_pak);
-    // SoFPlus 16:9 join menu: frame-local Y is authored in 480p units, but the
-    // visible 16:9 virtual height is 360. Move the server list by 360/480.
-    if (menu_name == "join_ss" && filename == "join_ss.rmf") {
-        const int len = original(path, buffer, override_pak);
-#if FEATURE_SCALED_MENU
-        if (len > 0 && buffer && *buffer && scaled_menu_uniform_actual_active()) {
-            char* data = static_cast<char*>(*buffer);
-            std::string content(data, static_cast<size_t>(len));
-            const char* from = "<frame servers 0 120";
-            const size_t pos = content.find(from);
-            if (pos != std::string::npos) {
-                char to[32];
-                std::snprintf(to, sizeof(to), "<frame servers 0  %d",
-                              (120 * 360) / 480);
-                if (std::strlen(to) == std::strlen(from)) {
-                    content.replace(pos, std::strlen(from), to);
-                    std::memcpy(data, content.data(), static_cast<size_t>(len));
-                }
-            }
-        }
-#endif
-        return len;
-    }
-
-    // SoFPlus 16:9 game menu: the authored topic is 92 and main has no border.
-    // The missing inset only needs a small design value; the full vanilla 40
-    // border is too large for the 16:9 main-panel geometry.
-    if (menu_name == "game_ss" && filename == "game_ss.rmf") {
-        const int len = original(path, buffer, override_pak);
-#if FEATURE_SCALED_MENU
-        if (len > 0 && buffer && *buffer && scaled_menu_uniform_actual_active()) {
-            char* data = static_cast<char*>(*buffer);
-            std::string content(data, static_cast<size_t>(len));
-            bool changed = false;
-            const auto replace_same = [&](const char* from, const char* to) {
-                const size_t flen = std::strlen(from);
-                const size_t pos = content.find(from);
-                if (pos == std::string::npos) return;
-                content.replace(pos, flen, to);
-                changed = true;
-            };
-            replace_same("<frame topic 0 92", "<frame topic 0 96");
-
-            const size_t frame_pos = content.find("<frame main");
-            if (frame_pos != std::string::npos) {
-                const size_t frame_end = content.find('>', frame_pos);
-                const size_t border_pos = content.find("border 0 0", frame_pos);
-                if (frame_end != std::string::npos && border_pos != std::string::npos &&
-                    border_pos < frame_end) {
-                    content.replace(border_pos, 10, "border 8 0");
-                    changed = true;
-                }
-            }
-
-            if (changed) {
-                if (content.size() == static_cast<size_t>(len)) {
-                    std::memcpy(data, content.data(), static_cast<size_t>(len));
-                } else if (detour_Z_Malloc::oZ_Malloc) {
-                    const size_t size = content.size() + 1;
-                    void* copy = detour_Z_Malloc::oZ_Malloc(static_cast<int>(size));
-                    if (copy) {
-                        std::memcpy(copy, content.c_str(), size);
-                        if (detour_FS_FreeFile::oFS_FreeFile)
-                            detour_FS_FreeFile::oFS_FreeFile(*buffer);
-                        *buffer = copy;
-                        return static_cast<int>(content.size());
-                    }
-                }
-            }
-        }
-#endif
-        return len;
-    }
+    if (menu_name.empty() || filename.empty()) return load_menu_file(path, buffer, override_pak, original);
 
     // SP (deathmatch==0): vanilla pak loading.rmf — same rule as stock <exinclude deathmatch> in loading.rmf.
     if (menu_name == "loading" && internal_menus_use_vanilla_loading_menu())
-        return original(path, buffer, override_pak);
+        return load_menu_file(path, buffer, override_pak, original);
 
     // Look up in embedded menu map; if missing, let the engine load from disk/pak.
     auto menu_it = g_menu_internal_files.find(menu_name);
-    if (menu_it == g_menu_internal_files.end()) return original(path, buffer, override_pak);
+    if (menu_it == g_menu_internal_files.end()) return load_menu_file(path, buffer, override_pak, original);
     auto file_it = menu_it->second.find(filename);
-    if (file_it == menu_it->second.end()) return original(path, buffer, override_pak);
+    if (file_it == menu_it->second.end()) return load_menu_file(path, buffer, override_pak, original);
     const std::vector<uint8_t>& vec = file_it->second;
-    if (vec.empty()) return original(path, buffer, override_pak);
+    if (vec.empty()) return load_menu_file(path, buffer, override_pak, original);
 
     std::string content(vec.begin(), vec.end());
     content.erase(std::remove(content.begin(), content.end(), '\r'), content.end());

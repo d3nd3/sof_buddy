@@ -45,8 +45,6 @@ float round_scale_value(float v);
 float effective_auto_scale(float raw);
 float snap_font_scale_to_glyph_grid(float s, int glyphPx);
 float snapped_text_scale(float raw, int glyphPx);
-void scaled_menu_text_scale_bypass(bool on);
-bool scaled_menu_version_stamp(const char* text, int font);
 float snap_ui_pixel(float v);
 extern float crosshairScale;
 extern bool crosshairScaleAuto;
@@ -63,6 +61,12 @@ extern bool g_scaleCinematicPics;
 
 extern int menuLoadboxFirstItemX;
 extern int menuLoadboxFirstItemY;
+
+#if FEATURE_SCALED_MENU
+extern bool g_scaledMenuLoadboxDrawActive;
+extern int g_scaledMenuLoadboxTextDy;
+extern float g_scaledMenuLoadboxScale;
+#endif
 
 // Scale team icons + playernames (2D info above players) with the HUD scale.
 extern bool g_iconsAutoscale;
@@ -297,6 +301,7 @@ void hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, 
 #endif
 #if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
 void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor, detour_R_DrawFont::tR_DrawFont original);
+bool scaled_menu_version_stamp(const char* text, int font);
 void hkSCR_CenterPrint(char * text, detour_SCR_CenterPrint::tSCR_CenterPrint original);
 void hkSCR_DrawCenterPrint(detour_SCR_DrawCenterPrint::tSCR_DrawCenterPrint original);
 void hkSCR_DrawPause(detour_SCR_DrawPause::tSCR_DrawPause original);
