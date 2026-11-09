@@ -1509,7 +1509,7 @@ bool show_all_release_tags() {
 
 bool startup_prompt_stable_only() {
     if (!detour_Cvar_Get::oCvar_Get) return false;
-    cvar_t* c = detour_Cvar_Get::oCvar_Get(kCvarUpdateStartupStableOnly, "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    cvar_t* c = detour_Cvar_Get::oCvar_Get(kCvarUpdateStartupStableOnly, "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     return c && c->value != 0.0f;
 }
 
@@ -1695,7 +1695,7 @@ void print_update_usage() {
     PrintOut(PRINT_DEV, "  sofbuddy_update apply          (download + install selected target)\n");
     PrintOut(PRINT_DEV, "Install target cvar: _sofbuddy_update_target_tag (stable, unstable, or a tag)\n");
     PrintOut(PRINT_DEV, "  _sofbuddy_update_show_all_releases 1 shows up to %u recent tags in F12 list\n", static_cast<unsigned>(kMaxReleaseRows));
-    PrintOut(PRINT_DEV, "  _sofbuddy_update_startup_stable_only 1 limits startup notify to stable (default 0)\n");
+    PrintOut(PRINT_DEV, "  _sofbuddy_update_startup_stable_only 1 limits startup notify to stable (default 1)\n");
     PrintOut(PRINT_DEV, "  _sofbuddy_update_replace_features 1 merges new/promoted recommended defaults into saved toggles (universal default 1; non-universal always keeps the file)\n");
     PrintOut(PRINT_DEV, "Optional overrides (for XP/proxy mirrors):\n");
     PrintOut(PRINT_DEV, "  set _sofbuddy_update_api_url <url>\n");
@@ -1926,7 +1926,7 @@ void sofbuddy_update_init(void) {
     detour_Cvar_Get::oCvar_Get(kCvarUpdateDownloadedAsset, "", 0, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateCheckedUtc, "", 0, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateCheckStartup, "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
-    detour_Cvar_Get::oCvar_Get(kCvarUpdateStartupStableOnly, "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    detour_Cvar_Get::oCvar_Get(kCvarUpdateStartupStableOnly, "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarUpdateUseGui, update_gui_updater_default_string(), CVAR_SOFBUDDY_ARCHIVE, nullptr);
 #if defined(SOFBUDDY_UNIVERSAL_BUILD)
     detour_Cvar_Get::oCvar_Get(kCvarUpdateReplaceFeatures, "1", CVAR_SOFBUDDY_ARCHIVE, nullptr);

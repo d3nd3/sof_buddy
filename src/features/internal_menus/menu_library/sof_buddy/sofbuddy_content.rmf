@@ -69,7 +69,7 @@
 <hbr>
 <font type {font_title} tint white atint white>
 <list "Off,On" match "0,1" cvar _sofbuddy_update_check_startup atext "Check updates on startup : " noshade tip "Runs release check when SoF starts."><br>
-<list "Off,On" match "0,1" cvar _sofbuddy_update_startup_stable_only atext "Startup notify stable only : " noshade tip "On: auto update prompt only for stable releases from master. Off: uses Install version on F12. Default Off."><br>
+<list "Off,On" match "0,1" cvar _sofbuddy_update_startup_stable_only atext "Startup notify stable only : " noshade tip "On: auto update prompt only for stable releases from master. Off: uses Install version on F12. Default On."><br>
 
 <font type {font_title} tint sb_subtle atint sb_subtle>
 "_____________________________"

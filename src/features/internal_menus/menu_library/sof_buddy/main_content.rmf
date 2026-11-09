@@ -39,7 +39,7 @@
 <hbr>
 <list "Off,On" match "0,1" cvar _sofbuddy_update_use_gui atext "Graphical updater : " noshade tip "Use sof_buddy_update.exe when installing (universal builds). Default On on universal; Off uses script or in-game extract on Wine/Proton."><hbr>
 <list "Off,On" match "0,1" cvar _sofbuddy_update_show_all_releases atext "Show older releases : " noshade tip "Off shows channels plus the latest stable/unstable tags and the selected tag. On shows up to 12 recent release tags. Refresh the list after changing."><hbr>
-<list "Off,On" match "0,1" cvar _sofbuddy_update_startup_stable_only atext "Startup notify stable only : " noshade tip "Limits the startup update popup to stable releases from master."><hbr>
+<list "Off,On" match "0,1" cvar _sofbuddy_update_startup_stable_only atext "Startup notify stable only : " noshade tip "Limits the startup update popup to stable releases from master. Default On."><hbr>
 <ctext _sofbuddy_update_target_tag atext "Selected install target : " tint green atint green noshade tip "Click a release in the list below to change the install target."><hbr>
 <hbr>
 <text "Install stable release (recommended)" key mouse1 "sofbuddy_update stable" border 12 1 gray regular align center tip "Target the stable channel and open the install dialog (upgrade or downgrade)."><hbr>

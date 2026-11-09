@@ -336,9 +336,9 @@
 "Default 1 - Check updates at startup."
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_update_startup_stable_only atext "_sofbuddy_update_startup_stable_only : " noshade tip "1: startup popup only for stable releases from master. 0: startup uses Install version. Default 0."><br>
+<ctext _sofbuddy_update_startup_stable_only atext "_sofbuddy_update_startup_stable_only : " noshade tip "1: startup popup only for stable releases from master. 0: startup uses Install version. Default 1."><br>
 <font type {font_title} tint gray atint gray>
-"Default 0 - Use Install version for startup auto-update prompts."
+"Default 1 - Startup auto-update prompts are stable-only."
 <hbr>
 <hbr>
 <ctext _sofbuddy_update_use_gui atext "_sofbuddy_update_use_gui : " noshade tip "Launch sof_buddy_update.exe on install. Universal builds default 1 (all flavours). Non-universal default 0."><br>
