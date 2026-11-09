@@ -39,7 +39,7 @@
 <hbr>
 <hbr>
 <font type {font_title} tint cyan atint cyan>
-"Crosshair"
+<text "Crosshair" tip "S0-S4 stock; sof_buddy packs; extra crosshair paks in base/gamedir (not pak0-9, not duplicate catalog names).">
 <font type {font_title} tint white atint white>
 <include sof_buddy/more_crosshair_list>
 <list "White,Red,Green,Blue,Yellow,Cyan,Magenta,Orange,Purple" match "0,1,2,3,4,5,6,7,8" cvar _sofbuddy_crosshair_tint atext "Stock tint : " noshade tip "Color tint for stock crosshairs S0-S4 only (theme 0)."><hbr>
