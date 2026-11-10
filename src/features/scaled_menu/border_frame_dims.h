@@ -40,9 +40,13 @@ inline FixedRectDimension scale_fixed_rect_dimension(int value, float widget_sca
 	return {scaled_value, outer};
 }
 
-inline float border_dims_init_scale(float scale, float menu_scale) {
-	if (std::fabs(scale - 1.f) <= 0.001f) return menu_scale;
-	return scale;
+// Frame borders follow the vertical design ratio (vid_h/480) on both axes,
+// independent of the content menu scale; rect borders follow menuScale while
+// Scaled Menu is active and stay stock at 1x.
+inline float border_dims_init_scale(bool frame_border, float menu_scale, float frame_scale,
+                                    bool active) {
+	if (frame_border) return frame_scale;
+	return active ? menu_scale : 1.f;
 }
 
 inline int border_frame_dimension(int dimension, float factor, bool measured_box) {

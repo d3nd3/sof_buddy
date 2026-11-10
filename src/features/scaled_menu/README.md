@@ -34,8 +34,8 @@ The stock `frame_c` ctor (0xC60A0) multiplies authored frame W/H by `C`
 `ss_content` pages are the 4:3 page fitted into the narrower 16:9 centre, so their
 frame widths are scaled by the same vertical ratio as the frame height.
 `menuScale` applies to frame content (text, rects, content borders, offsets); it
-must not resize frames. Frame borders scale with the content like rect borders
-(see Borders).
+must not resize frames. Frame borders follow the vertical frame ratio, not
+`menuScale` (see Borders).
 
 The normal frame correction is height-only and resolution-driven: on non-4:3
 screens, frames have their height converted from the stock horizontal canvas to
@@ -254,10 +254,14 @@ canvas-space, `yoff` vanilla/authored.
 - pad (`border P`, `border+0`) = `atol(dimA) * scale`;
 - thickness (`border T`, `border+4`) = `atol(dimB)` (raw).
 
-Frame borders and rect borders are both authored in absolute pixels. While
-Scaled Menu is active, `hk_menu_border_dims_init` passes `menuScale` for both call
-sites, so **pad = authored × menuScale**, and the raw thickness is scaled by
-`menuScale` as well.
+Frame borders and rect borders are both authored in absolute pixels. The two
+call sites are distinguished by their incoming scale: rect borders pass `1.0`,
+frame borders pass the stock canvas scale (`vid_w / 640`).
+`hk_menu_border_dims_init` keeps frame borders on the **vertical design ratio**
+(`vid_h / 480`; 2.25 at 1080p) for both axes at every menu scale, including
+`1×`, so **frame pad = authored × vid_h / 480**. Rect borders use `menuScale`
+while Scaled Menu is active and stock `1.0` otherwise. The raw thickness is
+scaled by the same factor as its call site.
 
 `border_c::RectFrameDims` (0xC4740, not hooked) copies the rect's stored outer dims
 into the border's draw rect, so it sees the scaled values.

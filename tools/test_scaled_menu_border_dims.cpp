@@ -22,9 +22,12 @@ int main() {
 	const auto unchanged = scaled_menu_detail::scale_fixed_rect_dimension(20, 3.f, 22, 1.f);
 	assert(unchanged.value == 20);
 	assert(unchanged.outer == 104);
-	assert(scaled_menu_detail::border_dims_init_scale(1.f, 2.25f) == 2.25f);
-	assert(scaled_menu_detail::border_dims_init_scale(1.5f, 2.25f) == 1.5f);
-	assert(scaled_menu_detail::border_dims_init_scale(1.f, 1.f) == 1.f);
+	assert(scaled_menu_detail::border_dims_init_scale(false, 2.25f, 2.25f, true) == 2.25f);
+	assert(scaled_menu_detail::border_dims_init_scale(false, 2.25f, 2.25f, false) == 1.f);
+	assert(scaled_menu_detail::border_dims_init_scale(true, 2.25f, 2.25f, true) == 2.25f);
+	assert(scaled_menu_detail::border_dims_init_scale(true, 2.25f, 2.25f, false) == 2.25f);
+	assert(scaled_menu_detail::border_dims_init_scale(false, 1.f, 1.f, true) == 1.f);
+	assert(scaled_menu_detail::border_dims_init_scale(true, 1.f, 2.f, false) == 2.f);
 	assert(scaled_menu_detail::border_frame_dimension(270, 0.75f, true) == 270);
 	assert(scaled_menu_detail::border_frame_dimension(120, 2.25f, false) == 270);
 	const float serverbox_factor =
