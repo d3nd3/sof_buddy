@@ -45,39 +45,14 @@ std::string normalize_path(const char* path) {
     return s;
 }
 
-struct TabLabelWidth {
-    const char* label;
-    int width;
-};
-
-const TabLabelWidth kTabLabelWidths[] = {
-    {"Version", 53}, {"General", 51}, {"Cpu", 21}, {"UI Scale", 59},
-    {"Graphics", 61}, {"Gameplay", 61}, {"Lighting", 61}, {"Network", 54},
-    {"Features", 61}, {"Cvars", 37}, {"Profile", 53}, {"WebLinks", 62},
-};
-
-int tab_label_spaces(const std::string& label, float menu_scale, float text_scale) {
-    for (const TabLabelWidth& entry : kTabLabelWidths) {
-        if (label == entry.label) {
-            // Label widths are measured at 1x with the medium font. The box scales with
-            // the menu, while the glyphs (leading spaces included) scale with the snapped
-            // text scale, so convert the box back to text units before padding.
-            const float ratio =
-                (text_scale > 1e-6f) ? (menu_scale / text_scale) : 1.0f;
-            const float pad = (90.0f * ratio - static_cast<float>(entry.width)) * 0.5f;
-            int spaces = static_cast<int>(std::lround(pad / 3.0f));
-            if (spaces < 0) spaces = 0;
-            if (spaces > 40) spaces = 40;
-            return spaces;
-        }
-    }
-    return 0;
-}
-
-std::string tab_label_padding(const std::string& content, float menu_scale, float text_scale) {
+#if FEATURE_SCALED_MENU
+// Tab labels are centred by Scaled Menu at draw time (`talign center`), using the
+// engine's own R_Strlen measurement. Do not pad the strings with spaces: a space is a
+// whole glyph, so rounding can shift a label by several pixels at non-integer scales.
+std::string tab_label_alignment(const std::string& content) {
     std::string out;
-    out.reserve(content.size() + 64);
-    const std::string tag = "<text \"";
+    out.reserve(content.size() + 16 * 24);
+    const std::string tag = "<text ";
     std::string::size_type pos = 0;
     for (;;) {
         const std::string::size_type start = content.find(tag, pos);
@@ -85,20 +60,20 @@ std::string tab_label_padding(const std::string& content, float menu_scale, floa
             out.append(content, pos, std::string::npos);
             break;
         }
-        const std::string::size_type label_start = start + tag.size();
-        const std::string::size_type label_end = content.find('"', label_start);
-        if (label_end == std::string::npos) {
+        const std::string::size_type end = content.find('>', start);
+        if (end == std::string::npos) {
             out.append(content, pos, std::string::npos);
             break;
         }
-        out.append(content, pos, label_start - pos);
-        const std::string label = content.substr(label_start, label_end - label_start);
-        out.append(static_cast<std::string::size_type>(tab_label_spaces(label, menu_scale, text_scale)), ' ');
-        out.append(label);
-        pos = label_end;
+        out.append(content, pos, end - pos);
+        if (content.find("talign", start) >= end)
+            out.append(" talign center");
+        out.push_back('>');
+        pos = end + 1;
     }
     return out;
 }
+#endif
 
 bool switchable_font_path(const std::string& path) {
     return path == "pics/menus/fonts/font1.fnt" || path == "pics/menus/fonts/font1.m32" ||
@@ -660,15 +635,10 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
         content.replace(pos, 5, "");
     expand_rmf_includecvars(content);
     if (menu_name == "sof_buddy/tabs") {
-        float tab_scale = 1.0f;
-        float tab_text_scale = 1.0f;
 #if FEATURE_SCALED_MENU
-        tab_scale = scaled_menu_screen_scale();
-        if (tab_scale <= 0.0f) tab_scale = 1.0f;
-        tab_text_scale = scaled_menu_snapped_text_scale(REALFONT_MEDIUM);
-        if (tab_text_scale <= 0.0f) tab_text_scale = 1.0f;
+        if (scaled_menu_text_align_available())
+            content = tab_label_alignment(content);
 #endif
-        content = tab_label_padding(content, tab_scale, tab_text_scale);
     }
 
     const int size = static_cast<int>(content.size() + 1);

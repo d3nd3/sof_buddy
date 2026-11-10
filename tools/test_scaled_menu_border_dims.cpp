@@ -36,4 +36,10 @@ int main() {
 	assert(serverbox_height.outer / 27 - 2 == 6);
 	assert(scaled_menu_detail::scale_axis_coordinate(20.f, 10.f, 2.25f) == 32.5f);
 	assert(scaled_menu_detail::scale_axis_coordinate(10.f, 20.f, 2.25f) == -2.5f);
+	assert(scaled_menu_detail::centered_text_offset(90, 53) == 18);
+	assert(scaled_menu_detail::centered_text_offset(203, 119) == 42);
+	assert(scaled_menu_detail::centered_text_offset(90, 90) == 0);
+	assert(scaled_menu_detail::centered_text_offset(90, 100) == 0);
+	assert(scaled_menu_detail::centered_text_offset(0, 53) == 0);
+	assert(scaled_menu_detail::centered_text_offset(90, 0) == 0);
 }

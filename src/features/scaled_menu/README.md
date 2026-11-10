@@ -277,6 +277,23 @@ into the border's draw rect, so it sees the scaled values.
   visible on the panel.
 - At `menuScale = 1` every text path is identical to vanilla.
 
+### Text alignment (`talign`)
+
+`<text>` supports `talign center` (and consumes `left`/`right` as no-ops; the stock
+engine only implements `talign` for input/filebox/serverbox widgets). Scaled Menu
+handles the token in the rect parse hook and records the text widget; the
+`text_c::Draw` wrapper then measures the label with `R_Strlen` and shifts only that
+draw's `xoff` by `(rect W - measured width) / 2` before restoring it. The border and
+the cursor hitbox read the original rect fields, so the label is centred inside its
+box without moving the navigation target.
+
+The internal `sof_buddy/tabs/*` files are served with `talign center` injected on
+every tab `<text>` tag. This replaces the old leading-space padding: a space is a
+full glyph advance, so its integer rounding could leave tabs visibly off-centre at
+fractional menu scales (for example 800×600 at 1.25×). Draw-time centring uses the
+same snapped text scale as the glyphs, so it stays centred at every scale and
+resolution.
+
 ## Rect parse hook (`width` / `height` / `xoff` / `yoff`)
 
 `rect_c::Parse` is wrapped. For every rect (when scaling is active and the rect has
@@ -626,7 +643,8 @@ patched `M_PushMenu` entry), not `detour_M_PushMenu::oM_PushMenu`.
 | `M_PushMenu` | 0xC7630 | normalize `_ss`→`_ns` pushed name; reset per-menu frame/scale state |
 | `menu_stm_set_clip` | 0xEA2C0 | clip recompute + backdrop-open extension (only when `intro_scaler` is disabled) |
 | `menu_border_dims_init` | 0xC46D0 | rect borders: `menuScale` pad/thickness; frame borders: vertical ratio |
-| `rect_c::Parse` | 0xCF890 | persistent scaling of `width`/`height`/`xoff`/`yoff`, file overrides |
+| `rect_c::Parse` | 0xCF890 | persistent scaling of `width`/`height`/`xoff`/`yoff`, file overrides, `<text talign>` |
+| `text_c::Draw` | 0xD8B70 | draw-time `talign center` offset (border/hitbox unchanged) |
 | `frame_c::Resize` | 0xC6640 | resize-page canvas/frame scale + recentre |
 | `frame_c` ctor | 0xC60A0 | record authored frame W/H and per-menu shrink state |
 | `frame_c` parent link/cut | 0xC6530 | height-only 4:3→widescreen frame correction (once per frame); original link |

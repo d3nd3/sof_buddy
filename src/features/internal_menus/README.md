@@ -96,7 +96,7 @@ Each `tabs/<page>.rmf` is a selector:
 <cinclude _sb_internal_tabs_wide sof_buddy/tabs/<page>_wide>
 <cninclude _sb_internal_tabs_wide sof_buddy/tabs/<page>_narrow>
 ```
-The wide files use `{tabs_row_prefix}`, the narrow files use `{tabs_row_prefix_narrow}`; both prefixes are recomputed at runtime so the rows stay centred. The `content_inset` / `content_inset_tall` macros use a dynamic 4:3 content width: at 1920×1080 the content is 1440 px wide with 240 px side spacers; at 4:3 the spacers are zero. The unit conversion back to authored 640×480 coordinates uses the current menu scale. Internal `sof_buddy/*` frames stay on the stock frame canvas; only their content uses `menuScale`. Only the active tab tint changes between pages.
+The wide files use `{tabs_row_prefix}`, the narrow files use `{tabs_row_prefix_narrow}`; both prefixes are recomputed at runtime so the rows stay centred. When the tab files are served, every tab `<text>` tag gets `talign center` injected; Scaled Menu centres the label at draw time with the engine's measured text width instead of padding the string with spaces. The `content_inset` / `content_inset_tall` macros use a dynamic 4:3 content width: at 1920×1080 the content is 1440 px wide with 240 px side spacers; at 4:3 the spacers are zero. The unit conversion back to authored 640×480 coordinates uses the current menu scale. Internal `sof_buddy/*` frames stay on the stock frame canvas; only their content uses `menuScale`. Only the active tab tint changes between pages.
 
 Each F12 wrapper now has two sibling page frames:
 ```rmf

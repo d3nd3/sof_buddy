@@ -318,6 +318,22 @@ float scaled_menu_font_measure_scale(const char* fontStd) {
 #endif
 }
 
+int scaled_menu_measure_text_width(const char* text, const char* fontStd) {
+#if FEATURE_SCALED_MENU
+	if (!text || !fontStd || !detour_R_Strlen::oR_Strlen) return 0;
+	const int width =
+	    detour_R_Strlen::oR_Strlen(const_cast<char*>(text), const_cast<char*>(fontStd));
+	const float scale = scaled_menu_font_measure_scale(fontStd);
+	return (scale == 1.0f)
+	           ? width
+	           : static_cast<int>(lroundf(scale * static_cast<float>(width)));
+#else
+	(void)text;
+	(void)fontStd;
+	return 0;
+#endif
+}
+
 static float font_measure_scale(const char* fontStd) {
 #if FEATURE_INTRO_SCALER
 	// Startup violence disclaimer: its glyphs scale by the page-width ratio (never by
