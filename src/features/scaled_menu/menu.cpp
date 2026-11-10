@@ -286,6 +286,8 @@ constexpr uintptr_t kRvaVbarThumbWidth = 0x000D5976u;
 constexpr uintptr_t kRvaVbarThumbInset = 0x000D5979u;
 constexpr uintptr_t kRvaHbarParse = 0x000D51D0u;
 constexpr uintptr_t kRvaHbarDraw = 0x000D5050u;
+constexpr uintptr_t kRvaBackdropDraw = 0x000C3EF0u;
+constexpr uintptr_t kRvaBackdropParse = 0x000C4220u;
 constexpr uintptr_t kRvaBorderRender = 0x000C48F0u;
 constexpr uintptr_t kRvaDrawBeveledBoxIat = 0x004035E8u;
 constexpr uintptr_t kRvaRectGetCoords = 0x000CF570u;
@@ -351,6 +353,15 @@ constexpr ptrdiff_t kHbar_Bevel = 0xAC;
 constexpr ptrdiff_t kHbar_Invisible = 0xAD;
 constexpr ptrdiff_t kHbar_TileW = 0xB0;
 constexpr ptrdiff_t kHbar_TileH = 0xB4;
+
+// backdrop_c (tile/stretch/center/right/left background): +0 is its stm, +4 is the
+// mode (1 = tile), and +0x1C/+0x20 are the tile picture size that also sets the tiled
+// repeat pitch.
+constexpr ptrdiff_t kBackdrop_Stm = 0x00;
+constexpr ptrdiff_t kBackdrop_Mode = 0x04;
+constexpr ptrdiff_t kBackdrop_TileW = 0x1C;
+constexpr ptrdiff_t kBackdrop_TileH = 0x20;
+constexpr int kBackdropModeTile = 1;
 constexpr ptrdiff_t kStdString_Data = 0x04;
 constexpr ptrdiff_t kStdString_Size = 0x08;
 
@@ -971,6 +982,75 @@ static bool hk_hbar_parse(void* hbar, void* token) {
 	if (!scaled_menu_uniform_actual_active() || scaled_menu_skip_for_intro_disclaimer())
 		return parsed;
 	hbar_scale_dims(hbar);
+	return parsed;
+}
+
+static void* backdrop_menu(void* backdrop) {
+	if (!backdrop) return nullptr;
+	void* stm = *reinterpret_cast<void**>(static_cast<char*>(backdrop) + kBackdrop_Stm);
+	void* frame = stm ? *reinterpret_cast<void**>(stm) : nullptr;
+	return frame ? *reinterpret_cast<void**>(frame) : nullptr;
+}
+
+static bool backdrop_scale_active(void* backdrop) {
+	if (!scaled_menu_uniform_actual_active() || scaled_menu_skip_for_intro_disclaimer())
+		return false;
+	void* menu = backdrop_menu(backdrop);
+	return !menu || menu_actual_pixel_scale_active(menu);
+}
+
+static void thiscall_backdrop_draw(void* backdrop, void* stm, void* fn) {
+	if (!fn) return;
+	__asm__ __volatile__(
+		"pushl %1\n\t"
+		"movl %0, %%ecx\n\t"
+		"call *%2\n\t"
+		:
+		: "m"(backdrop), "m"(stm), "m"(fn)
+		: "ecx", "eax", "edx", "memory");
+}
+
+using Backdrop_Draw_t = void(__thiscall*)(void* backdrop, void* stm);
+static Backdrop_Draw_t oBackdrop_Draw = nullptr;
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static void hk_backdrop_draw(void* backdrop, void* stm) {
+	const bool prev = g_tiledBackdropDrawing;
+	if (backdrop &&
+	    *reinterpret_cast<int*>(static_cast<char*>(backdrop) + kBackdrop_Mode) ==
+	        kBackdropModeTile &&
+	    backdrop_scale_active(backdrop))
+		g_tiledBackdropDrawing = true;
+	thiscall_backdrop_draw(backdrop, stm, reinterpret_cast<void*>(oBackdrop_Draw));
+	g_tiledBackdropDrawing = prev;
+}
+
+// <backdrop tile "backdrop/web_bg"> stores the native picture size in +0x1C/+0x20 and
+// repeats at that pitch. Scale the stored size after parsing so the tiled background
+// follows the menu scale instead of staying at its authored 128 px pitch.
+using Backdrop_Parse_t = bool(__thiscall*)(void* backdrop, void* token);
+static Backdrop_Parse_t oBackdrop_Parse = nullptr;
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static bool hk_backdrop_parse(void* backdrop, void* token) {
+	const bool parsed = oBackdrop_Parse
+	                        ? thiscall_rect_parse(backdrop, token,
+	                                              reinterpret_cast<void*>(oBackdrop_Parse))
+	                        : false;
+	if (!parsed || !backdrop) return parsed;
+	char* b = static_cast<char*>(backdrop);
+	if (*reinterpret_cast<int*>(b + kBackdrop_Mode) != kBackdropModeTile) return parsed;
+	if (!backdrop_scale_active(backdrop)) return parsed;
+	const float s = scaled_menu_screen_scale();
+	if (!std::isfinite(s) || s <= 1.001f) return parsed;
+	int& tw = *reinterpret_cast<int*>(b + kBackdrop_TileW);
+	int& th = *reinterpret_cast<int*>(b + kBackdrop_TileH);
+	if (tw > 0) tw = static_cast<int>(std::lround(static_cast<float>(tw) * s));
+	if (th > 0) th = static_cast<int>(std::lround(static_cast<float>(th) * s));
 	return parsed;
 }
 
@@ -2189,6 +2269,16 @@ bool scaled_menu_install_hooks(void) {
 		reinterpret_cast<void**>(&oHbar_Draw),
 		"hbar_draw") && ok;
 	ok = install_one(
+		reinterpret_cast<void*>(kRvaBackdropDraw),
+		reinterpret_cast<void*>(&hk_backdrop_draw),
+		reinterpret_cast<void**>(&oBackdrop_Draw),
+		"backdrop_draw") && ok;
+	ok = install_one(
+		reinterpret_cast<void*>(kRvaBackdropParse),
+		reinterpret_cast<void*>(&hk_backdrop_parse),
+		reinterpret_cast<void**>(&oBackdrop_Parse),
+		"backdrop_parse") && ok;
+	ok = install_one(
 		reinterpret_cast<void*>(kRvaStmHoverPass),
 		reinterpret_cast<void*>(&hk_stm_hover_pass),
 		reinterpret_cast<void**>(&oStm_HoverPass),
@@ -2211,7 +2301,7 @@ bool scaled_menu_install_hooks(void) {
 	return ok && Draw_RenderRect && oMenu_BorderDimsInit && oRect_Parse &&
 	       oText_Draw && oFrame_Ctor && oFrame_Link && oToke_Ctor &&
 	       oToke_Insert && oTicker_Init && oPic_Setup && oHr_Parse &&
-	       oHbar_Parse && oHbar_Draw &&
+	       oHbar_Parse && oHbar_Draw && oBackdrop_Draw && oBackdrop_Parse &&
 	       oStm_HoverPass && oRect_HoverPrep && oMenu_CreateTip && oTip_Render;
 }
 
