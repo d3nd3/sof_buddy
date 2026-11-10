@@ -25,6 +25,7 @@
 #include "shared.h"
 #include "menu_variant.h"
 #include "border_frame_dims.h"
+#include "scroll_restore.h"
 #if FEATURE_INTRO_SCALER
 #include "../intro_scaler/shared.h"
 #endif
@@ -277,6 +278,7 @@ constexpr uintptr_t kRvaHrParse = 0x000DCF40u;
 constexpr uintptr_t kRvaTickerInit = 0x000D1B30u;
 constexpr uintptr_t kRvaTickerDraw = 0x000D1C80u;
 constexpr uintptr_t kRvaVbarCtor = 0x000D5250u;
+constexpr uintptr_t kRvaVbarCleanup = 0x000D5610u;
 constexpr uintptr_t kRvaLoadboxDraw = 0x000DC250u;
 constexpr uintptr_t kRvaVbarThumbWidth = 0x000D5976u;
 constexpr uintptr_t kRvaVbarThumbInset = 0x000D5979u;
@@ -356,13 +358,20 @@ constexpr ptrdiff_t kMenuC_ScreenScale = 0xAC;
 
 // stm_c / frame_c layout
 constexpr ptrdiff_t kStm_GlobalPage = 0x89;
+constexpr ptrdiff_t kStm_ScrollTotal = 0x7C;
+constexpr ptrdiff_t kStm_ScrollY = 0x80;
 constexpr ptrdiff_t kFrame_Menu = 0x00;
+constexpr ptrdiff_t kFrame_Page = 0x04;
 constexpr ptrdiff_t kFrame_NamePtr = 0x10;
 constexpr ptrdiff_t kFrame_NameLen = 0x14;
 constexpr ptrdiff_t kFrame_OffX = 0x40;
 constexpr ptrdiff_t kFrame_OffY = 0x44;
 constexpr ptrdiff_t kFrame_W = 0x48;
 constexpr ptrdiff_t kFrame_H = 0x4C;
+constexpr ptrdiff_t kMenuC_FrameList = 0x1C;
+constexpr ptrdiff_t kListNode_Next = 0x00;
+constexpr ptrdiff_t kListNode_Frame = 0x08;
+constexpr int kFrameScrollMax = 12;
 
 // engine entry points
 constexpr uintptr_t kRvaFrameResize = 0x000C6640u;
@@ -370,6 +379,7 @@ constexpr uintptr_t kRvaFrameCtor = 0x000C60A0u;
 constexpr uintptr_t kRvaFrameLink = 0x000C6530u;
 constexpr uintptr_t kRvaTokeCtor = 0x000EAC70u;
 constexpr uintptr_t kRvaTokeInsert = 0x000EAF60u;
+constexpr uintptr_t kRvaStmClampScroll = 0x000EA160u;
 
 using Draw_RenderRect_t = void(__cdecl*)(int x, int y, int w, int h);
 static Draw_RenderRect_t Draw_RenderRect = nullptr;
@@ -896,6 +906,51 @@ static void* hk_vbar_ctor(void* vbar, void* a1, void* a2) {
 		                    reinterpret_cast<void*>(oVbar_Ctor));
 	scale_vbar_for_menu(vbar);
 	return vbar;
+}
+
+using Vbar_Cleanup_t = char(__thiscall*)(void* vbar, void* toke);
+static Vbar_Cleanup_t oVbar_Cleanup = nullptr;
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static char hk_vbar_cleanup(void* vbar, void* toke) {
+	if (!vbar || !oVbar_Cleanup)
+		return 0;
+	char* v = static_cast<char*>(vbar);
+	char* stm = *reinterpret_cast<char**>(v + kRect_MenuPtr);
+	char* frame = stm ? *reinterpret_cast<char**>(stm) : nullptr;
+	int vbar_h = *reinterpret_cast<int*>(v + kRect_H);
+	if (!stm || !frame || vbar_h > 0)
+		return thiscall_rect_parse(vbar, toke, reinterpret_cast<void*>(oVbar_Cleanup)) ? 1 : 0;
+
+	// Internal F12 frames use height 0 to mean "full screen". The stock vbar derives
+	// its height from the frame, so it ends up 0 there. Size it to the content instead
+	// (clamped to the screen), and let Cleanup compute the thumb against that height.
+	const int total = *reinterpret_cast<int*>(stm + kStm_ScrollTotal);
+	int screen_h = current_vid_h > 0 ? current_vid_h : 480;
+	if (total <= 0 || screen_h <= 0)
+		return thiscall_rect_parse(vbar, toke, reinterpret_cast<void*>(oVbar_Cleanup)) ? 1 : 0;
+	int effective_h = total < screen_h ? total : screen_h;
+	if (effective_h < 1) effective_h = 1;
+
+	const int frame_h = *reinterpret_cast<int*>(frame + kFrame_H);
+	const int parent_pad = (frame_h - vbar_h) / 2;
+	*reinterpret_cast<int*>(frame + kFrame_H) = effective_h + 2 * parent_pad;
+	const char ok =
+	    thiscall_rect_parse(vbar, toke, reinterpret_cast<void*>(oVbar_Cleanup)) ? 1 : 0;
+	*reinterpret_cast<int*>(frame + kFrame_H) = frame_h;
+	if (!ok)
+		return 0;
+
+	float widget_scale = *reinterpret_cast<float*>(v + kRect_WidgetScale);
+	if (!std::isfinite(widget_scale) || widget_scale <= 1e-6f) widget_scale = 1.0f;
+	void* border = *reinterpret_cast<void**>(v + kRect_Border);
+	const int border_h = border ? *reinterpret_cast<int*>(border) : 0;
+	*reinterpret_cast<int*>(v + kRect_H) = effective_h;
+	*reinterpret_cast<int*>(v + kRect_OuterH) =
+	    static_cast<int>(std::lround(static_cast<float>(effective_h) * widget_scale)) + 2 * border_h;
+	return 1;
 }
 
 using Loadbox_Draw_t = void(__thiscall*)(void* loadbox);
@@ -1661,6 +1716,89 @@ static void menu_extend_clip_xw(int* x, int* w, const void* menu_c) {
 	}
 }
 
+struct FrameScrollState {
+	char name[48];
+	int total;
+	int offset;
+};
+
+static FrameScrollState s_frame_scroll[kFrameScrollMax];
+static int s_frame_scroll_count = 0;
+
+static void frame_name_copy(void* frame, char* out, size_t out_size) {
+	if (!out || out_size == 0) return;
+	out[0] = '\0';
+	if (!frame) return;
+	const char* text = *reinterpret_cast<const char**>(static_cast<char*>(frame) + kFrame_NamePtr);
+	size_t length = *reinterpret_cast<size_t*>(static_cast<char*>(frame) + kFrame_NameLen);
+	if (!text) return;
+	if (length >= out_size) length = out_size - 1;
+	std::memcpy(out, text, length);
+	out[length] = '\0';
+}
+
+template <typename Fn>
+static void for_each_menu_frame(void* menu, Fn&& fn) {
+	if (!menu) return;
+	void* sentinel = *reinterpret_cast<void**>(static_cast<char*>(menu) + kMenuC_FrameList);
+	if (!sentinel) return;
+	for (void* node = *reinterpret_cast<void**>(static_cast<char*>(sentinel) + kListNode_Next);
+	     node && node != sentinel;
+	     node = *reinterpret_cast<void**>(static_cast<char*>(node) + kListNode_Next)) {
+		void* frame = *reinterpret_cast<void**>(static_cast<char*>(node) + kListNode_Frame);
+		if (frame) fn(frame);
+	}
+}
+
+// A menu scale change re-parses the page, which replaces every widget and starts
+// the content stm at scroll 0. Capture each frame page's scroll before the command
+// and reapply it to the matching frame after the new menu is built.
+static void save_open_menu_scroll(void* menu) {
+	s_frame_scroll_count = 0;
+	for_each_menu_frame(menu, [](void* frame) {
+		if (s_frame_scroll_count >= kFrameScrollMax) return;
+		void* stm = *reinterpret_cast<void**>(static_cast<char*>(frame) + kFrame_Page);
+		if (!stm) return;
+		const int total = *reinterpret_cast<int*>(static_cast<char*>(stm) + kStm_ScrollTotal);
+		const int offset = *reinterpret_cast<int*>(static_cast<char*>(stm) + kStm_ScrollY);
+		if (total <= 0 || offset <= 0) return;
+		FrameScrollState& saved = s_frame_scroll[s_frame_scroll_count];
+		frame_name_copy(frame, saved.name, sizeof(saved.name));
+		if (!saved.name[0]) return;
+		saved.total = total;
+		saved.offset = offset;
+		++s_frame_scroll_count;
+	});
+}
+
+static void restore_open_menu_scroll(void* menu) {
+	if (s_frame_scroll_count == 0) return;
+	if (!menu) {
+		s_frame_scroll_count = 0;
+		return;
+	}
+	for_each_menu_frame(menu, [](void* frame) {
+		char name[48];
+		frame_name_copy(frame, name, sizeof(name));
+		if (!name[0]) return;
+		for (int i = 0; i < s_frame_scroll_count; ++i) {
+			const FrameScrollState& saved = s_frame_scroll[i];
+			if (std::strcmp(saved.name, name) != 0) continue;
+			void* stm = *reinterpret_cast<void**>(static_cast<char*>(frame) + kFrame_Page);
+			if (!stm) return;
+			const int new_total =
+			    *reinterpret_cast<int*>(static_cast<char*>(stm) + kStm_ScrollTotal);
+			if (new_total <= 0) return;
+			const int new_offset =
+			    restored_scroll_offset(saved.offset, saved.total, new_total);
+			*reinterpret_cast<int*>(static_cast<char*>(stm) + kStm_ScrollY) = new_offset;
+			thiscall_noargs_void(stm, rvaToAbsExe(reinterpret_cast<void*>(kRvaStmClampScroll)));
+			return;
+		}
+	});
+	s_frame_scroll_count = 0;
+}
+
 static bool set_clip_from_backdrop_open() {
 	void* ret = __builtin_return_address(0);
 	return ret == rvaToAbsExe(reinterpret_cast<void*>(kRvaBackdropSetClipOpen));
@@ -1718,15 +1856,18 @@ void scaled_menu_backdrop_clip_extend(int* x, int* w, const void* menu_c) {
 
 void scaled_menu_reload_open_page(void) {
 	if (!detour_Cmd_ExecuteString::oCmd_ExecuteString) return;
-	if (!scaled_menu_current_menu()) return;
+	void* old_menu = scaled_menu_current_menu();
+	if (!old_menu) return;
 	if (!detour_Cvar_Get::oCvar_Get) return;
 	cvar_t* cv = detour_Cvar_Get::oCvar_Get("_sb_internal_menu_last_page", "", 0, nullptr);
 	if (!cv || !cv->string || !cv->string[0] ||
 	    std::strncmp(cv->string, "sof_buddy/", 10) != 0)
 		return;
+	save_open_menu_scroll(old_menu);
 	char cmd[160];
 	std::snprintf(cmd, sizeof(cmd), "sofbuddy_menu %s", cv->string);
 	detour_Cmd_ExecuteString::oCmd_ExecuteString(cmd);
+	restore_open_menu_scroll(scaled_menu_current_menu());
 }
 
 void scaled_menu_on_vid_layout_changed(void) {
@@ -1850,6 +1991,11 @@ bool scaled_menu_install_hooks(void) {
 		reinterpret_cast<void*>(&hk_vbar_ctor),
 		reinterpret_cast<void**>(&oVbar_Ctor),
 		"vbar_ctor") && ok;
+	ok = install_one(
+		reinterpret_cast<void*>(kRvaVbarCleanup),
+		reinterpret_cast<void*>(&hk_vbar_cleanup),
+		reinterpret_cast<void**>(&oVbar_Cleanup),
+		"vbar_cleanup") && ok;
 	ok = install_one(
 		reinterpret_cast<void*>(kRvaLoadboxDraw),
 		reinterpret_cast<void*>(&hk_loadbox_draw),

@@ -200,8 +200,12 @@ factor, so the bar, button, caps and flow-layout width all follow menuScale.
 so the authored 16 px width stayed thin. A post-constructor hook scales `W`,
 `OuterW`, `xoff`, and the cap picture W/H by `menuScale` (xoff is recomputed
 from the frame's right edge), and the draw's bevel
-thumb width is scaled through the `Draw_BeveledBox` IAT hook. The vbar height is
-frame-derived, so the bar still fills its frame.
+thumb width is scaled through the `Draw_BeveledBox` IAT hook. The stock height is
+frame-derived; internal F12 frames use height `0` (full-screen sentinel), which
+left the vbar with a zero-height track. A `Cleanup` hook now sizes the bar to the
+parsed content height (clamped to the screen) before the thumb is calculated, so
+the thumb length matches the content instead of the frame. The invisible
+left/right content-inset blanks no longer inflate the page's content height.
 
 `<hr>` is a `setkey_c` object with its own parser; its `width` and `line` tokens
 never reach `rect_c::Parse`. A post-parse hook scales the stored width
@@ -637,6 +641,7 @@ patched `M_PushMenu` entry), not `detour_M_PushMenu::oM_PushMenu`.
 | `Draw_RenderRect` IAT | 0x4035FC | expand bolted-ticker scissor to full screen |
 | `pic_c::Setup` | 0xD2290 | scale pic dimensions for normal menus |
 | `vbar_c` ctor | 0xD5250 | scale vbar W/OuterW/xoff + cap picture W/H |
+| `vbar_c::Cleanup` | 0xD5610 | size the bar to page content when the frame height is 0; recompute thumb |
 | vbar thumb immediates | 0xD5976 / 0xD5979 | scale/center bevel thumb |
 | `loadbox_c::Draw` | 0xDC250 | scale/recenter save previews + shift text |
 | loadbox layout immediates | 0xDBF21 / 0xDC9D9 / 0xDC002 / 0xDC9F0 / 0xDC4E9 | scale loadbox cell/row layout |
@@ -654,3 +659,8 @@ Font measurement and glyph scaling are handled by `scaled_ui_base` (`R_DrawFont`
 correction still applies on non-4:3 screens.
 
 Re-open menus after changing the scale so the RMF is parsed with the new value.
+When `scaled_menu_reload_open_page()` reopens the active `sof_buddy/*` page, it
+captures each frame page's `stm_c` scroll (`+0x7C` content height, `+0x80`
+offset) and reapplies the saved fraction to the matching frame after the reparse,
+then calls `stm_c` scroll clamp (`0xEA160`). Slider flushes also skip the reload
+when the effective menu scale did not change.
