@@ -6,6 +6,7 @@ User-facing highlights. Older detail is summarized at the bottom.
 
 ### Scaled menu
 
+- Tiled menu backdrops (`<backdrop tile>`, including `backdrop/web_bg`) now scale their repeat pitch and tile art with `_sofbuddy_menu_scale`. At high menu scales the background no longer stays at a fixed 128 px tile and looks tiny; it keeps the authored proportion to the menu instead.
 - F12 navigation tabs are now centred inside their bordered boxes at every menu scale and resolution. Labels use draw-time `talign center` measurement instead of leading spaces, so the old 3 px-per-space assumption can no longer push text into the right border at fractional scales such as 800×600 at 1.25×.
 - `<vbar>` height now follows the parsed page content instead of the frame height. Internal F12 frames use height `0` (full-screen sentinel), which previously gave the vbar a zero-height track; a cleanup hook sizes it to the content (clamped to the screen) before the thumb is measured. The invisible left/right content-inset blanks no longer inflate the page height, so the thumb length reflects the real list length and the page no longer scrolls into empty space.
 - The small black version stamp `ctext` in `version.rmf` now scales with the rest of the menu text instead of being forced to stock size.

@@ -426,6 +426,13 @@ applies only to text.
 `<pic>`/`<image>` widgets are scaled at `pic_c::Setup` by the content factor. They
 are corner-anchored by default, so their top-left stays put.
 
+Tiled `<backdrop tile>` backgrounds are picture-sized as well: `backdrop_c::Parse`
+stores the native picture W/H in `+0x1C/+0x20` and the engine repeats the tiles at
+that pitch. A post-parse hook scales both fields by the menu content factor, so the
+repeat pitch and the drawn tile (which follows `DrawPicWidth`/`DrawPicHeight`) stay
+in sync. Without it the backdrop remained a fixed 128 px screen-space tile and looked
+tiny next to the scaled menu at high resolutions.
+
 ## Server box
 
 Engine facts:
