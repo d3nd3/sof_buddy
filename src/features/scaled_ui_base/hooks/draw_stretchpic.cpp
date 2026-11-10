@@ -123,6 +123,16 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
         if (live) name = const_cast<char*>(live);
     }
 #endif
+#if FEATURE_SCALED_MENU
+    if (g_scaledMenuLoadboxDrawActive && g_scaledMenuLoadboxScale > 1.001f) {
+        const float s = g_scaledMenuLoadboxScale;
+        const int nw = static_cast<int>(static_cast<float>(w) * s + 0.5f);
+        const int nh = static_cast<int>(static_cast<float>(h) * s + 0.5f);
+        x += 64 - nw / 2;
+        w = nw > 0 ? nw : 1;
+        h = nh > 0 ? nh : 1;
+    }
+#endif
     original(x, y, w, h, palette, name, flags);
 
     g_currentStretchPicCaller = StretchPicCaller::Unknown;

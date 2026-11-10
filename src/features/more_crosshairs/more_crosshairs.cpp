@@ -586,7 +586,7 @@ const char* more_crosshairs_get_list_rmf(void) {
     const int n = std::snprintf(
         buf, sizeof(buf),
         "<list \"%s\" match \"%s\" cvar _sofbuddy_crosshair_pick atext \"Crosshair : \" "
-        "noshade tip \"S0-S4 stock; sof_buddy packs; extra crosshair paks in base/gamedir (not pak0-9, not duplicate catalog names).\"><hbr>",
+        "noshade><hbr>",
         labels, match);
     if (n < 0 || n >= static_cast<int>(sizeof(buf))) return "<hbr>";
     return buf;

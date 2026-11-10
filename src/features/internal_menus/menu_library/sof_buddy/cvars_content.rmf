@@ -336,9 +336,9 @@
 "Default 1 - Check updates at startup."
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_update_startup_stable_only atext "_sofbuddy_update_startup_stable_only : " noshade tip "1: startup popup only if stable.json is newer. 0: startup uses Install version. Default 0."><br>
+<ctext _sofbuddy_update_startup_stable_only atext "_sofbuddy_update_startup_stable_only : " noshade tip "1: startup popup only for stable releases from master. 0: startup uses Install version. Default 1."><br>
 <font type {font_title} tint gray atint gray>
-"Default 1 - Ignore Latest CI for startup auto-update prompts."
+"Default 1 - Startup auto-update prompts are stable-only."
 <hbr>
 <hbr>
 <ctext _sofbuddy_update_use_gui atext "_sofbuddy_update_use_gui : " noshade tip "Launch sof_buddy_update.exe on install. Universal builds default 1 (all flavours). Non-universal default 0."><br>
@@ -365,14 +365,14 @@
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_update_target_tag atext "_sofbuddy_update_target_tag : " noshade tip "stable (default), latest, or a tag. sofbuddy_update releases refreshes the list."><br>
+<ctext _sofbuddy_update_target_tag atext "_sofbuddy_update_target_tag : " noshade tip "stable (master), unstable (unstable branch), or a release tag. sofbuddy_update releases refreshes the list."><br>
 <font type {font_title} tint gray atint gray>
 "Default stable - Version to install."
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_update_show_all_releases atext "_sofbuddy_update_show_all_releases : " noshade tip "1 lists every tag in F12 after Refresh release list. Default 0."><br>
+<ctext _sofbuddy_update_show_all_releases atext "_sofbuddy_update_show_all_releases : " noshade tip "1 shows up to 12 recent release tags in F12. 0 shows channels plus the latest stable/unstable tags. Default 0."><br>
 <font type {font_title} tint gray atint gray>
-"Default 0 - F12 version list shows stable tag only (plus Stable/Latest channels)."
+"Default 0 - F12 shows channels plus latest stable/unstable tags."
 <hbr>
 
 <font type {font_title} tint sb_subtle atint sb_subtle>

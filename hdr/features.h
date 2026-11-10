@@ -50,5 +50,6 @@ extern bool menuVerticalScrollDraw;
 extern bool isDrawPicTiled;
 extern bool isDrawPicCenter;
 extern bool mainMenuBgTiled;
+extern bool g_tiledBackdropDrawing;
 extern int DrawPicWidth;
 extern int DrawPicHeight;

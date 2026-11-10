@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - unstable
     paths-ignore:
       - "**.md"
       - "docs/**"
@@ -21,6 +22,7 @@ jobs:
     outputs:
       version_changed: ${{ steps.gate.outputs.changed }}
       version: ${{ steps.gate.outputs.version }}
+      channel: ${{ steps.gate.outputs.channel }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -32,20 +34,28 @@ jobs:
         run: |
           VERSION=$(cat VERSION | tr -d '\r\n')
           PREV=$(git show HEAD~1:VERSION 2>/dev/null | tr -d '\r\n' || true)
+          BRANCH="${GITHUB_REF_NAME}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.force_release }}" == "true" ]]; then
+          if [[ "$BRANCH" == "unstable" ]]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "channel=unstable" >> "$GITHUB_OUTPUT"
+            echo "Unstable branch build: publishing a prerelease for VERSION $VERSION"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.force_release }}" == "true" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "channel=stable" >> "$GITHUB_OUTPUT"
             echo "Forced release build for VERSION $VERSION"
           elif [[ -z "$PREV" || "$VERSION" != "$PREV" ]]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "VERSION changed: ${PREV:-<none>} -> $VERSION (will publish GitHub release)"
+            echo "channel=stable" >> "$GITHUB_OUTPUT"
+            echo "VERSION changed: ${PREV:-<none>} -> $VERSION (will publish stable GitHub release)"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "channel=stable" >> "$GITHUB_OUTPUT"
             echo "VERSION unchanged ($VERSION); skipping build and release"
           fi
 
       - name: Validate release metadata
-        if: steps.gate.outputs.changed == 'true'
+        if: steps.gate.outputs.changed == 'true' && steps.gate.outputs.channel == 'stable'
         run: ./tools/new_release.sh --check --ci
 
   build:
@@ -369,8 +379,15 @@ jobs:
 
       - name: Extract release notes from CHANGELOG
         id: release_notes
+        env:
+          CHANNEL: ${{ needs.version_gate.outputs.channel }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          python3 tools/changelog_release_body.py "${{ steps.version.outputs.version }}" > release_body.md
+          if [[ "$CHANNEL" == "unstable" ]]; then
+            python3 tools/changelog_release_body.py --unstable > release_body.md
+          else
+            python3 tools/changelog_release_body.py "$VERSION" > release_body.md
+          fi
 
       - name: Create Release
         id: create_release
@@ -378,11 +395,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ steps.version.outputs.version }}-build${{ github.run_number }}
-          release_name: Release v${{ steps.version.outputs.version }} (Build ${{ github.run_number }})
+          tag_name: v${{ steps.version.outputs.version }}-build${{ github.run_number }}${{ needs.version_gate.outputs.channel == 'unstable' && '-unstable' || '' }}
+          release_name: Release v${{ steps.version.outputs.version }} (Build ${{ github.run_number }})${{ needs.version_gate.outputs.channel == 'unstable' && ' [unstable]' || '' }}
           body_path: release_body.md
+          commitish: ${{ github.ref_name }}
           draft: false
-          prerelease: false
+          prerelease: ${{ needs.version_gate.outputs.channel == 'unstable' }}
 
       - name: Upload Windows Release Asset
         uses: actions/upload-release-asset@v1

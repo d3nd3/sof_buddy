@@ -1,8 +1,9 @@
 # Scaled Menu
 
-Scales SoF menu content (text, areas, borders, inputs, tickers) and frame boxes to
-actual screen pixels while preserving the authored 640×480 design. This document
-reflects the current implementation, including the verified engine semantics behind it.
+Scales SoF menu content (text, areas, borders, inputs, tickers) by the vertical
+design ratio and applies the 4:3→wide frame-height correction while preserving the
+authored 640×480 design. This document reflects the current implementation,
+including the verified engine semantics behind it.
 
 Requires `UI_MENU` and `RUNTIME_FEATURE_SCALED_MENU`.
 
@@ -29,24 +30,29 @@ V = vid_h / C = (vid_h / vid_w) * 640
 ### Frames use the stock screen canvas
 
 The stock `frame_c` ctor (0xC60A0) multiplies authored frame W/H by `C`
-(`vid_w/640`). Frames are authored as percentages of the screen, so their width
-always keeps that stock canvas scale. `menuScale` applies only to frame content
-(text, rects, borders, offsets); it must not resize frames.
+(`vid_w/640`). Normal menu frames keep that stock canvas scale for width.
+`ss_content` pages are the 4:3 page fitted into the narrower 16:9 centre, so their
+frame widths are scaled by the same vertical ratio as the frame height.
+`menuScale` applies to frame content (text, rects, content borders, offsets); it
+must not resize frames. Frame borders follow the vertical frame ratio, not
+`menuScale` (see Borders).
 
-The only frame correction is height-only and resolution-driven: on non-4:3
-screens, non-`_ss` frames have their height converted from the stock horizontal
-canvas to the vertical design ratio (`authored_h × vid_h/480`, implemented as
-`stock_h × (vid_h/480) / C`). A zero authored height is left alone. This restores
-the original 4:3→wide vertical fit without tying frames to menuScale.
+The normal frame correction is height-only and resolution-driven: on non-4:3
+screens, frames have their height converted from the stock horizontal canvas to
+the vertical design ratio (`authored_h × vid_h/480`, implemented as
+`stock_h × (vid_h/480) / C`). A zero authored height is left alone. `ss_content`
+pages use the same ratio for width, which fits the 4:3 page into the narrower
+16:9 centre. This restores the original 4:3→wide fit without tying frames to
+menuScale.
 
-The old non-`_ss` conversion to `authored × menuScale` has been removed: it made
-frames shrink and drift at menu scales below `C` (for example 800×600 with a 1.19
-menu scale) and broke `m_join` and other framed menus. At 4:3 the height factor is
-1.0, so frame geometry is identical at 1.0 and 1.19.
+The old conversion to `authored × menuScale` has been removed: it made frames
+shrink and drift at menu scales below `C` (for example 800×600 with a 1.19 menu
+scale) and broke `m_join` and other framed menus. At 4:3 the height factor is 1.0,
+so frame geometry is identical at 1.0 and 1.19.
 
-`_ss` frames are wide-authored and keep their stock dimensions. `_ss` content
-still scales normally, and the `game_ss` topic/border correction is still applied
-at frame finalize.
+SoFPlus's `_ss` menu variants are deprecated: any `_ss` menu name is redirected to
+its `_ns` variant at load time (toke hooks plus an FS-path fallback), so the frame
+correction applies to them like any other 4:3-authored page.
 
 ### Internal F12 and loading menus
 
@@ -60,8 +66,8 @@ loading pages.
 
 ### Content is scaled by the vertical design (menuScale)
 
-Everything inside the frames — text, area rects, borders, offsets — is scaled by
-**`menuScale`**:
+Everything inside the frames — text, area rects, content borders, offsets — is
+scaled by **`menuScale`** (tickers use their own split; see Ticker):
 
 - **Max scale**:
   `auto_scale_resolution_ratio()` = `screen_y_scale` = `vid_h / 480`
@@ -81,10 +87,9 @@ Everything inside the frames — text, area rects, borders, offsets — is scale
   page after the mouse button is released; menu rect/frame geometry is baked at
   RMF parse time, so the displayed scale alone cannot resize an already open page.
 
-Frame width always keeps the stock `C` factor. Non-`_ss` frames get only the
+Frame width always keeps the stock `C` factor. Frames get only the
 resolution-driven height correction on non-4:3 screens; this is independent of
-`menuScale`. `_ss` frames keep the stock `C` factor on both axes because they are
-already authored for the wide layout; see "Scaling ratios interact".
+`menuScale`. See "Scaling ratios interact".
 
 Rounding cvars:
 
@@ -97,14 +102,22 @@ Rounding cvars:
 
 ### Scale synchronisation
 
-`scaled_menu_sync_scale_from_engine()` reads the engine's live
-`viddef_width` / `viddef_height` (0x40365C / 0x403660), sets
+The `VID_CheckChanges` post-hook (`scaled_ui_refresh_vid_dimensions_from_engine`)
+captures the actual video mode into `current_vid_w` / `current_vid_h` and sets
+`screen_x_scale` / `screen_y_scale`. `scaled_menu_sync_scale_from_engine()` runs
+from the menu font measurement path and prefers those captured values, falling
+back to the live `viddef_width` / `viddef_height` (0x40365C / 0x403660) only
+before the first `VID_CheckChanges`. It re-derives
 `screen_x_scale = vid_w/640`, `screen_y_scale = vid_h/480`, and re-clamps
-`menuScale` to the new resolution max. It runs from the `VID_CheckChanges`
-post-hook and from the first menu font measurement, so the first menu opened after
-startup uses the same scale as later opens. Menus keep the scale they were parsed with (rect geometry is
-baked at RMF parse), so a scale change requires re-opening the menu.
-`scaled_menu_on_vid_layout_changed()` intentionally does nothing for open menus.
+`menuScale` to the new resolution max. SoFPlus can expose the 16:9 **virtual**
+menu height through `viddef_height` while a menu is parsed; using that value would
+make `screen_y_scale` `0.75` instead of `2.25` at 1080p (a frame shrink factor of
+`0.25` instead of `0.75`) and double-shrink frames, so `current_vid_*` is
+preferred. The sync runs before menu layout is measured, so the first menu opened
+after startup uses the same scale as later opens. Menus keep the scale they were
+parsed with (rect geometry is baked at RMF parse), so a scale change requires
+re-opening the menu. `scaled_menu_on_vid_layout_changed()` intentionally does
+nothing for open menus.
 
 ### Activation and gates
 
@@ -120,7 +133,13 @@ Per context:
 - **per rect** — `noscale` (`rect+0x66`) disables dim/offset scaling;
 - **resize pages** — `menu_actual_pixel_scale_active()` returns false when the page
   canvas actually carries a raised scale (`menu_resize_canvas_is_scaled()`:
-  `canvas > 1.001 && canvas <= max(menuScale, screen_x_scale, screen_y_scale) * 2`).
+  `canvas > 1.001 && canvas <= max(menuScale, screen_x_scale, screen_y_scale) * 2`);
+- **load/save loadbox** — `loadbox_c::Parse` multiplies its stored width by the
+  menu canvas itself. The rect hook therefore gives the loadbox `menuScale / canvas`
+  instead of `menuScale`, so the page scales but the save list is not double-scaled
+  offscreen. A `loadbox_c::Draw` hook scales/recenters the preview thumbnails and
+  shifts the three text lines down with the taller icons; the 128 px cell width and
+  32 px row padding in `GetIndices`/`Setup`/`Draw` are patched with `menuScale`.
 
 ## Rect fields
 
@@ -131,7 +150,8 @@ time** and written back into the rect. The stored fields are the single source o
 truth for drawing, layout and hit-testing: `rect_c::GetCoords` (0xCF570),
 `rect_c::Onscreen` (0xCF6E0) and the engine's cursor line-picker (0xCF780) all read
 the same values, so hotspots (`<blank ... key mouse1>`) line up with what is drawn.
-There is no per-frame scale/restore pass.
+There is no per-frame scale/restore pass for rect dimensions; the tooltip hover pass
+temporarily rewrites `ox/oy` only (see Tooltips).
 
 Dimension factor:
 
@@ -162,23 +182,35 @@ hitboxes are scaled inside the hover pass so clicks match the canvas-scaled art
 without changing their construction or draw state. This applies to every resize
 page, with no menu-name/spm-specific filters.
 
-The 16:9 `join_ss` page is corrected at load time instead of scaling all join
-content: its `<frame servers>` Y offset moves from `120` to `90`, the `360/480`
-vertical virtual-space ratio. This keeps the normal menu scale for join content
-while placing the server list correctly in the 16:9 frame.
-
 `<hbar>` is picture-sized: its ctor sets W/H from the cap picture and stores the
 repeated tile's native W/H, so `<width>`/`<height>` never reach the rect parse
 hook. A post-`Parse` hook scales W/H/Outer and the tile pitch by the normal content
 factor, and `hbar_c::Draw` (0x200D5050) is replaced with a draw that stretches the
 cap and tile pictures to those scaled fields via `Draw_StretchPic`. That keeps the
 layout centring, tile count, progress fraction and art size on the same scale. The
-bevel (non-picture) form scales its box the same way.
+bevel (non-picture) form scales its box the same way. If `Draw_StretchPic` is
+unavailable, the hbar is left stock.
 
 `<slider>` is picture-sized, so `slider_c::Setup` (0x200D08A0) recomputes W/H and
 the bar/button/cap dimensions from native pictures after rect parsing. A post-
 `Setup` hook scales those final fields by the same `menuScale / widgetScale`
 factor, so the bar, button, caps and flow-layout width all follow menuScale.
+
+`<vbar>` derives its width from the native `misc/vbar`/`misc/vend` cap pictures,
+so the authored 16 px width stayed thin. A post-constructor hook scales `W`,
+`OuterW`, `xoff`, and the cap picture W/H by `menuScale` (xoff is recomputed
+from the frame's right edge), and the draw's bevel
+thumb width is scaled through the `Draw_BeveledBox` IAT hook. The stock height is
+frame-derived; internal F12 frames use height `0` (full-screen sentinel), which
+left the vbar with a zero-height track. A `Cleanup` hook now sizes the bar to the
+parsed content height (clamped to the screen) before the thumb is calculated, so
+the thumb length matches the content instead of the frame. The invisible
+left/right content-inset blanks no longer inflate the page's content height.
+
+`<hr>` is a `setkey_c` object with its own parser; its `width` and `line` tokens
+never reach `rect_c::Parse`. A post-parse hook scales the stored width
+(`hr+0x8C`) and line thickness (`hr+0x90`) by the normal content factor, with the
+same `noscale`, intro/disclaimer and resize-page gates as other widgets.
 
 Rect flag `rect+0x66` (`noscale`) disables all of this for the rect. Ghouls are
 excluded (see Ghouls and bghouls).
@@ -210,9 +242,10 @@ Per-axis parse factor:
 offset factor = menuScale / (widgetScale * (hard_path && virtual_flag ? canvasScale : 1))
 ```
 
-For ordinary elements (`widgetScale = 1`, flags clear) this is exactly `resY/480`.
-The canvas is divided out when the engine would multiply the offset itself. Tickers
-use a different split (see Ticker): `xoff` canvas-space, `yoff` vanilla/authored.
+For ordinary elements (`widgetScale = 1`, flags clear) this is exactly the effective
+`menuScale` (at 100%, `resY/480`). The canvas is divided out when the engine would
+multiply the offset itself. Tickers use a different split (see Ticker): `xoff`
+canvas-space, `yoff` vanilla/authored.
 
 ## Borders
 
@@ -221,10 +254,14 @@ use a different split (see Ticker): `xoff` canvas-space, `yoff` vanilla/authored
 - pad (`border P`, `border+0`) = `atol(dimA) * scale`;
 - thickness (`border T`, `border+4`) = `atol(dimB)` (raw).
 
-While Scaled Menu is active, `hk_menu_border_dims_init` passes `menuScale` as the
-scale argument (the engine's canvas-scale argument is ignored), so **pad = authored
-× menuScale**. Afterwards the thickness is multiplied by `menuScale`. Frame borders
-are created through the same path and follow the same rules.
+Frame borders and rect borders are both authored in absolute pixels. The two
+call sites are distinguished by their incoming scale: rect borders pass `1.0`,
+frame borders pass the stock canvas scale (`vid_w / 640`).
+`hk_menu_border_dims_init` keeps frame borders on the **vertical design ratio**
+(`vid_h / 480`; 2.25 at 1080p) for both axes at every menu scale, including
+`1×`, so **frame pad = authored × vid_h / 480**. Rect borders use `menuScale`
+while Scaled Menu is active and stock `1.0` otherwise. The raw thickness is
+scaled by the same factor as its call site.
 
 `border_c::RectFrameDims` (0xC4740, not hooked) copies the rect's stored outer dims
 into the border's draw rect, so it sees the scaled values.
@@ -243,11 +280,27 @@ into the border's draw rect, so it sees the scaled values.
   glyph's horizontal advance is compensated by
   `characterIndex * fontPx * (scale - 1)`. Runs grow in place — no per-glyph warp
   and no translation of the run position chosen by the engine.
-- The small black version stamp (cvar text starting with a digit and containing a
-  dot) is kept fully stock: `R_Strlen`, glyph scaling and the ctext's centring are
-  bypassed, and its draw is given a full-screen scissor. The scaled ctext right-clip
-  otherwise cut the stock-sized stamp out of the green panel.
+- The version stamp `ctext` scales like every other menu text run. Its ctext
+  right-clip is bypassed with a full-screen scissor so the scaled stamp stays
+  visible on the panel.
 - At `menuScale = 1` every text path is identical to vanilla.
+
+### Text alignment (`talign`)
+
+`<text>` supports `talign center` (and consumes `left`/`right` as no-ops; the stock
+engine only implements `talign` for input/filebox/serverbox widgets). Scaled Menu
+handles the token in the rect parse hook and records the text widget; the
+`text_c::Draw` wrapper then measures the label with `R_Strlen` and shifts only that
+draw's `xoff` by `(rect W - measured width) / 2` before restoring it. The border and
+the cursor hitbox read the original rect fields, so the label is centred inside its
+box without moving the navigation target.
+
+The internal `sof_buddy/tabs/*` files are served with `talign center` injected on
+every tab `<text>` tag. This replaces the old leading-space padding: a space is a
+full glyph advance, so its integer rounding could leave tabs visibly off-centre at
+fractional menu scales (for example 800×600 at 1.25×). Draw-time centring uses the
+same snapped text scale as the glyphs, so it stays centred at every scale and
+resolution.
 
 ## Rect parse hook (`width` / `height` / `xoff` / `yoff`)
 
@@ -266,7 +319,7 @@ same geometry.
 
 ## Ticker
 
-Engine behaviour at the end of `ticker_c::Parse` (vtable `+0x28`, `sub_200D1B30`):
+Engine behaviour in the ticker init/setup method (vtable `+0x28`, `sub_200D1B30`):
 
 ```
 ticker[0xB0] = R_StrLen(font, text)          // measured run width (hooked -> ×menuScale)
@@ -295,13 +348,25 @@ part** (e.g. `b_panel_tickertape`), and ghouls/artwork are drawn in the canvas s
 - preserves the authored `width` at parse; the ticker init multiplies `W` and
   `OuterW` by the canvas only when the engine will not (i.e. no bolt anchor). For
   bolted tickers the engine scales `W` itself and `OuterW` stays authored. Final `W`
-  is `authored * canvasScale`;
+  is `authored * canvasScale`; bolted tickers on any wide screen then scale
+  `W`/`OuterW`/`xoff` by `target/canvas` (0.75 at 16:9) to match the shrunk
+  bghoul. This is driven by resolution, not by `_ns`/`_ss` or whether the page is
+  in `ss_content`; it includes the full-screen main menu.
+- expands the ticker's own `Draw_RenderRect` scissor to the full screen whenever
+  the ticker is bolted to the background art. The ticker draw hook records that
+  state, so the IAT hook does not depend on `_ns`/`_ss` or `ss_content`. Clipping
+  a bolted tape to a narrower frame made it first appear at the frame edge, in
+  front of the ghoul, instead of at the screen edge. The following clip restore
+  still uses the frame's real bounds;
 - captures the authored `delay` before the stock init and restores it afterwards.
-- multiplies the ticker speed (`ticker+0xAC`) by the height-derived 4:3 width scale (`vid_h / 480`, e.g. 1080p gives 1440/640 = 2.25), so scroll speed stays a fixed percentage of that content width per second at any resolution.
-  Stock multiplies the delay by the canvas for bolted tickers, so at 1080p a 6 s
-  delay became 18 s and the tape also spawned 3× further right of the band. Restoring
-  the authored value keeps the wait-until-entry identical at every resolution and
-  leaves the spawn point nearer the band's right edge on wider screens.
+- multiplies the ticker speed (`ticker+0xAC`) by the height-derived 4:3 width scale
+  (`vid_h / 480`, e.g. 1080p gives 1440/640 = 2.25) for every non-`noscale` ticker.
+  Vanilla's 480p speed therefore scales up with resolution instead of staying at
+  the authored value. Stock multiplies the delay by the canvas for
+  bolted tickers, so at 1080p a 6 s delay became 18 s and the tape also spawned 3×
+  further right of the band. Restoring the authored value keeps the wait-until-entry
+  identical at every resolution and leaves the spawn point nearer the band's right
+  edge on wider screens.
 
 The measured text width still uses `menuScale`, and glyphs draw at `menuScale`; the
 marquee cycle therefore mixes a canvas-sized viewport with text-scale run width.
@@ -358,6 +423,16 @@ Scaled Menu is on (and the caller is not `SCR_DrawCrosshair`,
 texture size × `scaled_menu_screen_scale()` (not glyph-snapped). Glyph-grid snapping
 applies only to text.
 
+`<pic>`/`<image>` widgets are scaled at `pic_c::Setup` by the content factor. They
+are corner-anchored by default, so their top-left stays put.
+
+Tiled `<backdrop tile>` backgrounds are picture-sized as well: `backdrop_c::Parse`
+stores the native picture W/H in `+0x1C/+0x20` and the engine repeats the tiles at
+that pitch. A post-parse hook scales both fields by the menu content factor, so the
+repeat pitch and the drawn tile (which follows `DrawPicWidth`/`DrawPicHeight`) stay
+in sync. Without it the backdrop remained a fixed 128 px screen-space tile and looked
+tiny next to the scaled menu at high resolutions.
+
 ## Server box
 
 Engine facts:
@@ -373,11 +448,22 @@ Engine facts:
 Scaling policy:
 
 - The `height` token is scaled by `menuScale / widgetScale` like any other rect, in
-  every menu (including `_ss` files). Row pitch also scales with `menuScale`, so the
+  every menu. Row pitch also scales with `menuScale`, so the
   number of visible rows and the 4:3 screen fraction are preserved (100 → 225 px at
   1080p = 20.8 %).
 - No `SetHeight`-skip or vertical-preserve special cases exist; earlier experiments
   were removed because they changed stock list behaviour and could hide rows.
+
+## Menu cursor
+
+`menu_c::DrawCursor` (`0x200CA8C0`) sizes the software cursor picture and its hotspot
+from `menu_c+0xAC` (the page canvas scale). `<stm resize W H>` pins that field to the
+page's absolute canvas (`frame_c::Resize` stores 1.0), so an open resize dialog shrinks
+the cursor to stock pixels at higher resolutions (96 px → 32 px at 1080p). The four
+scale reads in that function are patched to load `screen_x_scale` (`vid_w/640`, the
+scale normal menu pages use) instead, so the cursor keeps its normal size and hotspot
+while a resize popup is up. At 480p the two scales are both 1.0, which is why the stock
+shrink was not visible there.
 
 ## Ghouls and bghouls
 
@@ -387,23 +473,27 @@ Their `xoff` / `yoff`, model scale and canvas mapping live in the frame/art spac
 rects at all: `menu_actual_rect_dim_factor` returns `1` for the ghoul vtable
 (`0x1129E0`), which also skips offset scaling.
 
-This matters for staged menus such as `amain.rmf`, which builds the main menu around
-`<bghoul "b_web_home_ingame" xoff 236 yoff 170 … scale 0.97>`. Without the exclusion
-the background ghoul is displaced by `(canvasScale − menuScale) × offset` (about
-177 px left and 127 px up at 1080p), dragging the whole staged menu off position —
-the “main menu pushed to the left” symptom.
+This matters for staged menus such as `a_main_ns.rmf`, which builds the main menu
+around `<bghoul "b_web_home_ingame" xoff 320 yoff 224 … scale 1.32>`. Without the
+exclusion the background ghoul is displaced by `(canvasScale − menuScale) × offset`
+(about 240 px left and 168 px up at 1080p), dragging the whole staged menu off
+position — the “main menu pushed to the left” symptom.
+
+The menu-load bghoul ratio adjustment multiplies `xoff`, `yoff`, and `scale` by
+the vertical-vs-canvas ratio (see `_ss` menus).
 
 The startup intro ghoul is additionally normalised by `intro_scaler` (model scale
 and offsets from `vid_w/640`, then the letterbox shift).
 
 ## Scaling ratios interact
 
-Frame width keeps the stock `C` (percent-of-`V`) factor. Non-`_ss` frames get a
-height-only 4:3→widescreen correction (`vid_h/480`); `_ss` frames keep the stock
-`C` factor on both axes. `menuScale` affects only their contents.
+Frame width keeps the stock `C` (percent-of-`V`) factor. Frames get a height-only
+4:3→widescreen correction (`vid_h/480`). `menuScale` affects only their contents.
 Staged art — ghouls/bghouls, button anchors, backdrops — follows the canvas space
 and is explicitly excluded from content scaling (see Ghouls and bghouls), so the
-scene stays anchored while menu areas/text use the vertical scale.
+scene stays anchored while menu areas/text use the vertical scale. `bghoul`
+`xoff`/`yoff`/`scale` additionally receive the vertical-vs-canvas ratio at menu load (see
+`_ss` menus), which is a ratio correction, not the content scale.
 
 ## Intro / disclaimer
 
@@ -421,147 +511,54 @@ applied.
 
 ## `_ss` menus
 
-Menus whose file name ends in `_ss` (e.g. `game_ss.rmf`, `m_join_ss.rmf`,
-`armoryticker_ss.rmf`) are manually authored for wide aspect ratios. Only their
-**frame dimensions** are kept out of the feature's scaling; **all content scales
-normally**, exactly like any other menu:
+SoFPlus's `_ss` menu variants are no longer used because the shipped files have
+layout mistakes. Scaled Menu redirects any `_ss` menu name to the matching `_ns`
+variant at load time: top-level pages are redirected through the `toke_c` ctor and
+included pages through `toke_c::Insert`. The redirect and wide-variant state live
+in `menu_variant.cpp`; the FS-path fallback and RMF transforms live in
+`internal_menus/hooks/menu_rmf_transform.cpp`. The old `_ss`-specific frame,
+border, topic, and join-menu corrections have been removed. `_ns` pages are
+authored in 640×480 space and receive the normal frame height correction described
+above.
 
-- rect dimensions/offsets, borders, rect-parse fixed dims, text measurement/glyphs
-  and ticker normalisation are **not** disabled for `_ss` menus;
-- frame width always uses the stock authored × `C` dimensions; non-`_ss`
-  heights get the resolution-driven vertical correction above. `menuScale` only
-  affects content. `_ss` frames keep their stock dimensions. `game_ss` gets a
-  load-time border inset and topic-height correction, described below; other
-  `_ss` menus keep their authored borders;
-- the `M_PushMenu` pre-hook still normalises and records the pushed name (leaf,
-  `.rmf` stripped, lowercase) for `_ss` scaling decisions and menu-specific behavior.
+When SoFPlus selects the `_ss` variant (its `_spf_cl_video_shortscreen`
+wide-screen test) and the menu is in the whitelist, the FS loader replaces the
+outer wrapper's `<exinclude _spf_cl_video_shortscreen ss ns>` with:
 
-### `_ss` border and topic correction
-
-SoFPlus's 16:9 `game_ss.rmf` uses `<frame main 426 0 border 0 0 ...>`, while the
-vanilla 4:3 page uses `border 40 0`. The missing text clearance is small, so the FS
-hook restores only a small design inset for that one menu:
-
-```
-<frame main ... border 0 0 ...> -> <frame main ... border 8 0 ...
+```rmf
+<frame 16_9_center 0 0>
+<frame 16_9_left <side> 0 page 16_9_l cut 16_9_center>
+<frame ss_content <main> 0 page <ns> cut 16_9_center>
+<frame 16_9_right <side> 0 page 16_9_r cut 16_9_center>
 ```
 
-The full vanilla `40` was tested and is wrong for the `_ss` geometry: the `_ss` main
-panel is a different 16:9 layout, and a scaled `40` border becomes a large gutter
-(~90px at 1080p). The authored `0` is otherwise intentional for the other `_ss`
-menus.
-
-The existing `menu_border_dims_init` hook still scales border values. To avoid
-double-scaling, it separates frame borders from rect borders:
-
-```
-frame border = call-site scale != 1.0
-if (frame border)
-    use = vid_h / 480        // vertical virtual-space correction only
-else
-    use = menuScale          // normal content/rect border path
-```
-
-So the `game_ss` main-frame `8` becomes `8 * (vid_h / 480)` pixels (18px at 1080p).
-This also fixes existing `_ss` frame borders such as `border 8 1` in `join_ss.rmf`:
-they use the vertical path instead of the content `menuScale` and are no longer
-over-scaled. Rect borders keep the normal `menuScale` path; other `_ss` menus keep
-their authored `border 0 0`. `game_ss.rmf` additionally gets its authored topic height
-corrected:
-
-```
-<frame topic 0 92 -> <frame topic 0 96
-```
-
-The patch works whether the `_ss` file is pushed directly or included by a wrapper
-such as `game.rmf` through `_spf_cl_video_shortscreen`; `_ns`/4:3 pages are
-untouched. Patching the RMF text is deliberate: mutating the live
-`frame_c`/`border_c` objects after parsing is unsafe because the border object is
-already initialized and linked.
-
-The border correction restores the vanilla inset that the `_ss` author removed
-(`border 0 0`) to keep the wide panel seamless. At high resolution the missing
-inset clipped the first content row (e.g. “Change codename”); the converted
-`40 × menuScale` border gives it the same proportional clearance as the 4:3 page.
-The topic correction makes `game_ss` consistent with `game2_ss`/`game3_ss`.
-
-### Why `_ss` pages clip at high resolution
-
-This is a layout difference in the SoFPlus `_ss` art, not a general engine scaling
-bug. The vanilla 4:3 page uses a bordered main frame:
-
-```
-<frame main 640 372 border 40 0 clear backfill clear>
-```
-
-`game_ss.rmf` replaces that with a flush 16:9 panel:
-
-```
-<frame main 426 0 border 0 0 clear backfill clear cut 16_9_center>
-```
-
-The vanilla border is what gives `m_game`/`m_joystick`/etc. their content inset. Its
-first token is the border thickness, and the engine multiplies that by the menu
-canvas scale. Keeping `40` on a 1920-wide 16:9 panel would therefore create a 120px
-gutter, so the `_ss` author set it to `0` to keep the wide black panel seamless and
-let the 16:9 side art meet the panel edge. Scaled Menu restores the authored `40`
-but converts it through `menuScale` (`40 × menuScale` pixels) instead of
-reintroducing the raw C-scaled gutter. At 480p the first content row is small
-enough that the glyph and shadow still fit; at high resolution the text is scaled
-while the frame top remains the exact clip edge, so the top of the first row is cut.
-It is most visible in `game_ss` because its first `m_game` row is a large
-title-style text, but any `_ss` page whose `m_*` content starts at `y=0` has the
-same latent issue.
-
-The preferred fix when authoring new `_ss` assets is to keep the shared chrome and
-put the inset in the common content frame, or add a leading blank to each `m_*`
-page. The runtime `_ss.rmf` text patch above is only a compatibility workaround for
-the existing SoFPlus pak, which we do not control.
-
-### Suggested `_ss` template
-
-The repeated five-frame chrome can be shared. Keep the per-menu file as a thin
-wrapper:
-
-```
-<stm>
-<strings menu_generic>
-<strings menu_keys>
-<include tints>
-<set scr_menuoverlay 1>
-<exitcfg joystick>
-
-<frame topic 0 96 page t_joystick center>
-<include sof_buddy/ss_shell>
-<frame joystick 0 8 page m_joystick cut main>
-</stm>
-```
-
-`ss_shell.rmf` owns the common 16:9 chrome:
-
-```
-<stm>
-<frame 16_9_center 0 228>
-<frame 16_9_left 107 0 page 16_9_l cut 16_9_center>
-<frame main 426 0 border 40 0 clear backfill clear cut 16_9_center>
-<frame 16_9_right 0 0 page 16_9_r cut 16_9_center>
-<frame 16_9_bottom 0 0 page 16_9_b>
-</stm>
-```
-
-This removes five duplicated frames per menu, makes the topic height consistent
-(`96`; the `game_ss` 92 is the outlier fixed at runtime above), and gives new pages
-one obvious place for the content inset via the shared `main` border (the feature
-converts the authored `40` through `menuScale`). A common shell also makes it much easier to
-change the 16:9 panel geometry or add a scaled top inset once rather than in every
-`_ss` file.
+`main = ((vid_h * 4/3) / vid_w) * 640` (480 at 16:9) and
+`side = (640 - main) / 2` (80 at 16:9). The real `_ns` page is loaded into
+`ss_content` and is not chrome-injected. `16_9_center` is full-screen (`0 0`);
+the side frames and `ss_content` are cut to it and laid out as
+side/main/side. There is no `16_9_bottom`. Because page frames without a
+`cut` link to the menu's default frame, the FS hook also adds `cut ss_content` to
+the matching `_ns` page's uncut frames, so they become children of `ss_content`.
+The `_ns` page's frames receive the global vertical frame shrink, and their
+widths are scaled by the same ratio so the 4:3 layout fits the centre. `bghoul` backgrounds are adjusted globally at menu-load time,
+not just for `_ss` menus: their authored `xoff`, `yoff` and `scale` are multiplied
+by the same vertical-vs-canvas ratio (`(vid_h/480) / (vid_w/640)`), so they track
+the frame at any wide ratio. All `_ns` frame heights, including the topic strip, keep
+their authored values so the global vertical frame shrink applies to them. The
+menu content pages remain the `_ns` versions; no `_ss` content is loaded. The
+chrome injection is applied only to a whitelist of standard wrappers (`join`,
+`keys`, `game`, `lock`, `bots`, `chat`, `load`, `mail`, `misc`, `motd`, `save`,
+`audio`, `stats`, `game2`, `game3`, `scale`, `socks`, `start`, `video`, `outfit`,
+`advjoin`, `credits`, `dmflags`, `options`, `pickbot`, `joystick`, `objectives`,
+`testmotd`, `language`, `player`). Menus outside the whitelist (for example
+`a_main_ns`) and all other content pages keep their `_ns` layout unchanged.
 
 ## Tooltips
 
 Engine pipeline:
 
-- `stm_c::Render` (`0x200E9F30`) reads the frame-local mouse and, for each rect,
-  tests `mx ∈ [ox, ox+OuterW−1]`, `my ∈ [oy, oy+(OuterH+oy)−1]`. On a hit it calls
+- the `stm_c` hover pass (`0x200E9F30`) reads the frame-local mouse and, for each rect,
+  tests `mx ∈ [ox, ox+OuterW−1]`, `my ∈ [oy, oy+OuterH−1]`. On a hit it calls
   the hover marker (`sub_200CEB60`), which stores the hovered rect in `stm+0x34` /
   `menu_c+0xBC`.
 - When the hovered rect changes and it has a `tip` string (`rect+0x6C`), the engine
@@ -598,20 +595,28 @@ Fix:
   `tip.y = GetCoords().y + OuterH` (screen space). `tip.x` stays the engine's
   mouse-based value, so the tooltip appears at the cursor horizontally and just
   under the drawn item.
-- The engine does not draw a fresh tip until `elapsed > duration/4` (2.5 s at the
+- The engine does not draw a fresh tip until `elapsed > duration/4` (3.75 s at the
   Buddy `tip_duration` default of 15000). `hk_menu_create_tip` records the new
   `(menu, tip, source rect)` and rewrites `tip->start(+0x18)` to
   `created − duration/4 + _sofbuddy_menu_tip_appear`, so the tooltip appears after
-  exactly the configured delay (default **750 ms**, `0` = immediate, `2500` =
-  stock). The fade-out threshold moves with the start, so the visible time is
-  unchanged.
+  exactly the configured delay (default **750 ms**, `0` = immediate; the stock
+  delay is `duration/4`). The fade-out threshold moves with the start, so the
+  visible time is unchanged.
+- The value is exposed as **Menu tooltip Appear (ms)** in F12 → General → Menu.
+  The tooltip font is selectable there as **Tooltip font** (Small default, Medium,
+  Title) and applies when the menu is reopened. **Menu font size style**
+  (Small/Normal/Large/Extra Large) selects the F12 font-tier template; F12 is
+  reparsed so the authored `<font type>` tags stay consistent.
 - `<pic>`/`<image>` widgets are scaled at `pic_c::Setup` (`0x200D2290`) by the same menu-scale factor as other actual-pixel widgets; `noscale` images, bolted tab icons, images with explicit `width`/`height` (already scaled by rect parse), and resize canvases that already carry the scale are skipped.
-- `hk_tip_render` (`0x200EA8A0`) calls the original render only while
-  `menu_c+0xBC` still equals the recorded source rect. Moving off the hotspot
-  suppresses the draw immediately instead of firing after the delay; re-entering
-  creates a fresh tip and restarts the full delay. The hook only reads engine
-  state and skips the call — it never writes menu/tip fields or frees the tip.
-  The value is exposed as **Menu tooltip Appear (ms)** in F12 → General → Menu. The tooltip font is selectable there as **Tooltip font** (Small default, Medium, Title) and applies when the menu is reopened. **Menu font size style** (Small/Normal/Large/Extra Large) selects the F12 font-tier template; F12 is reparsed so the authored `<font type>` tags stay consistent.
+- `hk_stm_hover_pass` records each `stm_c`'s current hovered rect (`stm+0x34`)
+  after the stock hover pass, keyed by the `stm_c*` and a generation counter.
+  `hk_menu_create_tip` stores the source rect's `stm_c*` and generation;
+  `hk_tip_render` compares against that stm's latest hovered rect. This avoids
+  the stock `menu+0xBC` cache, which is overwritten by every stm pass and can
+  be null or point at another frame's hover even while a tip is valid.
+- If the tip's stm has not run a hover pass since the tip was created, the hook
+  falls back to the old `menu+0xBC` check. The hook only reads engine state and
+  skips the render call — it never writes menu/tip fields or frees the tip.
 
 No validation/rejection is used: the hitbox itself now matches the drawing.
 
@@ -632,19 +637,19 @@ patched `M_PushMenu` entry, so the hook manager runs the registered pre
 callbacks, the original body, and the post callbacks. `Cmd_SoFBuddy_Menu_f`
 called `oM_PushMenu(...)` directly, which skipped the entire hook layer.
 
-The post callback that matters is `internal_menus_M_PushMenu_post`: after the
-push it fetches the current `menu_c` and zeroes `menu_c+0x94`, `+0x98`, `+0x9C`,
-and `+0xA0` (the menu free/scroll offsets used to position the page). A startup
-or loading menu leaves those offsets non-zero, which shifts the whole F12 page
-upward and puts the nav above the viewport. The direct push never ran that
+The post callback that matters is `internal_menus_M_PushMenu_post`: after a
+`sof_buddy` push it fetches the current `menu_c` and zeroes `menu_c+0x94`, `+0x98`,
+`+0x9C`, and `+0xA0` (the menu free/scroll offsets used to position the page). A
+startup or loading menu leaves those offsets non-zero, which shifts the whole F12
+page upward and puts the nav above the viewport. The direct push never ran that
 callback, so the stale offsets survived. The stock `menu` path, a missing-menu
 push, and `menu join` all enter through the patched entry and therefore either
 run the reset or tear the page down; that is why they appeared to “fix” F12.
 
 `scaled_menu_M_PushMenu_pre` is skipped on the direct path too, so
-`s_pushed_menu_name`, `s_menu_source_is_ss`, and `s_menu_skip_frame_convert`
-can carry stale `_ss`/frame-filter state into the F12 parse. The skipped
-post-hook offset reset is the consistent failure across Scaled Menu on/off.
+`s_pushed_menu_name`, the `_ss` wide-variant flag, and `s_skip_vertical_shrink` can
+carry stale state into the F12 parse. The skipped post-hook offset reset is the
+consistent failure across Scaled Menu on/off.
 
 Fix: never call `oM_PushMenu` directly from the Buddy menu command. Route the
 resolved page through the patched entry, currently:
@@ -661,24 +666,41 @@ patched `M_PushMenu` entry), not `detour_M_PushMenu::oM_PushMenu`.
 
 | Hook target | RVA | Purpose |
 |---|---:|---|
-| `M_PushMenu` | 0xC7630 | record pushed menu name (used by the `game_ss` override) |
+| `M_PushMenu` | 0xC7630 | normalize `_ss`→`_ns` pushed name; reset per-menu frame/scale state |
 | `menu_stm_set_clip` | 0xEA2C0 | clip recompute + backdrop-open extension (only when `intro_scaler` is disabled) |
-| `menu_border_dims_init` | 0xC46D0 | border pad with `menuScale`, linewidth post-scale |
-| `rect_c::Parse` | 0xCF890 | persistent scaling of `width`/`height`/`xoff`/`yoff`, file overrides |
+| `menu_border_dims_init` | 0xC46D0 | rect borders: `menuScale` pad/thickness; frame borders: vertical ratio |
+| `rect_c::Parse` | 0xCF890 | persistent scaling of `width`/`height`/`xoff`/`yoff`, file overrides, `<text talign>` |
+| `text_c::Draw` | 0xD8B70 | draw-time `talign center` offset (border/hitbox unchanged) |
 | `frame_c::Resize` | 0xC6640 | resize-page canvas/frame scale + recentre |
-| `frame_c` ctor | 0xC60A0 | record frame metadata for source tracking |
-| `frame_c` parent link/cut | 0xC6530 | height-only non-4:3 correction for non-`_ss` frames; original link |
-| `frame_c::ParseFrame` finalize | 0xC6500 | `game_ss` `topic` height override |
-| `toke_c` ctor | 0xEAC70 | track the menu source file name |
-| `toke_c::Insert` | 0xEAF60 | track `_ss`/`_ns` includes |
-| ticker init (vtable `+0x28`) | 0xD1B30 | ticker `W`/`OuterW` canvas normalisation |
+| `frame_c` ctor | 0xC60A0 | record authored frame W/H and per-menu shrink state |
+| `frame_c` parent link/cut | 0xC6530 | height-only 4:3→widescreen frame correction (once per frame); original link |
+| `toke_c` ctor | 0xEAC70 | track menu source; redirect `_ss` pages to `_ns` |
+| `toke_c::Insert` | 0xEAF60 | track menu source; redirect `_ss` includes to `_ns` |
+| ticker init (vtable `+0x28`) | 0xD1B30 | ticker `W`/`OuterW` canvas normalisation, wide-screen box scale, speed scale |
+| `ticker_c::Draw` | 0xD1C80 | mark bolted tickers while drawing |
+| `Draw_RenderRect` IAT | 0x4035FC | expand bolted-ticker scissor to full screen |
+| `pic_c::Setup` | 0xD2290 | scale pic dimensions for normal menus |
+| `vbar_c` ctor | 0xD5250 | scale vbar W/OuterW/xoff + cap picture W/H |
+| `vbar_c::Cleanup` | 0xD5610 | size the bar to page content when the frame height is 0; recompute thumb |
+| vbar thumb immediates | 0xD5976 / 0xD5979 | scale/center bevel thumb |
+| `loadbox_c::Draw` | 0xDC250 | scale/recenter save previews + shift text |
+| loadbox layout immediates | 0xDBF21 / 0xDC9D9 / 0xDC002 / 0xDC9F0 / 0xDC4E9 | scale loadbox cell/row layout |
+| `hbar_c::Parse` | 0xD51D0 | scale hbar W/H/Outer + tile pitch |
+| `hbar_c::Draw` | 0xD5050 | stretch cap/tile pictures to scaled fields |
+| `slider_c::Setup` | 0xD08A0 | scale slider bar/button/cap fields |
 | `stm_c` hover pass | 0xE9F30 | save/restore rect `ox/oy` around the engine hover pass |
 | rect hover prep | 0xCEB40 | rewrite `ox/oy` to the drawn position during the hover pass |
 | `menu_c::CreateTip` | 0xCA9D0 | re-anchor tooltip to the drawn rect bottom; record source rect |
-| `tip_c::Render` | 0xEA8A0 | suppress drawing once the cursor leaves the source rect |
+| `tip_c::Render` | 0xEA8A0 | suppress drawing when the source stm no longer hovers the source rect |
 
 Font measurement and glyph scaling are handled by `scaled_ui_base` (`R_DrawFont`,
 `R_Strlen`, `R_StrHeight`); menu images by its `GL_FindImage` hook. At
-`menuScale = 1` every path is identical to vanilla.
+`menuScale = 1`, content scaling is identical to vanilla; the frame-height
+correction still applies on non-4:3 screens.
 
 Re-open menus after changing the scale so the RMF is parsed with the new value.
+When `scaled_menu_reload_open_page()` reopens the active `sof_buddy/*` page, it
+captures each frame page's `stm_c` scroll (`+0x7C` content height, `+0x80`
+offset) and reapplies the saved fraction to the matching frame after the reparse,
+then calls `stm_c` scroll clamp (`0xEA160`). Slider flushes also skip the reload
+when the effective menu scale did not change.

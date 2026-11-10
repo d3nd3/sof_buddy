@@ -9,6 +9,7 @@
 #include "../../scaled_ui_base/ref_gl_state.h"
 #include "debug/hook_callsite.h"
 #include "runtime_features.h"
+#include <cstring>
 #if FEATURE_MORE_CROSSHAIRS
 #include "features/more_crosshairs/shared.h"
 #endif
@@ -32,14 +33,13 @@ void hkDraw_Pic(int x, int y, char const * imgname, int palette, detour_Draw_Pic
             if (*p++ == '/') slashes++;
         }
         if (slashes == 2 && *p) {
-            if (p[0] == 'b' && p[1] == 'a' && p[2] == 'c' && p[3] == 'k' &&
-                p[4] == 'd' && p[5] == 'o' && p[6] == 'p' && p[7] == 'e' &&
-                p[8] == '/') {
-                p += 9;
-                if (p[0] == 'w' && p[1] == 'e' && p[2] == 'b' && p[3] == '_' &&
-                    p[4] == 'b' && p[5] == 'g' && (p[6] == '.' || p[6] == '\0' || p[6] == '/')) {
-                    mainMenuBgTiled = true;
-                #if FEATURE_SCALED_HUD
+            constexpr char kBackdropPic[] = "backdrop/web_bg";
+            if (std::strncmp(p, kBackdropPic, sizeof(kBackdropPic) - 1) == 0 &&
+                (p[sizeof(kBackdropPic) - 1] == '\0' ||
+                 p[sizeof(kBackdropPic) - 1] == '.' ||
+                 p[sizeof(kBackdropPic) - 1] == '/')) {
+                mainMenuBgTiled = true;
+#if FEATURE_SCALED_HUD
     void* image = nullptr;
     int* image_texnum = nullptr;
     int saved_texnum = 0;
@@ -67,12 +67,11 @@ void hkDraw_Pic(int x, int y, char const * imgname, int palette, detour_Draw_Pic
     if (proxy_texnum && image_texnum)
         *image_texnum = saved_texnum;
 #endif
-                    mainMenuBgTiled = false;
-                    g_currentPicCaller = PicCaller::Unknown;
-                    g_activeDrawCall = DrawRoutineType::None;
-                    resetGlVertexQuadState();
-                    return;
-                }
+                mainMenuBgTiled = false;
+                g_currentPicCaller = PicCaller::Unknown;
+                g_activeDrawCall = DrawRoutineType::None;
+                resetGlVertexQuadState();
+                return;
             }
         }
     }

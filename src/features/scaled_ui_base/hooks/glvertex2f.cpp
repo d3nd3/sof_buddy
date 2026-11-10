@@ -200,7 +200,8 @@ static void handleDrawPicVertex(float x, float y) {
         }
 #endif
         default:
-            if (mainMenuBgTiled && RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
+            if ((mainMenuBgTiled || g_tiledBackdropDrawing) &&
+                RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
                 if (g_tiledBgVertexIndex == 1) {
                     g_tiledBgStartX = x;
                     g_tiledBgStartY = y;

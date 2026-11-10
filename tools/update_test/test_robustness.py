@@ -52,20 +52,25 @@ def compare_versions(local: str, remote: str) -> int:
     return 0
 
 
-def list_tags_filtered(tags: list[str], stable_tag: str, show_all: bool) -> list[str]:
-    out: list[str] = []
-    for tag in tags:
-        if not show_all:
-            if not stable_tag or tag != stable_tag:
-                continue
-        out.append(tag)
-    return out
+def channel_tags(entries: list[dict]) -> tuple[str, str]:
+    stable = ""
+    unstable = ""
+    for entry in entries:
+        tag = entry.get("tag_name", "")
+        if not tag:
+            continue
+        is_unstable = bool(entry.get("prerelease")) or "-unstable" in tag
+        if is_unstable and not unstable:
+            unstable = tag
+        if not is_unstable and not stable:
+            stable = tag
+    return stable, unstable
 
 
 def startup_effective_target(install_target: str, startup_stable_only: bool) -> str:
     if startup_stable_only:
         return "stable"
-    return install_target or "stable"
+    return "stable" if not install_target else ("unstable" if install_target == "latest" else install_target)
 
 
 def fetch_json(path: str) -> dict | list:
@@ -84,41 +89,37 @@ def ok(msg: str) -> None:
 
 
 def test_http_feeds() -> tuple[str, str]:
-    stable = fetch_json("/releases/stable.json")
-    latest = fetch_json("/releases/latest.json")
-    tags = fetch_json("/releases/list.json")
-    if stable.get("tag_name") != "99.0.0-test":
-        fail(f"stable.json tag unexpected: {stable.get('tag_name')}")
-    if latest.get("tag_name") != "99.1.0-test":
-        fail(f"latest.json tag unexpected: {latest.get('tag_name')}")
-    names = [t["tag_name"] for t in tags]
-    if "99.0.0-test" not in names or "99.1.0-test" not in names:
-        fail(f"list.json missing fixture tags: {names}")
-    ok(f"HTTP feeds stable={stable['tag_name']} latest={latest['tag_name']}")
-    return stable["tag_name"], latest["tag_name"]
+    entries = fetch_json("/releases/list.json")
+    stable_tag, unstable_tag = channel_tags(entries)
+    if stable_tag != "99.0.0-test":
+        fail(f"stable channel tag unexpected: {stable_tag}")
+    if unstable_tag != "99.1.0-test":
+        fail(f"unstable channel tag unexpected: {unstable_tag}")
+    ok(f"HTTP channels stable={stable_tag} unstable={unstable_tag}")
+    return stable_tag, unstable_tag
 
 
-def test_logic(stable_tag: str, latest_tag: str) -> None:
+def test_logic(stable_tag: str, unstable_tag: str) -> None:
     local_old, local_new = "0.0.0-test", "99.0.0-test"
     if compare_versions(local_old, stable_tag) >= 0:
         fail("old test DLL should be older than stable fixture")
     if compare_versions(local_new, stable_tag) != 0:
         fail("new test DLL should match stable fixture")
-    if compare_versions(local_new, latest_tag) >= 0:
-        fail("new test DLL should be older than latest fixture")
+    if compare_versions(local_new, unstable_tag) >= 0:
+        fail("new test DLL should be older than unstable fixture")
 
-    all_tags = ["99.1.0-test", "99.0.0-test", "0.0.0-test"]
-    filt = list_tags_filtered(all_tags, stable_tag, False)
-    if filt != [stable_tag]:
-        fail(f"filtered list wrong: {filt}")
-    if list_tags_filtered(all_tags, "", False) != []:
-        fail("empty stable_tag should list no version tags when show_all off")
+    entries = fetch_json("/releases/list.json")
+    stable, unstable = channel_tags(entries)
+    if (stable, unstable) != (stable_tag, unstable_tag):
+        fail(f"channel extraction wrong: {stable}, {unstable}")
 
-    if startup_effective_target("latest", True) != "stable":
-        fail("startup stable-only should ignore latest install target")
-    if startup_effective_target("latest", False) != "latest":
-        fail("startup should use install target when stable-only off")
-    ok("version compare + list filter + startup target logic")
+    if startup_effective_target("unstable", True) != "stable":
+        fail("startup stable-only should ignore unstable install target")
+    if startup_effective_target("unstable", False) != "unstable":
+        fail("startup should use unstable install target when stable-only off")
+    if startup_effective_target("latest", False) != "unstable":
+        fail("legacy latest target should normalize to unstable")
+    ok("version compare + branch channels + startup target logic")
 
 
 def test_fixture_zips() -> None:
@@ -179,8 +180,10 @@ def test_artifacts() -> None:
     for needle in (
         b"_sofbuddy_update_startup_stable_only",
         b"_sofbuddy_update_show_all_releases",
+        b"_sb_internal_update_unstable_tag",
         b"update_downgrade",
         b"Install stable release",
+        b"Install unstable build",
     ):
         if blob and needle not in blob:
             fail(f"universal DLL missing {needle!r} (run: make universal)")
@@ -291,36 +294,36 @@ def wine_startup_manifest(
     ok(f"Wine startup {label} -> tag={tag}")
 
 
-def test_wine(stable_tag: str, latest_tag: str) -> None:
+def test_wine(stable_tag: str, unstable_tag: str) -> None:
     if not wine_probe(SOF_DIR):
         print("skip: Wine SoF probe failed (run manually on a machine where SoF.exe starts)")
         return
     wine_startup_manifest(
         OLD_DLL,
         {
-            "_sofbuddy_update_target_tag": "latest",
+            "_sofbuddy_update_target_tag": "unstable",
             "_sofbuddy_update_startup_stable_only": "1",
         },
         stable_tag,
-        "old DLL + install=latest + startup stable-only",
+        "old DLL + install=unstable + startup stable-only",
     )
     wine_startup_manifest(
         OLD_DLL,
         {
-            "_sofbuddy_update_target_tag": "latest",
+            "_sofbuddy_update_target_tag": "unstable",
             "_sofbuddy_update_startup_stable_only": "0",
         },
-        latest_tag,
-        "old DLL + install=latest + startup follows latest",
+        unstable_tag,
+        "old DLL + install=unstable + startup follows unstable",
     )
     wine_startup_manifest(
         NEW_DLL,
         {
-            "_sofbuddy_update_target_tag": "latest",
+            "_sofbuddy_update_target_tag": "unstable",
             "_sofbuddy_update_startup_stable_only": "1",
         },
         stable_tag,
-        "new DLL on stable + startup stable-only (no latest nag)",
+        "new DLL on stable + startup stable-only (no unstable nag)",
     )
 
 
@@ -330,16 +333,16 @@ def main() -> int:
     else:
         wine = os.environ.get("SOFBUDDY_UPDATE_TEST_NO_WINE", "") != "1"
     try:
-        stable_tag, latest_tag = test_http_feeds()
+        stable_tag, unstable_tag = test_http_feeds()
     except (urllib.error.URLError, TimeoutError) as e:
         fail(f"fixture server not reachable at {BASE_URL}: {e}")
-    test_logic(stable_tag, latest_tag)
+    test_logic(stable_tag, unstable_tag)
     test_by_tag_feeds()
     test_fixture_zips()
     test_artifacts()
     subprocess.check_call([sys.executable, os.path.join(os.path.dirname(__file__), "verify_updater.py")])
     if wine:
-        test_wine(stable_tag, latest_tag)
+        test_wine(stable_tag, unstable_tag)
     else:
         print("skip: Wine startup tests (--no-wine or SOFBUDDY_UPDATE_TEST_NO_WINE=1)")
     print("test_robustness: all passed")

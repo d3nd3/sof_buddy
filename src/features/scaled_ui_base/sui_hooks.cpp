@@ -86,6 +86,7 @@ int DrawPicPivotCenterX = 0;
 int DrawPicPivotCenterY = 0;
 enumCroppedDrawMode hudCroppedEnum = OTHER_UNKNOWN;
 bool mainMenuBgTiled = false;
+bool g_tiledBackdropDrawing = false;
 
 // Feature-specific variables defined in their respective feature files:
 // - Console: scaled_con/console.cpp (consoleSize, isFontInner, draw_con_frac, cls_state, real_refdef_width)

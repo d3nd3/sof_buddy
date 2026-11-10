@@ -1,0 +1,26 @@
+<stm>
+<include tints>
+{theme_tints}
+<defaults noborder tiptint normaltext tipbtint sb_panel tipfont {tipfont}>
+<backdrop bgcolor sb_bg>
+
+<left>
+{content_inset_tall}
+</left>
+<right>
+{content_inset_tall}
+</right>
+<normal>
+
+<vbar tint sb_accent>
+
+<center>
+<font type {font_title} tint cyan atint cyan>
+<text "RELEASE TARGETS" tip "Stable releases come from master; unstable builds are prereleases from the unstable branch.">
+<hbr>
+<font type {font_small} tint white atint white>
+<includecvar _sb_internal_update_release_list_rmf>
+<ctext _sb_internal_update_release_list_status atext "Release list : " tint white atint white noshade tip "Run Refresh release list after changing the update API URL or filter."><hbr>
+<text "Refresh release list" key mouse1 "sofbuddy_update releases" border 8 1 cyan regular align center tip "Fetch installable tags from the update feed and reload this page."><hbr>
+<hbr>
+</stm>

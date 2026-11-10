@@ -40,12 +40,6 @@ int characterIndex = 0;
 // the glyphs. Each run then grows from its own start, leaving SoF's position intact.
 static float g_menuFontPivotX = 0.0f;
 static float g_menuFontPivotY = 0.0f;
-static bool g_menuTextScaleBypass = false;
-static char g_versionStampText[64] = {0};
-
-void scaled_menu_text_scale_bypass(bool on) {
-	g_menuTextScaleBypass = on;
-}
 
 bool scaled_menu_version_stamp(const char* text, int font) {
 	if (!text || !*text || font != static_cast<int>(REALFONT_SMALL)) return false;
@@ -53,16 +47,10 @@ bool scaled_menu_version_stamp(const char* text, int font) {
 	bool dot = false;
 	size_t n = 0;
 	for (const char* p = text; *p; ++p) {
-		if (++n >= sizeof(g_versionStampText)) return false;
-		if (*p == ' ') return false;
+		if (++n > 31 || *p == ' ') return false;
 		if (*p == '.') dot = true;
 	}
-	if (!dot) return false;
-	size_t i = 0;
-	for (; text[i] && i + 1 < sizeof(g_versionStampText); ++i)
-		g_versionStampText[i] = text[i];
-	g_versionStampText[i] = '\0';
-	return true;
+	return dot;
 }
 
 static bool forceVanillaFont(void)
@@ -238,9 +226,14 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 					orig_glVertex2f(x, y);
 					break;
 				}
-				if (scaleX) x = pivotx + (x - pivotx) * s;
-				if (scaleY) y = pivoty + (y - pivoty) * s;
-				orig_glVertex2f(x + (characterIndex * realFontSizes[realFont]) * (s - 1), y);
+				// Scale the whole run around its first glyph, like menu text below.
+				// The engine's x positions already contain the space advance (spaces
+				// emit no glyph quad), so scaling them keeps word gaps proportional at
+				// any resolution. The old per-quad pivot + characterIndex advance
+				// ignored spaces and collapsed them at 4K.
+				orig_glVertex2f(
+				    g_menuFontPivotX + (x - g_menuFontPivotX) * s,
+				    g_menuFontPivotY + (y - g_menuFontPivotY) * s);
 				break;
 			}
 			if (intro_scaler_intro_cinematic_active()) {
@@ -249,7 +242,7 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 			}
 #endif
 #if FEATURE_SCALED_MENU
-			if (scaled_menu_uniform_actual_active() && !g_menuTextScaleBypass) {
+			if (scaled_menu_uniform_actual_active()) {
 				const float s = scaled_menu_snapped_text_scale(realFont);
 				if (s == 1.0f) {
 					orig_glVertex2f(x, y);
@@ -330,6 +323,22 @@ float scaled_menu_font_measure_scale(const char* fontStd) {
 #endif
 }
 
+int scaled_menu_measure_text_width(const char* text, const char* fontStd) {
+#if FEATURE_SCALED_MENU
+	if (!text || !fontStd || !detour_R_Strlen::oR_Strlen) return 0;
+	const int width =
+	    detour_R_Strlen::oR_Strlen(const_cast<char*>(text), const_cast<char*>(fontStd));
+	const float scale = scaled_menu_font_measure_scale(fontStd);
+	return (scale == 1.0f)
+	           ? width
+	           : static_cast<int>(lroundf(scale * static_cast<float>(width)));
+#else
+	(void)text;
+	(void)fontStd;
+	return 0;
+#endif
+}
+
 static float font_measure_scale(const char* fontStd) {
 #if FEATURE_INTRO_SCALER
 	// Startup violence disclaimer: its glyphs scale by the page-width ratio (never by
@@ -358,24 +367,6 @@ static float font_measure_scale(const char* fontStd) {
 
 int hkR_Strlen(char* str, char* fontStd, detour_R_Strlen::tR_Strlen original) {
 	if (!original || !str || !fontStd) return 0;
-	if (g_versionStampText[0] && strcmp(str, g_versionStampText) == 0)
-		return original(str, fontStd);
-	if (strcmp(str, "version") == 0) return original(str, fontStd);
-	if (str[0] >= '0' && str[0] <= '9') {
-		bool dot = false;
-		bool ok = true;
-		size_t n = 0;
-		for (const char* p = str; *p; ++p) {
-			if (++n > 31 || *p == ' ') {
-				ok = false;
-				break;
-			}
-			if (*p == '.') dot = true;
-		}
-		const char* fontName = *reinterpret_cast<char* const*>(fontStd + 4);
-		if (ok && dot && fontName && getRealFontEnum(fontName) == REALFONT_SMALL)
-			return original(str, fontStd);
-	}
 	const float s = font_measure_scale(fontStd);
 	const int w = original(str, fontStd);
 	return s == 1.0f ? w : static_cast<int>(lroundf(s * static_cast<float>(w)));

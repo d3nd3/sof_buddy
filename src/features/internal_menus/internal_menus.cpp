@@ -475,6 +475,9 @@ void create_layout_cvars() {
     detour_Cvar_Get::oCvar_Get("_sb_internal_menu_vid_w", "640", kLayoutCvarFlags, nullptr);
     detour_Cvar_Get::oCvar_Get("_sb_internal_menu_vid_h", "480", kLayoutCvarFlags, nullptr);
     detour_Cvar_Get::oCvar_Get("_sb_internal_center_panel_px", "640", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_update_release_list_frame_rmf",
+        "<frame release_list 0 128 page sof_buddy/release_list_content border 0 0 clear backfill clear>",
+        kLayoutCvarFlags, nullptr);
     detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row1_prefix_px", "28", kLayoutCvarFlags, nullptr);
     detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row2_prefix_px", "28", kLayoutCvarFlags, nullptr);
     detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_wide", "1", kLayoutCvarFlags, nullptr);
@@ -623,14 +626,32 @@ void update_layout_cvars(bool trigger_reloadall_if_changed) {
     const int tabs_prefix_px = centered_tab_prefix(584.0f);
     const int tabs_prefix_narrow_px = centered_tab_prefix(392.0f);
     const bool tabs_wide = (vid_w * 3 > vid_h * 4);
-    const int scale_int_max = std::max(1, static_cast<int>(std::floor(static_cast<float>(vid_h) / 480.0f)));
+    // Use the real video height for the integer slider bound. SoFPlus can expose a
+    // virtual 16:9 menu height through viddef_height while pages are parsed; using it
+    // made scale_int_max 1, which gave the slider min == max (0/0 -> NaN and the knob
+    // warped off the left edge of the screen).
+    const int real_vid_h = (current_vid_h > 0) ? current_vid_h : vid_h;
+    const int scale_int_max =
+        std::max(1, static_cast<int>(std::floor(static_cast<float>(real_vid_h) / 480.0f)));
+    const int nav_units = tabs_wide ? 42 : 56;
+    const float frame_canvas = (vid_w > 0) ? (static_cast<float>(vid_w) / 640.0f) : 1.0f;
+    int release_list_units = 128;
+    if (frame_canvas > 1e-6f) {
+        const int screen_units = static_cast<int>(std::floor(static_cast<float>(vid_h) / frame_canvas));
+        release_list_units = screen_units - nav_units - 190;
+        if (release_list_units < 40) release_list_units = 40;
+    }
 
     char row1_rmf[64];
     char row2_rmf[64];
     char row1_narrow_rmf[64];
+    char release_list_frame_rmf[192];
     std::snprintf(row1_rmf, sizeof(row1_rmf), "<blank %d 1>", tabs_prefix_px);
     std::snprintf(row2_rmf, sizeof(row2_rmf), "<blank %d 1>", tabs_prefix_px);
     std::snprintf(row1_narrow_rmf, sizeof(row1_narrow_rmf), "<blank %d 1>", tabs_prefix_narrow_px);
+    std::snprintf(release_list_frame_rmf, sizeof(release_list_frame_rmf),
+        "<frame release_list 0 %d page sof_buddy/release_list_content border 0 0 clear backfill clear>",
+        release_list_units);
 
     set_runtime_cvar_int("_sb_internal_menu_vid_w", vid_w);
     set_runtime_cvar_int("_sb_internal_menu_vid_h", vid_h);
@@ -644,6 +665,7 @@ void update_layout_cvars(bool trigger_reloadall_if_changed) {
     set_runtime_cvar_str("_sb_internal_tabs_row1_suffix_rmf", row1_rmf);
     set_runtime_cvar_str("_sb_internal_tabs_row2_suffix_rmf", row2_rmf);
     set_runtime_cvar_str("_sb_internal_tabs_row1_prefix_narrow_rmf", row1_narrow_rmf);
+    set_runtime_cvar_str("_sb_internal_update_release_list_frame_rmf", release_list_frame_rmf);
 
     (void)trigger_reloadall_if_changed;
 }
@@ -707,21 +729,18 @@ static int internal_menus_content_inset_px(void) {
     return static_cast<int>(std::lround(static_cast<float>(gap) / s));
 }
 
-static int internal_menus_menu_vid_h_px(void) {
-    int vid_h = (viddef_height && *viddef_height > 0) ? *viddef_height : 0;
-    if (vid_h <= 0) vid_h = (current_vid_h > 0) ? current_vid_h : 0;
-    if (vid_h <= 0) vid_h = 480;
-    return vid_h;
-}
 const char* internal_menus_get_content_inset_rmf(void) {
     static char buf[40];
     std::snprintf(buf, sizeof(buf), "<blank %d 1>", internal_menus_content_inset_px());
     return buf;
 }
 const char* internal_menus_get_content_inset_tall_rmf(void) {
-    static char buf[48];
-    std::snprintf(buf, sizeof(buf), "<blank %d %d>",
-                  internal_menus_content_inset_px(), internal_menus_menu_vid_h_px());
+    // The side inset is a horizontal margin only. Keeping it one pixel high stops
+    // the invisible left/right spacer from inflating stm_c's content height, which
+    // would make the page scrollable past its real content and shorten the vbar
+    // thumb to a fraction of the space the page actually needs.
+    static char buf[40];
+    std::snprintf(buf, sizeof(buf), "<blank %d 1>", internal_menus_content_inset_px());
     return buf;
 }
 // Menu color themes as ABGR (0xAABBGGRR): bg, panel, fg, tip, hili, accent, subtle, heading, muted, active.

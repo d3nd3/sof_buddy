@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <cstdint>
 #include <cstring>
+#include <cmath>
 #include <string>
 #include "sof_compat.h"
 #include "util.h"
@@ -167,6 +168,9 @@ void scaled_ui_slider_defer_tick(int msec) {
 	if (GetTickCount() - g_pending_tick < 120) return;
 	const bool menu_scale = is_menu_scale_cvar(g_pending_name.c_str());
 	const bool persist = is_scale_cvar(g_pending_name.c_str());
+#if FEATURE_SCALED_MENU
+	const float menu_scale_before = menuScale;
+#endif
 	g_pending = false;
 	g_pending_cvar = nullptr;
 	g_applying = true;
@@ -174,7 +178,7 @@ void scaled_ui_slider_defer_tick(int msec) {
 	g_applying = false;
 	if (persist) sofbuddy_cfg_save_now();
 #if FEATURE_SCALED_MENU
-	if (menu_scale) {
+	if (menu_scale && std::fabs(menuScale - menu_scale_before) > 0.001f) {
 		g_reload_menu_pending = true;
 		g_reload_menu_tick = GetTickCount();
 	}
