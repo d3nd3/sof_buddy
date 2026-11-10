@@ -1029,6 +1029,11 @@ static void hk_frame_resize(void* frame, char* w, char* h) {
 #else
 	oFrame_Resize(frame, w, h);
 #endif
+	// `<stm resize W H>` pins the page to absolute pixels at every menu scale. The engine
+	// sets menu->screenScale to 1.0 here; hk_frame_link keys off menu_c_is_resize_popup()
+	// so the 4:3->wide frame ratio never grows these frames by vid_h/480 (the stretched
+	// precache/player dialog). Mark the session flag before the scale check as well.
+	s_resize_page_active = true;
 	if (!scaled_menu_uniform_actual_active() || scaled_menu_skip_for_intro_disclaimer()) return;
 	const float s = scaled_menu_screen_scale();
 	if (!std::isfinite(s) || std::fabs(s - 1.f) < 0.001f) return;
@@ -1038,7 +1043,6 @@ static void hk_frame_resize(void* frame, char* w, char* h) {
 	if (char* menu = *reinterpret_cast<char**>(f + kFrame_Menu)) {
 		*reinterpret_cast<float*>(menu + kMenuC_ScreenScale) = s;
 	}
-	s_resize_page_active = true;
 	// W/H are authored in virtual units. The canvas scales the contents, so scale the
 	// default frame box too and centre the resulting actual-pixel size.
 	int& fw = *reinterpret_cast<int*>(f + kFrame_W);
@@ -1166,8 +1170,13 @@ static void hk_frame_link(void* child, void* parent) {
 			const float canvas =
 			    menu ? *reinterpret_cast<float*>(static_cast<char*>(menu) + kMenuC_ScreenScale) : 0.f;
 			const float ratio = vertical_shrink_ratio(canvas);
+			// Resize pages carry their own absolute pixel canvas (`<stm resize W H>`), which
+			// is authoritative over the frame box; never apply the wide-screen frame ratio.
+			// The check is per-menu: a resize popup opened earlier must not disable the
+			// correction for unrelated menus parsed later in the same session.
 			const bool can_shrink = std::isfinite(ratio) && ratio > 0.0f &&
-			                        std::fabs(ratio - 1.0f) > 0.001f && !s_resize_page_active &&
+			                        std::fabs(ratio - 1.0f) > 0.001f &&
+			                        !menu_c_is_resize_popup(menu) &&
 			                        !scaled_menu_skip_for_intro_disclaimer();
 			if (!cr->height_shrunk && !skip_vertical_shrink && can_shrink && menu && cr->h != 0) {
 				int& fh = *reinterpret_cast<int*>(c + kFrame_H);

@@ -130,6 +130,47 @@ bool scale_keyword_number(std::string& text, const char* key, bool float_value, 
     return false;
 }
 
+// SoFPlus's `_ss` pages used the same <tab> grid as `_ns` scaled by the wide ratio
+// (130/170, 162/214, 252/332, 396/520 ~= 0.75). The `_ns` page is now rendered in the
+// 0.75-shrunk ss_content centre, so its column positions need that same ratio or the
+// server box lays out wider than its page (the server rows fall outside the clip).
+bool scale_tab_positions(std::string& content, float factor) {
+    if (!(factor > 0.0f) || std::fabs(factor - 1.0f) < 0.001f) return false;
+    bool changed = false;
+    size_t pos = 0;
+    while ((pos = content.find("<tab ", pos)) != std::string::npos) {
+        const size_t end = content.find('>', pos);
+        if (end == std::string::npos) break;
+        std::string line = content.substr(pos, end - pos + 1);
+        bool line_changed = false;
+        size_t p = 4;
+        while (p < line.size()) {
+            if (std::isspace(static_cast<unsigned char>(line[p]))) {
+                ++p;
+                continue;
+            }
+            if (!std::isdigit(static_cast<unsigned char>(line[p]))) break;
+            const size_t start = p;
+            while (p < line.size() && std::isdigit(static_cast<unsigned char>(line[p]))) ++p;
+            const int value = std::atoi(line.substr(start, p - start).c_str());
+            const int scaled = static_cast<int>(std::lround(static_cast<float>(value) * factor));
+            char buffer[16];
+            std::snprintf(buffer, sizeof(buffer), "%d", scaled);
+            line.replace(start, p - start, buffer);
+            p = start + std::strlen(buffer);
+            line_changed = true;
+        }
+        if (line_changed) {
+            content.replace(pos, end - pos + 1, line);
+            pos += line.size();
+            changed = true;
+        } else {
+            pos = end + 1;
+        }
+    }
+    return changed;
+}
+
 // bghoul scale/yoff are authored in canvas space; apply only the vertical-vs-canvas
 // ratio so they track the vertically shrunk frames.
 bool scale_bghoul_for_wide_aspect(std::string& content, float factor) {
@@ -291,7 +332,12 @@ bool scaled_menu_transform_rmf_content(const char* path, std::string& content) {
     // The real _ns page gets only the bghoul ratio adjustment; the outer wrapper
     // (the <exinclude> file) is what receives the 16:9 chrome.
     if (is_ns_menu_path(path)) {
-        changed = scale_bghoul_for_wide_aspect(content, vertical_shrink_ratio());
+        const float ratio = vertical_shrink_ratio();
+        changed = scale_bghoul_for_wide_aspect(content, ratio);
+        // Pages inside the 16:9 chrome are rendered in the vertically shrunk centre;
+        // their authored <tab> grid has to follow the same ratio as the frames.
+        if (scaled_menu_ss_content_page_active())
+            changed = scale_tab_positions(content, ratio) || changed;
         if (is_ss_content_page(path)) {
             changed = add_ss_content_cut(content) || changed;
             scaled_menu_note_ss_content_page(true);
