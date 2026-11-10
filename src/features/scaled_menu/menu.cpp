@@ -1,7 +1,8 @@
 /*
 	Menu scaling: content follows the vertical design scale (resY/480), frames keep the
-	stock percent-of-V canvas scale (vid_w/640). Rect width/height/xoff/yoff are scaled
-	once at RMF parse and stored, so drawing, layout and cursor hit-testing agree.
+	stock percent-of-V canvas scale (vid_w/640), and frame borders use the vertical
+	design ratio on both axes. Rect width/height/xoff/yoff are scaled once at RMF parse
+	and stored, so drawing, layout and cursor hit-testing agree.
 
 	Cvars:
 	- _sofbuddy_menu_scale: menuScale (0.25..vid_h/480, 1 = vanilla). Values above the
@@ -693,22 +694,17 @@ static float vertical_shrink_ratio(float canvas) {
 	return target / canvas;
 }
 
-static float border_init_scale(float scale, bool active) {
-	if (!active) return scale;
-	// Frame and rect borders are both authored in absolute pixels; scale both by
-	// the content menuScale.
-	return scaled_menu_screen_scale();
-}
-
 // sub_200C46D0 is __thiscall (this in ECX + 4 stack args, callee pops 0x10):
 // hk must carry __attribute__((thiscall)) so ECX/slots line up when JMP'd into.
 #if defined(__GNUC__)
 __attribute__((thiscall))
 #endif
 static void* hk_menu_border_dims_init(void* border, char* dimA, char* dimB, void* tint, float scale) {
-	bool active = scaled_menu_uniform_actual_active();
-	if (active && scaled_menu_skip_for_intro_disclaimer()) active = false;
-	if (!active) {
+	const bool skip = scaled_menu_skip_for_intro_disclaimer();
+	const bool active = scaled_menu_uniform_actual_active() && !skip;
+	// Rect borders pass 1.0; frame borders pass the stock canvas scale (vid_w/640).
+	const bool frame_border = std::fabs(scale - 1.0f) > 0.001f;
+	if (skip || (!active && !frame_border)) {
 #if defined(__GNUC__) && defined(__i386__)
 		return oMenu_BorderDimsInit
 		           ? call_border_dims_init(border, dimA, dimB, tint, scale,
@@ -718,7 +714,10 @@ static void* hk_menu_border_dims_init(void* border, char* dimA, char* dimB, void
 		return oMenu_BorderDimsInit ? oMenu_BorderDimsInit(border, dimA, dimB, tint, scale) : border;
 #endif
 	}
-	const float use = border_init_scale(scale, active);
+	// Frame borders always use the vertical design ratio on both axes; at 1x the
+	// stock path would otherwise use the wider horizontal canvas (vid_w/640).
+	const float use = scaled_menu_detail::border_dims_init_scale(
+	    frame_border, scaled_menu_screen_scale(), auto_scale_resolution_ratio(), active);
 #if defined(__GNUC__) && defined(__i386__)
 	void* ret = oMenu_BorderDimsInit
 	                ? call_border_dims_init(border, dimA, dimB, tint, use,
