@@ -629,6 +629,16 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
     const char* scale_int_max = "8";
     if (auto* cv = detour_Cvar_Get::oCvar_Get("_sb_internal_scale_int_max", "8", 0, nullptr))
         if (cv->string) scale_int_max = cv->string;
+    // At a 1x maximum the integer sliders would have min == max. The engine's knob
+    // position divides by (max - min), so that becomes 0/0 -> NaN and the knob is
+    // drawn at INT_MIN (off the left edge). Serve a 0..1 range instead: 1x stays at
+    // the right end and 0 clamps back to 1x through the scale-change callbacks.
+    if (std::strcmp(scale_int_max, "1") == 0) {
+        static const std::string from = "min 1 max {scale_int_max} step 1";
+        static const std::string to = "min 0 max 1 step 1";
+        for (std::string::size_type pos = 0; (pos = content.find(from, pos)) != std::string::npos; )
+            content.replace(pos, from.size(), to), pos += to.size();
+    }
     for (std::string::size_type pos = 0; (pos = content.find("{scale_int_max}", pos)) != std::string::npos; )
         content.replace(pos, 15, scale_int_max), pos += std::strlen(scale_int_max);
     for (std::string::size_type pos = 0; (pos = content.find("tall}", pos)) != std::string::npos; )

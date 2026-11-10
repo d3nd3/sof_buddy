@@ -1074,6 +1074,56 @@ static void write_code_dword(uintptr_t rva, uint32_t value) {
 	}
 }
 
+static void write_code_bytes(uintptr_t rva, const uint8_t* bytes, size_t count) {
+	void* addr = rvaToAbsExe(reinterpret_cast<void*>(rva));
+	if (!addr || !bytes || count == 0) return;
+	DWORD old = 0;
+	if (VirtualProtect(addr, count, PAGE_EXECUTE_READWRITE, &old)) {
+		std::memcpy(addr, bytes, count);
+		VirtualProtect(addr, count, old, &old);
+	}
+}
+
+// `menu_c::DrawCursor` (0x200CA8C0) sizes the software cursor picture and its hotspot by
+// `menu_c+0xAC`, the page's canvas scale. `<stm resize>` pins that field to the page's
+// absolute canvas (1.0 at 1x), so the cursor drops to stock pixels while a resize dialog
+// is up (96 px -> 32 px at 1080p). Normal menus already use the width canvas scale, so
+// point those four reads at screen_x_scale (vid_w/640) and the cursor stops changing size.
+static void patch_menu_cursor_scale(void) {
+	const uint32_t scale =
+	    static_cast<uint32_t>(reinterpret_cast<uintptr_t>(&screen_x_scale));
+	struct Patch {
+		uintptr_t rva;
+		uint8_t opcode;
+		uint8_t original_modrm;
+		uint8_t patched_modrm;
+	};
+	static constexpr Patch kPatches[] = {
+	    {0x000CA901u, 0xD9, 0x86, 0x05}, // fld  dword ptr [esi+0ACh]
+	    {0x000CA92Cu, 0xD9, 0x86, 0x05},
+	    {0x000CA95Eu, 0xD8, 0x8E, 0x0D}, // fmul dword ptr [esi+0ACh]
+	    {0x000CA970u, 0xD8, 0x8E, 0x0D},
+	};
+	for (const Patch& patch : kPatches) {
+		void* addr = rvaToAbsExe(reinterpret_cast<void*>(patch.rva));
+		if (!addr) continue;
+		const uint8_t* code = static_cast<const uint8_t*>(addr);
+		// Only accept the stock 6-byte form: <op> 86/8E AC 00 00 00.
+		if (code[0] != patch.opcode || code[1] != patch.original_modrm || code[2] != 0xAC ||
+		    code[3] != 0x00 || code[4] != 0x00 || code[5] != 0x00)
+			continue;
+		const uint8_t patched[6] = {
+		    patch.opcode,
+		    patch.patched_modrm,
+		    static_cast<uint8_t>(scale & 0xFFu),
+		    static_cast<uint8_t>((scale >> 8) & 0xFFu),
+		    static_cast<uint8_t>((scale >> 16) & 0xFFu),
+		    static_cast<uint8_t>((scale >> 24) & 0xFFu),
+		};
+		write_code_bytes(patch.rva, patched, sizeof(patched));
+	}
+}
+
 static void patch_loadbox_layout_scale(void) {
 	const float s = scaled_menu_screen_scale();
 	int icon = 128;
@@ -2298,6 +2348,7 @@ bool scaled_menu_install_hooks(void) {
 		reinterpret_cast<void*>(&hk_tip_render),
 		reinterpret_cast<void**>(&oTip_Render),
 		"tip_render") && ok;
+	patch_menu_cursor_scale();
 	return ok && Draw_RenderRect && oMenu_BorderDimsInit && oRect_Parse &&
 	       oText_Draw && oFrame_Ctor && oFrame_Link && oToke_Ctor &&
 	       oToke_Insert && oTicker_Init && oPic_Setup && oHr_Parse &&

@@ -626,7 +626,13 @@ void update_layout_cvars(bool trigger_reloadall_if_changed) {
     const int tabs_prefix_px = centered_tab_prefix(584.0f);
     const int tabs_prefix_narrow_px = centered_tab_prefix(392.0f);
     const bool tabs_wide = (vid_w * 3 > vid_h * 4);
-    const int scale_int_max = std::max(1, static_cast<int>(std::floor(static_cast<float>(vid_h) / 480.0f)));
+    // Use the real video height for the integer slider bound. SoFPlus can expose a
+    // virtual 16:9 menu height through viddef_height while pages are parsed; using it
+    // made scale_int_max 1, which gave the slider min == max (0/0 -> NaN and the knob
+    // warped off the left edge of the screen).
+    const int real_vid_h = (current_vid_h > 0) ? current_vid_h : vid_h;
+    const int scale_int_max =
+        std::max(1, static_cast<int>(std::floor(static_cast<float>(real_vid_h) / 480.0f)));
     const int nav_units = tabs_wide ? 42 : 56;
     const float frame_canvas = (vid_w > 0) ? (static_cast<float>(vid_w) / 640.0f) : 1.0f;
     int release_list_units = 128;

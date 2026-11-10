@@ -454,6 +454,17 @@ Scaling policy:
 - No `SetHeight`-skip or vertical-preserve special cases exist; earlier experiments
   were removed because they changed stock list behaviour and could hide rows.
 
+## Menu cursor
+
+`menu_c::DrawCursor` (`0x200CA8C0`) sizes the software cursor picture and its hotspot
+from `menu_c+0xAC` (the page canvas scale). `<stm resize W H>` pins that field to the
+page's absolute canvas (`frame_c::Resize` stores 1.0), so an open resize dialog shrinks
+the cursor to stock pixels at higher resolutions (96 px → 32 px at 1080p). The four
+scale reads in that function are patched to load `screen_x_scale` (`vid_w/640`, the
+scale normal menu pages use) instead, so the cursor keeps its normal size and hotspot
+while a resize popup is up. At 480p the two scales are both 1.0, which is why the stock
+shrink was not visible there.
+
 ## Ghouls and bghouls
 
 `<ghoul>`, `<bghoul>` and their `bgbolt` / `gbolt` anchors are staged by the engine.

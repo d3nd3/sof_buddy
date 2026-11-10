@@ -226,9 +226,14 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 					orig_glVertex2f(x, y);
 					break;
 				}
-				if (scaleX) x = pivotx + (x - pivotx) * s;
-				if (scaleY) y = pivoty + (y - pivoty) * s;
-				orig_glVertex2f(x + (characterIndex * realFontSizes[realFont]) * (s - 1), y);
+				// Scale the whole run around its first glyph, like menu text below.
+				// The engine's x positions already contain the space advance (spaces
+				// emit no glyph quad), so scaling them keeps word gaps proportional at
+				// any resolution. The old per-quad pivot + characterIndex advance
+				// ignored spaces and collapsed them at 4K.
+				orig_glVertex2f(
+				    g_menuFontPivotX + (x - g_menuFontPivotX) * s,
+				    g_menuFontPivotY + (y - g_menuFontPivotY) * s);
 				break;
 			}
 			if (intro_scaler_intro_cinematic_active()) {
