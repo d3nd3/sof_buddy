@@ -723,21 +723,18 @@ static int internal_menus_content_inset_px(void) {
     return static_cast<int>(std::lround(static_cast<float>(gap) / s));
 }
 
-static int internal_menus_menu_vid_h_px(void) {
-    int vid_h = (viddef_height && *viddef_height > 0) ? *viddef_height : 0;
-    if (vid_h <= 0) vid_h = (current_vid_h > 0) ? current_vid_h : 0;
-    if (vid_h <= 0) vid_h = 480;
-    return vid_h;
-}
 const char* internal_menus_get_content_inset_rmf(void) {
     static char buf[40];
     std::snprintf(buf, sizeof(buf), "<blank %d 1>", internal_menus_content_inset_px());
     return buf;
 }
 const char* internal_menus_get_content_inset_tall_rmf(void) {
-    static char buf[48];
-    std::snprintf(buf, sizeof(buf), "<blank %d %d>",
-                  internal_menus_content_inset_px(), internal_menus_menu_vid_h_px());
+    // The side inset is a horizontal margin only. Keeping it one pixel high stops
+    // the invisible left/right spacer from inflating stm_c's content height, which
+    // would make the page scrollable past its real content and shorten the vbar
+    // thumb to a fraction of the space the page actually needs.
+    static char buf[40];
+    std::snprintf(buf, sizeof(buf), "<blank %d 1>", internal_menus_content_inset_px());
     return buf;
 }
 // Menu color themes as ABGR (0xAABBGGRR): bg, panel, fg, tip, hili, accent, subtle, heading, muted, active.
