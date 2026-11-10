@@ -273,6 +273,7 @@ constexpr uintptr_t kRvaDrawRenderRectIat = 0x004035FCu;
 constexpr uintptr_t kRvaBackdropSetClipOpen = 0x000C3F2Eu;
 constexpr uintptr_t kRvaMenuBorderDimsInit = 0x000C46D0u;
 constexpr uintptr_t kRvaRectParse = 0x000CF890u;
+constexpr uintptr_t kRvaTextDraw = 0x000D8B70u;
 constexpr uintptr_t kRvaHrParse = 0x000DCF40u;
 constexpr uintptr_t kRvaTickerInit = 0x000D1B30u;
 constexpr uintptr_t kRvaTickerDraw = 0x000D1C80u;
@@ -325,6 +326,10 @@ constexpr ptrdiff_t kRect_BoltAnchor = 0x7C;
 
 // border_c
 constexpr ptrdiff_t kBorder_ThickPx = 0x04;
+
+// text_c strings: +0x8C is the font standard object, +0x9C the label.
+constexpr ptrdiff_t kText_FontStd = 0x8C;
+constexpr ptrdiff_t kText_Label = 0x9C;
 
 // hr (setkey_c) layout
 constexpr ptrdiff_t kHr_Width = 0x8C;
@@ -441,6 +446,164 @@ static bool widget_is_ghoul(const void* widget) {
 	if (!widget) return false;
 	const void* vt = *static_cast<const void* const*>(widget);
 	return vt == rvaToAbsExe(reinterpret_cast<void*>(kRvaGhoulVtbl));
+}
+
+// <text ... talign center> opts a label into draw-time centring. Leading spaces used to
+// fake this, but one space is a whole glyph and the old hard-coded width table assumed
+// 3 px per space while the medium font advances ~6 px, which pushed labels into the
+// right border at 1.25x. Draw-time centring uses the engine's own measurement and leaves
+// the rect (border, hitbox, layout flow) untouched.
+struct TextAlignEntry {
+	void* text;
+	void* stm;
+	const char* label;
+};
+static TextAlignEntry s_text_align[128];
+static int s_text_align_next = 0;
+
+static void text_align_mark(void* text) {
+	if (!text) return;
+	char* t = static_cast<char*>(text);
+	void* stm = *reinterpret_cast<void**>(t + kRect_MenuPtr);
+	const char* label =
+	    *reinterpret_cast<char* const*>(t + kText_Label + kStdString_Data);
+	if (!label) return;
+	for (TextAlignEntry& entry : s_text_align) {
+		if (entry.text == text) {
+			entry.stm = stm;
+			entry.label = label;
+			return;
+		}
+	}
+	TextAlignEntry& entry =
+	    s_text_align[s_text_align_next++ %
+	                 (sizeof(s_text_align) / sizeof(s_text_align[0]))];
+	entry.text = text;
+	entry.stm = stm;
+	entry.label = label;
+}
+
+static void text_align_unmark(void* text) {
+	if (!text) return;
+	for (TextAlignEntry& entry : s_text_align) {
+		if (entry.text == text) {
+			entry.text = nullptr;
+			entry.stm = nullptr;
+			entry.label = nullptr;
+			return;
+		}
+	}
+}
+
+static bool text_align_is_center(const void* text) {
+	if (!text) return false;
+	const char* t = static_cast<const char*>(text);
+	void* stm = *reinterpret_cast<void**>(const_cast<char*>(t) + kRect_MenuPtr);
+	const char* label =
+	    *reinterpret_cast<char* const*>(const_cast<char*>(t) + kText_Label + kStdString_Data);
+	if (!label) return false;
+	for (const TextAlignEntry& entry : s_text_align) {
+		if (entry.text == text && entry.stm == stm && entry.label == label) return true;
+	}
+	return false;
+}
+
+// A parse-only marker token is consumed in two pieces: "talign" then its value, because
+// rect_c::Parse sees one token per call and text_c::Parse advances after each one.
+static void* s_text_align_pending_token = nullptr;
+static void* s_text_align_pending_rect = nullptr;
+
+static bool text_align_parse_token(void* rect, void* token, const char* keyword) {
+	if (!rect || !token || !keyword || !widget_is_text(rect)) return false;
+	if (std::strcmp(keyword, "talign") == 0) {
+		const char* value = thiscall_token(
+		    token, 1, rvaToAbsExe(reinterpret_cast<void*>(kRvaToken)));
+		if (value && std::strcmp(value, "center") == 0)
+			text_align_mark(rect);
+		else
+			text_align_unmark(rect);
+		s_text_align_pending_token = token;
+		s_text_align_pending_rect = rect;
+		return true;
+	}
+	if (s_text_align_pending_token == token && s_text_align_pending_rect == rect &&
+	    (std::strcmp(keyword, "center") == 0 || std::strcmp(keyword, "left") == 0 ||
+	     std::strcmp(keyword, "right") == 0)) {
+		s_text_align_pending_token = nullptr;
+		s_text_align_pending_rect = nullptr;
+		return true;
+	}
+	s_text_align_pending_token = nullptr;
+	s_text_align_pending_rect = nullptr;
+	return false;
+}
+
+using Text_Draw_t = int(__thiscall*)(void* text);
+static Text_Draw_t oText_Draw = nullptr;
+
+static int call_text_draw(void* text, void* fn) {
+	int out = 0;
+	if (!fn || !text) return out;
+#if defined(__GNUC__) && defined(__i386__)
+	__asm__ __volatile__(
+		"movl %1, %%ecx\n\t"
+		"call *%2\n\t"
+		"movl %%eax, %0"
+		: "=m"(out)
+		: "m"(text), "m"(fn)
+		: "ecx", "eax", "edx", "memory");
+#else
+	out = reinterpret_cast<Text_Draw_t>(fn)(text);
+#endif
+	return out;
+}
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static int hk_text_draw(void* text) {
+	if (!text || !text_align_is_center(text))
+		return call_text_draw(text, reinterpret_cast<void*>(oText_Draw));
+
+	char* t = static_cast<char*>(text);
+	const char* label =
+	    *reinterpret_cast<char* const*>(t + kText_Label + kStdString_Data);
+	const int box_w = *reinterpret_cast<int*>(t + kRect_W);
+	if (!label || !*label || box_w <= 0)
+		return call_text_draw(text, reinterpret_cast<void*>(oText_Draw));
+
+	const int text_w =
+	    scaled_menu_measure_text_width(label, t + kText_FontStd);
+	if (text_w <= 0)
+		return call_text_draw(text, reinterpret_cast<void*>(oText_Draw));
+
+	int delta = centered_text_offset(box_w, text_w);
+	if (delta == 0)
+		return call_text_draw(text, reinterpret_cast<void*>(oText_Draw));
+
+	// GetCoords multiplies virtual xoff by the canvas on the hard (bolted/aligned)
+	// path; divide it out so the visual offset is still delta pixels.
+	void* stm = *reinterpret_cast<void**>(t + kRect_MenuPtr);
+	void* frame = stm ? *reinterpret_cast<void**>(stm) : nullptr;
+	void* menu = frame ? *reinterpret_cast<void**>(frame) : nullptr;
+	float canvas =
+	    menu ? *reinterpret_cast<float*>(static_cast<char*>(menu) + kMenuC_ScreenScale) : 1.f;
+	if (!std::isfinite(canvas) || canvas <= 1e-6f) canvas = 1.f;
+	const bool hard_path =
+	    *reinterpret_cast<int*>(t + kRect_Align) == 2 ||
+	    *reinterpret_cast<int*>(t + kRect_Align) == 3 ||
+	    *reinterpret_cast<void**>(t + kRect_BoltAnchor) != nullptr;
+	if (hard_path && *reinterpret_cast<uint8_t*>(t + kRect_VirtualX) &&
+	    std::fabs(canvas - 1.f) > 0.001f) {
+		delta = static_cast<int>(std::lround(static_cast<float>(delta) / canvas));
+	}
+
+	int& xoff = *reinterpret_cast<int*>(t + kRect_Xoff);
+	const int saved = xoff;
+	xoff = saved + delta;
+	const int ret = call_text_draw(text, reinterpret_cast<void*>(oText_Draw));
+	xoff = saved;
+	return ret;
 }
 
 static bool menu_actual_pixel_scale_active(const void* menu_c) {
@@ -602,6 +765,7 @@ static bool hk_rect_parse(void* rect, void* token) {
 #if defined(__GNUC__) && defined(__i386__)
 	keyword = thiscall_token(token, 0, rvaToAbsExe(reinterpret_cast<void*>(kRvaToken)));
 #endif
+	if (text_align_parse_token(rect, token, keyword)) return true;
 	const bool fixed_width = keyword && std::strcmp(keyword, "width") == 0;
 	const bool fixed_height = keyword && std::strcmp(keyword, "height") == 0;
 	const bool fixed_xoff = keyword && std::strcmp(keyword, "xoff") == 0;
@@ -1801,6 +1965,11 @@ bool scaled_menu_install_hooks(void) {
 		reinterpret_cast<void**>(&oRect_Parse),
 		"rect_parse") && ok;
 	ok = install_one(
+		reinterpret_cast<void*>(kRvaTextDraw),
+		reinterpret_cast<void*>(&hk_text_draw),
+		reinterpret_cast<void**>(&oText_Draw),
+		"text_draw") && ok;
+	ok = install_one(
 		reinterpret_cast<void*>(kRvaFrameResize),
 		reinterpret_cast<void*>(&hk_frame_resize),
 		reinterpret_cast<void**>(&oFrame_Resize),
@@ -1886,7 +2055,7 @@ bool scaled_menu_install_hooks(void) {
 		reinterpret_cast<void**>(&oTip_Render),
 		"tip_render") && ok;
 	return ok && Draw_RenderRect && oMenu_BorderDimsInit && oRect_Parse &&
-	       oFrame_Ctor && oFrame_Link && oToke_Ctor &&
+	       oText_Draw && oFrame_Ctor && oFrame_Link && oToke_Ctor &&
 	       oToke_Insert && oTicker_Init && oPic_Setup && oHr_Parse &&
 	       oHbar_Parse && oHbar_Draw &&
 	       oStm_HoverPass && oRect_HoverPrep && oMenu_CreateTip && oTip_Render;
@@ -1908,6 +2077,10 @@ bool scaled_menu_uniform_actual_active(void) {
 float scaled_menu_screen_scale(void) {
 	const float s = menuScale > 0.0f ? menuScale : 1.0f;
 	return menu_effective_scale(s);
+}
+
+bool scaled_menu_text_align_available(void) {
+	return oRect_Parse != nullptr && oText_Draw != nullptr;
 }
 
 float scaled_menu_snapped_text_scale(realFontEnum_t font) {

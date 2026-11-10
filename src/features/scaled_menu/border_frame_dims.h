@@ -55,4 +55,11 @@ inline float scale_axis_coordinate(float coordinate, float pivot, float factor) 
 	return pivot + (coordinate - pivot) * factor;
 }
 
+// Pixel offset that centres a measured text run inside a fixed-width text box.
+// A label at least as wide as the box is left at its authored position.
+inline int centered_text_offset(int box_width, int text_width) {
+	if (box_width <= 0 || text_width <= 0 || text_width >= box_width) return 0;
+	return (box_width - text_width) / 2;
+}
+
 } // namespace scaled_menu_detail

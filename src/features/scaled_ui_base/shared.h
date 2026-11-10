@@ -38,6 +38,9 @@ void menuscale_change(cvar_t* cvar);
 extern cvar_t* _sofbuddy_menu_scale;
 extern cvar_t* _sofbuddy_menu_tip_appear;
 extern cvar_t* _sofbuddy_menu_font_size_style;
+// Measure a menu text run with the same glyph snapping the renderer uses, even
+// when the caller is outside the engine's menu module (e.g. a menu layout hook).
+int scaled_menu_measure_text_width(const char* text, const char* fontStd);
 #endif
 extern float scaleRoundRatio;
 extern bool scaleRoundAuto;

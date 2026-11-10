@@ -16,6 +16,8 @@ bool scaled_menu_install_hooks(void);
 bool scaled_menu_uniform_actual_active(void);
 void scaled_menu_set_pushed_menu(const char* name);
 float scaled_menu_screen_scale(void);
+// True once the rect/text draw hooks needed by `<text talign center>` are installed.
+bool scaled_menu_text_align_available(void);
 // Re-read the engine's live vid size and re-derive menuScale before menu layout runs.
 void scaled_menu_sync_scale_from_engine(void);
 float scaled_menu_snapped_text_scale(realFontEnum_t font);
