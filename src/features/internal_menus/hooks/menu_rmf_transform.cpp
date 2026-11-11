@@ -319,6 +319,33 @@ bool redirect_ss_path_to_ns(char* path) {
     return false;
 }
 
+bool is_wide_side_page(const char* path) {
+    const std::string normalized = normalize_menu_path(path);
+    const size_t slash = normalized.rfind('/');
+    const std::string leaf =
+        slash == std::string::npos ? normalized : normalized.substr(slash + 1);
+    return leaf == "16_9_l.rmf" || leaf == "16_9_r.rmf";
+}
+
+// The chrome leaves the side columns to the 16_9_l / 16_9_r pages, which must paint
+// nothing so the game view stays visible beside the centred page. Force them to a
+// clear backdrop even if the installed SoFPlus (or a pak overriding it) ships a
+// coloured/tiled one.
+bool ensure_clear_backdrop(std::string& content) {
+    const size_t stm = content.find("<stm");
+    if (stm == std::string::npos) return false;
+    const size_t stm_end = content.find('>', stm);
+    if (stm_end == std::string::npos) return false;
+    size_t pos = 0;
+    while ((pos = content.find("<backdrop", pos)) != std::string::npos) {
+        const size_t end = content.find('>', pos);
+        if (end == std::string::npos) break;
+        content.erase(pos, end - pos + 1);
+    }
+    content.insert(stm_end + 1, "\n<backdrop bgcolor clear>");
+    return true;
+}
+
 } // namespace
 
 bool scaled_menu_redirect_ss_path(char* path) {
@@ -329,6 +356,8 @@ bool scaled_menu_redirect_ss_path(char* path) {
 
 bool scaled_menu_transform_rmf_content(const char* path, std::string& content) {
     bool changed = false;
+    // The injected chrome's side frames use 16_9_l / 16_9_r; keep both transparent.
+    if (is_wide_side_page(path)) changed = ensure_clear_backdrop(content) || changed;
     // The real _ns page gets only the bghoul ratio adjustment; the outer wrapper
     // (the <exinclude> file) is what receives the 16:9 chrome.
     if (is_ns_menu_path(path)) {

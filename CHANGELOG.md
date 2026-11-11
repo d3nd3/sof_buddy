@@ -2,6 +2,13 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## Unreleased
+
+### Scaled menu
+
+- The 16:9 chrome now forces the `16_9_l` / `16_9_r` side pages to a clear backdrop on load, so a pak or SoFPlus version with different side art cannot leave stale pixels beside the centred menu.
+- Integer-mode scale settings survive a restart again. At startup the archived scale was applied before the real video mode was known (`max scale` still read as 1x), so a saved 2x/4x was clamped to 1x and persisted. The stored value is now left alone until the resolution is known; the runtime scale callbacks still clamp the effective scale.
+
 ## v8.51
 
 ### Scaled menu

@@ -176,7 +176,11 @@ static void apply_integer_scale(cvar_t* scale, float max_scale) {
 	if (cvar_t* cv = findCvar(scale->name)) scale = cv;
 	float value = std::floor(scale->value);
 	if (value < 1.0f) value = 1.0f;
-	if (max_scale >= 1.0f && value > max_scale) value = max_scale;
+	// Do not clamp the stored cvar to max_scale when the video mode is not known yet.
+	// At startup the archived scale is applied before the first VID_CheckChanges, so
+	// max_scale is 1 and a saved 2x/4x would be rewritten to 1x and persist across
+	// restarts. The runtime change callbacks already clamp the effective scale.
+	if (max_scale > 1.0f && value > max_scale) value = max_scale;
 	char buf[32];
 	std::snprintf(buf, sizeof(buf), "%.0f", value);
 	if (std::strcmp(scale->string ? scale->string : "", buf) != 0)
