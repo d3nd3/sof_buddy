@@ -30,6 +30,17 @@ inline float fixed_rect_parse_factor(float contextual_factor, bool context_is_au
 	return menu_scale / widget_scale;
 }
 
+// loadbox_c::Parse multiplies its stored width by the menu canvas itself. Divide the
+// canvas out so the final width is authored width * menu scale. This must also apply at
+// 1x, where the rest of the scaled-menu rect hooks are inactive: otherwise the engine
+// still multiplies by the full canvas, the loadbox becomes wider than its frame, and
+// stm_c::GetValidPosition rejects it as "too wide to place".
+inline float loadbox_width_parse_factor(float menu_scale, float canvas_scale) {
+	if (!std::isfinite(menu_scale) || menu_scale <= 0.f) menu_scale = 1.f;
+	if (!std::isfinite(canvas_scale) || canvas_scale <= 1e-6f) canvas_scale = 1.f;
+	return menu_scale / canvas_scale;
+}
+
 inline FixedRectDimension scale_fixed_rect_dimension(int value, float widget_scale, int padding, float factor) {
 	if (std::fabs(factor - 1.f) <= 0.001f) {
 		const int outer = static_cast<int>(std::lround(static_cast<float>(value) * widget_scale)) + 2 * padding;
