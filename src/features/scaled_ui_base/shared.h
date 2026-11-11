@@ -69,6 +69,12 @@ extern int menuLoadboxFirstItemY;
 extern bool g_scaledMenuLoadboxDrawActive;
 extern int g_scaledMenuLoadboxTextDy;
 extern float g_scaledMenuLoadboxScale;
+// <selection> grids draw their inventory icons with Draw_Pic, so the menu scale is
+// applied to their vertices while the selection's draw hook is active.
+extern bool g_scaledMenuSelectionDrawActive;
+extern int g_scaledMenuSelectionOriginX;
+extern int g_scaledMenuSelectionOriginY;
+extern float g_scaledMenuSelectionScale;
 #endif
 
 // Scale team icons + playernames (2D info above players) with the HUD scale.

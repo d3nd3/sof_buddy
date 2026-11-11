@@ -130,7 +130,10 @@ Per context:
 
 - **intro/disclaimer** — Scaled Menu's rect/border/ticker/text scaling is skipped
   (see Intro / disclaimer);
-- **per rect** — `noscale` (`rect+0x66`) disables dim/offset scaling;
+- **per rect** — `noscale` (`rect+0x66`) is a stock RMF/image flag, not a SoF Buddy
+  opt-out. It skips the generic rect dimension/offset pass so offsets stay on the
+  engine's native path, but `<image>`/`<pic>` dimensions are still scaled in the
+  `pic_c::Setup` hook;
 - **resize pages** — `menu_actual_pixel_scale_active()` returns false when the page
   canvas actually carries a raised scale (`menu_resize_canvas_is_scaled()`:
   `canvas > 1.001 && canvas <= max(menuScale, screen_x_scale, screen_y_scale) * 2`);
@@ -424,7 +427,13 @@ texture size × `scaled_menu_screen_scale()` (not glyph-snapped). Glyph-grid sna
 applies only to text.
 
 `<pic>`/`<image>` widgets are scaled at `pic_c::Setup` by the content factor. They
-are corner-anchored by default, so their top-left stays put.
+are corner-anchored by default, so their top-left stays put. `noscale` is a stock
+RMF/image flag (draw the native picture size instead of applying the bolted/anchor
+sizing); it is not an opt-out from SoF Buddy scaling. `hk_pic_setup` still scales
+the stored `W/H/OuterW/OuterH` of `noscale` images, including bolted ones such as
+the outfit menu's knife and divider. Bolted images without `noscale` are left to
+the stock `pic_c::Setup` to avoid double scaling, and images with explicit
+`width`/`height` were already scaled by the rect hook.
 
 Tiled `<backdrop tile>` backgrounds are picture-sized as well: `backdrop_c::Parse`
 stores the native picture W/H in `+0x1C/+0x20` and the engine repeats the tiles at
@@ -607,7 +616,17 @@ Fix:
   Title) and applies when the menu is reopened. **Menu font size style**
   (Small/Normal/Large/Extra Large) selects the F12 font-tier template; F12 is
   reparsed so the authored `<font type>` tags stay consistent.
-- `<pic>`/`<image>` widgets are scaled at `pic_c::Setup` (`0x200D2290`) by the same menu-scale factor as other actual-pixel widgets; `noscale` images, bolted tab icons, images with explicit `width`/`height` (already scaled by rect parse), and resize canvases that already carry the scale are skipped.
+- `<pic>`/`<image>` widgets are scaled at `pic_c::Setup` (`0x200D2290`) by the same menu-scale factor as other actual-pixel widgets. `noscale` does not opt the image out: it is a stock RMF flag for native-size drawing, so `noscale` images (including the outfit menu's bolted knife/divider) still get their stored dimensions scaled. Bolted images without `noscale`, images with explicit `width`/`height` (already scaled by rect parse), and resize canvases that already carry the scale are skipped.
+- `<selection>` grids parse their style, width, and height in `selection_c::Parse`'s
+  constructor (`0x200E12B0`), so the generic `rect_c::Parse` hook never sees the two
+  dimensions. `hk_selection_parse` scales `W/H/OuterW/OuterH` after the stock parse,
+  keeping the authored column count (`width / icon width`) so the same number of slots
+  remains. `hk_selection_draw` records the drawn rect origin and `hk_selection_handle`
+  scales the icon pitch for click column hit-testing; the inventory icon quads
+  themselves are scaled around that origin in `handleDrawPicVertex`, and selection
+  labels are moved with the same origin in `hkR_DrawFont`. This keeps the outfit
+  menu's weapon/item grids (`t_outfit_ns.rmf`) in proportion with `menuScale` instead
+  of leaving their 320/192 px grids at stock size.
 - `hk_stm_hover_pass` records each `stm_c`'s current hovered rect (`stm+0x34`)
   after the stock hover pass, keyed by the `stm_c*` and a generation counter.
   `hk_menu_create_tip` stores the source rect's `stm_c*` and generation;

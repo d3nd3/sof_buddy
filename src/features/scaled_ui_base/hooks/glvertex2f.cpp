@@ -164,6 +164,21 @@ static void handleDrawPicVertex(float x, float y) {
         scaleCinematicVertex(x, y);
         return;
     }
+#if FEATURE_SCALED_MENU
+    // <selection>'s Draw() emits each inventory icon through Draw_Pic at the stock
+    // pitch and 1:1 size. Scale the quad around the selection origin so the icons
+    // grow with the grid and stay inside the scaled column count.
+    if (g_scaledMenuSelectionDrawActive && g_activeDrawCall == DrawRoutineType::Pic &&
+        menuUniformActive()) {
+        const float s = g_scaledMenuSelectionScale;
+        if (s > 1.001f) {
+            const float ox = static_cast<float>(g_scaledMenuSelectionOriginX);
+            const float oy = static_cast<float>(g_scaledMenuSelectionOriginY);
+            orig_glVertex2f(ox + (x - ox) * s, oy + (y - oy) * s);
+            return;
+        }
+    }
+#endif
     switch (g_currentPicCaller) {
 #if FEATURE_SCALED_HUD
         case PicCaller::SCR_DrawCrosshair:
