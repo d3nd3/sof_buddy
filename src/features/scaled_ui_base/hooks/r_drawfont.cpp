@@ -11,6 +11,7 @@
 #if FEATURE_INTRO_SCALER
 #include "../../intro_scaler/shared.h"
 #endif
+#include <cmath>
 #include <math.h>
 #include <string.h>
 
@@ -69,6 +70,17 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
     g_activeDrawCall = DrawRoutineType::Font;
 #if FEATURE_SCALED_MENU
     if (g_scaledMenuLoadboxDrawActive) screenY += g_scaledMenuLoadboxTextDy;
+    // <selection> draws its item counts/hotkeys at offsets derived from the stock
+    // 32 px icon pitch. Keep those labels anchored to the scaled icons.
+    if (g_scaledMenuSelectionDrawActive) {
+        const float s = g_scaledMenuSelectionScale;
+        if (s > 1.001f) {
+            const float ox = static_cast<float>(g_scaledMenuSelectionOriginX);
+            const float oy = static_cast<float>(g_scaledMenuSelectionOriginY);
+            screenX = static_cast<int>(std::lround(ox + (static_cast<float>(screenX) - ox) * s));
+            screenY = static_cast<int>(std::lround(oy + (static_cast<float>(screenY) - oy) * s));
+        }
+    }
 #endif
     if (g_currentFontCaller == FontCaller::Unknown) {
         g_currentFontCaller = fontCallerFromRenderType(g_activeRenderType);

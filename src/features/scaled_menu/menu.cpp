@@ -45,6 +45,10 @@ float menuScale = 1.0f;
 bool g_scaledMenuLoadboxDrawActive = false;
 int g_scaledMenuLoadboxTextDy = 0;
 float g_scaledMenuLoadboxScale = 1.0f;
+bool g_scaledMenuSelectionDrawActive = false;
+int g_scaledMenuSelectionOriginX = 0;
+int g_scaledMenuSelectionOriginY = 0;
+float g_scaledMenuSelectionScale = 1.0f;
 
 static char s_pushed_menu_name[64] = {0};
 static bool s_skip_vertical_shrink = false;
@@ -257,6 +261,20 @@ static void thiscall_1arg_void(void* self, void* a1, void* fn) {
 		: "ecx", "eax", "edx", "memory");
 }
 
+static int thiscall_1arg_int(void* self, void* a1, void* fn) {
+	int out = 0;
+	if (!fn || !self) return out;
+	__asm__ __volatile__(
+		"pushl %2\n\t"
+		"movl %1, %%ecx\n\t"
+		"call *%3\n\t"
+		"movl %%eax, %0"
+		: "=m"(out)
+		: "m"(self), "m"(a1), "m"(fn)
+		: "ecx", "eax", "edx", "memory");
+	return out;
+}
+
 
 static void thiscall_rect_set_height(void* rect, int height, void* fn) {
 	if (!fn || !rect) return;
@@ -287,6 +305,9 @@ constexpr uintptr_t kRvaVbarThumbWidth = 0x000D5976u;
 constexpr uintptr_t kRvaVbarThumbInset = 0x000D5979u;
 constexpr uintptr_t kRvaHbarParse = 0x000D51D0u;
 constexpr uintptr_t kRvaHbarDraw = 0x000D5050u;
+constexpr uintptr_t kRvaSelectionParse = 0x000E12B0u;
+constexpr uintptr_t kRvaSelectionDraw = 0x000E0AF0u;
+constexpr uintptr_t kRvaSelectionHandle = 0x000E1250u;
 constexpr uintptr_t kRvaBackdropDraw = 0x000C3EF0u;
 constexpr uintptr_t kRvaBackdropParse = 0x000C4220u;
 constexpr uintptr_t kRvaBorderRender = 0x000C48F0u;
@@ -344,6 +365,10 @@ constexpr ptrdiff_t kHr_Line = 0x90;
 // vbar_c layout
 constexpr ptrdiff_t kVbar_PicW = 0xB4;
 constexpr ptrdiff_t kVbar_PicH = 0xB8;
+
+// selection_c: +0x9C/+0xA0 are the item picture size used as the grid pitch and
+// +0xA4 is the authored column count.
+constexpr ptrdiff_t kSelection_PicW = 0x9C;
 
 // hbar_c (picture progress bar). W/H come from the cap picture and Outer from W, so the
 // generic rect parse hook never sees a <width>/<height> token for the stock tags.
@@ -683,10 +708,14 @@ static void* menu_outer_from_widget(void* widget) {
 	return frame ? *reinterpret_cast<void**>(frame) : nullptr;
 }
 
-static float menu_actual_rect_dim_factor(void* rect) {
+static float menu_actual_rect_dim_factor(void* rect, bool ignore_noscale = false) {
 	if (!scaled_menu_uniform_actual_active()) return 1.f;
 	if (!rect) return 1.f;
-	if (*reinterpret_cast<uint8_t*>(static_cast<char*>(rect) + kRect_NoScale)) return 1.f;
+	// `noscale` is a stock RMF/image flag (draw at native size instead of stretching to
+	// the rect). It is not a request to leave the widget out of SoF Buddy's menu scale.
+	if (!ignore_noscale &&
+	    *reinterpret_cast<uint8_t*>(static_cast<char*>(rect) + kRect_NoScale))
+		return 1.f;
 	if (widget_is_ghoul(rect)) return 1.f;
 	void* menu = menu_outer_from_widget(rect);
 	if (!menu_actual_pixel_scale_active(menu)) {
@@ -938,23 +967,28 @@ static char hk_pic_setup(void* pic) {
 		char* p = static_cast<char*>(pic);
 		const bool bolted = *reinterpret_cast<uint8_t*>(p + kRect_Bolted) ||
 		                    *reinterpret_cast<void**>(p + kRect_BoltAnchor);
+		const bool noscale = *reinterpret_cast<uint8_t*>(p + kRect_NoScale) != 0;
 		const bool fixed = pic_fixed_consume(pic);
 		static constexpr ptrdiff_t fields[] = {kRect_W, kRect_H, kRect_OuterW, kRect_OuterH};
-		if (bolted) {
-			// Bolted pics live in the staged art space (SoFPlus anchors its Web
-			// Folders tab icons to the bghoul). Their target art is shrunk by the
-			// vertical-vs-canvas ratio at menu load, so follow that ratio here too.
-			// menuScale would overshoot: the icons would overhang the shrinking tabs.
-			if (!fixed && !*reinterpret_cast<uint8_t*>(p + kRect_NoScale)) {
+		if (!fixed) {
+			if (bolted && !noscale) {
+				// Bolted pics live in the staged art space (SoFPlus anchors its Web
+				// Folders tab icons to the bghoul). Their target art is shrunk by the
+				// vertical-vs-canvas ratio at menu load, so follow that ratio here too.
+				// menuScale would overshoot: the icons would overhang the shrinking tabs.
 				char* menu = static_cast<char*>(menu_outer_from_widget(pic));
 				const float canvas =
 				    menu ? *reinterpret_cast<float*>(menu + kMenuC_ScreenScale) : 1.f;
 				scale_widget_dims(pic, fields, sizeof(fields) / sizeof(fields[0]),
 				                  vertical_shrink_ratio(canvas));
+			} else {
+				// `noscale` is a stock RMF/image flag (draw native size instead of
+				// stretching to the rect), not a SoF Buddy opt-out. Scale those stored
+				// dimensions too; this also covers bolted noscale art such as the outfit
+				// menu's knife/divider, which stock pic_c::Setup leaves untouched.
+				scale_widget_dims(pic, fields, sizeof(fields) / sizeof(fields[0]),
+				                  menu_actual_rect_dim_factor(pic, true));
 			}
-		} else if (!fixed) {
-			scale_widget_dims(pic, fields, sizeof(fields) / sizeof(fields[0]),
-			                  menu_actual_rect_dim_factor(pic));
 		}
 	}
 	return ret;
@@ -1037,6 +1071,104 @@ static bool hk_hbar_parse(void* hbar, void* token) {
 		return parsed;
 	hbar_scale_dims(hbar);
 	return parsed;
+}
+
+// <selection> consumes its name/width/height in selection_c::Parse's constructor,
+// before the generic rect_c::Parse hook can see those tokens. The column count
+// (+0xA4 = width / icon width) is left at its authored value so the grid keeps the
+// same number of slots; drawing and click handling apply menuScale to the pitch.
+using Selection_Parse_t = bool(__thiscall*)(void* selection, void* token);
+static Selection_Parse_t oSelection_Parse = nullptr;
+
+static void selection_scale_dims(void* selection) {
+	if (!selection) return;
+	char* r = static_cast<char*>(selection);
+	if (*reinterpret_cast<uint8_t*>(r + kRect_NoScale)) return;
+	const float factor = menu_actual_rect_dim_factor(selection);
+	if (!std::isfinite(factor) || std::fabs(factor - 1.f) <= 0.001f) return;
+	float widget_scale = *reinterpret_cast<float*>(r + kRect_WidgetScale);
+	if (!std::isfinite(widget_scale) || widget_scale <= 1e-6f) widget_scale = 1.f;
+	void* border = *reinterpret_cast<void**>(r + kRect_Border);
+	const int padding = border ? *reinterpret_cast<int*>(static_cast<char*>(border)) : 0;
+	int& w = *reinterpret_cast<int*>(r + kRect_W);
+	int& h = *reinterpret_cast<int*>(r + kRect_H);
+	int& ow = *reinterpret_cast<int*>(r + kRect_OuterW);
+	int& oh = *reinterpret_cast<int*>(r + kRect_OuterH);
+	const auto sw = scale_fixed_rect_dimension(w, widget_scale, padding, factor);
+	const auto sh = scale_fixed_rect_dimension(h, widget_scale, padding, factor);
+	w = sw.value;
+	ow = sw.outer;
+	h = sh.value;
+	oh = sh.outer;
+}
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static bool hk_selection_parse(void* selection, void* token) {
+	const bool parsed = oSelection_Parse
+	                        ? thiscall_rect_parse(selection, token,
+	                                              reinterpret_cast<void*>(oSelection_Parse))
+	                        : false;
+	if (!parsed || !selection) return parsed;
+	if (!scaled_menu_uniform_actual_active() || scaled_menu_skip_for_intro_disclaimer())
+		return parsed;
+	selection_scale_dims(selection);
+	return parsed;
+}
+
+using Selection_Draw_t = void(__thiscall*)(void* selection);
+static Selection_Draw_t oSelection_Draw = nullptr;
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static void hk_selection_draw(void* selection) {
+	const bool prev_active = g_scaledMenuSelectionDrawActive;
+	const int prev_x = g_scaledMenuSelectionOriginX;
+	const int prev_y = g_scaledMenuSelectionOriginY;
+	const float prev_scale = g_scaledMenuSelectionScale;
+	g_scaledMenuSelectionDrawActive = false;
+	if (selection && !*reinterpret_cast<uint8_t*>(static_cast<char*>(selection) + kRect_NoScale) &&
+	    scaled_menu_uniform_actual_active() && !scaled_menu_skip_for_intro_disclaimer()) {
+		const float s = scaled_menu_screen_scale();
+		int x = 0, y = 0;
+		if (s > 1.001f &&
+		    thiscall_rect_get_coords(selection, &x, &y,
+		                             rvaToAbsExe(reinterpret_cast<void*>(kRvaRectGetCoords)))) {
+			g_scaledMenuSelectionOriginX = x;
+			g_scaledMenuSelectionOriginY = y;
+			g_scaledMenuSelectionScale = s;
+			g_scaledMenuSelectionDrawActive = true;
+		}
+	}
+	thiscall_noargs_void(selection, reinterpret_cast<void*>(oSelection_Draw));
+	g_scaledMenuSelectionDrawActive = prev_active;
+	g_scaledMenuSelectionOriginX = prev_x;
+	g_scaledMenuSelectionOriginY = prev_y;
+	g_scaledMenuSelectionScale = prev_scale;
+}
+
+using Selection_Handle_t = char(__thiscall*)(void* selection, int key);
+static Selection_Handle_t oSelection_Handle = nullptr;
+
+#if defined(__GNUC__)
+__attribute__((thiscall))
+#endif
+static char hk_selection_handle(void* selection, int key) {
+	char* r = static_cast<char*>(selection);
+	int* pic_w = r ? reinterpret_cast<int*>(r + kSelection_PicW) : nullptr;
+	const int saved_pic_w = pic_w ? *pic_w : 0;
+	if (r && *reinterpret_cast<uint8_t*>(r + kRect_NoScale) == 0 &&
+	    scaled_menu_uniform_actual_active() && !scaled_menu_skip_for_intro_disclaimer()) {
+		const float s = scaled_menu_screen_scale();
+		if (s > 1.001f && saved_pic_w > 0)
+			*pic_w = static_cast<int>(std::lround(static_cast<float>(saved_pic_w) * s));
+	}
+	const int ret = thiscall_1arg_int(selection, reinterpret_cast<void*>(key),
+	                                  reinterpret_cast<void*>(oSelection_Handle));
+	if (pic_w) *pic_w = saved_pic_w;
+	return static_cast<char>(ret);
 }
 
 static void* backdrop_menu(void* backdrop) {
@@ -2475,6 +2607,21 @@ bool scaled_menu_install_hooks(void) {
 		reinterpret_cast<void**>(&oHbar_Draw),
 		"hbar_draw") && ok;
 	ok = install_one(
+		reinterpret_cast<void*>(kRvaSelectionParse),
+		reinterpret_cast<void*>(&hk_selection_parse),
+		reinterpret_cast<void**>(&oSelection_Parse),
+		"selection_parse") && ok;
+	ok = install_one(
+		reinterpret_cast<void*>(kRvaSelectionDraw),
+		reinterpret_cast<void*>(&hk_selection_draw),
+		reinterpret_cast<void**>(&oSelection_Draw),
+		"selection_draw") && ok;
+	ok = install_one(
+		reinterpret_cast<void*>(kRvaSelectionHandle),
+		reinterpret_cast<void*>(&hk_selection_handle),
+		reinterpret_cast<void**>(&oSelection_Handle),
+		"selection_handle") && ok;
+	ok = install_one(
 		reinterpret_cast<void*>(kRvaBackdropDraw),
 		reinterpret_cast<void*>(&hk_backdrop_draw),
 		reinterpret_cast<void**>(&oBackdrop_Draw),
@@ -2508,7 +2655,8 @@ bool scaled_menu_install_hooks(void) {
 	return ok && Draw_RenderRect && oMenu_BorderDimsInit && oRect_Parse &&
 	       oText_Draw && oFrame_Ctor && oFrame_Link && oToke_Ctor &&
 	       oToke_Insert && oTicker_Init && oPic_Setup && oHr_Parse &&
-	       oHbar_Parse && oHbar_Draw && oBackdrop_Draw && oBackdrop_Parse &&
+	       oHbar_Parse && oHbar_Draw && oSelection_Parse && oSelection_Draw &&
+	       oSelection_Handle && oBackdrop_Draw && oBackdrop_Parse &&
 	       oStm_HoverPass && oRect_HoverPrep && oMenu_CreateTip && oTip_Render;
 }
 

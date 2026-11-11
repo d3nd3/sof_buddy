@@ -40,6 +40,9 @@ Provides shared infrastructure and base hooks for all scaled UI features (scaled
 - `g_currentPicCaller` - Identifies which function called Draw_Pic
 - `g_currentStretchPicCaller` - Identifies which function called Draw_StretchPic
 - `DrawPicWidth`, `DrawPicHeight` - Image dimensions extracted from GL_FindImage
+- `g_scaledMenuSelectionDrawActive`, origin X/Y, and scale - Records the active
+  `<selection>` grid so the shared Draw_Pic and DrawFont vertex hooks can scale its
+  icons and labels around the widget origin
 - `mainMenuBgTiled` - Flag for menu background tiling mode
 - `screen_y_scale`, `current_vid_w`, `current_vid_h` - Screen dimensions and scaling factors
 
