@@ -480,7 +480,11 @@ exclusion the background ghoul is displaced by `(canvasScale − menuScale) × o
 position — the “main menu pushed to the left” symptom.
 
 The menu-load bghoul ratio adjustment multiplies `xoff`, `yoff`, and `scale` by
-the vertical-vs-canvas ratio (see `_ss` menus).
+the vertical-vs-canvas ratio (see `_ss` menus). Images **bolted** to that bghoul
+receive the same ratio at `pic_c::Setup`, so the tab icons shrink with the tab
+art. The anchors already line up; it was the icon size that stayed at the stock
+canvas scale. The bolt name is the only anchor information available at pic
+setup, so every bolted pic is treated as art space, matching bolted tickers.
 
 The startup intro ghoul is additionally normalised by `intro_scaler` (model scale
 and offsets from `vid_w/640`, then the letterbox shift).
@@ -607,7 +611,7 @@ Fix:
   Title) and applies when the menu is reopened. **Menu font size style**
   (Small/Normal/Large/Extra Large) selects the F12 font-tier template; F12 is
   reparsed so the authored `<font type>` tags stay consistent.
-- `<pic>`/`<image>` widgets are scaled at `pic_c::Setup` (`0x200D2290`) by the same menu-scale factor as other actual-pixel widgets; `noscale` images, bolted tab icons, images with explicit `width`/`height` (already scaled by rect parse), and resize canvases that already carry the scale are skipped.
+- `<pic>`/`<image>` widgets are scaled at `pic_c::Setup` (`0x200D2290`) by the same menu-scale factor as other actual-pixel widgets; `noscale` images, images with explicit `width`/`height` (already scaled by rect parse), and resize canvases that already carry the scale are skipped. Bolted images are the exception: they are anchored to the staged ghoul/art space, so they get the vertical-vs-canvas ratio (the same ratio applied to the bghoul and bolted tickers) instead of `menuScale`. Without that, the SoFPlus Web Folders tab icons keep their stock canvas size while the bghoul's tab art shrinks on wide screens, leaving the icons overhanging the tabs vertically.
 - `hk_stm_hover_pass` records each `stm_c`'s current hovered rect (`stm+0x34`)
   after the stock hover pass, keyed by the `stm_c*` and a generation counter.
   `hk_menu_create_tip` stores the source rect's `stm_c*` and generation;

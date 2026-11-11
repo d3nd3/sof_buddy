@@ -895,12 +895,23 @@ static char hk_pic_setup(void* pic) {
 		char* p = static_cast<char*>(pic);
 		const bool bolted = *reinterpret_cast<uint8_t*>(p + kRect_Bolted) ||
 		                    *reinterpret_cast<void**>(p + kRect_BoltAnchor);
-		bool fixed = false;
-		if (!bolted) fixed = pic_fixed_consume(pic);
-		if (!bolted && !fixed) {
-			const float factor = menu_actual_rect_dim_factor(pic);
-			static constexpr ptrdiff_t fields[] = {kRect_W, kRect_H, kRect_OuterW, kRect_OuterH};
-			scale_widget_dims(pic, fields, sizeof(fields) / sizeof(fields[0]), factor);
+		const bool fixed = pic_fixed_consume(pic);
+		static constexpr ptrdiff_t fields[] = {kRect_W, kRect_H, kRect_OuterW, kRect_OuterH};
+		if (bolted) {
+			// Bolted pics live in the staged art space (SoFPlus anchors its Web
+			// Folders tab icons to the bghoul). Their target art is shrunk by the
+			// vertical-vs-canvas ratio at menu load, so follow that ratio here too.
+			// menuScale would overshoot: the icons would overhang the shrinking tabs.
+			if (!fixed && !*reinterpret_cast<uint8_t*>(p + kRect_NoScale)) {
+				char* menu = static_cast<char*>(menu_outer_from_widget(pic));
+				const float canvas =
+				    menu ? *reinterpret_cast<float*>(menu + kMenuC_ScreenScale) : 1.f;
+				scale_widget_dims(pic, fields, sizeof(fields) / sizeof(fields[0]),
+				                  vertical_shrink_ratio(canvas));
+			}
+		} else if (!fixed) {
+			scale_widget_dims(pic, fields, sizeof(fields) / sizeof(fields[0]),
+			                  menu_actual_rect_dim_factor(pic));
 		}
 	}
 	return ret;
