@@ -40,6 +40,7 @@
 #include <stdint.h>
 #include <atomic>
 
+
 float menuScale = 1.0f;
 bool g_scaledMenuLoadboxDrawActive = false;
 int g_scaledMenuLoadboxTextDy = 0;
@@ -409,6 +410,38 @@ static void __cdecl hk_draw_render_rect(int x, int y, int w, int h) {
 		w = current_vid_w;
 	}
 	if (oDraw_RenderRect) oDraw_RenderRect(x, y, w, h);
+}
+
+using Draw_BeveledBox_t = void(__cdecl*)(int x, int y, int w, int h, void* tint);
+static Draw_BeveledBox_t oDraw_BeveledBox = nullptr;
+
+// Apply the measured rect to the tip box currently being drawn by tip_c::Render.
+// Written by hk_tip_render, read by hk_draw_beveled_box.
+static bool s_tip_box_active = false;
+static int s_tip_box_y = 0;
+static int s_tip_box_h = 0;
+
+static void __cdecl hk_draw_beveled_box(int x, int y, int w, int h, void* tint) {
+	// tip_c::Render draws its background before the text, so use the previous frame's
+	// measured glyph bounds (stable while the same tip is hovered). The first frame of
+	// a new tip is invisible: the fade starts at alpha 0 when the tip becomes active.
+	if (s_tip_box_active) {
+		y = s_tip_box_y;
+		h = s_tip_box_h;
+	}
+	if (oDraw_BeveledBox) oDraw_BeveledBox(x, y, w, h, tint);
+}
+
+// The engine fills its ref_gl function pointers only after ref_gl loads, which happens
+// after scaled_menu_install_hooks(). Hook the entry lazily on the first tip render (and
+// again after a renderer reload) so the pointer is live.
+static void ensure_beveled_box_hook(void) {
+	auto** bb = reinterpret_cast<void**>(rvaToAbsExe(reinterpret_cast<void*>(kRvaDrawBeveledBoxIat)));
+	if (!bb) return;
+	void* entry = *bb;
+	if (!entry || entry == reinterpret_cast<void*>(&hk_draw_beveled_box)) return;
+	oDraw_BeveledBox = reinterpret_cast<Draw_BeveledBox_t>(entry);
+	writeUnsignedIntegerAt(bb, reinterpret_cast<unsigned int>(&hk_draw_beveled_box));
 }
 
 static bool menu_c_is_resize_popup(const void* menu_c) {
@@ -1773,9 +1806,49 @@ struct TipSource {
 	void* stm;
 	unsigned generation;
 	bool from_stm_hover;
+	// Screen-space background rect measured from the previous frame's glyph run.
+	// The engine draws the tip's box before its text, so a new measurement is only
+	// available one frame later; the tip fades in from alpha 0, which hides that frame.
+	bool measured;
+	int box_y;
+	int box_h;
 };
 static TipSource s_tip_sources[64];
 static int s_tip_source_next = 0;
+
+// Glyph run capture for the current tip render. Only the vertical extent matters:
+// the engine's horizontal sizing already matches the scaled run.
+static bool s_tip_capturing = false;
+static int s_tip_vertex_count = 0;
+static float s_tip_min_y = 0.0f;
+static float s_tip_max_y = 0.0f;
+
+static void tip_bounds_begin(void) {
+	s_tip_capturing = true;
+	s_tip_vertex_count = 0;
+}
+
+static void tip_bounds_end(TipSource* source) {
+	s_tip_capturing = false;
+	if (!source || s_tip_vertex_count == 0) return;
+	const int top = static_cast<int>(std::floor(s_tip_min_y));
+	const int bottom = static_cast<int>(std::ceil(s_tip_max_y));
+	if (bottom <= top) return;
+	source->box_y = top - 2;
+	source->box_h = (bottom - top) + 4;
+	source->measured = true;
+}
+
+void tip_bounds_vertex(float x, float y) {
+	(void)x;
+	if (!s_tip_capturing) return;
+	if (s_tip_vertex_count++ == 0) {
+		s_tip_min_y = s_tip_max_y = y;
+		return;
+	}
+	if (y < s_tip_min_y) s_tip_min_y = y;
+	if (y > s_tip_max_y) s_tip_max_y = y;
+}
 
 static void tip_source_store(void* menu, void* tip, void* rect, void* stm,
                              bool from_stm_hover, unsigned generation) {
@@ -1783,6 +1856,8 @@ static void tip_source_store(void* menu, void* tip, void* rect, void* stm,
 	const int count = static_cast<int>(sizeof(s_tip_sources) / sizeof(s_tip_sources[0]));
 	for (int i = 0; i < count; ++i) {
 		if (s_tip_sources[i].menu == menu && s_tip_sources[i].tip == tip) {
+			// A new source rect means new tip text; the old measurement no longer applies.
+			if (s_tip_sources[i].rect != rect) s_tip_sources[i].measured = false;
 			s_tip_sources[i].rect = rect;
 			s_tip_sources[i].stm = stm;
 			s_tip_sources[i].generation = generation;
@@ -1797,6 +1872,9 @@ static void tip_source_store(void* menu, void* tip, void* rect, void* stm,
 	entry.stm = stm;
 	entry.generation = generation;
 	entry.from_stm_hover = from_stm_hover;
+	entry.measured = false;
+	entry.box_y = 0;
+	entry.box_h = 0;
 }
 
 static void tip_source_reset(void) {
@@ -1807,6 +1885,9 @@ static void tip_source_reset(void) {
 		entry.stm = nullptr;
 		entry.generation = 0;
 		entry.from_stm_hover = false;
+		entry.measured = false;
+		entry.box_y = 0;
+		entry.box_h = 0;
 	}
 	s_tip_source_next = 0;
 	for (HoverState& entry : s_hover_states) {
@@ -1956,6 +2037,7 @@ __attribute__((thiscall))
 #endif
 static void hk_tip_render(void* tip, void* menu) {
 	if (!tip || !menu) return;
+	ensure_beveled_box_hook();
 	TipSource* source = tip_source_find(menu, tip);
 	if (source) {
 		if (source->from_stm_hover) {
@@ -1968,6 +2050,17 @@ static void hk_tip_render(void* tip, void* menu) {
 			if (hovered && hovered != source->rect) return;
 		}
 	}
+	const bool fit = RuntimeFeatures::Enabled(
+	    RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU);
+	s_tip_box_active = fit && source && source->measured;
+	if (s_tip_box_active) {
+		s_tip_box_y = source->box_y;
+		s_tip_box_h = source->box_h;
+	}
+	if (fit && source)
+		tip_bounds_begin();
+	else
+		s_tip_capturing = false;
 	if (oTip_Render) {
 #if defined(__GNUC__) && defined(__i386__)
 		thiscall_1arg_void(tip, menu, reinterpret_cast<void*>(oTip_Render));
@@ -1975,6 +2068,8 @@ static void hk_tip_render(void* tip, void* menu) {
 		oTip_Render(tip, menu);
 #endif
 	}
+	s_tip_box_active = false;
+	tip_bounds_end(source);
 }
 
 struct MenuExtendCache {
@@ -2187,6 +2282,10 @@ static bool install_one(void* rva, void* hook, void** orig, const char* name, si
 } // namespace scaled_menu_detail
 
 using namespace scaled_menu_detail;
+
+void scaled_menu_tip_bounds_vertex(float x, float y) {
+	tip_bounds_vertex(x, y);
+}
 
 void scaled_menu_backdrop_clip_extend(int* x, int* w, const void* menu_c) {
 	if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) return;

@@ -638,6 +638,30 @@ Fix:
   falls back to the old `menu+0xBC` check. The hook only reads engine state and
   skips the render call — it never writes menu/tip fields or frees the tip.
 
+The background box had a separate sizing problem. `tip_c::Render` measures its
+bevel box from `R_StrHeight`, which is the font's full line height, and draws the
+text at `tip.y`. Scaled glyphs, however, grow around the first glyph's top-left
+vertex, so glyphs taller than the first character (or with different cell tops,
+such as `L`/`T`/`P`) shift the visible run relative to that line box. The top gap
+stayed roughly fixed (unscaled) while the bottom gap grew with `menuScale`, which
+is what made tooltips look bottom-heavy at high resolutions.
+
+Fix: `hk_tip_render` records the screen-space vertex bounds of the tip's
+`R_DrawFont` run (capture is armed only while `tip_c::Render` runs, so it does not
+depend on caller classification) and stores them on the `TipSource`. The
+`Draw_BeveledBox` entry (`0x4035E8`) then overrides only the box `y`/`height` with
+`floor(top) − 2` and `ceil(bottom) − floor(top) + 4`, so the box hugs the drawn
+glyph cells at any scale/resolution. The box is drawn before the text, so it uses
+the previous frame's bounds; a new tip's first frame is invisible because the fade
+starts at alpha 0. Horizontal sizing (`R_Strlen` + 4, anchored at the cursor)
+already matches the scaled run and is left to the engine.
+
+The `0x4035E8` slot is **not** a PE import: it is a function pointer in the exe's
+zero-initialized `.data`, filled by the engine only after `ref_gl.dll` loads. It is
+therefore hooked lazily on the first tip render (and re-hooked if a renderer reload
+puts the original pointer back), not in `scaled_menu_install_hooks`, which runs
+from `DllMain` before `ref_gl` exists.
+
 No validation/rejection is used: the hitbox itself now matches the drawing.
 
 ## Stubborn bug: direct `oM_PushMenu` calls bypass the hook dispatcher
@@ -699,6 +723,7 @@ patched `M_PushMenu` entry), not `detour_M_PushMenu::oM_PushMenu`.
 | ticker init (vtable `+0x28`) | 0xD1B30 | ticker `W`/`OuterW` canvas normalisation, wide-screen box scale, speed scale |
 | `ticker_c::Draw` | 0xD1C80 | mark bolted tickers while drawing |
 | `Draw_RenderRect` IAT | 0x4035FC | expand bolted-ticker scissor to full screen |
+| `Draw_BeveledBox` IAT | 0x4035E8 | fit tooltip background to measured glyph bounds |
 | `pic_c::Setup` | 0xD2290 | scale pic dimensions for normal menus |
 | `vbar_c` ctor | 0xD5250 | scale vbar W/OuterW/xoff + cap picture W/H |
 | `vbar_c::Cleanup` | 0xD5610 | size the bar to page content when the frame height is 0; recompute thumb |

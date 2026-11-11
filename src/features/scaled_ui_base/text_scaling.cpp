@@ -245,15 +245,27 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 			if (scaled_menu_uniform_actual_active()) {
 				const float s = scaled_menu_snapped_text_scale(realFont);
 				if (s == 1.0f) {
+					// Capture is only armed while tip_c::Render runs, so this records
+					// the tooltip run regardless of how its caller was classified.
+					scaled_menu_tip_bounds_vertex(x, y);
 					orig_glVertex2f(x, y);
 					break;
 				}
-				orig_glVertex2f(
-				    scaled_menu_detail::scale_axis_coordinate(x, g_menuFontPivotX, s),
-				    scaled_menu_detail::scale_axis_coordinate(y, g_menuFontPivotY, s));
-			} else
-#endif
+				const float scaled_x =
+				    scaled_menu_detail::scale_axis_coordinate(x, g_menuFontPivotX, s);
+				const float scaled_y =
+				    scaled_menu_detail::scale_axis_coordinate(y, g_menuFontPivotY, s);
+				// tip_c::Render sizes its background one frame later; record the
+				// screen-space glyph run so the box can hug the drawn text.
+				scaled_menu_tip_bounds_vertex(scaled_x, scaled_y);
+				orig_glVertex2f(scaled_x, scaled_y);
+			} else {
+				scaled_menu_tip_bounds_vertex(x, y);
 				orig_glVertex2f(x, y);
+			}
+#else
+			orig_glVertex2f(x, y);
+#endif
 			break;
 #endif
 			
