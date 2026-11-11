@@ -22,6 +22,10 @@ bool scaled_menu_text_align_available(void);
 void scaled_menu_sync_scale_from_engine(void);
 float scaled_menu_snapped_text_scale(realFontEnum_t font);
 void scaledMenu_EarlyStartup(void);
+// In the injected 16:9 chrome, anchor a global page's backdrop at the menu origin so
+// the background spans the full screen instead of starting at the ss_content X offset.
+void scaled_menu_backdrop_clip_anchor(void* stm, const void* menu_c, int* x, int* y,
+                                      int* w, int* h);
 #if FEATURE_SCALED_MENU && FEATURE_INTRO_SCALER
 void scaled_menu_backdrop_clip_extend(int* x, int* w, const void* menu_c);
 #endif

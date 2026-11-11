@@ -18,6 +18,9 @@
 #include "runtime_features.h"
 #include "generated_detours.h"
 #include "shared.h"
+#if FEATURE_SCALED_MENU
+#include "features/scaled_menu/shared.h"
+#endif
 
 #include <cmath>
 #include <cstdint>
@@ -225,8 +228,12 @@ static void __cdecl hk_menu_stm_set_clip(void* stm, int, int* outX, int* outY, i
 			y = 0;
 			w = current_vid_w;
 			h = current_vid_h;
-		} else if (s_clip_extend)
-			s_clip_extend(&x, &w, menu);
+		} else {
+#if FEATURE_SCALED_MENU
+			scaled_menu_backdrop_clip_anchor(stm, menu, &x, &y, &w, &h);
+#endif
+			if (s_clip_extend) s_clip_extend(&x, &w, menu);
+		}
 	}
 	*outX = x;
 	*outY = y;

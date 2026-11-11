@@ -1985,6 +1985,19 @@ struct MenuExtendCache {
 
 static MenuExtendCache s_extend_cache[kExtendCacheMax];
 
+static bool menu_has_wide_chrome(void* menu_c) {
+	if (!menu_c) return false;
+	auto find_frame = reinterpret_cast<Menu_FindFrame_t>(
+		rvaToAbsExe(reinterpret_cast<void*>(kRvaMenuFindFrame)));
+	if (!find_frame) return false;
+#if defined(__GNUC__) && defined(__i386__)
+	return thiscall_menu_find_frame(menu_c, "16_9_center",
+	                                reinterpret_cast<void*>(find_frame)) != nullptr;
+#else
+	return find_frame(menu_c, "16_9_center") != nullptr;
+#endif
+}
+
 static void extend_cache_store(void* menu_c, const void* def_frame) {
 	if (!menu_c || !def_frame) return;
 	const auto* fr = static_cast<const char*>(def_frame);
@@ -2153,8 +2166,11 @@ static void __cdecl hk_menu_stm_set_clip(void* stm, int, int* outX, int* outY, i
 #else
 	const bool intro_cine = false;
 #endif
+	const bool backdrop_clip = set_clip_from_backdrop_open() && !intro_cine;
+	if (backdrop_clip)
+		scaled_menu_backdrop_clip_anchor(stm, menu, &x, &y, &w, &h);
 	if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU) &&
-	    set_clip_from_backdrop_open() && !intro_cine)
+	    backdrop_clip)
 		menu_extend_clip_xw(&x, &w, menu);
 	*outX = x;
 	*outY = y;
@@ -2175,6 +2191,26 @@ using namespace scaled_menu_detail;
 void scaled_menu_backdrop_clip_extend(int* x, int* w, const void* menu_c) {
 	if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) return;
 	menu_extend_clip_xw(x, w, menu_c);
+}
+
+void scaled_menu_backdrop_clip_anchor(void* stm, const void* menu_c, int* x, int* y,
+                                      int* w, int* h) {
+	if (!stm || !menu_c || !x || !y || !w || !h) return;
+	if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) return;
+	char* st = static_cast<char*>(stm);
+	if (!st[kStm_GlobalPage]) return;
+	// A global page's backdrop is the menu background, not a panel fill. In the injected
+	// 16:9 chrome the page's frame is cut to ss_content, so the engine anchors the
+	// backdrop at the centre's X offset: it covers the centre and right strip but leaves
+	// the left strip unpainted. Anchor global backdrops at the menu origin instead, so
+	// one continuous background spans the full screen. The side stms are transparent
+	// (`bgcolor clear` is 0x00000000) and therefore show it through.
+	if (!menu_has_wide_chrome(const_cast<void*>(menu_c))) return;
+	char* menu = static_cast<char*>(const_cast<void*>(menu_c));
+	*x = *reinterpret_cast<int*>(menu + kMenuC_FreeX);
+	*y = *reinterpret_cast<int*>(menu + kMenuC_FreeY);
+	*w = *reinterpret_cast<int*>(menu + kMenuC_GlobalClipW);
+	*h = *reinterpret_cast<int*>(menu + kMenuC_GlobalClipH);
 }
 
 void scaled_menu_reload_open_page(void) {

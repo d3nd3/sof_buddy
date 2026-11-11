@@ -419,6 +419,18 @@ bounds:
 Per-menu default-frame bounds are cached in a 12-entry cache keyed by `menu_c`. The
 extension is skipped for resize popups and during the intro cinematic.
 
+### Global backdrops in the 16:9 chrome
+
+A `<stm global>` page's backdrop is the whole menu background, so it is anchored at
+the menu origin (`menu_c+0x9C/+0xA0`) with the global clip dimensions
+(`+0xA4/+0xA8`) when the menu has the injected 16:9 chrome (`16_9_center` frame
+present). Without this, the global page's frame is cut to `ss_content`, and the
+engine anchors its backdrop at the centre's X offset: the background covers the
+centre and right strip but leaves the left strip unpainted. The transparent
+`16_9_l` / `16_9_r` pages (`bgcolor clear` = `0x00000000`) then show one continuous
+background through. Stock `_ss` pages already have their global tab pages at x = 0,
+so the anchor is a no-op outside the injected chrome.
+
 ## Menu images
 
 `gl_findimage_post_callback` scales menu pic sizes: when a `Pic` draw is active and
