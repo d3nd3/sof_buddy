@@ -22,6 +22,21 @@ int main() {
 	const auto unchanged = scaled_menu_detail::scale_fixed_rect_dimension(20, 3.f, 22, 1.f);
 	assert(unchanged.value == 20);
 	assert(unchanged.outer == 104);
+
+	// Loadbox width: Parse multiplies by the canvas again, so the parse factor divides it
+	// out. At 1x on 4K this keeps the authored 500 px list inside the 4:3 centre frame.
+	const float loadbox_1x_4k =
+	    scaled_menu_detail::loadbox_width_parse_factor(1.f, 6.f);
+	assert(loadbox_1x_4k == 1.f / 6.f);
+	const auto loadbox_width_1x = scaled_menu_detail::scale_fixed_rect_dimension(
+	    500, 1.f, 0, loadbox_1x_4k);
+	assert(loadbox_width_1x.value == 83);
+	assert(loadbox_width_1x.value * 6 == 498);
+	const float loadbox_max_4k =
+	    scaled_menu_detail::loadbox_width_parse_factor(4.5f, 6.f);
+	assert(loadbox_max_4k == 0.75f);
+	assert(scaled_menu_detail::loadbox_width_parse_factor(1.f, 0.f) == 1.f);
+	assert(scaled_menu_detail::loadbox_width_parse_factor(0.f, 6.f) == 1.f / 6.f);
 	assert(scaled_menu_detail::border_dims_init_scale(false, 2.25f, 2.25f, true) == 2.25f);
 	assert(scaled_menu_detail::border_dims_init_scale(false, 2.25f, 2.25f, false) == 1.f);
 	assert(scaled_menu_detail::border_dims_init_scale(true, 2.25f, 2.25f, true) == 2.25f);

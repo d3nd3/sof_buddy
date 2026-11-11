@@ -137,7 +137,11 @@ Per context:
 - **load/save loadbox** — `loadbox_c::Parse` multiplies its stored width by the
   menu canvas itself. The rect hook therefore gives the loadbox `menuScale / canvas`
   instead of `menuScale`, so the page scales but the save list is not double-scaled
-  offscreen. A `loadbox_c::Draw` hook scales/recenters the preview thumbnails and
+  offscreen. This width correction runs even at 1×, where the other rect hooks are
+  inactive: otherwise `Parse` would still apply the full canvas, making the loadbox
+  wider than the 4:3 centre frame, and `stm_c::GetValidPosition` would reject the
+  whole loadbox as "Object too wide to place" (empty Save/Load list at 4K 1×).
+  A `loadbox_c::Draw` hook scales/recenters the preview thumbnails and
   shifts the three text lines down with the taller icons; the 128 px cell width and
   32 px row padding in `GetIndices`/`Setup`/`Draw` are patched with `menuScale`.
 

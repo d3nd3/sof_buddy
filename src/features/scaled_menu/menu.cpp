@@ -800,16 +800,26 @@ static bool hk_rect_parse(void* rect, void* token) {
 	if (!parsed || (!fixed_width && !fixed_height && !fixed_xoff && !fixed_yoff))
 		return parsed;
 	char* r = static_cast<char*>(rect);
-	if (!scaled_menu_uniform_actual_active() || scaled_menu_skip_for_intro_disclaimer() ||
+	// The loadbox width needs the canvas divided out even at 1x. Its Parse multiplies the
+	// stored width by the canvas, and the scaled-menu wrapper puts the page in a narrower
+	// 4:3 centre frame; without this the list overflows the frame and the layout rejects
+	// the whole loadbox as too wide to place.
+	const bool loadbox = widget_is_loadbox(rect);
+	const bool loadbox_width_fix =
+	    fixed_width && loadbox &&
+	    RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU);
+	if ((!scaled_menu_uniform_actual_active() && !loadbox_width_fix) ||
+	    scaled_menu_skip_for_intro_disclaimer() ||
 	    *reinterpret_cast<uint8_t*>(r + kRect_NoScale)) {
 		return parsed;
 	}
 	float factor = menu_actual_rect_dim_factor(rect);
-	if (widget_is_loadbox(rect)) {
+	if (loadbox) {
 		char* menu = static_cast<char*>(menu_outer_from_widget(rect));
 		float canvas = menu ? *reinterpret_cast<float*>(menu + kMenuC_ScreenScale) : 1.f;
 		if (!std::isfinite(canvas) || canvas <= 1e-6f) canvas = 1.f;
-		factor = scaled_menu_screen_scale() / canvas;
+		factor = scaled_menu_detail::loadbox_width_parse_factor(
+		    scaled_menu_screen_scale(), canvas);
 	}
 	if (widget_is_ticker(rect)) {
 		// Tickers scroll inside canvas/art-space panels (usually a ghoul part), so their
