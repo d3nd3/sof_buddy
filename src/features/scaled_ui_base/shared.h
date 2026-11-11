@@ -95,6 +95,9 @@ void scaled_ui_image_cache_invalidate(void);
 void scaled_ui_slider_defer_init(void);
 void scaled_ui_slider_defer_tick(int msec);
 void scaled_ui_slider_defer_flush(void);
+// Drop a queued slider write. SoF Buddy's save path flushes pending writes before
+// capturing cvars, so a reset must cancel a stale queued value first.
+void scaled_ui_slider_defer_cancel(void);
 void scaled_ui_request_menu_reload(void);
 void scaled_ui_request_scale_reapply(void);
 bool scale_mode_is_smooth(void);

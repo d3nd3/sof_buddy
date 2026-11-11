@@ -53,6 +53,16 @@ bool caller_is_slider_update() {
 	return ret >= start && ret < start + 0x300;
 }
 
+// slider_c::Cleanup (0xD0D00) clamps its cvar to the slider's min/max and writes it
+// when the page is torn down. A page parsed at a lower resolution can still carry a
+// max of 1x, so closing the menu/F12 page would overwrite a valid saved 2x/4x. Scale
+// cvars are already committed by Handle/Update; drop the teardown clamp.
+bool caller_is_slider_cleanup() {
+	const uintptr_t ret = reinterpret_cast<uintptr_t>(__builtin_return_address(0));
+	const uintptr_t start = reinterpret_cast<uintptr_t>(rvaToAbsExe(reinterpret_cast<void*>(0xD0D00)));
+	return ret >= start && ret < start + 0x110;
+}
+
 void thiscall_noargs_void(void* self, void* fn) {
 	if (!fn) return;
 	__asm__ __volatile__(
@@ -87,6 +97,7 @@ void hkSlider_Draw(void* slider) {
 }
 
 void __cdecl hkCvar_SetValue(const char* name, float value) {
+	if (is_scale_cvar(name) && caller_is_slider_cleanup()) return;
 	if (!g_applying && caller_is_slider_update() && is_scale_cvar(name)) {
 		g_pending_name = name;
 		g_pending_cvar = findCvar(const_cast<char*>(name));
@@ -107,6 +118,12 @@ void scaled_ui_slider_defer_flush(void) {
 	g_applying = true;
 	oCvar_SetValue(g_pending_name.c_str(), g_pending_value);
 	g_applying = false;
+}
+
+void scaled_ui_slider_defer_cancel(void) {
+	g_pending = false;
+	g_pending_cvar = nullptr;
+	g_pending_name.clear();
 }
 
 void scaled_ui_request_scale_reapply(void) {

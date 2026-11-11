@@ -7,7 +7,7 @@ User-facing highlights. Older detail is summarized at the bottom.
 ### Scaled menu
 
 - The 16:9 chrome now forces the `16_9_l` / `16_9_r` side pages to a clear backdrop on load, so a pak or SoFPlus version with different side art cannot leave stale pixels beside the centred menu. Global menu backgrounds (`<stm global>`, e.g. `backdrop/web_bg`) are now anchored at the menu origin, so they span the whole screen instead of starting at the centred page's left edge and leaving the left side strip unpainted.
-- Integer-mode scale settings survive a restart again. At startup the archived scale was applied before the real video mode was known (`max scale` still read as 1x), so a saved 2x/4x was clamped to 1x and persisted. The stored value is now left alone until the resolution is known; the runtime scale callbacks still clamp the effective scale.
+- Integer-mode scale settings survive a restart again. The percentage callbacks fire while the scale cvars are registered at startup, before the video mode is known, and were recomputing the absolute scale as 1x; in Integer mode they are now ignored (and they never write while the maximum is unknown). Startup/vid_restart transients (640x480, 800x600, …) no longer clamp the stored value either: it is only clamped when the mode is known to be at least 960p, to that mode's integer maximum. Low modes still cap the *effective* scale without wiping the saved value. Slider teardown (`slider_c::Cleanup`) clamps are ignored for scale cvars, and a queued slider write is dropped before a reset/mode change.
 
 ## v8.51
 

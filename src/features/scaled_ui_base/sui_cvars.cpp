@@ -151,6 +151,13 @@ static void apply_percent_to_scale(cvar_t* pct, cvar_t* scale, float max_scale) 
 	if (!pct || !scale || !detour_Cvar_Set2::oCvar_Set2) return;
 	if (cvar_t* cv = findCvar(pct->name)) pct = cv;
 	if (cvar_t* cv = findCvar(scale->name)) scale = cv;
+	// In Integer mode the absolute scale cvar is authoritative; the percentage is
+	// ignored. This callback still runs from Cvar_Get while the scale cvars are being
+	// registered at startup, before the real video mode is known (max = 1x). It used to
+	// recompute the absolute scale as 1x there and wipe a saved 2x/4x. Also skip while
+	// the maximum is unknown; the effective scale is capped by the change callbacks.
+	if (!scale_mode_is_smooth()) return;
+	if (!std::isfinite(max_scale) || max_scale <= 1.0f) return;
 	scale->flags &= ~kCvarInteger;
 	char buf[32];
 	std::snprintf(buf, sizeof(buf), "%.6g", scale_from_percent(pct->value, max_scale));
@@ -176,11 +183,17 @@ static void apply_integer_scale(cvar_t* scale, float max_scale) {
 	if (cvar_t* cv = findCvar(scale->name)) scale = cv;
 	float value = std::floor(scale->value);
 	if (value < 1.0f) value = 1.0f;
-	// Do not clamp the stored cvar to max_scale when the video mode is not known yet.
-	// At startup the archived scale is applied before the first VID_CheckChanges, so
-	// max_scale is 1 and a saved 2x/4x would be rewritten to 1x and persist across
-	// restarts. The runtime change callbacks already clamp the effective scale.
-	if (max_scale > 1.0f && value > max_scale) value = max_scale;
+	// Only clamp against a confidently known, at-least-2x video mode. During startup
+	// and vid_restarts screen_y_scale passes through low/intermediate values (640x480,
+	// 800x600, ...). Clamping there destroyed a saved 2x/4x preference (reset 2x at
+	// 1080p, quit, restart -> 1x). The low mode's *effective* scale is still capped by
+	// menuscale_change/fontscale_change/hudscale_change; the stored preference is left
+	// intact so it survives a temporary mode switch. At >= 960p, clamp to the integer
+	// maximum so switching from a higher resolution cannot leave an unreachable value.
+	if (max_scale >= 2.0f) {
+		const float int_max = std::floor(max_scale);
+		if (int_max >= 1.0f && value > int_max) value = int_max;
+	}
 	char buf[32];
 	std::snprintf(buf, sizeof(buf), "%.0f", value);
 	if (std::strcmp(scale->string ? scale->string : "", buf) != 0)
@@ -227,7 +240,8 @@ static void scale_reset_default(cvar_t* pct, cvar_t* scale, float max_scale, boo
 		if (max_scale >= 1.0f && value > max_scale) value = max_scale;
 		char buf[32];
 		std::snprintf(buf, sizeof(buf), "%.0f", value);
-		if (scale && detour_Cvar_Set2::oCvar_Set2) detour_Cvar_Set2::oCvar_Set2(scale->name, buf, true);
+		if (scale && detour_Cvar_Set2::oCvar_Set2)
+			detour_Cvar_Set2::oCvar_Set2(scale->name, buf, true);
 	} else if (pct && detour_Cvar_Set2::oCvar_Set2) {
 		detour_Cvar_Set2::oCvar_Set2(pct->name, const_cast<char*>("75"), true);
 	}
@@ -236,6 +250,10 @@ static void scale_reset_default(cvar_t* pct, cvar_t* scale, float max_scale, boo
 static void Cmd_SoFBuddy_ScaleReset_f(void) {
 	if (!detour_Cmd_Argc::oCmd_Argc || !detour_Cmd_Argv::oCmd_Argv) return;
 	if (detour_Cmd_Argc::oCmd_Argc() < 2) return;
+	// The reset handler saves the config immediately, and the save path flushes any
+	// queued slider write first. Drop a stale queued value so it cannot overwrite the
+	// reset default before it is written to disk.
+	scaled_ui_slider_defer_cancel();
 	const char* target = detour_Cmd_Argv::oCmd_Argv(1);
 	if (!target) return;
 	const bool integer_mode = !scale_mode_is_smooth();
@@ -263,6 +281,8 @@ static void Cmd_SoFBuddy_ScaleReset_f(void) {
 }
 
 static void scale_mode_change(cvar_t* cvar) {
+	// A queued slider write from the previous mode must not land after the reapply.
+	scaled_ui_slider_defer_cancel();
 	if (cvar) _sofbuddy_scale_mode = cvar;
 	refresh_scaled_cvar_ptrs();
 	reapply_scale_percentages_for_mode(!scale_mode_is_smooth_cvar(cvar));
