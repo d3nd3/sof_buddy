@@ -2,7 +2,7 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
-## Unreleased
+## v8.53
 
 ### Media timers
 
