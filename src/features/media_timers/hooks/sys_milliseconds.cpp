@@ -16,7 +16,21 @@
 #define _WIN32_WINNT 0x0501
 #endif
 
+#ifndef SOFBUDDY_XP_BUILD
+#ifndef CREATE_WAITABLE_TIMER_MANUAL_RESET
+#define CREATE_WAITABLE_TIMER_MANUAL_RESET 0x00000001
+#endif
+#ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
+#define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
+#endif
+#endif
+
 namespace {
+
+#ifndef SOFBUDDY_XP_BUILD
+using PFN_CreateWaitableTimerExW = HANDLE(WINAPI*)(
+    LPSECURITY_ATTRIBUTES, LPCWSTR, DWORD, DWORD);
+#endif
 
 struct EngineClock {
     bool          initialized = false;
@@ -30,6 +44,10 @@ struct EngineClock {
     std::uint32_t last_ms = 0;
 
     volatile std::uint32_t* curtime_ptr = nullptr;
+
+#ifndef SOFBUDDY_XP_BUILD
+    PFN_CreateWaitableTimerExW create_waitable_timer_ex = nullptr;
+#endif
 
     volatile std::uint32_t* Curtime() {
         if (!curtime_ptr) {
@@ -62,6 +80,17 @@ struct EngineClock {
     }
 
     void Init(std::uint32_t stock_origin) {
+        is_win_xp = CheckIfWindowsXP();
+
+#ifndef SOFBUDDY_XP_BUILD
+        if (!is_win_xp) {
+            if (HMODULE k32 = GetModuleHandleW(L"kernel32.dll")) {
+                create_waitable_timer_ex = reinterpret_cast<PFN_CreateWaitableTimerExW>(
+                    GetProcAddress(k32, "CreateWaitableTimerExW"));
+            }
+        }
+#endif
+
         LARGE_INTEGER f;
         if (!QueryPerformanceFrequency(&f) || f.QuadPart <= 0) {
             // Fallback to stock timeGetTime if hardware lacks QPC
@@ -70,7 +99,6 @@ struct EngineClock {
         }
         qpc_freq = f.QuadPart;
 
-        is_win_xp = CheckIfWindowsXP();
         main_thread = GetCurrentThread();
 
         DWORD_PTR sys_mask = 0;
@@ -125,6 +153,40 @@ struct EngineClock {
 
         return ms;
     }
+
+    void Nanosleep(int nanosec) const {
+        if (nanosec <= 0)
+            return;
+
+        HANDLE timer = nullptr;
+
+#ifndef SOFBUDDY_XP_BUILD
+        if (create_waitable_timer_ex != nullptr) {
+            timer = create_waitable_timer_ex(
+                nullptr,
+                nullptr,
+                CREATE_WAITABLE_TIMER_MANUAL_RESET | CREATE_WAITABLE_TIMER_HIGH_RESOLUTION,
+                TIMER_ALL_ACCESS);
+        }
+#endif
+
+        if (timer == nullptr) {
+            timer = CreateWaitableTimerW(nullptr, TRUE, nullptr);
+            if (timer == nullptr)
+                return;
+        }
+
+        // Windows has a max resolution of 100 ns.
+        // Convert to 100 ns units, rounding up, and negate for relative time.
+        LARGE_INTEGER li;
+        li.QuadPart = -((static_cast<LONGLONG>(nanosec) + 99) / 100);
+
+        if (SetWaitableTimer(timer, &li, 0, nullptr, nullptr, FALSE)) {
+            WaitForSingleObject(timer, INFINITE);
+        }
+
+        CloseHandle(timer);
+    }
 };
 
 EngineClock g_clock;
@@ -145,6 +207,11 @@ int my_TimeGetTime(void)
 int sys_milliseconds_override_callback(detour_Sys_Milliseconds::tSys_Milliseconds original)
 {
     return static_cast<int>(g_clock.GetMilliseconds(original));
+}
+
+void Sys_Nanosleep(int nanosec)
+{
+    g_clock.Nanosleep(nanosec);
 }
 
 #endif // FEATURE_MEDIA_TIMERS

@@ -22,9 +22,7 @@ int hksp_Sys_Mil(void)
 	}
 
     const int ret = orig_sp_Sys_Mil ? orig_sp_Sys_Mil() : 0;
-#if FEATURE_MEDIA_TIMERS
-    sofbuddy_sp_clear_sofplus_frame_delay_if_exact();
-#endif
+
     return ret;
 }
 

@@ -141,13 +141,6 @@ int sofbuddy_exact_frame_budget_ms(void)
 	return g_cl_maxfps_target_msec;
 }
 
-void sofbuddy_sp_clear_sofplus_frame_delay_if_exact(void)
-{
-#if FEATURE_CL_MAXFPS_SINGLEPLAYER
-	if (!o_sofplus || !sofbuddy_cl_maxfps_exact_enabled()) return;
-	*(int*)((char*)o_sofplus + 0x331BC) = 0;
-#endif
-}
 
 float sofbuddy_cl_maxfps_effective_fps(float stored)
 {
@@ -407,7 +400,6 @@ void cl_maxfps_change(cvar_t *cvar)
              static_cast<double>(previous_cl_maxfps), g_cl_maxfps_target_msec,
              sofbuddy_cl_maxfps_exact_enabled() ? "on" : "off");
 
-    sofbuddy_sp_clear_sofplus_frame_delay_if_exact();
 #if FEATURE_CL_MAXFPS_SINGLEPLAYER
     mfps_set_exact_cl_frame_patch(sofbuddy_cl_maxfps_exact_enabled());
 #endif
@@ -444,31 +436,6 @@ void cl_maxfps_exact_change(cvar_t* cvar)
 #if FEATURE_CL_MAXFPS_SINGLEPLAYER
     mfps_set_exact_cl_frame_patch(exact);
 #endif
-}
-
-void
-Sys_Nanosleep(int nanosec)
-{
-	HANDLE timer;
-	LARGE_INTEGER li;
-
-	//100,000,000 = 10 sec
-	//10,000,000 = 1 sec
-	//10,000 = 1ms
-	//10 = 1us
-	//1 = 100 ns
-	timer = CreateWaitableTimer(NULL, TRUE, NULL);
-
-	// Windows has a max. resolution of 100ns.
-	//Convert nanoseconds to 100ns unit.
-	li.QuadPart = -nanosec / 100;
-
-	SetWaitableTimer(timer, &li, 0, NULL, NULL, FALSE);
-
-	WaitForSingleObject(timer, INFINITE);
-
-	CloseHandle(timer);
-
 }
 
 /*
@@ -514,7 +481,6 @@ int winmain_loop(void)
 	int newtime = 0, timedelta = 0;
 	static int * const extratime = (int*)0x201E7578;
 
-	bool didSleep = false;
 	bool isBeingBorrowed = false;
 
 	int last_extratime_resume = 0;
@@ -567,26 +533,25 @@ int winmain_loop(void)
 		timedelta = newtime - oldtime;
 		// orig_Com_Printf("timedelta1 = %i\n",timedelta);
 		//1ms has not passed. 
-		if ( timedelta == 0 ) {
+		if ( timedelta < 1 ) {
 			/*
 				BURN TIME
 			*/
 			// orig_Com_Printf("FreeSleepTime = %i\n",(targetMsec - *extratime));
-			if ( (targetMsec - *extratime)>sleep_busyticks && !didSleep ) {
-				//ensures 1ms passes.
-				//burn with Sleep()
+			if ( (targetMsec - *extratime)>sleep_busyticks ) {
 
-				//any more iterations of this loop will USE busysleep
-				didSleep = true;
 				// orig_Com_Printf("We slept...\n");
-				Sleep(1);
-				newtime = my_Sys_Milliseconds();
-				timedelta = newtime - oldtime;
-				if ( timedelta == 0 ) goto busyloop;
+				// Sleep(1);
+				//even with the high-resolution timer flag, the Windows kernel scheduler usually has a practical minimum wake-up latency of around 0.4–0.5 ms
+				do
+				{
+					Sys_Nanosleep(100000);
+					newtime = my_Sys_Milliseconds();
+					timedelta = newtime - oldtime;
+				} while (timedelta < 1);
 
 			} else {
 				//ensures 1ms passes.
-				busyloop:
 				//burn with busyloop
 				do
 				{	
@@ -664,10 +629,11 @@ int winmain_loop(void)
 
 	if ( o_sofplus ) {
 		SOFBUDDY_ASSERT(sp_Sys_Mil != nullptr);
+		//_sp_cl_cpu_cool
 		*(int*)((char*)o_sofplus + 0x331AC) = 0x00;
+		//_sp_cl_frame_delay
 		*(int*)((char*)o_sofplus + 0x331BC) = 0x00;
 		sp_Sys_Mil();
-		sofbuddy_sp_clear_sofplus_frame_delay_if_exact();
 	}
 
 	//higher msec value (less frequent) = lower frequency to server, more distance moved
@@ -739,10 +705,11 @@ int winmain_loop(void)
 		//we will handle the sleep, instead.
 		// setCvarInt(_sp_cl_cpu_cool,0);
 		// setCvarInt(_sp_cl_frame_delay,0);
+		//_sp_cl_cpu_cool
 		*(int*)((char*)o_sofplus + 0x331AC) = 0x00;
+		//_sp_cl_frame_delay
 		*(int*)((char*)o_sofplus + 0x331BC) = 0x00;
 		sp_Sys_Mil();
-		sofbuddy_sp_clear_sofplus_frame_delay_if_exact();
 	}	
 	#endif
 

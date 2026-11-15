@@ -34,6 +34,7 @@ inline void resetTimers(int val)
 int winmain_loop(void);
 int my_Sys_Milliseconds(void);
 int my_TimeGetTime(void);
+void Sys_Nanosleep(int nanosec);
 void create_mediatimers_cvars(void);
 void mediaTimers_EarlyStartup(void);
 void mediaTimers_PostCvarInit(void);
@@ -43,7 +44,6 @@ void cl_maxfps_exact_change(cvar_t *cvar);
 void sofbuddy_quantize_cl_maxfps(void);
 bool sofbuddy_cl_maxfps_exact_enabled(void);
 float sofbuddy_cl_maxfps_effective_fps(float stored);
-void sofbuddy_sp_clear_sofplus_frame_delay_if_exact(void);
 int sofbuddy_exact_fps_quantize(float v);
 void sofbuddy_exact_bresenham_reset(void);
 int sofbuddy_exact_bresenham_period_ms(int fps);
