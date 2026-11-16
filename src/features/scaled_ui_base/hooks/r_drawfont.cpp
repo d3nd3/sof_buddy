@@ -260,6 +260,7 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 		original(screenX, screenY, text, colorPalette, font, rememberLastColor);
 
 	if (g_currentFontCaller != FontCaller::MissionStatus &&
+	    g_currentFontCaller != FontCaller::Countdown &&
 	    g_currentFontCaller != FontCaller::SCR_DrawCenterPrint)
 		g_currentFontCaller = FontCaller::Unknown;
 	characterIndex = 0;

@@ -19,6 +19,8 @@ None (screen dimensions are updated by scaled_ui_base's VID_CheckChanges Post ho
   - `hkcInventory2_And_cGunAmmo2_Draw()` - Scales inventory and ammo display
 - **cHealthArmor2_Draw** (SoF.exe)
   - `hkcHealthArmor2_Draw()` - Scales health and armor display
+- **cCountdown_Draw** (SoF.exe)
+  - `hkcCountdown_Draw()` - Scales the countdown timer text with the HUD scale
 - **cDMRanking_Draw** (SoF.exe)
   - `hkcDMRanking_Draw()` - Scales deathmatch ranking display
 - **cCtfFlag_Draw** (SoF.exe)

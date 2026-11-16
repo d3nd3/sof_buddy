@@ -4,6 +4,10 @@ User-facing highlights. Older detail is summarized at the bottom.
 
 ## Unreleased
 
+### Scaled HUD
+
+- The countdown timer text now follows `_sofbuddy_hud_scale` instead of staying at stock size during timed sections.
+
 ### Scaled scope
 
 - New `scaled_scope` feature. The sniper scope overlay now keeps its authored 4:3 proportions on widescreen displays instead of stretching with the aspect ratio. The scope is centred with black side bars (top/bottom bars on displays narrower than 4:3), and the magnification readout scales with the scope so it stays legible at 1080p and above.

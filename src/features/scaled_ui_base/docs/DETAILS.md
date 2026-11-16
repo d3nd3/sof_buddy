@@ -182,6 +182,7 @@ Callers of `glVertex2f` - used for vertex coordinate scaling:
 Applied to:
 - `FontCaller::DMRankingCalcXY` - Deathmatch ranking text
 - `FontCaller::Inventory2` - Inventory text
+- `FontCaller::Countdown` - Countdown timer text
 - `PicOptionsCaller::cDMRanking_CalcXY` - DM ranking images
 - `PicOptionsCaller::cInterface_DrawNum` - Interface numbers
 - `StretchPicCaller::CtfFlagDraw` - CTF flag (when `g_activeRenderType == HudCtfFlag`)

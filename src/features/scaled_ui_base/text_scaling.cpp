@@ -212,6 +212,24 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 			break;
 		}
 			
+		case FontCaller::Countdown: {
+			if (!RuntimeFeatures::Enabled(
+			        RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD)) {
+				orig_glVertex2f(x, y);
+				break;
+			}
+			// Scale the whole run around its first glyph, so the engine's x/y
+			// advances (including spaces) grow with the glyphs and the timer
+			// stays anchored where cCountdown::Draw put it.
+			const float s = snapped_text_scale_active(hudScale);
+			if (s != 1.0f) {
+				x = g_menuFontPivotX + (x - g_menuFontPivotX) * s;
+				y = g_menuFontPivotY + (y - g_menuFontPivotY) * s;
+			}
+			orig_glVertex2f(x, y);
+			break;
+		}
+
 		case FontCaller::DrawLine:
 			orig_glVertex2f(x, y);
 			break;
