@@ -309,6 +309,14 @@ functions:
     detour_len: 0
     params: []
 
+  - name: LoadSoundModule
+    module: SofExe
+    identifier: "0x20055C20"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
   - name: SV_ShutdownGameProgs
     module: SofExe
     identifier: "0x005CD70"

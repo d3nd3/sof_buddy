@@ -2,6 +2,12 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## Unreleased
+
+### Sound
+
+- New **Sound Alt-Tab Fix** feature (on by default): sounds started while the game window is in the background no longer stack up and play together when you return. Defsnd keeps queuing sound starts while its DirectSound buffers are released, then issues all of them on the first active frame. The fix wraps the engine's `S_Activate` pointer and calls `S_StopAllSounds` when focus returns; it is reinstalled after `snd_restart`. This is separate from **Quiet Alt-Tab sound messages**, which only filters `Com_Printf` output.
+
 ## v8.53
 
 ### Media timers

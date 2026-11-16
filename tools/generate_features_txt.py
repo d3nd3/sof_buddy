@@ -25,6 +25,7 @@ CATEGORIES = {
         "new_system_bug",
         "cl_maxfps_singleplayer",
         "list_match_fix",
+        "sound_alt_tab_fix",
         "cbuf_limit_increase",
     ],
     "Graphics Features": [
