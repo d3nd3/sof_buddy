@@ -437,6 +437,16 @@ functions:
       - type: void*
         name: self
 
+  - name: cCountdown_Draw
+    module: SofExe
+    identifier: "0x00007940"
+    return_type: void
+    calling_convention: __thiscall
+    detour_len: 0
+    params:
+      - type: void*
+        name: self
+
   - name: cMissionStatus_Draw
     module: SofExe
     identifier: "0x00009250"

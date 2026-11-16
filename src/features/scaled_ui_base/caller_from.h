@@ -99,6 +99,7 @@ enum class FontCaller {
 	SCRDrawPause,
 	SCR_DrawCenterPrint,
 	MissionStatus,
+	Countdown,
 	RectDrawTextItem,
 	RectDrawTextLine,
 	TickerDraw,

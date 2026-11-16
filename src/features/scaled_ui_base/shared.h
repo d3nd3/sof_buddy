@@ -324,6 +324,7 @@ void hkDraw_CharExtra(float x, float y, float scale, void* palette, int ch, deto
 #if FEATURE_SCALED_HUD
 void hkcInventory2_And_cGunAmmo2_Draw(void * self, detour_cInventory2_And_cGunAmmo2_Draw::tcInventory2_And_cGunAmmo2_Draw original);
 void hkcHealthArmor2_Draw(void * self, detour_cHealthArmor2_Draw::tcHealthArmor2_Draw original);
+void hkcCountdown_Draw(void * self, detour_cCountdown_Draw::tcCountdown_Draw original);
 void hkcMissionStatus_Draw(void * self, detour_cMissionStatus_Draw::tcMissionStatus_Draw original);
 void hkcDMRanking_Draw(void * self, detour_cDMRanking_Draw::tcDMRanking_Draw original);
 void hkcCtfFlag_Draw(void * self, detour_cCtfFlag_Draw::tcCtfFlag_Draw original);

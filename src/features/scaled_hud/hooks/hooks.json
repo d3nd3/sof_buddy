@@ -20,6 +20,11 @@
     "override": true
   },
   {
+    "function": "cCountdown_Draw",
+    "callback": "hkcCountdown_Draw",
+    "override": true
+  },
+  {
     "function": "cMissionStatus_Draw",
     "callback": "hkcMissionStatus_Draw",
     "override": true

@@ -4,6 +4,10 @@ User-facing highlights. Older detail is summarized at the bottom.
 
 ## Unreleased
 
+### Scaled HUD
+
+- The countdown timer text now follows `_sofbuddy_hud_scale` instead of staying at stock size during timed sections.
+
 ### Media timers
 
 - Frame pacing now waits on a high-resolution waitable timer (`CreateWaitableTimerExW`, Windows 10 1803+, resolved dynamically so XP builds/wine still fall back), rounding up to 100 ns units. The frame loop uses short 100 µs waits instead of a coarse `Sleep(1)`, so `cl_maxfps` exact mode hits its 1 ms frame window more consistently. SoFPlus's own frame delay is held at 0 in the same frame-loop paths instead of being cleared from every `Sys_Mil` call.
