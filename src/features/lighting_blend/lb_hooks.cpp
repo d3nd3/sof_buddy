@@ -200,24 +200,118 @@ void water_size_change(cvar_t * cvar) {
 }
 
 /*
+	_sofbuddy_shiny_spherical modes
+
+	0 = no shiny (skip the shiny/env-map pass entirely)
+	1 = default (honour SURF_SIMPLE_SPHERICAL and the flat-surface heuristic)
+	2 = no spherical (planar-style: camera position only, no view-angle change)
+	3 = all spherical (camera position + view angle)
+	4 = both (experimental: draw every shiny surface with both projections)
+*/
+enum shiny_spherical_mode_e {
+	SHINY_MODE_OFF = 0,
+	SHINY_MODE_DEFAULT = 1,
+	SHINY_MODE_NO_SPHERICAL = 2,
+	SHINY_MODE_ALL_SPHERICAL = 3,
+	SHINY_MODE_DOUBLE = 4
+};
+
+static const char *shiny_spherical_mode_name(int mode) {
+	switch (mode) {
+		case SHINY_MODE_OFF: return "off";
+		case SHINY_MODE_DEFAULT: return "default";
+		case SHINY_MODE_NO_SPHERICAL: return "no spherical";
+		case SHINY_MODE_ALL_SPHERICAL: return "all spherical";
+		case SHINY_MODE_DOUBLE: return "both (double)";
+		default: return "invalid";
+	}
+}
+
+static void shiny_spherical_write_branch(unsigned char *target, unsigned char opcode, unsigned char operand) {
+	if (!target) return;
+	WriteByte(target, opcode);
+	WriteByte(target + 1, operand);
+}
+
+/*
+	Apply the shiny mode to ref_gl's R_DrawDetailChains branches.
+
+	0x14814: branch after testing mtexinfo->flags for SURF_SIMPLE_SPHERICAL
+	         74 11 = branch only when the surface flag is set (stock)
+	         EB 11 = always take the non-spherical path
+	         90 90 = always take the spherical path
+	0x14A66: null-mtexinfo guard in the GL_SPHERE_MAP pass
+	         74 25 = skip surfaces without texinfo (stock)
+	         EB 25 = skip every spherical surface
+	0x147DF: "shiny surfaces were collected" test before the shiny pass
+	         85 C0 = test eax, eax (stock)
+	         31 C0 = xor eax, eax, forcing the following jz to skip the pass
+	0x2C434: flat-surface threshold (radiusSquared)
+	         0.1f = stock, only floors/ceilings are classified spherical
+	         10.1f = every surface is classified spherical (mode 4 double draw)
+*/
+void shiny_spherical_apply(int mode) {
+	if (mode < SHINY_MODE_OFF || mode > SHINY_MODE_DOUBLE) {
+		mode = SHINY_MODE_DEFAULT;
+	}
+
+	if (!shiny_spherical_target1 && !shiny_spherical_target3 && !shiny_pass_target && !shiny_flat_threshold_target) {
+		PrintOut(PRINT_DEV, "lighting_blend: shiny targets not initialized (ref_gl not loaded)\n");
+		return;
+	}
+
+	const bool no_spherical = mode == SHINY_MODE_NO_SPHERICAL;
+	const bool all_spherical = mode == SHINY_MODE_ALL_SPHERICAL;
+	const bool double_shiny = mode == SHINY_MODE_DOUBLE;
+
+	unsigned char spherical_opcode = 0x74;
+	unsigned char spherical_operand = 0x11;
+	if (no_spherical || double_shiny) {
+		spherical_opcode = 0xEB;
+	} else if (all_spherical) {
+		spherical_opcode = 0x90;
+		spherical_operand = 0x90;
+	}
+
+	// "no spherical" skips the sphere pass; "double" keeps it enabled.
+	const unsigned char sphere_texinfo_opcode = no_spherical ? 0xEB : 0x74;
+	const unsigned char sphere_texinfo_operand = 0x25;
+
+	const unsigned char pass_opcode = mode == SHINY_MODE_OFF ? 0x31 : 0x85;
+	const unsigned char pass_operand = 0xC0;
+
+	shiny_spherical_write_branch(shiny_spherical_target1, spherical_opcode, spherical_operand);
+	shiny_spherical_write_branch(shiny_spherical_target3, sphere_texinfo_opcode, sphere_texinfo_operand);
+	shiny_spherical_write_branch(shiny_pass_target, pass_opcode, pass_operand);
+
+	// Mode 4 forces the flat-surface test to accept every surface, so every
+	// shiny surface is queued for the GL_SPHERE_MAP pass as well as drawn by
+	// the non-spherical pass. Other modes restore the stock threshold.
+	if (shiny_flat_threshold_target) {
+		writeFloatAt(shiny_flat_threshold_target, double_shiny ? 10.1f : 0.1f);
+	}
+
+	PrintOut(PRINT_LOG, "lighting_blend: Set shiny mode to %d (%s)\n", mode, shiny_spherical_mode_name(mode));
+}
+
+/*
 	CVar change callback for _sofbuddy_shiny_spherical
-	
+
 	Called when _sofbuddy_shiny_spherical is changed.
-	Writes byte to ref_gl address 0x14814.
 	This function is externally referenced in cvars.cpp.
 */
 void shiny_spherical_change(cvar_t * cvar) {
-	if (shiny_spherical_target1) {
-		unsigned char value = cvar->value == 0.0f ? 0xEB : 0x74;
-		WriteByte(shiny_spherical_target1, value);
-		PrintOut(PRINT_LOG, "lighting_blend: Set shiny_spherical to %d (wrote 0x%02X to 0x14814)\n", (int)cvar->value, value);
+	int mode = (int)cvar->value;
+	if (mode < SHINY_MODE_OFF || mode > SHINY_MODE_DOUBLE) {
+		PrintOut(PRINT_BAD, "lighting_blend: invalid shiny mode %d, using %d (%s)\n",
+		         mode, SHINY_MODE_DEFAULT, shiny_spherical_mode_name(SHINY_MODE_DEFAULT));
+		mode = SHINY_MODE_DEFAULT;
+		if (detour_Cvar_Set2::oCvar_Set2) {
+			detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_shiny_spherical"), const_cast<char*>("1"), true);
+		}
 	}
 
-    if (shiny_spherical_target3) {
-        unsigned char value = cvar->value == 0.0f ? 0xEB : 0x74;
-        WriteByte(shiny_spherical_target3, value);
-        PrintOut(PRINT_LOG, "lighting_blend: Set shiny_spherical to %d (wrote 0x%02X to 0x14A66)\n", (int)cvar->value, value);
-    }
+	shiny_spherical_apply(mode);
 }
 
 /*
@@ -325,211 +419,13 @@ void __stdcall glBlendFunc_R_BlendLightmaps(unsigned int sfactor,unsigned int df
 }
 
 
-static void __cdecl hkAdjustTexCoordsImpl(float* player_pos, float* vertex, float* in_normal, float* in_tangent, float* in_bitangent, float* out_new_s_t, void* caller_stack);
-
 void __cdecl hkAdjustTexCoords(float* player_pos, float* vertex, float* in_normal, float* in_tangent, float* in_bitangent, float* out_new_s_t)
 {
-    void* esp_entry = __builtin_frame_address(0);
-    hkAdjustTexCoordsImpl(player_pos, vertex, in_normal, in_tangent, in_bitangent, out_new_s_t, esp_entry);
-
-}
-
-
-static void __cdecl hkAdjustTexCoordsImpl(float* player_pos, float* vertex, float* in_normal, float* in_tangent, float* in_bitangent, float* out_new_s_t, void* caller_stack)
-{
-	unsigned int surf_index = *(unsigned int*)((char*)caller_stack + 0xD8 - 0xA4);
-
-	// Hot path: ref_surfaces is refreshed on each ref.dll load (so it's safe across vid_restart).
-	if (!ref_surfaces) {
-		// Fail safe: behave like the original call site as best as we can.
-		oAdjustTexCoords(player_pos, vertex, in_normal, in_tangent, in_bitangent, out_new_s_t);
-		glTexCoord2f(out_new_s_t[0], out_new_s_t[1]);
-		return;
-	}
-
-	void** surface_ptr = ref_surfaces + surf_index;
-	void* cplane_ptr = (void*)((char*)(*surface_ptr) + 4);
-	float* surface_normal = *(float**)cplane_ptr;
-	float normal_x = surface_normal[0];
-	float normal_y = surface_normal[1];
-	float normal_z = surface_normal[2];
-	
-	void ** mtexinfo_ptr = (void**)((char*)(*surface_ptr) + 0x34);
-	int flags = *(int*)((char*)(*mtexinfo_ptr) + 0x20);
-
-	
-	// Visualize normal direction once per surface using glVertex3f calls inside GL_TRIANGLE_FAN
-	static unsigned int last_drawn_surf_index = 0xFFFFFFFF;
-	static int vertex_count_per_surface = 0;
-	if (surf_index != last_drawn_surf_index) {
-		last_drawn_surf_index = surf_index;
-		vertex_count_per_surface = 0;
-	}
-#if 0
-	// Draw on every 3rd vertex to ensure visibility (not just first vertex which might be culled)
-	if (vertex_count_per_surface % 3 == 0) {
-		// Validate normal vector before drawing
-		float normal_mag_sq = in_normal[0] * in_normal[0] + in_normal[1] * in_normal[1] + in_normal[2] * in_normal[2];
-		bool is_zero = (normal_mag_sq < 1.0e-10f);
-		bool has_nan = (in_normal[0] != in_normal[0] || in_normal[1] != in_normal[1] || in_normal[2] != in_normal[2]);
-		bool has_inf = (normal_mag_sq > 1.0e10f);
-		bool is_too_small = (normal_mag_sq > 0.0f && normal_mag_sq < 0.5f);
-		bool is_too_large = (normal_mag_sq > 2.0f);
-		
-		if (is_zero || has_nan || has_inf || is_too_small || is_too_large) {
-			PrintOut(PRINT_LOG, "DEBUG: Invalid normal detected for surface %u: in_normal = (%.6f, %.6f, %.6f), mag_sq = %.6f, zero=%d nan=%d inf=%d too_small=%d too_large=%d\n",
-			         surf_index, in_normal[0], in_normal[1], in_normal[2], normal_mag_sq, is_zero, has_nan, has_inf, is_too_small, is_too_large);
-		} else {
-			const float normal_scale = 100.0f;
-			float start_x = vertex[0];
-			float start_y = vertex[1];
-			float start_z = vertex[2];
-			float end_x = start_x + in_normal[0] * normal_scale;
-			float end_y = start_y + in_normal[1] * normal_scale;
-			float end_z = start_z + in_normal[2] * normal_scale;
-			
-			// Draw multiple green vertices at the start to establish the color strongly
-			glColor3f(0.0f, 1.0f, 0.0f);
-			for (int j = 0; j < 5; j++) {
-				glVertex3f(start_x, start_y, start_z);
-			}
-			
-			// Draw multiple points along the normal with color interpolation from green to red
-			const int num_points = 30;
-			for (int i = 1; i <= num_points; i++) {
-				float t = (float)i / (float)num_points;
-				float r = t;  // Red increases from 0 to 1
-				float g = 1.0f - t;  // Green decreases from 1 to 0
-				glColor3f(r, g, 0.0f);
-				glVertex3f(
-					start_x + (end_x - start_x) * t,
-					start_y + (end_y - start_y) * t,
-					start_z + (end_z - start_z) * t
-				);
-			}
-			
-			// Draw arrowhead at the end (larger and red)
-			const float arrowhead_size = 10.0f;
-			glColor3f(1.0f, 0.0f, 0.0f);
-			glVertex3f(end_x, end_y, end_z);
-			glVertex3f(end_x - in_normal[0] * arrowhead_size + in_normal[1] * arrowhead_size * 0.3f, 
-			           end_y - in_normal[1] * arrowhead_size + in_normal[2] * arrowhead_size * 0.3f, 
-			           end_z - in_normal[2] * arrowhead_size - in_normal[0] * arrowhead_size * 0.3f);
-			glVertex3f(end_x, end_y, end_z);
-			glVertex3f(end_x - in_normal[0] * arrowhead_size - in_normal[1] * arrowhead_size * 0.3f, 
-			           end_y - in_normal[1] * arrowhead_size - in_normal[2] * arrowhead_size * 0.3f, 
-			           end_z - in_normal[2] * arrowhead_size + in_normal[0] * arrowhead_size * 0.3f);
-			
-			glColor3f(1.0f, 1.0f, 1.0f);
-		}
-	}
-	#endif
-	vertex_count_per_surface++;
-	
-	
-
-	// Override input parameters with randomly selected basis
-	// in_normal[0] = override_normal[0];
-	// in_normal[1] = override_normal[1];
-	// in_normal[2] = override_normal[2];
-	
-	// in_tangent[0] = override_tangent[0];
-	// in_tangent[1] = override_tangent[1];
-	// in_tangent[2] = override_tangent[2];
-	
-	// in_bitangent[0] = override_bitangent[0];
-	// in_bitangent[1] = override_bitangent[1];
-	// in_bitangent[2] = override_bitangent[2];
-	float vertex_world[3];
-	vertex_world[0] = vertex[0];
-	vertex_world[1] = vertex[1];
-	vertex_world[2] = vertex[2];
-	if (flags & 0x00020000) {
-		// Convert vertex from eye space to world space
-		if (cam_vforward && cam_vup && cam_vright) {
-			// PrintOut(PRINT_LOG, "DEBUG: cam_vforward = (%.6f, %.6f, %.6f)\n", cam_vforward[0], cam_vforward[1], cam_vforward[2]);
-			// Quake-style eye space: z is forward-negative in view matrix
-			vertex_world[0] = player_pos[0] + vertex[0] * cam_vright[0] + vertex[1] * cam_vup[0] - vertex[2] * cam_vforward[0];
-			vertex_world[1] = player_pos[1] + vertex[0] * cam_vright[1] + vertex[1] * cam_vup[1] - vertex[2] * cam_vforward[1];
-			vertex_world[2] = player_pos[2] + vertex[0] * cam_vright[2] + vertex[1] * cam_vup[2] - vertex[2] * cam_vforward[2];
-		} else {
-			vertex_world[0] = vertex[0];
-			vertex_world[1] = vertex[1];
-			vertex_world[2] = vertex[2];
-		}
-		
-		// 	PrintOut(PRINT_LOG, "DEBUG: Env texture\n");
-	// 	PrintOut(PRINT_LOG, "DEBUG: player_pos = (%.6f, %.6f, %.6f)\n", player_pos[0], player_pos[1], player_pos[2]);
-	PrintOut(PRINT_LOG, "DEBUG: vertex = (%.6f, %.6f, %.6f)\n", vertex_world[0], vertex_world[1], vertex_world[2]);
-	// PrintOut(PRINT_LOG, "DEBUG: in_normal = (%.6f, %.6f, %.6f)\n", in_normal[0], in_normal[1], in_normal[2]);
-	// PrintOut(PRINT_LOG, "DEBUG: in_tangent = (%.6f, %.6f, %.6f)\n", in_tangent[0], in_tangent[1], in_tangent[2]);
-	// PrintOut(PRINT_LOG, "DEBUG: in_bitangent = (%.6f, %.6f, %.6f)\n", in_bitangent[0], in_bitangent[1], in_bitangent[2]);
-
-		#if 0
-		// Env texture: Generate valid shiny texture coordinates
-		// Calculate view vector from vertex to player
-		float view_vec_x = player_pos[0] - vertex_world[0];
-		float view_vec_y = player_pos[1] - vertex_world[1];
-		float view_vec_z = player_pos[2] - vertex_world[2];
-		
-		// PrintOut(PRINT_LOG, "DEBUG: view_vec (before normalize) = (%.6f, %.6f, %.6f)\n", view_vec_x, view_vec_y, view_vec_z);
-		
-		// Calculate distance and normalize
-		float distance = sqrtf(view_vec_x * view_vec_x + view_vec_y * view_vec_y + view_vec_z * view_vec_z);
-		// PrintOut(PRINT_LOG, "DEBUG: distance = %.6f\n", distance);
-		
-		const float ZERO_VECTOR_EPSILON = 1.0e-10f;
-		if (distance >= ZERO_VECTOR_EPSILON) {
-			float inv_dist = 1.0f / distance;
-			view_vec_x *= inv_dist;
-			view_vec_y *= inv_dist;
-			view_vec_z *= inv_dist;
-		}
-		
-		// PrintOut(PRINT_LOG, "DEBUG: view_vec (after normalize) = (%.6f, %.6f, %.6f)\n", view_vec_x, view_vec_y, view_vec_z);
-		
-		// Project normalized view vector onto in_normal basis vector
-		float dot_s = view_vec_x * in_normal[0] + view_vec_y * in_normal[1] + view_vec_z * in_normal[2];
-		// PrintOut(PRINT_LOG, "DEBUG: dot_s = %.6f\n", dot_s);
-		
-		// Calculate rejection vector (perpendicular to in_normal)
-		float rejection_x = view_vec_x - in_normal[0] * dot_s;
-		float rejection_y = view_vec_y - in_normal[1] * dot_s;
-		float rejection_z = view_vec_z - in_normal[2] * dot_s;
-		
-		// PrintOut(PRINT_LOG, "DEBUG: rejection = (%.6f, %.6f, %.6f)\n", rejection_x, rejection_y, rejection_z);
-		
-		// Project rejection onto in_tangent basis vector
-		float dot_t = rejection_x * in_tangent[0] + rejection_y * in_tangent[1] + rejection_z * in_tangent[2];
-		// PrintOut(PRINT_LOG, "DEBUG: dot_t = %.6f\n", dot_t);
-		
-		// Project rejection onto in_bitangent basis vector
-		float dot_tex_s = rejection_x * in_bitangent[0] + rejection_y * in_bitangent[1] + rejection_z * in_bitangent[2];
-		// PrintOut(PRINT_LOG, "DEBUG: dot_tex_s = %.6f\n", dot_tex_s);
-		
-		// Remap from [-1, 1] to [0, 1]
-		const float ADD_CONSTANT = 1.0f;
-		const float SCALE_CONSTANT = 0.5f;
-
-		// PrintOut(PRINT_LOG, "before new_s_t is : %f, %f\n", out_new_s_t[0], out_new_s_t[1]);
-		// out_new_s_t[0] = 1.0f - (dot_t + ADD_CONSTANT) * SCALE_CONSTANT;
-		// out_new_s_t[1] = 1.0f - (dot_tex_s + ADD_CONSTANT) * SCALE_CONSTANT;
-		out_new_s_t[0] = (dot_t + ADD_CONSTANT) * SCALE_CONSTANT;
-		out_new_s_t[1] = (dot_tex_s + ADD_CONSTANT) * SCALE_CONSTANT;
-		// PrintOut(PRINT_LOG, "after new_s_t is : %f, %f\n", out_new_s_t[0], out_new_s_t[1]);
-		#endif
-	}
-	
-	// Call original function with (potentially corrected) texture coordinates
-	// PrintOut(PRINT_LOG, "DEBUG: before calling oAdjustTexCoords, out_new_s_t = (%.6f, %.6f)\n", out_new_s_t[0], out_new_s_t[1]);
-	oAdjustTexCoords(player_pos, vertex_world, in_normal, in_tangent, in_bitangent, out_new_s_t);
-	// PrintOut(PRINT_LOG, "DEBUG: after calling oAdjustTexCoords, out_new_s_t = (%.6f, %.6f)\n", out_new_s_t[0], out_new_s_t[1]);
-
-	
-    // Setup glTexCoord2f function pointer from dereference of 0xA42F4
-    glTexCoord2f(out_new_s_t[0], out_new_s_t[1]);
-	// glTexCoord2f(out_new_s_t[1], out_new_s_t[0] );
-
+	// The engine passes world-space vertices to the non-spherical shiny path.
+	// Do not convert them with the camera basis here: that made "No Spherical"
+	// still depend on view angle instead of only on the camera position.
+	oAdjustTexCoords(player_pos, vertex, in_normal, in_tangent, in_bitangent, out_new_s_t);
+	glTexCoord2f(out_new_s_t[0], out_new_s_t[1]);
 }
 
 #endif // FEATURE_LIGHTING_BLEND

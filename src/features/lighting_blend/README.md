@@ -23,7 +23,7 @@ None
   - `glBlendFunc_R_BlendLightmaps()` - Intercepts glBlendFunc calls during lightmap blending to apply custom blend modes
   - Patched at ref.dll addresses: `0x3001B9A4`, `0x3001B690`
 - **AdjustTexCoords** (ref.dll, via memory patch)
-  - `hkAdjustTexCoords()` - Custom texture coordinate adjustment for environment mapping
+  - `hkAdjustTexCoords()` - Calls the original `Builds_S_T_Shiny` for the non-spherical path and submits the resulting S/T
   - Patched at ref.dll address: `0x30014995`
 
 ## Technical Details
@@ -34,8 +34,10 @@ None
 - **Lighting cutoff**: `0x3002C368` - Float value for lighting cutoff
 - **Water size (double)**: `0x3002C390` - Double value for water size
 - **Water size (float)**: `0x3002C398` - Float value for water size (1.0 / water_size)
-- **Shiny spherical target1**: `0x30014814` - Byte value for shiny spherical rendering
-- **Shiny spherical target3**: `0x30014A66` - Byte value for shiny spherical rendering
+- **Shiny spherical branch**: `0x30014814` - `SURF_SIMPLE_SPHERICAL` branch in `R_DrawDetailChains`
+- **Shiny sphere texinfo guard**: `0x30014A66` - Null-texinfo guard in the `GL_SPHERE_MAP` pass
+- **Shiny pass gate**: `0x300147DF` - "shiny surfaces collected" test before the shiny pass
+- **Shiny flat threshold**: `0x3002C434` - `radiusSquared`/flat-surface cutoff, stock `0.1f`
 
 ### Default Behavior
 The SoF engine uses:
@@ -64,7 +66,16 @@ Where:
 - `_sofbuddy_lighting_overbright` - Enable overbright lighting (default: 0)
 - `_sofbuddy_lighting_cutoff` - Lighting cutoff value (default: varies)
 - `_sofbuddy_water_size` - Water size parameter (default: 16.0, minimum: 16.0)
-- `_sofbuddy_shiny_spherical` - Enable shiny spherical rendering (default: 0)
+- `_sofbuddy_shiny_spherical` - Shiny detail-texture mode (default: `1`)
+  - `0` - Off: skip the shiny/env-map pass entirely
+  - `1` - Default: stock behaviour (spherical on `SURF_SIMPLE_SPHERICAL`, plus the flat-surface heuristic)
+  - `2` - No spherical: draw every shiny surface with the non-spherical/planar projection
+  - `3` - All spherical: force every shiny surface through `GL_SPHERE_MAP`
+  - `4` - Both (experimental): draw every shiny surface with both projections; forces the flat threshold to `10.1f` so every surface is also queued for the sphere pass
+
+Spherical depends on **camera position and view angle**. The non-spherical/planar
+projection is built from the camera position relative to the surface and a
+world-space surface basis, so pure view rotation does not change it.
 
 All persisted CVars are marked with `CVAR_SOFBUDDY_ARCHIVE` and saved to `base/sofbuddy.cfg`.
 
