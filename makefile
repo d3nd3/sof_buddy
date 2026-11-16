@@ -182,6 +182,13 @@ $(FEATURE_CONFIG_H): $(FEATURES_TXT) | $(BDIR_GEN)
 	@echo '' >> $@
 	@awk 'function strip(x){sub(/[ \t]#.*$$/,"",x); sub(/[ \t]+\/\/.*$$/,"",x); gsub(/^[ \t]+|[ \t]+$$/,"",x); return x} { line=$$0; sub(/\r$$/,"",line); gsub(/^[ \t]+|[ \t]+$$/,"",line); if(line=="") next; if(substr(line,1,2)=="//") { feature=strip(substr(line,3)); if(feature!="") { macro="FEATURE_" feature; gsub(/-/,"_",macro); macro=toupper(macro); print "#define " macro " 0  // disabled" } next } if(substr(line,1,1)=="#") { feature=strip(substr(line,2)); if(feature!="" && feature!~ /^[A-Z]/) { macro="FEATURE_" feature; gsub(/-/,"_",macro); macro=toupper(macro); print "#define " macro " 0  // disabled" } next } feature=strip(line); macro="FEATURE_" feature; gsub(/-/,"_",macro); macro=toupper(macro); print "#define " macro " 1  // enabled" }' $(FEATURES_TXT) >> $@
 	@echo '' >> $@
+	@echo '/* scaled_ui_base is shared infrastructure: compile it with any scaled sub-feature. */' >> $@
+	@echo '#if (FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_SCOPE)' >> $@
+	@echo '#ifndef FEATURE_SCALED_UI_BASE' >> $@
+	@echo '#define FEATURE_SCALED_UI_BASE 1' >> $@
+	@echo '#endif' >> $@
+	@echo '#endif' >> $@
+	@echo '' >> $@
 	@echo '/*' >> $@
 	@echo '    Usage in feature files:' >> $@
 	@echo '    ' >> $@

@@ -7,7 +7,7 @@
 
 #include "feature_config.h"
 
-#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_INTRO_SCALER
+#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_INTRO_SCALER || FEATURE_SCALED_SCOPE
 
 #include "features.h"
 #include "generated_detours.h"
@@ -21,6 +21,9 @@ using detour_R_DrawFont::oR_DrawFont;
 #endif
 #if FEATURE_INTRO_SCALER
 #include "../intro_scaler/shared.h"
+#endif
+#if FEATURE_SCALED_SCOPE
+#include "../scaled_scope/shared.h"
 #endif
 #include "debug/hook_callsite.h"
 #include <math.h>
@@ -134,6 +137,25 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 		case FontCaller::ScopeCalcXY:
 			orig_glVertex2f(x, y);
 			break;
+
+		case FontCaller::ScopeDraw: {
+#if FEATURE_SCALED_SCOPE
+			if (RuntimeFeatures::Enabled(
+			        RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_SCOPE)) {
+				const float s = snapped_text_scale_active(scaled_scope_text_scale());
+				if (s != 1.0f) {
+					// Grow the whole run from its first glyph so spaces advance with
+					// the scaled glyphs instead of collapsing (e.g. "x 06").
+					orig_glVertex2f(
+					    g_menuFontPivotX + (x - g_menuFontPivotX) * s,
+					    g_menuFontPivotY + (y - g_menuFontPivotY) * s);
+					break;
+				}
+			}
+#endif
+			orig_glVertex2f(x, y);
+			break;
+		}
 			
 		case FontCaller::SCRDrawPause: {
 			if (!RuntimeFeatures::Enabled(
@@ -395,4 +417,4 @@ int hkR_StrHeight(char* fontStd, detour_R_StrHeight::tR_StrHeight original) {
 
 #endif // UI_MENU
 
-#endif // FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_INTRO_SCALER
+#endif // FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_INTRO_SCALER || FEATURE_SCALED_SCOPE

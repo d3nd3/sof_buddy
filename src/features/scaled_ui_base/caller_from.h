@@ -94,6 +94,7 @@ VertexCaller getVertexCallerFromRva(Module m, uint32_t fnStartRva);
 enum class FontCaller {
 	Unknown = 0,
 	ScopeCalcXY,
+	ScopeDraw,
 	DMRankingCalcXY,
 	Inventory2,
 	SCRDrawPause,

@@ -257,7 +257,7 @@ void __stdcall my_glVertex2f_DrawChar_2(float x, float y);
 void __stdcall my_glVertex2f_DrawChar_3(float x, float y);
 void __stdcall my_glVertex2f_DrawChar_4(float x, float y);
 #endif
-#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
+#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_SCOPE
 void __stdcall my_glVertex2f_StretchPic_1(float x, float y);
 void __stdcall my_glVertex2f_StretchPic_2(float x, float y);
 void __stdcall my_glVertex2f_StretchPic_3(float x, float y);
@@ -311,7 +311,7 @@ extern void * (__cdecl *orig_new_std_string)(int length);
 void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int pal, char * name, detour_Draw_PicOptions::tDraw_PicOptions original);
 void hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, int palette, char * name, detour_Draw_CroppedPicOptions::tDraw_CroppedPicOptions original);
 #endif
-#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
+#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_SCOPE
 void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor, detour_R_DrawFont::tR_DrawFont original);
 bool scaled_menu_version_stamp(const char* text, int font);
 void hkSCR_CenterPrint(char * text, detour_SCR_CenterPrint::tSCR_CenterPrint original);

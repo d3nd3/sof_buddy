@@ -467,6 +467,16 @@ functions:
       - type: void*
         name: self
 
+  - name: cScope_Draw
+    module: SofExe
+    identifier: "0x00006EA0"
+    return_type: void
+    calling_convention: __thiscall
+    detour_len: 0
+    params:
+      - type: void*
+        name: self
+
   - name: Draw_CharExtra
     module: RefDll
     identifier: "0x00001B00"
@@ -506,6 +516,24 @@ functions:
         name: name
       - type: int
         name: flags
+
+  - name: Draw_FillRGB
+    module: RefDll
+    identifier: "0x000025B0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: int
+        name: x
+      - type: int
+        name: y
+      - type: int
+        name: w
+      - type: int
+        name: h
+      - type: paletteRGBA_t*
+        name: color
 
   - name: Draw_Pic
     module: RefDll

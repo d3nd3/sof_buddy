@@ -31,6 +31,7 @@ CATEGORIES = {
         "texture_mapping_min_mag",
         "scaled_con",
         "scaled_hud",
+        "scaled_scope",
         "hd_textures",
         "vsync_toggle",
         "lighting_blend",

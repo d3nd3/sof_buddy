@@ -8,6 +8,9 @@
 #include "../../scaled_ui_base/shared.h"
 #include "debug/hook_callsite.h"
 #include "runtime_features.h"
+#if FEATURE_SCALED_SCOPE
+#include "../../scaled_scope/shared.h"
+#endif
 #if FEATURE_MORE_CROSSHAIRS
 #include "features/more_crosshairs/shared.h"
 #endif
@@ -28,6 +31,12 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
         uint32_t fnStart = HookCallsite::recordAndGetFnStartExternal("Draw_StretchPic");
         if (fnStart) g_currentStretchPicCaller = getStretchPicCallerFromRva(fnStart);
     }
+#if FEATURE_SCALED_SCOPE
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_SCOPE) &&
+        g_currentStretchPicCaller == StretchPicCaller::ScopeDraw) {
+        scaled_scope_note_stretch_pic(x, y, w, h, name);
+    }
+#endif
     const bool consoleBackground =
 #if FEATURE_SCALED_CON
         RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON) &&

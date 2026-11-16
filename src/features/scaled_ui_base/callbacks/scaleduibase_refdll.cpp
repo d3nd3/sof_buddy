@@ -12,7 +12,7 @@ extern void(__stdcall * orig_glVertex2f)(float one, float two);
 extern void(__stdcall * orig_glVertex2i)(int x, int y);
 extern void(__stdcall * orig_glDisable)(int cap);
 
-#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
+#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_SCOPE
 extern void __stdcall my_glVertex2f_DrawFont_1(float x, float y);
 extern void __stdcall my_glVertex2f_DrawFont_2(float x, float y);
 extern void __stdcall my_glVertex2f_DrawFont_3(float x, float y);
@@ -94,8 +94,10 @@ void scaledUIBase_RefDllLoaded(char const* name)
     }
 #endif
 
-#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
-    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) || RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
+#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_SCOPE
+    if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) ||
+        RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU) ||
+        RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_SCOPE)) {
         PrintOut(PRINT_LOG, "scaled_ui_base: Installing DrawFont vertex hooks\n");
         WriteE8Call(rvaToAbsRef((void*)0x00004860), (void*)&my_glVertex2f_DrawFont_1);
         WriteByte(rvaToAbsRef((void*)0x00004865), 0x90);

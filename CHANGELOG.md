@@ -4,6 +4,10 @@ User-facing highlights. Older detail is summarized at the bottom.
 
 ## Unreleased
 
+### Scaled scope
+
+- New `scaled_scope` feature. The sniper scope overlay now keeps its authored 4:3 proportions on widescreen displays instead of stretching with the aspect ratio. The scope is centred with black side bars (top/bottom bars on displays narrower than 4:3), and the magnification readout scales with the scope so it stays legible at 1080p and above.
+
 ### Media timers
 
 - Frame pacing now waits on a high-resolution waitable timer (`CreateWaitableTimerExW`, Windows 10 1803+, resolved dynamically so XP builds/wine still fall back), rounding up to 100 ns units. The frame loop uses short 100 µs waits instead of a coarse `Sleep(1)`, so `cl_maxfps` exact mode hits its 1 ms frame window more consistently. SoFPlus's own frame delay is held at 0 in the same frame-loop paths instead of being cleared from every `Sys_Mil` call.
