@@ -1,0 +1,8 @@
+[
+  {
+    "function": "LoadSoundModule",
+    "callback": "sound_alt_tab_fix_load_sound_module_post",
+    "phase": "Post",
+    "priority": 100
+  }
+]

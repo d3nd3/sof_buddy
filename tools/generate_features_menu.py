@@ -34,6 +34,7 @@ LABELS = {
     "console_protection": "Console Protection",
     "cl_maxfps_singleplayer": "Singleplayer Max FPS",
     "list_match_fix": "List Match Fix",
+    "sound_alt_tab_fix": "Sound Alt-Tab Fix",
     "cbuf_limit_increase": "Cbuf Limit Increase",
     "raw_mouse": "Raw Mouse",
     "more_crosshairs": "More Crosshairs",
