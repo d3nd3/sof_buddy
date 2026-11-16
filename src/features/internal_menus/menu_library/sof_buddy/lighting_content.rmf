@@ -30,7 +30,7 @@
 <hbr>
 <font type {font_title} tint white atint white>
 <list "Off,On" cvari _sofbuddy_lighting_overbright atext "Overbright : " noshade><br>
-<list "Off,On" cvari _sofbuddy_shiny_spherical atext "Specular Textures : " noshade tip "View-dependent specular on detail textures."><br>
+<list "Off,Default,No Spherical,All Spherical,Both (Experimental)" match "0,1,2,3,4" cvari _sofbuddy_shiny_spherical atext "Shiny : " noshade tip "0=Off, 1=Default, 2=Planar (position only), 3=Sphere (SPHERE_MAP, view angle), 4=Both (exp)."><br>
 <ctext _sofbuddy_lighting_cutoff atext "Dynamic Light Threshold : " tint sb_accent atint sb_accent noshade tip "Minimum dynamic-light contribution on surfaces. Lower = wider reach; higher = tighter falloff and less work."><br>
 <slider cvari _sofbuddy_lighting_cutoff min 1 max 256 step 1><br>
 

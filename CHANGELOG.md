@@ -4,6 +4,10 @@ User-facing highlights. Older detail is summarized at the bottom.
 
 ## Unreleased
 
+### Lighting
+
+- `_sofbuddy_shiny_spherical` now has five modes: `0` off (skip shiny entirely), `1` default, `2` no spherical, `3` all spherical, `4` both (experimental planar + spherical). F12 → Lighting shows the mode as a five-entry list. If you previously used `0` to turn off only the spherical effect, use `2` now. Mode `4` intentionally double-draws shiny surfaces and may look darker/busier. Spherical responds to camera position **and view angle**; the planar/non-spherical mode responds only to camera position, so pure view rotation no longer changes it.
+
 ### Scaled HUD
 
 - The countdown timer text now follows `_sofbuddy_hud_scale` instead of staying at stock size during timed sections.

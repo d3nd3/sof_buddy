@@ -406,7 +406,7 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_shiny_spherical</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Let shiny <code>gl_detailtexturing</code> change with view angle. <code>1</code> on, <code>0</code> off. F12 → Lighting.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Shiny detail-texture mode: <code>0</code> off, <code>1</code> default, <code>2</code> no spherical (planar, camera position only), <code>3</code> all spherical (camera position + view angle), <code>4</code> both (experimental). F12 → Lighting.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_rawmouse</code></td>

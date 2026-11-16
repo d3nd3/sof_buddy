@@ -16,11 +16,8 @@ extern double *water_size_double_target;
 extern float *water_size_float_target;
 extern unsigned char *shiny_spherical_target1;
 extern unsigned char *shiny_spherical_target3;
-extern float *cam_vforward;
-extern float *cam_vup;
-extern float *cam_vright;
-// ref_gl.dll surfaces array (base pointer), refreshed on each ref.dll load
-extern void **ref_surfaces;
+extern unsigned char *shiny_pass_target;
+extern float *shiny_flat_threshold_target;
 
 extern void (__stdcall *real_glBlendFunc)(unsigned int, unsigned int);
 extern void (__cdecl *oAdjustTexCoords)(float*, float*, float*, float*, float*, float*);
@@ -46,6 +43,7 @@ void lighting_overbright_change(cvar_t * cvar);
 void lighting_cutoff_change(cvar_t * cvar);
 void water_size_change(cvar_t * cvar);
 void shiny_spherical_change(cvar_t * cvar);
+void shiny_spherical_apply(int mode);
 void __stdcall glBlendFunc_R_BlendLightmaps(unsigned int sfactor, unsigned int dfactor);
 void __cdecl hkAdjustTexCoords(float* player_pos, float* vertex, float* in_normal, float* in_tangent, float* in_bitangent, float* out_new_s_t);
 

@@ -15,10 +15,8 @@ double *water_size_double_target = nullptr;
 float *water_size_float_target = nullptr;
 unsigned char *shiny_spherical_target1 = nullptr;
 unsigned char *shiny_spherical_target3 = nullptr;
-float *cam_vforward = nullptr;
-float *cam_vup = nullptr;
-float *cam_vright = nullptr;
-void **ref_surfaces = nullptr;
+unsigned char *shiny_pass_target = nullptr;
+float *shiny_flat_threshold_target = nullptr;
 void lightblend_RefDllLoaded(char const* name)
 {
 	PrintOut(PRINT_LOG, "lighting_blend: Initializing blend mode settings\n");
@@ -30,11 +28,8 @@ void lightblend_RefDllLoaded(char const* name)
 	water_size_float_target = (float*)rvaToAbsRef((void*)0x2C398);
 	shiny_spherical_target1 = (unsigned char*)rvaToAbsRef((void*)0x14814);
 	shiny_spherical_target3 = (unsigned char*)rvaToAbsRef((void*)0x14A66);
-	
-	cam_vforward = (float*)rvaToAbsRef((void*)0x0008FD7C);
-	cam_vup = (float*)rvaToAbsRef((void*)0x0008FD94);
-	cam_vright = (float*)rvaToAbsRef((void*)0x0008FF30);
-	ref_surfaces = (void**)rvaToAbsRef((void*)0xA1728);
+	shiny_pass_target = (unsigned char*)rvaToAbsRef((void*)0x147DF);
+	shiny_flat_threshold_target = (float*)rvaToAbsRef((void*)0x2C434);
 
 	if (lighting_cutoff_target && _sofbuddy_lighting_cutoff) {
 		writeFloatAt(lighting_cutoff_target, _sofbuddy_lighting_cutoff->value);
@@ -45,15 +40,9 @@ void lightblend_RefDllLoaded(char const* name)
 		writeFloatAt(water_size_float_target, 1.0f / _sofbuddy_water_size->value);
 	}
 
-	if (shiny_spherical_target1 && _sofbuddy_shiny_spherical) {
-		unsigned char value = _sofbuddy_shiny_spherical->value == 0.0f ? 0xEB : 0x74;
-		WriteByte(shiny_spherical_target1, value);
+	if (_sofbuddy_shiny_spherical) {
+		shiny_spherical_apply((int)_sofbuddy_shiny_spherical->value);
 	}
-
-    if (shiny_spherical_target3 && _sofbuddy_shiny_spherical) {
-        unsigned char value = _sofbuddy_shiny_spherical->value == 0.0f ? 0xEB : 0x74;
-        WriteByte(shiny_spherical_target3, value);
-    }
 
 	real_glBlendFunc = detour_glBlendFunc::oglBlendFunc;
 	if (!real_glBlendFunc) {
