@@ -46,7 +46,7 @@
 - ⚡ **Smoother framerate** — Fine-grained singleplayer FPS caps, including exact integer targets, with improved timing and CPU-friendly pacing.
 - 🔎 **Faster cvars & commands** — Hash-map lookups replace the engine's linked-list scans for cvars, commands, and aliases; especially noticeable with script-heavy SoF Plus setups.
 - 🖱️ **Raw mouse input** — Direct hardware input without Windows acceleration; your existing sensitivity settings still work.
-- 🏷️ **Widescreen fixes** — Team icons and player names stay correctly positioned and scale with your HUD.
+- 🏷️ **Widescreen fixes** — Team icons and player names stay correctly positioned and scale with your HUD, and the sniper scope keeps its 4:3 shape with the magnification readout scaled to match.
 - 🖼️ **HD textures & extended skins** — High-resolution texture support plus extra multiplayer player models.
 - 🌙 **Better lighting** — Optional WhiteMagicRaven lighting blend tweaks for a sharper, more atmospheric look.
 - 🌐 **Multiplayer quality of life** — HTTP map downloads, a GameSpy master selector with known-host fallback, and faster server setup.

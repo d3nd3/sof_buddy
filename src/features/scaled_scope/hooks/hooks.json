@@ -1,0 +1,7 @@
+[
+  {
+    "function": "cScope_Draw",
+    "callback": "hkcScope_Draw",
+    "override": true
+  }
+]

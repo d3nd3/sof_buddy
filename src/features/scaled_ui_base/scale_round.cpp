@@ -1,6 +1,6 @@
 #include "feature_config.h"
 
-#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
+#if FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_SCOPE
 
 #include <math.h>
 #include "sof_compat.h"

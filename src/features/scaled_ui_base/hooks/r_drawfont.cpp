@@ -1,6 +1,6 @@
 #include "feature_config.h"
 
-#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_INTRO_SCALER
+#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_INTRO_SCALER || FEATURE_SCALED_SCOPE
 
 #include "sof_compat.h"
 #include "util.h"
@@ -62,7 +62,8 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
     if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) &&
         !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU) &&
         !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON) &&
-        !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_INTRO_SCALER)) {
+        !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_INTRO_SCALER) &&
+        !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_SCOPE)) {
         original(screenX, screenY, text, colorPalette, font, rememberLastColor);
         return;
     }
@@ -266,4 +267,4 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 	resetGlVertexQuadState();
 }
 
-#endif // FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_INTRO_SCALER
+#endif // FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_INTRO_SCALER || FEATURE_SCALED_SCOPE

@@ -18,6 +18,7 @@ StretchPicCaller getStretchPicCallerFrom(Module m, uint32_t fnStartRva) {
 				case 0x000C8960: return StretchPicCaller::DrawStretchPic;
 				case 0x000DBF10: return StretchPicCaller::loadbox_c_GetIndices;
 				case 0x00006DC0: return StretchPicCaller::ScopeCalcXY;
+				case 0x00006EA0: return StretchPicCaller::ScopeDraw;
 				default: return StretchPicCaller::Unknown;
 			}
 		case Module::RefDll:
@@ -201,6 +202,7 @@ FontCaller getFontCallerFrom(Module m, uint32_t fnStartRva) {
 		case Module::SofExe:
 			switch (fnStartRva) {
 				case 0x00006DC0: return FontCaller::ScopeCalcXY;
+				case 0x00006EA0: return FontCaller::ScopeDraw;
 				case 0x00007AF0: return FontCaller::DMRankingCalcXY;
 				case 0x00008260: return FontCaller::Inventory2;
 				case 0x00013710: return FontCaller::SCRDrawPause;
