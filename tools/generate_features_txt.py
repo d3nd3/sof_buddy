@@ -35,6 +35,7 @@ CATEGORIES = {
         "hd_textures",
         "vsync_toggle",
         "lighting_blend",
+        "lightstyle_interpolation",
     ],
     "Gameplay Features": [
         "more_crosshairs",
