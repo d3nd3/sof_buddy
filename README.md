@@ -48,7 +48,7 @@
 - 🖱️ **Raw mouse input** — Direct hardware input without Windows acceleration; your existing sensitivity settings still work.
 - 🏷️ **Widescreen fixes** — Team icons and player names stay correctly positioned and scale with your HUD, and the sniper scope keeps its 4:3 shape with the magnification readout scaled to match.
 - 🖼️ **HD textures & extended skins** — High-resolution texture support plus extra multiplayer player models.
-- 🌙 **Better lighting** — Optional WhiteMagicRaven lighting blend tweaks for a sharper, more atmospheric look.
+- 🌙 **Better lighting** — Optional WhiteMagicRaven lighting blend tweaks plus optional smooth light-style interpolation for a sharper, more atmospheric look.
 - 🌐 **Multiplayer quality of life** — HTTP map downloads, a GameSpy master selector with known-host fallback, and faster server setup.
 - ⬆️ **In-game updater** — Check, download, and install releases without leaving the game; choose the stable master channel or unstable prerelease builds, get an optional startup prompt, and (in the graphical updater) merge new recommended feature defaults while keeping explicit overrides.
 - 🎮 **One-click Windows installer** — Installs SoF Buddy and can optionally set up the official SoF Plus client, with automatic CD/GOG detection.
@@ -407,6 +407,10 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_shiny_spherical</code></td>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Shiny detail-texture mode: <code>0</code> off, <code>1</code> default, <code>2</code> no spherical (planar, camera position only), <code>3</code> all spherical (camera position + view angle), <code>4</code> both (experimental). F12 → Lighting.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lightstyle_interpolation</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Smoothly interpolates animated light styles between their 10 Hz frames. <code>1</code> on, <code>0</code> off (stock stepping). F12 → Lighting.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_rawmouse</code></td>

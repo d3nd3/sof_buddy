@@ -31,6 +31,14 @@ functions:
       - type: void*
         name: unknown
 
+  - name: CL_RunLightStyles
+    module: SofExe
+    identifier: "0x0002F940"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
   - name: IN_MouseMove
     module: SofExe
     identifier: "0x0004A1F0"

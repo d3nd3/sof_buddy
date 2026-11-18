@@ -49,6 +49,7 @@ constexpr FeatureRule kRules[] = {
     {"_sofbuddy_lightblend_src", "lighting_blend", nullptr, nullptr, "Lighting Blend"},
     {"_sofbuddy_lightblend_dst", "lighting_blend", nullptr, nullptr, "Lighting Blend"},
     {"_sofbuddy_shiny_spherical", "lighting_blend", nullptr, nullptr, "Lighting Blend"},
+    {"_sofbuddy_lightstyle_interpolation", "lightstyle_interpolation", nullptr, nullptr, "Lightstyle Interpolation"},
     {"_sofbuddy_http_maps", "http_maps", nullptr, nullptr, "HTTP Maps"},
     {"_sofbuddy_http_maps_dl_1", "http_maps", nullptr, nullptr, "HTTP Maps"},
     {"_sofbuddy_http_maps_dl_2", "http_maps", nullptr, nullptr, "HTTP Maps"},
