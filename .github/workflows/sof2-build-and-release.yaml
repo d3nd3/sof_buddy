@@ -3,7 +3,7 @@ name: SoF2 Build and Release
 on:
   push:
     branches:
-      - master
+      - sof2-wip
     paths:
       - "sof2/**"
       - ".github/workflows/sof2-build-and-release.yaml"
