@@ -12,6 +12,8 @@
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey.svg?style=for-the-badge" alt="Platform">
 </p>
 
+![SoF Buddy system overview](docs/system.svg)
+
 ![HTTP map download - missing maps fetched on demand](docs/images/http.png)
 ![SoF Buddy in-game menu (F12)](docs/images/menu.png)
 
@@ -77,6 +79,14 @@ extraction or feature-enable scripts are needed.
 3. Keep **Recommended feature set** or choose **Custom feature selection**, then finish setup. Setup reselects the Recommended feature set on upgrades instead of reusing an older custom/disabled selection.
 4. Setup automatically enables SoF Buddy and saves the original as `SoF.exe.bak`.
 5. Launch SoF.
+
+> **Antivirus note:** The Windows installer is unsigned, and Microsoft Defender's
+> machine-learning heuristic can occasionally flag it as
+> `Trojan:Win32/Wacatac!ml`. This is a false positive: the installer only contains
+> files from this repository (the SoF Buddy DLL, updater, scripts, and menu
+> assets). If Defender blocks it, download `release_windows_universal.zip` instead
+> and use the manual installation steps below. You can also report the file as a
+> false positive at <https://www.microsoft.com/en-us/wdsi/filesubmission>.
 
 ### Manual installation (Windows/Linux/Wine)
 

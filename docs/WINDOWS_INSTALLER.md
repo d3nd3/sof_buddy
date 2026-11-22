@@ -220,3 +220,32 @@ separate. The installer payload must contain the latter as
 The generated feature list, installer components, and default runtime selection
 all come from `features/FEATURES.txt`. If that file changes, regenerate the
 installer and rebuild both the normal and universal configurations.
+
+## Antivirus false positives and signing
+
+`sof_buddy_setup_v<version>.exe` is an unsigned Inno Setup installer, so
+Microsoft Defender's machine-learning classifier can occasionally flag it as
+`Trojan:Win32/Wacatac!ml`. That detection is a heuristic, not a virus
+signature. The installer ships the open-source DLL, updater, and menu assets and
+does not contain a dropper.
+
+The packaging deliberately avoids the traits that most often trigger the
+heuristic:
+
+- No LZMA/solid compression: `Compression=zip` and `SolidCompression=no`. This
+  avoids the high-entropy solid block that looks like a packed executable.
+- Full Setup `VersionInfo*` metadata and publisher/support/update URLs.
+- VERSIONINFO resources on `sof_buddy.dll` and `sof_buddy_update.exe`, generated
+  from `VERSION`, plus an application manifest and icon for the updater and the
+  installer's file icon.
+- Inno Setup is pinned to `6.6.1` in CI so a newly published stub is not adopted
+  automatically.
+
+These reduce the chance of a false positive but cannot eliminate it. The durable
+fix is Authenticode code signing for the inner binaries and the final installer
+(for example through SignPath Foundation's free open-source program or a paid
+certificate), since unsigned binaries start with no Windows reputation.
+
+If a release is flagged, users can install manually from
+`release_windows_universal.zip`; maintainers can submit the flagged file as an
+incorrect detection at <https://www.microsoft.com/en-us/wdsi/filesubmission>.

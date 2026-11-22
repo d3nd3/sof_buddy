@@ -32,6 +32,10 @@ GENERATE_FEATURES_TXT_PY = tools/generate_features_txt.py
 GENERATE_MENU_EMBED_PY = tools/generate_menu_embed.py
 GENERATE_FEATURES_MENU_PY = tools/generate_features_menu.py
 GENERATE_CROSSHAIR_CATALOG_PY = tools/generate_crosshair_catalog.py
+GENERATE_WINDOWS_RESOURCES_PY = tools/generate_windows_resources.py
+WINDRES ?= i686-w64-mingw32-windres
+VERSION_RC = $(BDIR_GEN)/version_info.rc
+VERSION_RES_OBJ = $(ODIR)/version_info.o
 CROSSHAIR_CATALOG_INC = $(BDIR_GEN)/crosshair_catalog.inc
 CROSSHAIR_ASSETS = $(wildcard rsrc/assets/crosshairs/*)
 MENU_DATA_CPP = $(SDIR)/features/internal_menus/menu_data.cpp
@@ -125,7 +129,7 @@ CALLBACKS_JSON = $(shell find $(SDIR)/features $(SDIR)/core -name "callbacks.jso
 POINTERS_JSON = $(shell find $(SDIR)/features $(SDIR)/core -name "pointers.json" 2>/dev/null || true)
 
 # Release DLL only (used by BUILD=debug/xp and by universal sub-build)
-dll: $(MENU_DATA_CPP) $(CROSSHAIR_CATALOG_INC) $(FEATURES_TXT) $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(DEFAULT_FEATURE_LIST_H) $(VERSION_H) $(BUILD_INFO_H) $(GENERATED_DETOURS_H) $(GENERATED_DETOURS_CPP) $(GENERATED_REGISTRATIONS_H) $(OUT)
+dll: $(MENU_DATA_CPP) $(CROSSHAIR_CATALOG_INC) $(FEATURES_TXT) $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(DEFAULT_FEATURE_LIST_H) $(VERSION_H) $(VERSION_RES_OBJ) $(BUILD_INFO_H) $(GENERATED_DETOURS_H) $(GENERATED_DETOURS_CPP) $(GENERATED_REGISTRATIONS_H) $(OUT)
 
 # Default: standard release + universal + Windows GUI updater (not debug/xp).
 # Sequential sub-makes: parallel -j would run these concurrently and CI has seen
@@ -233,6 +237,16 @@ $(VERSION_H) $(LEGACY_VERSION_H): $(VERSION_FILE)
 	@echo '#define SOFBUDDY_VERSION "'$$(cat $(VERSION_FILE) | tr -d '\r\n')'"' >> $@
 	@echo "Generated version header with version: $$(cat $(VERSION_FILE) | tr -d '\r\n')"
 
+# Generate Windows VERSIONINFO metadata for the DLL. A normal version resource
+# is one of the cheapest ways to look less like a bare unsigned MinGW drop.
+$(VERSION_RC): $(VERSION_FILE) $(GENERATE_WINDOWS_RESOURCES_PY)
+	@mkdir -p $(dir $@)
+	@python3 $(GENERATE_WINDOWS_RESOURCES_PY) --kind dll --version-file $(VERSION_FILE) --output $@
+
+$(VERSION_RES_OBJ): $(VERSION_RC)
+	@mkdir -p $(dir $@)
+	$(WINDRES) -i $< -o $@
+
 $(BUILD_INFO_H): FORCE | $(BDIR_GEN)
 	@tmp=$@.tmp; { echo '#pragma once'; echo '#define SOFBUDDY_BUILD_NUMBER "$(SOFBUDDY_BUILD_NUMBER)"'; } > $$tmp; if cmp -s $$tmp $@; then rm $$tmp; else mv $$tmp $@; fi
 
@@ -260,9 +274,9 @@ features: $(FEATURES_TXT)
 	@echo "Active feature count: $$(awk '{ line=$$0; sub(/\r$$/,"",line); gsub(/^[ \t]+|[ \t]+$$/,"",line); if(line=="") next; if(substr(line,1,1)=="#") next; if(substr(line,1,2)=="//") next; print line }' $(FEATURES_TXT) | wc -l)"
 
 # Build target
-$(OUT): $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(GENERATED_DETOURS_H) $(GENERATED_REGISTRATIONS_H) $(OBJECTS) $(ODIR)/generated_detours.o
+$(OUT): $(FEATURE_CONFIG_H) $(FEATURE_LIST_H) $(GENERATED_DETOURS_H) $(GENERATED_REGISTRATIONS_H) $(OBJECTS) $(ODIR)/generated_detours.o $(VERSION_RES_OBJ)
 	@mkdir -p $(BDIR)
-	$(CC) $(LFLAGS) $(DEF_FILE) $(OBJECTS) $(ODIR)/generated_detours.o -o $(OUT) $(LIBS)
+	$(CC) $(LFLAGS) $(DEF_FILE) $(OBJECTS) $(ODIR)/generated_detours.o $(VERSION_RES_OBJ) -o $(OUT) $(LIBS)
 
 # Object file rules - all depend on feature config, feature list, version header, and generated hook headers
 $(ODIR)/core/runtime_features.o: $(DEFAULT_FEATURE_LIST_H)

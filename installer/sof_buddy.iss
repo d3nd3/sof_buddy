@@ -6,6 +6,12 @@ AppId={{B0F7F5D4-4A1E-4F4A-A7B4-8CF2E7C9B1A6}}
 AppName=SoF Buddy
 AppVersion={#AppVersion}
 AppPublisher=d3nd3
+AppPublisherURL=https://github.com/d3nd3/sof_buddy
+AppSupportURL=https://github.com/d3nd3/sof_buddy/issues
+AppUpdatesURL=https://github.com/d3nd3/sof_buddy/releases
+AppCopyright=Copyright (C) 2024 d3nd3
+SetupIconFile=..\rsrc\win_updater\sof_buddy.ico
+UninstallDisplayIcon={app}\sof_buddy\sof_buddy_update.exe
 DefaultDirName={autopf}\Soldier of Fortune
 AppendDefaultDirName=no
 DisableDirPage=no
@@ -18,8 +24,16 @@ LicenseFile=..\LICENSE
 PrivilegesRequired=admin
 OutputDir=output
 OutputBaseFilename=sof_buddy_setup_v{#AppVersion}
-Compression=lzma
-SolidCompression=yes
+Compression=zip
+SolidCompression=no
+VersionInfoVersion={#AppVersion}.0.0
+VersionInfoCompany=d3nd3
+VersionInfoDescription=SoF Buddy installer
+VersionInfoCopyright=Copyright (C) 2024 d3nd3
+VersionInfoProductName=SoF Buddy
+VersionInfoProductVersion={#AppVersion}.0.0
+VersionInfoProductTextVersion={#AppVersion}
+VersionInfoTextVersion={#AppVersion}
 WizardStyle=modern
 
 [Messages]
@@ -100,7 +114,7 @@ const
   LcgInverse = $B9B33155;
   LcgModulus = 4294967296;
   PatchOffset = $11AD72;
-  ExpectedDllSha256 = 'b9f1434b67eb12997317d02aa8126b39e2067b27a273e22fdde97e7b7ac46929';
+  ExpectedDllSha256 = '65f94fea543eb7da7e4a1ef39a677da2f4e7a9900a74e2cd3c32ac0e447323ba';
 
 var
   FullViolencePage: TInputQueryWizardPage;

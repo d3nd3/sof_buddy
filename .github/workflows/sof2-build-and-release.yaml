@@ -1,0 +1,214 @@
+name: SoF2 Build and Release
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "sof2/**"
+      - ".github/workflows/sof2-build-and-release.yaml"
+  workflow_dispatch:
+    inputs:
+      force_release:
+        description: Build and publish sof2bud release for sof2/VERSION (skip bump check)
+        type: boolean
+        default: false
+
+jobs:
+  version_gate:
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.gate.outputs.changed }}
+      version: ${{ steps.gate.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect sof2/VERSION bump
+        id: gate
+        run: |
+          VERSION=$(tr -d '\r\n' < sof2/VERSION)
+          PREV=$(git show HEAD~1:sof2/VERSION 2>/dev/null | tr -d '\r\n' || true)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.force_release }}" == "true" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Forced sof2bud release for VERSION $VERSION"
+          elif [[ -z "$PREV" || "$VERSION" != "$PREV" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "sof2/VERSION changed: ${PREV:-<none>} -> $VERSION"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "sof2/VERSION unchanged ($VERSION); skipping build and release"
+          fi
+
+      - name: Validate sof2 release metadata
+        if: steps.gate.outputs.changed == 'true'
+        run: ./tools/new_release.sh --sof2 --check --ci
+
+  build:
+    needs: version_gate
+    if: needs.version_gate.outputs.version_changed == 'true'
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:24.10
+    env:
+      SOF2BUD_BUILD_NUMBER: ${{ github.run_number }}
+      CCACHE_DIR: ${{ github.workspace }}/.ccache-sof2
+      CCACHE_MAXSIZE: 512M
+      CCACHE_COMPRESS: "true"
+      CCACHE_COMPILERCHECK: content
+      CCACHE_BASEDIR: ${{ github.workspace }}/sof2
+      CC: ccache i686-w64-mingw32-g++-posix
+
+    steps:
+      - name: Install Dependencies
+        run: |
+          rm -rf /etc/apt/sources.list* /etc/apt/sources.list.d/* /var/lib/apt/lists/*
+          cat > /etc/apt/sources.list <<'EOF'
+          deb http://old-releases.ubuntu.com/ubuntu/ oracular main restricted universe multiverse
+          deb http://old-releases.ubuntu.com/ubuntu/ oracular-updates main restricted universe multiverse
+          deb http://old-releases.ubuntu.com/ubuntu/ oracular-backports main restricted universe multiverse
+          deb http://old-releases.ubuntu.com/ubuntu/ oracular-security main restricted universe multiverse
+          EOF
+          apt-get update -o Acquire::Check-Valid-Until=false 2>&1 || true
+          apt-get install -y git build-essential g++-mingw-w64-i686 mingw-w64-i686-dev zip python3 ccache
+          i686-w64-mingw32-g++-posix --version
+
+      - uses: actions/checkout@v4
+
+      - name: Hash compiler-cache inputs
+        id: ccache_inputs
+        run: |
+          hash=$(sha256sum sof2/makefile sof2/FEATURES.txt sof2/rsrc/sof2bud.def \
+            | sha256sum | awk '{print substr($1,1,16)}')
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: .ccache-sof2
+          key: ccache-sof2-mingw-${{ steps.ccache_inputs.outputs.hash }}-${{ github.sha }}
+          restore-keys: |
+            ccache-sof2-mingw-${{ steps.ccache_inputs.outputs.hash }}-
+            ccache-sof2-mingw-
+
+      - name: Package release zips
+        run: |
+          ccache -z || true
+          bash sof2/tools/package_release.sh
+          ccache -s || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sof2-release-windows
+          path: sof2/release_windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sof2-installer-payload
+          path: sof2/sof2bud_installer_payload.zip
+
+  installer:
+    needs: [build, version_gate]
+    if: needs.version_gate.outputs.version_changed == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sof2-installer-payload
+          path: installer_payload
+
+      - name: Extract installer payload
+        shell: pwsh
+        run: Expand-Archive -Path installer_payload\sof2bud_installer_payload.zip -DestinationPath sof2\installer\payload -Force
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Generate Inno Setup script
+        run: python sof2/tools/generate_installer.py
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress --yes
+
+      - name: Build Windows installer
+        shell: pwsh
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" sof2\installer\sof2_buddy.iss'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sof2-windows-installer
+          path: sof2/installer/output/sof2bud_setup_v${{ needs.version_gate.outputs.version }}.exe
+
+  release:
+    needs: [build, installer, version_gate]
+    if: needs.version_gate.outputs.version_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sof2-release-windows
+          path: windows_release
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sof2-windows-installer
+          path: windows_installer
+
+      - name: Extract release notes
+        id: release_notes
+        run: |
+          VER="${{ needs.version_gate.outputs.version }}"
+          BUILD="${{ github.run_number }}"
+          python3 tools/changelog_release_body.py "$VER" sof2/CHANGELOG.md > release_body.md
+          python3 tools/changelog_release_body.py "$VER" sof2/CHANGELOG.md --discord --build "$BUILD" > sof2_discord_announce.md
+          {
+            echo ""
+            echo "---"
+            echo ""
+            echo "**Discord (#sof2-releases)**"
+            echo ""
+            cat sof2_discord_announce.md
+            echo ""
+            echo "_Tag: \`sof2-v${VER}-build${BUILD}\` — not a SoF Buddy \`v…\` release._"
+          } >> release_body.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sof2-discord-announce
+          path: sof2_discord_announce.md
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: sof2-v${{ needs.version_gate.outputs.version }}-build${{ github.run_number }}
+          release_name: sof2bud v${{ needs.version_gate.outputs.version }} (Build ${{ github.run_number }})
+          body_path: release_body.md
+          draft: false
+          prerelease: false
+
+      - uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: windows_release/release_windows.zip
+          asset_name: sof2_release_windows.zip
+          asset_content_type: application/zip
+
+      - uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: windows_installer/sof2bud_setup_v${{ needs.version_gate.outputs.version }}.exe
+          asset_name: sof2bud_setup_v${{ needs.version_gate.outputs.version }}.exe
+          asset_content_type: application/vnd.microsoft.portable-executable

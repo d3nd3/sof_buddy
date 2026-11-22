@@ -299,7 +299,11 @@ jobs:
         run: python tools/generate_installer.py
 
       - name: Install Inno Setup
-        run: choco install innosetup --no-progress --yes
+        # Pin the installer compiler: a freshly published Inno stub can be
+        # abused by malware and temporarily trip Defender's ML heuristics for
+        # every unsigned installer built with it. 6.6.1 is the previous stable
+        # release before the current 6.7.x line.
+        run: choco install innosetup --version=6.6.1 --allow-downgrade --no-progress --yes
 
       - name: Build Windows Installer
         shell: pwsh

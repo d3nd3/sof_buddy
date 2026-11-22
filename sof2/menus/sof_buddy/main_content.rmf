@@ -1,0 +1,38 @@
+<stm>
+<include sof_buddy/tints>
+<key escape "popmenu">
+<cursor 1>
+
+<vbar tint sb_accent>
+
+<defaults noborder tiptint normaltext tipbtint sb_panel tipfont title>
+<backdrop bgcolor sb_bg>
+
+<left> 32
+<right> 32
+<normal>
+
+<include sof_buddy/tabs/main>
+
+<center>
+<font type title tint sb_accent atint sb_accent>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<text "SOF2 BUDDY: VERSION" tip "sof2bud build info">
+<center>
+<font type title tint cyan atint cyan>
+"_____________________________"
+<hbr>
+<hbr>
+<font type title tint white atint white>
+<ctext _sof2bud_version atext "Version : " tint white atint white noshade><hbr>
+<ctext _sof2bud_build atext "Build : " tint white atint white noshade><hbr>
+<hbr>
+<font type title tint gray atint gray>
+"Press F12 to open this menu in-game."
+<hbr>
+<hbr>
+<text "Close" key mouse1 "popmenu" border 8 1 cyan regular align center><hbr>
+</stm>
