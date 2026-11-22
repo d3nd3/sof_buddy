@@ -1,0 +1,117 @@
+# SoF Buddy — system overview (source of truth).
+# Render:  scripts/render-diagram.sh  (svg: light+dark, png: dark, for gpm desktop)
+# Colours come from the d2 theme, not hardcoded fills, so both light and dark render legibly.
+# Rule: if a build step, hook path, feature, runtime file, or external service
+# changes, update this file in the same commit and re-render the SVG.
+
+title: |md
+  **SoF Buddy** — one DLL that hooks Soldier of Fortune 1 / SoF2-MP and adds scaling, fixes and menus
+| {near: top-center}
+
+direction: right
+
+build: Build · host {
+  spec: feature list {
+    features: features/FEATURES.txt — compiled defaults
+    detours: config/detours.yaml — hookable functions, RVAs
+    decls: features/*/hooks.json + callbacks.json
+  }
+  codegen: tools/generate_*.py {
+    hooks: hooks → generated_detours.h/.cpp
+    regs: registrations → generated_registrations.h
+    menu: menu / crosshair / features.cfg data
+  }
+  compile: makefile · MinGW {
+    out: sof_buddy.dll + sof_buddy.exe stub
+    pkg: installer payload · win updater
+  }
+}
+
+artifact: sof_buddy.dll {
+  shape: package
+  style: {font-size: 20; bold: true}
+}
+
+runtime: Runtime · inside the game {
+  load: DllMain {
+    shape: package
+    phases: "EarlyStartup → PreCvarInit → PostCvarInit"
+  }
+  modules: module_loaders {
+    ref: ref.dll (renderer) load/unload
+    game: game.dll / player.dll (MP)
+    rule: "unhook BEFORE unload"
+  }
+  hooking: SharedHookManager {
+    base: DetourXS trampolines
+    order: "priority Pre/Post, one hook many features"
+    addr: "RVAs re-resolved per DLL load"
+  }
+  features: 25 features {
+    ui: scaled_menu · scaled_hud · scaled_con
+    net: http_maps · master_server_fallback
+    play: console_protection · raw_mouse · vsync_toggle
+    more: internal_menus · hd_textures · entity_visualizer …
+  }
+}
+
+engine: Game process {
+  exe: SoF exe (engine, cvar, filesystem) {shape: package}
+  refdll: ref.dll — GL renderer {shape: package}
+}
+
+state: Files on disk {
+  pkgcfg: sof_buddy/features.cfg {
+    shape: cylinder
+    desc: installed defaults
+  }
+  saved: base/sofbuddy_features.cfg {
+    shape: cylinder
+    desc: runtime overrides
+  }
+  maincfg: base/sofbuddy.cfg {
+    shape: cylinder
+    desc: settings + legacy flags
+  }
+  maps: base/maps/*.pk3 {
+    shape: cylinder
+    desc: maps fetched on demand
+  }
+}
+
+ext: Services {
+  github: GitHub API · latest release {shape: cloud}
+  vault: sofvault.org · releases + sof1maps {shape: cloud}
+  mirror: raw.githubusercontent · plowsof/sof1maps {shape: cloud}
+}
+
+build.spec -> build.codegen: "codegen at build time"
+build.codegen -> build.compile
+build.compile -> artifact: "make release"
+artifact -> runtime.load: "injected into SoF"
+
+runtime.load -> runtime.modules: "lifecycle dispatch"
+runtime.modules -> runtime.hooking: "install on DLL load"
+runtime.hooking -> runtime.features: "callback per phase"
+runtime.features -> engine: "hooks + patches"
+
+runtime.features -> state.pkgcfg: "read defaults / regenerate"
+runtime.features -> state.saved: "read + write overrides"
+runtime.features -> state.maincfg: "cvars"
+runtime.features -> state.maps: "http_maps writes pk3"
+
+runtime.features -> ext.vault: "map + update downloads"
+runtime.features -> ext.github: "update check"
+runtime.features -> ext.mirror: "map mirror fallback"
+
+classes: {
+  store: {style.stroke: "#1c7ed6"; style.stroke-width: 2}
+  ext: {style.stroke: "#7048e8"; style.stroke-dash: 3}
+  hot: {style.stroke: "#e8590c"; style.stroke-width: 3}
+}
+
+state.*.class: store
+ext.github.class: ext
+ext.vault.class: ext
+ext.mirror.class: ext
+artifact.class: hot
