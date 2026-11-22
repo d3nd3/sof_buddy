@@ -12,12 +12,12 @@
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey.svg?style=for-the-badge" alt="Platform">
 </p>
 
-![SoF Buddy system overview](docs/system.svg)
-
 ![HTTP map download - missing maps fetched on demand](docs/images/http.png)
 ![SoF Buddy in-game menu (F12)](docs/images/menu.png)
 
 > **A modern enhancement suite for Soldier of Fortune 1 and early Soldier of Fortune II: Double Helix multiplayer (sof2bud) — scaling, fixes, and quality-of-life improvements.**
+
+Prefer pictures? Start with **[HUMANS.md](HUMANS.md)**.
 
 <p align="center">
   <strong>Jump to:</strong>
@@ -688,61 +688,6 @@ Published stable tags look like **`v8.1-build189`**; unstable builds use **`v8.1
 ```
 
 `--commit` runs `--check` automatically. Pushing to `master` without a `VERSION` change only runs the gate; it does not publish a new stable release.
-
-</details>
-
----
-
-## Chapter 2: SoF 2 MP (sof2bud)
-
-<details>
-<summary><b>Click to expand</b></summary>
-
-Experimental **Soldier of Fortune II: Double Helix** multiplayer companion, developed in this repo under [`sof2/`](sof2/). It is **not** the same DLL as SoF 1’s `sof_buddy.dll` — it injects **`sof2bud.dll`** into **`SoF2MP.exe`** (MP **1.03 Gold** target today).
-
-### What works today
-
-- **F12 in-game menu** — same *idea* as SoF Buddy (native **Menusx86** RMF under `menus/sof_buddy/`): **Version**, **Graphics**, **General** tabs.
-- **Graphics** — extended `r_mode` list (common desktop resolutions), **fullscreen**, **Vid Restart**.
-- **Baseline fixes** — small engine patches (e.g. `r_mode` bounds, master server string) aligned with the SoF2 MP binary.
-- **Wine/Linux** — run with the game folder as working directory (see below).
-
-SoF 1 features (font/HUD scaling, updater, HTTP maps, crosshair packs, installer wizard, etc.) are **not** ported yet; the SoF2 menu and feature set will grow over time.
-
-### Quick start (Wine / manual)
-
-1. Build or download **`sof2bud.dll`** ([`sof2` releases](https://github.com/d3nd3/sof_buddy/releases) — tags `sof2-v*`, artifact `sof2_release_windows.zip`).
-2. Point at your **SoF2 MP install root** (folder with `SoF2MP.exe`, `Menusx86.dll`, `base/`):
-
-   ```sh
-   cd sof2
-   ./deploy_to_sof2.sh "/path/to/Soldier of Fortune II - Double Helix"
-   ```
-
-   This copies `sof2bud.dll`, patch helpers under `sof2_buddy/`, and **`menus/sof_buddy/*.rmf`** into the game tree, then patches **`SoF2MP.exe`** to load the DLL (same import-hijack idea as SoF 1).
-
-3. Launch **from the game directory** (required for assets and menus):
-
-   ```sh
-   ./sof2/run_sof2mp_wine.sh
-   ```
-
-4. In-game: press **`F12`** (bound at startup) or console:
-
-   ```text
-   sof2buddy_menu sof_buddy/main
-   sof2buddy_menu sof_buddy/texture
-   ```
-
-### Build from source
-
-```sh
-make -C sof2              # → sof2/bin/sof2bud.dll
-make -C sof2 clean
-```
-
-Feature list: [`sof2/FEATURES.txt`](sof2/FEATURES.txt). Changelog: [`sof2/CHANGELOG.md`](sof2/CHANGELOG.md). Maintainer releases: [`sof2/RELEASE.md`](sof2/RELEASE.md).
-
 
 </details>
 

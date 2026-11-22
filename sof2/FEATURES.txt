@@ -1,4 +1,0 @@
-baseline
-video_modes
-buddy_menu
-core
