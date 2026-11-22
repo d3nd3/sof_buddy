@@ -10,6 +10,41 @@
     "callback": "r_blendlightmaps_post_callback",
     "phase": "Post",
     "priority": 100
+  },
+  {
+    "function": "R_SortAndDrawAlphaSurfaces",
+    "callback": "r_sortanddrawalphasurfaces_post_callback",
+    "phase": "Post",
+    "priority": 100
+  },
+  {
+    "function": "R_BuildLightMap",
+    "callback": "r_buildlightmap_post_callback",
+    "phase": "Post",
+    "priority": 100
+  },
+  {
+    "function": "R_LightPoint",
+    "callback": "r_lightpoint_post_callback",
+    "phase": "Post",
+    "priority": 100
+  },
+  {
+    "function": "R_BeginRegistration",
+    "callback": "r_beginregistration_pre_callback",
+    "phase": "Pre",
+    "priority": 100
+  },
+  {
+    "function": "R_BeginRegistration",
+    "callback": "r_beginregistration_post_callback",
+    "phase": "Post",
+    "priority": 100
+  },
+  {
+    "function": "SV_ShutdownGameProgs",
+    "callback": "sv_shutdowngameprogs_lighting_pre_callback",
+    "phase": "Pre",
+    "priority": 100
   }
 ]
-

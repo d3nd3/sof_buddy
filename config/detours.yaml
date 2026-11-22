@@ -17,6 +17,52 @@ functions:
     detour_len: 0
     params: []
 
+  - name: R_BuildLightMap
+    module: RefDll
+    identifier: "0x00009550"
+    return_type: int
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: int
+        name: surf
+      - type: void*
+        name: dest
+      - type: int
+        name: pitch
+
+  - name: R_LightPoint
+    module: RefDll
+    identifier: "0x00008FF0"
+    return_type: float*
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: float*
+        name: point
+      - type: float*
+        name: color
+      - type: int
+        name: style
+
+  - name: R_BeginRegistration
+    module: RefDll
+    identifier: "0x0000AB80"
+    return_type: char*
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: char*
+        name: map
+
+  - name: R_SortAndDrawAlphaSurfaces
+    module: RefDll
+    identifier: "0x00011010"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
   - name: R_Init
     module: RefDll
     identifier: "0x0000F550"

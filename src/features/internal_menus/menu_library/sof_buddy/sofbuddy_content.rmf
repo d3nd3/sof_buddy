@@ -76,7 +76,7 @@
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<text "Restore SoF Buddy Defaults" key mouse1 "set _sofbuddy_menu_theme 21;set tip_duration 15000;set _sofbuddy_menu_tip_appear 750;set _sofbuddy_menu_tip_font 0;set _sofbuddy_menu_font_size_style 0;set _sofbuddy_snd_quiet_alt_tab 1;set _sofbuddy_menu_hotkey F12;sofbuddy_apply_menu_hotkey;set _sofbuddy_loading_lock_input 0;set _sofbuddy_loading_show_mapname 1;set _sofbuddy_loading_show_download 1;reloadall;sofbuddy_menu sof_buddy/sofbuddy" border 8 1 cyan regular align center>
+<text "Restore SoF Buddy Defaults" key mouse1 "set _sofbuddy_menu_theme 21;set tip_duration 15000;set _sofbuddy_menu_tip_appear 750;set _sofbuddy_menu_tip_font 0;set _sofbuddy_menu_font_size_style 0;set _sofbuddy_snd_quiet_alt_tab 1;set _sofbuddy_menu_hotkey F12;sofbuddy_apply_menu_hotkey;set _sofbuddy_loading_lock_input 0;set _sofbuddy_loading_show_mapname 1;set _sofbuddy_loading_show_download 1;sofbuddy_close_menu;reloadall;sofbuddy_menu sof_buddy/sofbuddy" border 8 1 cyan regular align center>
 <hbr>
 <text "Close" key mouse1 "popmenu" border 8 1 cyan regular align center>
 </stm>

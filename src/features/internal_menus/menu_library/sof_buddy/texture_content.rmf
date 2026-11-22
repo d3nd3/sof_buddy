@@ -65,7 +65,7 @@
 <list "0,1,2" match "0,1,2" cvar ghl_mip atext "ghl_mip : " noshade tip "Skin texture quality. 0=best, higher values reduce quality."><br>
 <list "SOLID,ALPHA" match "GL_SOLID_FORMAT,GL_ALPHA_FORMAT" cvar r_isf atext "r_isf : " noshade><br>
 <list "SOLID,ALPHA" match "GL_SOLID_FORMAT,GL_ALPHA_FORMAT" cvar r_iaf atext "r_iaf : " noshade><br>
-<list "Off,On" cvar gl_ext_multitexture atext "gl_ext_multitexture : " noshade><br>
+<list "Off,On" cvar gl_ext_multitexture atext "gl_ext_multitexture : " key mouse1 "vid_restart" key mouse2 "vid_restart" noshade tip "Also on F12 Lighting. Curve presets and Overbright Lighting work On or Off; non-default Custom blends require Off. Changing this restarts the renderer immediately."><br>
 <list "Off,On" cvar gl_ext_anisotropic atext "gl_ext_anisotropic : " noshade><br>
 <ctext _sp_cl_vid_gl_texture_max_anisotropy_ext atext "_sp_cl_vid_gl_texture_max_anisotropy_ext : " tint sb_accent atint sb_accent noshade tip "Recommended 16x as provides smoother lines in the world"><br>
 <slider cvari _sp_cl_vid_gl_texture_max_anisotropy_ext min 0 max 16 step 2 tip "Recommended 16x as provides smoother lines in the world"><br>

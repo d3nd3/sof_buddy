@@ -3,6 +3,9 @@
 #if FEATURE_INTERNAL_MENUS
 
 #include "../shared.h"
+#if FEATURE_LIGHTING_BLEND
+#include "../../lighting_blend/shared.h"
+#endif
 #include "sof_compat.h"
 #include "util.h"
 #include <cstring>
@@ -16,7 +19,15 @@ void internal_menus_M_PushMenu_post(char const* menu_file, char const* parentFra
     (void)parentFrame;
     (void)lock_input;
     internal_menus_feature_prompt_note_menu(menu_file);
+#if FEATURE_LIGHTING_BLEND
+    lighting_gl_modulate_note_menu(menu_file);
+#endif
     internal_menus_remember_menu_page(menu_file);
+    {
+        auto* ms = *reinterpret_cast<void**>(rvaToAbsExe(reinterpret_cast<void*>(0x00406554)));
+        auto* menu = ms ? *reinterpret_cast<void**>(static_cast<char*>(ms) + 4) : nullptr;
+        internal_menus_note_menu_page(menu_file, menu);
+    }
     if (menu_file && std::strstr(menu_file, "sof_buddy")) {
         auto* ms = *reinterpret_cast<void**>(rvaToAbsExe(reinterpret_cast<void*>(0x00406554)));
         auto* menu = ms ? *reinterpret_cast<void**>(static_cast<char*>(ms) + 4) : nullptr;

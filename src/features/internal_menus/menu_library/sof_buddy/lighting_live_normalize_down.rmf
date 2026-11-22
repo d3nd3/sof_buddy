@@ -1,0 +1,2 @@
+<ctext _sofbuddy_lighting_normalize_down atext "Down amount % : " tint sb_accent atint sb_accent noshade tip "0% leaves the map minimum; 100% moves it to 0. Used by Down and Both."><br>
+<slider cvari _sofbuddy_lighting_normalize_down min 0 max 100 step 1><hbr>

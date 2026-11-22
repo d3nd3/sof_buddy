@@ -29,9 +29,11 @@ Internal menus can be opened without `sofbuddy_menu` (e.g. SCR_BeginLoadingPlaqu
 - **Layout cvars synced before open** — `scaled_menu_sync_scale_from_engine()` then `update_layout_cvars(false)`, so the tab prefix/centering are correct even when F12 is the first menu opened (no stock main menu first).
 - **Validation and resolution** — Name is sanitized and resolved against the embedded menu set only (`g_menu_internal_files`); invalid or missing paths are rejected. Converts to `<menu>/<page_stem>` (e.g. `sof_buddy/main`, `loading/loading`) with fallback to `main.rmf` for menu roots.
 - **Replace top page for non-sofbuddy** — For targets other than `sof_buddy/*`, runs `killmenu` first so the new menu replaces the current one and ESC behavior is predictable.
+- **Close the whole stack** — `sofbuddy_close_menu` calls `killmenu` until the menu system is gone. The engine's `killmenu` pops only one page (`menu_system_c::KillPage` returns true while a parent remains), so a single call can leave an older F12 page behind a live panel. The live Lighting pages and their Back/Close buttons use this command.
+- **F12 toggle** — `sofbuddy_f12_menu` closes all pages when the current top page is a SoF Buddy page; otherwise it opens the saved Buddy page. Repeated F12 presses no longer stack menus.
 - **Loading lock** — For `loading/*`, uses `_sofbuddy_loading_lock_input` for lock behavior. The loading current map name (`_sb_internal_loading_current`) is set to `"resolving..."` only in the loading reset state (http_maps `http_maps_clear_loading_cvars`), not here.
 
-`sof_buddy/*` targets rely on `<stm nopush>` in wrapper pages, so tab changes do not grow the stack. Use `sofbuddy_menu` for Buddy tab/page navigation so layout is re-synced and paths stay correct.
+`sof_buddy/*` targets rely on `<stm nopush>` in wrapper pages, so tab changes do not grow the stack. Page rebuilds that must re-parse cinclude rows use `sofbuddy_close_menu;reloadall;sofbuddy_menu ...` so the rebuilt page replaces the old one instead of stacking on top. Use `sofbuddy_menu` for Buddy tab/page navigation so layout is re-synced and paths stay correct.
 
 Direct sub-page form is supported:
 

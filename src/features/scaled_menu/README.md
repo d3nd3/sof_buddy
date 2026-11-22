@@ -148,6 +148,12 @@ Per context:
   shifts the three text lines down with the taller icons; the 128 px cell width and
   32 px row padding in `GetIndices`/`Setup`/`Draw` are patched with `menuScale`.
 
+The lighting live-preview panels reserve the exact `<stm resize 300 600>` size.
+`hk_frame_resize` recognizes that size, scales it by
+`min(menu scale, (vid_h - 16) / 600, (vid_w - 16) / 300)`, and pins the resulting
+box to the right edge with an 8 px margin. Every other resize page keeps the
+centred layout.
+
 ## Rect fields
 
 ### Dimensions and hit-testing
