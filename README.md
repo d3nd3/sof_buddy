@@ -15,16 +15,9 @@
 ![HTTP map download - missing maps fetched on demand](docs/images/http.png)
 ![SoF Buddy in-game menu (F12)](docs/images/menu.png)
 
-> **A modern enhancement suite for Soldier of Fortune 1 and early Soldier of Fortune II: Double Helix multiplayer (sof2bud) — scaling, fixes, and quality-of-life improvements.**
+> **A modern enhancement suite for Soldier of Fortune 1 — scaling, fixes, and quality-of-life improvements.**
 
 Prefer pictures? Start with **[HUMANS.md](HUMANS.md)**.
-
-<p align="center">
-  <strong>Jump to:</strong>
-  <a href="#sof-1--soldier-of-fortune">SoF 1</a>
-  ·
-  <a href="#chapter-2-sof-2-mp-sof2bud">SoF 2 MP (sof2bud)</a>
-</p>
 
 ---
 
@@ -724,5 +717,5 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 ---
 
-> *SoF Buddy / sof2bud are not affiliated with Raven Software or Activision. Soldier of Fortune and Soldier of Fortune II are © their respective owners.*
+> *SoF Buddy is not affiliated with Raven Software or Activision. Soldier of Fortune and Soldier of Fortune II are © their respective owners.*
 

@@ -1,6 +1,6 @@
 # SoF Buddy — for humans
 
-> One DLL, injected into Soldier of Fortune 1 / SoF2-MP, that hooks the engine and adds scaling, fixes and menus.
+> One DLL, injected into Soldier of Fortune 1, that hooks the engine and adds scaling, fixes and menus.
 
 ![SoF Buddy system overview](docs/system.svg)
 
