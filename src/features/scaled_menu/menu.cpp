@@ -33,6 +33,7 @@
 #include "runtime_features.h"
 #include "generated_detours.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cctype>
@@ -1546,6 +1547,39 @@ static void hk_hbar_draw(void* hbar) {
 using Frame_Resize_t = void(__thiscall*)(void* frame, char* w, char* h);
 static Frame_Resize_t oFrame_Resize = nullptr;
 
+// Lighting live-preview pages request the exact `resize 300 600` size so they
+// can be pinned to the right edge of the screen instead of being centred. The
+// page is scaled down on short screens so it still fits at 640x480. Keep the
+// numbers in sync with lighting_*_live.rmf.
+static constexpr float kLivePanelW = 300.0f;
+static constexpr float kLivePanelH = 600.0f;
+static constexpr int kLivePanelMargin = 8;
+
+static bool is_live_panel_resize(const char* w, const char* h) {
+	return w && h && std::strcmp(w, "300") == 0 && std::strcmp(h, "600") == 0;
+}
+
+static void scale_live_panel(void* frame) {
+	char* f = static_cast<char*>(frame);
+	float s = scaled_menu_screen_scale();
+	if (!std::isfinite(s) || s <= 0.0f) s = 1.0f;
+	const float fit_h = static_cast<float>(current_vid_h - 2 * kLivePanelMargin) / kLivePanelH;
+	const float fit_w = static_cast<float>(current_vid_w - 2 * kLivePanelMargin) / kLivePanelW;
+	s = std::min(s, std::min(fit_h, fit_w));
+	if (s < 0.5f) s = 0.5f;
+	if (char* menu = *reinterpret_cast<char**>(f + kFrame_Menu)) {
+		*reinterpret_cast<float*>(menu + kMenuC_ScreenScale) = s;
+	}
+	int& fw = *reinterpret_cast<int*>(f + kFrame_W);
+	int& fh = *reinterpret_cast<int*>(f + kFrame_H);
+	const int scaled_w = static_cast<int>(std::lround(static_cast<float>(fw) * s));
+	const int scaled_h = static_cast<int>(std::lround(static_cast<float>(fh) * s));
+	fw = scaled_w;
+	fh = scaled_h;
+	*reinterpret_cast<int*>(f + kFrame_OffX) = current_vid_w - scaled_w - kLivePanelMargin;
+	*reinterpret_cast<int*>(f + kFrame_OffY) = (current_vid_h - scaled_h) / 2;
+}
+
 #if defined(__GNUC__)
 __attribute__((thiscall))
 #endif
@@ -1568,6 +1602,11 @@ static void hk_frame_resize(void* frame, char* w, char* h) {
 	// so the 4:3->wide frame ratio never grows these frames by vid_h/480 (the stretched
 	// precache/player dialog). Mark the session flag before the scale check as well.
 	s_resize_page_active = true;
+	const bool live_panel = is_live_panel_resize(w, h);
+	if (live_panel) {
+		scale_live_panel(frame);
+		return;
+	}
 	if (!scaled_menu_uniform_actual_active() || scaled_menu_skip_for_intro_disclaimer()) return;
 	const float s = scaled_menu_screen_scale();
 	if (!std::isfinite(s) || std::fabs(s - 1.f) < 0.001f) return;
@@ -1585,10 +1624,8 @@ static void hk_frame_resize(void* frame, char* w, char* h) {
 	const int scaled_h = static_cast<int>(std::lround(static_cast<float>(fh) * s));
 	fw = scaled_w;
 	fh = scaled_h;
-	*reinterpret_cast<int*>(f + kFrame_OffX) =
-	    (current_vid_w - scaled_w) / 2;
-	*reinterpret_cast<int*>(f + kFrame_OffY) =
-	    (current_vid_h - scaled_h) / 2;
+	*reinterpret_cast<int*>(f + kFrame_OffX) = (current_vid_w - scaled_w) / 2;
+	*reinterpret_cast<int*>(f + kFrame_OffY) = (current_vid_h - scaled_h) / 2;
 }
 
 // Internal sof_buddy pages keep the stock frame canvas, so their frames skip the

@@ -209,9 +209,118 @@
 <font type {font_title} tint cyan atint cyan>
 "Lighting"
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_lighting_overbright atext "_sofbuddy_lighting_overbright : " noshade tip "Overbright lighting. 1 on, 0 off. Default 0."><br>
+<ctext _sofbuddy_lighting_preset atext "_sofbuddy_lighting_preset : " noshade tip "0 Vanilla, 1 2x Linear, 2 4x Linear, 3 Soft Glow, 5 Custom, 6 High Contrast, 7 Deep Shadows, 8 Film Slope, 9 Cliff Edge, 10 Bright Punch, 11 Midnight. Curve presets write the 11 slider values and use Preserve brightness. Raven 2x is now the independent Overbright Lighting toggle. Performance: selecting a preset rebuilds lightmaps once; no per-frame cost. F12 Lighting."><br>
 <font type {font_title} tint gray atint gray>
-"Default 0 - Overbright lighting off."
+"Default 0 - Stock SoF lighting."
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_lighting_curve_0 atext "_sofbuddy_lighting_curve_0 : " noshade tip "Curve output at 0% lightmap input. Output 0-100; 100 = white. Default 0."><br>
+<font type {font_title} tint gray atint gray>
+"Default 0 - Input 0% control point."
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_lighting_curve_10 atext "_sofbuddy_lighting_curve_10 : " noshade tip "Curve output at 10% lightmap input. Output 0-100; 100 = white. Default 10."><br>
+<font type {font_title} tint gray atint gray>
+"Default 10 - Input 10% control point."
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_lighting_curve_20 atext "_sofbuddy_lighting_curve_20 : " noshade tip "Curve output at 20% lightmap input. Output 0-100; 100 = white. Default 20."><br>
+<font type {font_title} tint gray atint gray>
+"Default 20 - Input 20% control point."
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_lighting_curve_30 atext "_sofbuddy_lighting_curve_30 : " noshade tip "Curve output at 30% lightmap input. Output 0-100; 100 = white. Default 30."><br>
+<font type {font_title} tint gray atint gray>
+"Default 30 - Input 30% control point."
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_lighting_curve_40 atext "_sofbuddy_lighting_curve_40 : " noshade tip "Curve output at 40% lightmap input. Output 0-100; 100 = white. Default 40."><br>
+<font type {font_title} tint gray atint gray>
+"Default 40 - Input 40% control point."
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_lighting_curve_50 atext "_sofbuddy_lighting_curve_50 : " noshade tip "Curve output at 50% lightmap input. Output 0-100; 100 = white. Default 50."><br>
+<font type {font_title} tint gray atint gray>
+"Default 50 - Input 50% control point."
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_lighting_curve_60 atext "_sofbuddy_lighting_curve_60 : " noshade tip "Curve output at 60% lightmap input. Output 0-100; 100 = white. Default 60."><br>
+<font type {font_title} tint gray atint gray>
+"Default 60 - Input 60% control point."
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_lighting_curve_70 atext "_sofbuddy_lighting_curve_70 : " noshade tip "Curve output at 70% lightmap input. Output 0-100; 100 = white. Default 70."><br>
+<font type {font_title} tint gray atint gray>
+"Default 70 - Input 70% control point."
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_lighting_curve_80 atext "_sofbuddy_lighting_curve_80 : " noshade tip "Curve output at 80% lightmap input. Output 0-100; 100 = white. Default 80."><br>
+<font type {font_title} tint gray atint gray>
+"Default 80 - Input 80% control point."
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_lighting_curve_90 atext "_sofbuddy_lighting_curve_90 : " noshade tip "Curve output at 90% lightmap input. Output 0-100; 100 = white. Default 90."><br>
+<font type {font_title} tint gray atint gray>
+"Default 90 - Input 90% control point."
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_lighting_curve_100 atext "_sofbuddy_lighting_curve_100 : " noshade tip "Curve output at 100% lightmap input. Output 0-100; 100 = white. Default 100."><br>
+<font type {font_title} tint gray atint gray>
+"Default 100 - Input 100% control point."
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_lighting_preserve_color atext "_sofbuddy_lighting_preserve_color : " noshade tip "0 per-channel (classic overbright), 1 preserve brightness (luminance curve; default), 2 preserve colour (curve on brightest channel; no clipping). Built-in presets use 1."><br>
+<font type {font_title} tint gray atint gray>
+"Default 1 - Preserve brightness."
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_lighting_normalize atext "_sofbuddy_lighting_normalize : " noshade tip "Map lighting normalization. 0 off (default), 1 Up, 2 Down, 3 Both. Up moves the brightest sample toward 255 by the Up amount; Down moves the absolute minimum toward 0 by the Down amount while keeping the maximum, so values above the map max keep their headroom (no-op when the minimum is already 0); Both applies Down then Up. Amounts are map-relative percentages, so they adapt to the next map. Rebuilds the map's lightmaps when changed. Performance: one-time scan/rebuild; no per-frame cost."><br>
+<font type {font_title} tint gray atint gray>
+"Default 0 - Off. 1 Up, 2 Down, 3 Both."
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_lighting_normalize_up atext "_sofbuddy_lighting_normalize_up : " noshade tip "Up amount percentage, default 100. 0 leaves the map maximum; 100 moves it to 255. Used by Up and Both. Target = max + amount x (255 - max), recalculated for each map."><br>
+<font type {font_title} tint gray atint gray>
+"Default 100 - Up amount %."
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_lighting_normalize_down atext "_sofbuddy_lighting_normalize_down : " noshade tip "Down amount percentage, default 100. 0 leaves the map minimum; 100 moves it to 0. Used by Down and Both. Target = min - amount x min, recalculated for each map."><br>
+<font type {font_title} tint gray atint gray>
+"Default 100 - Down amount %."
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_lighting_ghoul_min_light atext "_sofbuddy_lighting_ghoul_min_light : " noshade tip "Ghoul minimum-light floor. 0 Vanilla keeps the engine's 0.1 minimum for models with RF_MINLIGHT. 1 Bypass removes the floor so the model follows the lighting curve and can go fully dark. F12 Lighting -> Ghoul."><br>
+<font type {font_title} tint gray atint gray>
+"Default 0 - Vanilla. 1 Bypass."
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_lighting_overbright atext "_sofbuddy_lighting_overbright : " noshade tip "Overbright Lighting. 1 = Raven's original 2 x L x T look with the separate Overbright Pre-Curve; 0 = use Lighting Style. Works with gl_ext_multitexture on or off. Default 0. Performance: small per-surface cost while On; Off does no combiner/blend work. F12 Lighting."><br>
+<font type {font_title} tint gray atint gray>
+"Default 0 - Legacy switch, kept for old configs."<br>
+"Pre-curve: _sofbuddy_lighting_overbright_curve_0 ... _100 (default Late highlights 0,5,10,15,20,25,30,35,45,65,100)."
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_lighting_overbright_profile atext "_sofbuddy_lighting_overbright_profile : " noshade tip "Overbright Pre-Curve profile, separate from Lighting Style. 0 Popping highlights, 1 Popping mid+highlight, 2 Preserve Darks only, 3 2x everything (linear identity / stock 2 x T x L), 4 Custom, 5 Late highlights (default). Selecting a profile writes its 11 values into the overbright curve cvars; editing a slider switches to Custom. F12 Lighting -> Overbright Pre-Curve."><br>
+<font type {font_title} tint gray atint gray>
+"Default 5 - Late highlights. 0 Popping highlights, 1 mid+highlight, 2 Preserve Darks only, 3 2x everything, 4 Custom."
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
@@ -221,15 +330,15 @@
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_lightblend_src atext "_sofbuddy_lightblend_src : " noshade tip "Lightmap blend source. Experimental, leave default. Default GL_ZERO."><br>
+<ctext _sofbuddy_lightblend_src atext "_sofbuddy_lightblend_src : " noshade tip "Custom blend source (F12 Lighting -> Custom). Default GL_ZERO."><br>
 <font type {font_title} tint gray atint gray>
-"Default GL_ZERO - Blend source, experimental."
+"Default GL_ZERO - Custom blend source."
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_lightblend_dst atext "_sofbuddy_lightblend_dst : " noshade tip "Lightmap blend dest. Experimental, leave default. Default GL_SRC_COLOR."><br>
+<ctext _sofbuddy_lightblend_dst atext "_sofbuddy_lightblend_dst : " noshade tip "Custom blend destination (F12 Lighting -> Custom). Default GL_SRC_COLOR."><br>
 <font type {font_title} tint gray atint gray>
-"Default GL_SRC_COLOR - Blend dest, experimental."
+"Default GL_SRC_COLOR - Custom blend destination."
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>

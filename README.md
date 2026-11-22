@@ -30,7 +30,7 @@
 
 ### ⚠️ **#1 THING YOU NEED TO KNOW**
 
-**Press `F12` in-game** (or bind a key to `sofbuddy_menu sof_buddy`). That opens the SoF Buddy menu — settings, updater, profiles, and everything else. **Do this first.** If you don’t, you’re missing the main way to use SoF Buddy.
+**Press `F12` in-game** (or bind a key to `sofbuddy_menu sof_buddy`). That opens the SoF Buddy menu — settings, updater, profiles, and everything else. **Do this first.** If you don’t, you’re missing the main way to use SoF Buddy. Press F12 again on a SoF Buddy page to close the whole menu.
 
 ---
 
@@ -48,7 +48,7 @@
 - 🖱️ **Raw mouse input** — Direct hardware input without Windows acceleration; your existing sensitivity settings still work.
 - 🏷️ **Widescreen fixes** — Team icons and player names stay correctly positioned and scale with your HUD, and the sniper scope keeps its 4:3 shape with the magnification readout scaled to match.
 - 🖼️ **HD textures & extended skins** — High-resolution texture support plus extra multiplayer player models.
-- 🌙 **Better lighting** — Optional WhiteMagicRaven lighting blend tweaks for a sharper, more atmospheric look.
+- 🌙 **Better lighting** — Q3/Daikatana-style overbright lightmaps that work with multitexture on, plus an 11-point lightmap tone curve with 2x Linear, 4x Linear, Soft Glow, High Contrast, Deep Shadows, Film Slope, Cliff Edge, Bright Punch, and Midnight presets, per-channel/preserve-brightness/preserve-colour output, separate **Overbright Pre-Curve** profiles (Late highlights, Popping highlights, Popping mid+highlight, Preserve Darks only, 2x everything, Custom) for shaping the map without losing highlight punch, and optional map lighting normalization. The curve editors and the main preview-sensitive lighting controls open as live side panels over the game, so changes can be judged while the world stays visible.
 - 🌐 **Multiplayer quality of life** — HTTP map downloads, a GameSpy master selector with known-host fallback, and faster server setup.
 - ⬆️ **In-game updater** — Check, download, and install releases without leaving the game; choose the stable master channel or unstable prerelease builds, get an optional startup prompt, and (in the graphical updater) merge new recommended feature defaults while keeping explicit overrides.
 - 🎮 **One-click Windows installer** — Installs SoF Buddy and can optionally set up the official SoF Plus client, with automatic CD/GOG detection.
@@ -205,6 +205,12 @@ pre-checks the first two tasks when they still make sense for your retail build;
 
 - `**F12`** (or `**bind <key> sofbuddy_menu sof_buddy`**) — **Open the SoF Buddy menu. Use this. It’s the main entry point for all settings, updater, and profiles.** Set an additional shortcut from **Settings → Menu → Bonus menu key**; F12 remains available. Under **UI Scale**: each scale has an integer percentage slider (**0%** = 1×, **100%** = the vertical resolution max; scale sliders commit on mouse release, and the menu-scale slider reparses the open page at the new scale) and a **Reset to default (75%)** button. The percentage is saved and reapplied after startup and resolution/video changes. **Scaling Mode** selects **Smooth** (integer-prescaled cached textures for HUD/crosshair/scoreboard images; 0% = 1×, 100% = the vertical max, linear in between, with sub-2× results rounded to the nearest integer; if the vertical max is below 2×, Smooth stays at 1×) or **Integer** (integer slider; floors font/HUD/menu/crosshair scales to 1×, 2×, 3×…). **Cinematic Images Rounding** and **Scale Cinematic Images** are on the same page.
 - `sofbuddy_list_features` — Print compiled features (and whether they are on/off).
+- `sofbuddy_lighting_status` — Print the active lighting preset, blend factors, colour mode, normalization state, and custom curve values.
+- `sofbuddy_lighting_rebuild` — Re-upload the current map's lightmaps with the active curve (also available as a button in F12 → Lighting → Live Lighting (preview over game)).
+- `sofbuddy_lighting_curve_template <alias>` — Write a built-in curve template into the 11 slider cvars, select Preserve brightness, and switch to Custom.
+- `sofbuddy_lighting_curve_templates` — List the curve-template aliases.
+- `sofbuddy_lighting_curve_reset` — Reset the custom 11-point curve to linear (`0,10,...,100`), also available as **Reset Curve** in the Tone Curve live editor (F12 → Lighting → Live Lighting).
+- `sofbuddy_lighting_reset` — Restore the lighting feature's defaults.
 - `sofbuddy_master_next` — Query the next configured GameSpy master server.
 - `sofbuddy_menu <name>` — Open an embedded internal menu page (examples: `loading`, `sof_buddy`).
 - `sofbuddy_menu <menu>/<page>` — Open a specific embedded page (e.g. `sofbuddy_menu sof_buddy/cpu`).
@@ -385,12 +391,48 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>GL_NEAREST</code>. Mag filter for UI textures. Keep <code>GL_NEAREST</code> — LINEAR makes fonts unreadable. F12 → Graphics.</td>
 </tr>
 <tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_preset</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. <code>0</code> Vanilla, <code>1</code> 2x Linear, <code>2</code> 4x Linear, <code>3</code> Soft Glow, <code>5</code> Custom, <code>6</code> High Contrast, <code>7</code> Deep Shadows, <code>8</code> Film Slope, <code>9</code> Cliff Edge, <code>10</code> Bright Punch, <code>11</code> Midnight. Curve presets write the 11 slider values and use Preserve brightness; the Tone Curve editor stays available under a preset, and editing a slider there switches Lighting Style to Custom. Raven 2x is now the independent Overbright Lighting toggle. F12 → Lighting → **Live Lighting (preview over game)** → Style.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_curve_0</code> … <code>_sofbuddy_lighting_curve_100</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> identity <code>0,10,20,...,100</code>. The 11-point curve mapping input lightmap brightness 0–100 to output 0–100. <code>100</code> = white; map lower inputs to 100 for overbright. Every built-in curve preset writes these values. The editor stays available under any curve preset; editing a slider there switches Lighting Style to Custom. <strong>Performance:</strong> baked into the lightmap LUT; no per-frame cost. F12 → Lighting → **Live Lighting (preview over game)** → **Tone Curve...** (opens a live side panel).</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_preserve_color</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. <code>0</code> per-channel curve (classic overbright, more saturated). <code>1</code> preserve brightness: curve on luminance, RGB scaled together; may still clip bright saturated colours. <code>2</code> preserve colour: curve on the brightest channel, RGB scaled together; never clips, so hue and saturation stay exact, but colours already near white cannot brighten further. Built-in curve presets select <code>1</code>. F12 → Lighting → **Live Lighting (preview over game)** → Colour.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_normalize</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code> (off). <code>1</code> <strong>Up</strong>: uses the Up amount to move the brightest sample toward white; 100% maps it to 255. <code>2</code> <strong>Down</strong>: uses the Down amount to move the absolute minimum toward black while keeping the original maximum, so values above it (dynamic lights) keep their headroom; a no-op when the minimum is already 0. <code>3</code> <strong>Both</strong>: applies Down then Up; 100%/100% is the full min..max → 0..255 stretch. Amounts are map-relative percentages. Also applies to entity, particle, and Ghoul model light through the <code>R_LightPoint</code> post-hook. <strong>Performance:</strong> one-time scan/rebuild for world lightmaps; the entity hook adds a small LUT lookup only while normalization or a non-identity curve is active. F12 → Lighting → **Live Lighting (preview over game)** → Normalize.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_normalize_up</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>100</code>. Up amount percentage used by Up and Both. <code>0</code> leaves the map maximum; <code>100</code> moves it to <code>255</code>. The target follows the current map: <code>max + amount × (255 - max)</code>. F12 → Lighting → Live Lighting → Normalize.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_normalize_down</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>100</code>. Down amount percentage used by Down and Both. <code>0</code> leaves the map minimum; <code>100</code> moves it to <code>0</code>. The target follows the current map: <code>min - amount × min</code>. F12 → Lighting → Live Lighting → Normalize.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_ghoul_min_light</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code> (Vanilla). <code>1</code> Bypass removes the engine's <code>0.1</code> minimum-light floor for Ghoul models with <code>RF_MINLIGHT</code>, letting them follow the lighting curve and go fully dark. F12 → Lighting → **Live Lighting (preview over game)** → Ghoul Min.</td>
+</tr>
+<tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_overbright</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Overbright lighting. <code>1</code> on. When on, it overrides the manual blend cvars below. F12 → Lighting.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Independent <strong>Overbright Lighting</strong> toggle. <code>1</code> uses Raven's original 2 × L × T product and the live hub shows the separate Overbright Pre-Curve row; <code>0</code> returns to the selected Lighting Style. Works with <code>gl_ext_multitexture</code> on or off. <strong>Performance:</strong> small per-surface cost while On; Off does no combiner/blend work. F12 → Lighting → **Live Lighting (preview over game)**.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_overbright_profile</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>5</code>. Overbright-only pre-curve profile, separate from Lighting Style: <code>0</code> Popping highlights, <code>1</code> Popping mid+highlight, <code>2</code> Preserve Darks only, <code>3</code> 2x everything (linear identity / stock 2 × T × L), <code>4</code> Custom, <code>5</code> Late highlights (default). Selecting a profile writes its 11 values into the overbright curve cvars; editing a slider in the editor switches to Custom. F12 → Lighting → **Live Lighting (preview over game)** → Pre-Curve.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_overbright_curve_0</code> … <code>_sofbuddy_lighting_overbright_curve_100</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> Late highlights <code>0,5,10,15,20,25,30,35,45,65,100</code>. Separate 11-point pre-curve applied before the Overbright 2× product: <code>2 × T × C(L)</code>. The <strong>2x everything</strong> profile restores the identity <code>0,10,20,...,100</code> and the stock Overbright product. Archived separately from the Lighting Style curve; works with <code>gl_ext_multitexture</code> on or off. <strong>Performance:</strong> no per-frame cost; edits rebuild lightmaps once. F12 → Lighting → **Live Lighting (preview over game)** → **OB Pre-Curve...** (opens a live side panel).</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_cutoff</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>64</code>. Dynamic light threshold (DLIGHT_CUTOFF). F12 → Lighting.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>64</code>. Dynamic light threshold (DLIGHT_CUTOFF). F12 → Lighting → **Live Lighting (preview over game)** → Threshold.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_water_size</code></td>
@@ -398,15 +440,15 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lightblend_src</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>GL_ZERO</code>. Lightmap blend source. Experimental, leave at default. F12 → Lighting.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>GL_ZERO</code>. Source blend factor for the Custom lighting style. Non-default values need <code>gl_ext_multitexture 0</code>. F12 → Lighting → Manual lightmap blend (Custom).</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lightblend_dst</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>GL_SRC_COLOR</code>. Lightmap blend destination. Experimental, leave at default. F12 → Lighting.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>GL_SRC_COLOR</code>. Destination blend factor for the Custom lighting style. F12 → Lighting → Manual lightmap blend (Custom).</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_shiny_spherical</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Let shiny <code>gl_detailtexturing</code> change with view angle. <code>1</code> on, <code>0</code> off. F12 → Lighting.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Let shiny <code>gl_detailtexturing</code> change with view angle. <code>1</code> on, <code>0</code> off. F12 → Lighting → **Live Lighting (preview over game)** → Specular.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_rawmouse</code></td>
@@ -570,7 +612,7 @@ This is informational client metadata, not an anti-cheat signal.
 
 ### Internal (`_sb_internal_`)
 
-Written by sof_buddy itself. Values are recomputed each launch, so editing them has no lasting effect.
+Written by sof_buddy itself. Most are recomputed each launch, so editing them has no lasting effect; the few persisted bookkeeping values are noted below.
 
 <table style="width:100%;max-width:838px;table-layout:fixed;border-collapse:collapse">
 <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
@@ -636,6 +678,10 @@ Written by sof_buddy itself. Values are recomputed each launch, so editing them 
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_feature_master_server_fallback</code></td>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Runtime menu gate for the GameSpy master selection control.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_lighting_multitexture_restore</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Saved <code>gl_ext_multitexture</code> value from before a non-default Custom blend forced it off, so changing back to a multitexture-safe lighting preset can restore it.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_openurl_status</code> / <code>_sb_internal_openurl_last</code></td>
