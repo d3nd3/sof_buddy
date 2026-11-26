@@ -17,8 +17,6 @@
 
 > **A modern enhancement suite for Soldier of Fortune 1 — scaling, fixes, and quality-of-life improvements.**
 
-Prefer pictures? Start with **[HUMANS.md](HUMANS.md)**.
-
 ---
 
 ## SoF 1 — Soldier of Fortune
