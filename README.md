@@ -31,7 +31,7 @@
 <summary><b>Click to expand</b></summary>
 
 - 🎯 **One menu for everything** — Press **F12** for settings, profiles, updates, links, and diagnostics. No console required.
-- ✨ **Crisp at any resolution** — Fonts, HUD, console, intros, cinematics, and the **entire menu system** scale cleanly from 640×480 to 4K and ultrawide, with auto or manual control.
+- ✨ **Crisp at any resolution** — Fonts, HUD, console, intros, cinematics, and the **entire menu system** scale cleanly from 640×480 to 4K and ultrawide, with per-element scale sliders and Integer/Smooth modes.
 - 🧭 **Menu Scaling, rebuilt** — Stock and F12 menus stay sharp and readable at high resolutions. The redesigned F12 menu has adaptive tabs, a fixed nav bar, a comfortable widescreen reading column, themes, and readable font/tooltip presets.
 - 🎯 **Crosshair studio** — Stock and community crosshair packs with live preview, tint, size control, and optional auto-scaling.
 - ⚡ **Smoother framerate** — Fine-grained singleplayer FPS caps, including exact integer targets, with improved timing and CPU-friendly pacing.
@@ -40,7 +40,7 @@
 - 🖱️ **Raw mouse input** — Direct hardware input without Windows acceleration; your existing sensitivity settings still work.
 - 🏷️ **Widescreen fixes** — Team icons and player names stay correctly positioned and scale with your HUD, and the sniper scope keeps its 4:3 shape with the magnification readout scaled to match.
 - 🖼️ **HD textures & extended skins** — High-resolution texture support plus extra multiplayer player models.
-- 🌙 **Better lighting** — Q3/Daikatana-style overbright lightmaps that work with multitexture on, an 11-point lightmap tone curve (2x Linear, 4x Linear, Soft Glow, High Contrast, Deep Shadows, Film Slope, Cliff Edge, Bright Punch, and Midnight presets), separate **Overbright Pre-Curve** profiles (Popping mid+highlight (default), Late highlights, Popping highlights, Preserve Darks only, 2x everything, Custom), optional map lighting normalization, and optional smooth light-style interpolation. The curve editors and the main preview-sensitive lighting controls open as live side panels over the game, so changes can be judged while the world stays visible.
+- 🌙 **Better lighting** — Q3/Daikatana-style overbright lightmaps that work with multitexture on or off, an 11-point lightmap tone curve (2x Linear, 4x Linear, Soft Glow, High Contrast, Deep Shadows, Film Slope, Cliff Edge, Bright Punch, and Midnight presets), separate **Overbright Pre-Curve** profiles (Popping mid+highlight (default), Late highlights, Popping highlights, Preserve Darks only, 2x everything, Custom), optional map lighting normalization, and optional smooth light-style interpolation. The curve editors and the main preview-sensitive lighting controls open as live side panels over the game, so changes can be judged while the world stays visible.
 - 🌐 **Multiplayer quality of life** — HTTP map downloads, a GameSpy master selector with known-host fallback, and faster server setup.
 - ⬆️ **In-game updater** — Check, download, and install releases without leaving the game; choose the stable master channel or unstable prerelease builds, get an optional startup prompt, and (in the graphical updater) merge new recommended feature defaults while keeping explicit overrides.
 - 🎮 **One-click Windows installer** — Installs SoF Buddy and can optionally set up the official SoF Plus client, with automatic CD/GOG detection.
@@ -84,10 +84,10 @@ extraction or feature-enable scripts are needed.
 - **Option A:** [Download a pre-compiled release](https://github.com/d3nd3/sof_buddy/releases)
 - **Option B:** Compile from source:
   ```sh
-  make               # Release build (optimized)
-  make BUILD=xp      # Windows XP-targeted build
+  make               # Release + universal DLLs and the Windows updater
+  make xp            # Windows XP-targeted build
   make debug         # Debug build (with logging)
-  make BUILD=xp-debug # XP-targeted debug build
+  make xp-debug      # XP-targeted debug build
   make debug-collect # Debug build with func_parents collection
   ```
 
@@ -102,11 +102,11 @@ extraction or feature-enable scripts are needed.
     - Windows: `sof_buddy/enable_*.cmd` scripts and `sof_buddy/patch_sof_binary.ps1`
     - Linux/Wine: `sof_buddy/enable_*.sh` scripts and `sof_buddy/patch_sof_binary.sh`
 - Use the helper scripts to patch SoF.exe to load different DLLs:
-  - `**enable_sofplus_and_buddy.cmd`** → Loads `sof_buddy.dll` (recommended: SoF Buddy + optional SoF Plus)
-  - `**enable_sofplus.cmd`** → Loads `spcl.dll` (SoF Plus only, disables SoF Buddy)
-  - `**enable_vanilla.cmd`** → Loads `WSOCK32.dll` (vanilla SoF, no mods)
-  - `**sof_buddy_update.exe**` → Graphical Windows updater (universal channel / installer only): progress bar and release notes
-  - `**update_from_zip.cmd**` → Standard Windows update path (all channels): extract downloaded zip (`sof_buddy/update/*.zip`) into SoF root
+  - **`enable_sofplus_and_buddy.cmd`** → Loads `sof_buddy.dll` (recommended: SoF Buddy + optional SoF Plus)
+  - **`enable_sofplus.cmd`** → Loads `spcl.dll` (SoF Plus only, disables SoF Buddy)
+  - **`enable_vanilla.cmd`** → Loads `WSOCK32.dll` (vanilla SoF, no mods)
+  - **`sof_buddy_update.exe`** → Graphical Windows updater (universal channel / installer only): progress bar and release notes
+  - **`update_from_zip.cmd`** → Standard Windows update path (all channels): extract downloaded zip (`sof_buddy/update/*.zip`) into SoF root
 - SoF Buddy auto-loads `spcl.dll` if present, so it works *with* SoF Plus.
 
 ### Windows installer features
@@ -204,7 +204,8 @@ chosen folder already contains a SoF Plus client (`spcl.dll` or `SofPlus.dll`).
 
 ### In-Game Commands
 
-- `**F12`** (or `**bind <key> sofbuddy_menu sof_buddy`**) — **Open the SoF Buddy menu. Use this. It’s the main entry point for all settings, updater, and profiles.** Set an additional shortcut from **Settings → Menu → Bonus menu key**; F12 remains available. Under **UI Scale**: each scale has an integer percentage slider (**0%** = 1×, **100%** = the vertical resolution max; scale sliders commit on mouse release, and the menu-scale slider reparses the open page at the new scale) and a **Reset to default (75%)** button. The percentage is saved and reapplied after startup and resolution/video changes. **Scaling Mode** selects **Smooth** (integer-prescaled cached textures for HUD/crosshair/scoreboard images; 0% = 1×, 100% = the vertical max, linear in between, with sub-2× results rounded to the nearest integer; if the vertical max is below 2×, Smooth stays at 1×) or **Integer** (integer slider; floors font/HUD/menu/crosshair scales to 1×, 2×, 3×…). **Cinematic Images Rounding** and **Scale Cinematic Images** are on the same page.
+- **`F12`** (or `bind <key> sofbuddy_menu sof_buddy`) — **Open the SoF Buddy menu. Use this. It’s the main entry point for all settings, updater, and profiles.** Set an additional shortcut from **F12 → General → Bonus menu key**; F12 remains available. Under **UI Scale**: each scale has an integer percentage slider (**0%** = 1×, **100%** = the vertical resolution max; scale sliders commit on mouse release, and the menu-scale slider reparses the open page at the new scale) and a **Reset to default** button. The percentage is saved and reapplied after startup and resolution/video changes. **Scaling Mode** selects **Smooth** (integer-prescaled cached textures for HUD/crosshair/scoreboard images; 0% = 1×, 100% = the vertical max, linear in between, with sub-2× results rounded to the nearest integer; if the vertical max is below 2×, Smooth stays at 1×) or **Integer** (integer slider; floors font/HUD/menu/crosshair scales to 1×, 2×, 3×…). **Cinematic Images Rounding** and **Scale Cinematic Images** are on the same page.
+- `sofbuddy_close_menu` — Close every open SoF Buddy page and return to the game.
 - `sofbuddy_list_features` — Print compiled features (and whether they are on/off).
 - `sofbuddy_lighting_status` — Print the active lighting preset, blend factors, colour mode, normalization state, and custom curve values.
 - `sofbuddy_lighting_rebuild` — Re-upload the current map's lightmaps with the active curve (also available as a button in F12 → Lighting → Live Lighting (preview over game)).
@@ -212,15 +213,15 @@ chosen folder already contains a SoF Plus client (`spcl.dll` or `SofPlus.dll`).
 - `sofbuddy_lighting_curve_templates` — List the curve-template aliases.
 - `sofbuddy_lighting_curve_reset` — Reset the custom 11-point curve to linear (`0,10,...,100`), also available as **Reset Curve** in the Tone Curve live editor (F12 → Lighting → Live Lighting).
 - `sofbuddy_lighting_reset` — Restore the lighting feature's defaults.
-- `sofbuddy_master_next` — Query the next configured GameSpy master server.
 - `sofbuddy_menu <name>` — Open an embedded internal menu page (examples: `loading`, `sof_buddy`).
 - `sofbuddy_menu <menu>/<page>` — Open a specific embedded page (e.g. `sofbuddy_menu sof_buddy/cpu`).
-- `sofbuddy_apply_profile_comp` — Apply competitive/low-visual profile preset.
-- `sofbuddy_apply_profile_visual` — Apply visual/high-fidelity profile preset.
+- `sofbuddy_apply_profile` — Apply the profile selected by `_sofbuddy_perf_profile` (`0` Competitive, `1` High Visual, `2` Low Visual, `3` Custom/Current).
 - `sofbuddy_update` — Check the selected channel/tag from the configured update feed and compare with your current version.
 - `sofbuddy_update stable` / `sofbuddy_update unstable` — Select the stable master channel or the unstable prerelease channel and open the install prompt.
+- `sofbuddy_update releases` — Refresh the installable release-tag list.
 - `sofbuddy_update download` — Download the selected release zip to `sof_buddy/update/` (apply after closing game; release zips are preferred over debug zips).
-- `sofbuddy_update_install` — On **universal** builds with graphical updater enabled (default), queue `sof_buddy_update.exe`; otherwise `update_from_zip.cmd` / in-DLL extract on Wine/Proton, via `winstart`, then quit SoF.
+- `sofbuddy_update apply` — Download and install the selected release target.
+- `sofbuddy_update_install` — On **universal** builds with the graphical updater enabled (default), queue `sof_buddy_update.exe`; otherwise use `update_from_zip.cmd` (Windows) or extract in-process on Wine/Proton, falling back to the script via `winstart`. SoF quits so the update can apply.
 - `sofbuddy_openurl <https_url>` — Open trusted community links in your default browser (used by the Social Links menu page).
 
 </details>
@@ -234,7 +235,7 @@ chosen folder already contains a SoF Plus client (`spcl.dll` or `SofPlus.dll`).
 
 - Use the **XP package** from releases (`release_windows_xp.zip`) or compile with:
   ```sh
-  make BUILD=xp
+  make xp
   ```
 - XP builds define `SOFBUDDY_XP_BUILD` and default updater endpoints to:
   - `_sofbuddy_update_api_url` = `http://sofvault.org/sof_buddy/releases/latest.json`
@@ -280,10 +281,10 @@ chosen folder already contains a SoF Plus client (`spcl.dll` or `SofPlus.dll`).
 <details>
 <summary><b>Click to expand</b></summary>
 
-Every user-facing cvar is editable from **F12 → Cvars**, which shows the live value, the
-default, and a description for each one. Friendly controls also live on the named tabs (**Cpu**,
-**UI Scale**, **Graphics**, **Lighting**, **Gameplay**, **Network**, **Version**, **General**, …).
-Use `set <name> <value>` in the console to script them.
+Most user-facing cvars appear in **F12 → Cvars**, which shows the live value, the default, and a
+description. Friendly controls for many of them also live on the named tabs (**Cpu**, **UI Scale**,
+**Graphics**, **Lighting**, **Gameplay**, **Network**, **Version**, **General**, …). A few are
+startup-only (noted below); set those with `set <name> <value>` in the console or your config.
 
 Internal bookkeeping cvars (layout math, migration guards, runtime status read-outs) use the
 `_sb_internal_` prefix and are listed separately at the bottom. Do not edit those by hand.
@@ -334,6 +335,10 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_hud_scale</code></td>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Computed HUD scale, driven by <code>_sofbuddy_hud_scale_pct</code> (<code>0%</code> = 1×, <code>100%</code> = vertical max). F12 → UI Scale.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_scale_mode</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code> (Smooth). Scaling mode: <code>0</code> Integer, <code>1</code> Smooth. Integer floors font/HUD/menu/crosshair scales to whole numbers; Smooth maps the percentage sliders from 1× to the vertical max. F12 → UI Scale.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_scale_round_auto</code></td>
@@ -393,7 +398,7 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_preset</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. <code>0</code> Vanilla, <code>1</code> 2x Linear, <code>2</code> 4x Linear, <code>3</code> Soft Glow, <code>5</code> Custom, <code>6</code> High Contrast, <code>7</code> Deep Shadows, <code>8</code> Film Slope, <code>9</code> Cliff Edge, <code>10</code> Bright Punch, <code>11</code> Midnight. Curve presets write the 11 slider values and use Preserve brightness; the Tone Curve editor stays available under a preset, and editing a slider there switches Lighting Style to Custom. Raven 2x is now the independent Overbright Lighting toggle. F12 → Lighting → **Live Lighting (preview over game)** → Style.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. <code>0</code> Vanilla, <code>1</code> 2x Linear, <code>2</code> 4x Linear, <code>3</code> Soft Glow, <code>4</code> Raven 2x (legacy; use the separate Overbright Lighting toggle), <code>5</code> Custom, <code>6</code> High Contrast, <code>7</code> Deep Shadows, <code>8</code> Film Slope, <code>9</code> Cliff Edge, <code>10</code> Bright Punch, <code>11</code> Midnight. Curve presets write the 11 slider values and use Preserve brightness; the Tone Curve editor stays available under a preset, and editing a slider there switches Lighting Style to Custom. F12 → Lighting → **Live Lighting (preview over game)** → Style.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_curve_0</code> … <code>_sofbuddy_lighting_curve_100</code></td>
@@ -541,11 +546,11 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_hotkey</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>F12</code>. Primary menu hotkey (bound to <code>sofbuddy_f12_menu</code>); run <code>sofbuddy_apply_menu_hotkey</code> after changing it. The <strong>General</strong> tab's <strong>Bonus menu key</strong> row adds a second shortcut. F12 → Cvars.</td>
+</tr>
+<tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_scale</code></td>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Computed menu scale, driven by <code>_sofbuddy_menu_scale_pct</code> (<code>0%</code> = 1×, <code>100%</code> = vertical max). F12 → UI Scale.</td>
-</tr>
-<strong>Default</strong> <code>F12</code>. Keyboard key that opens the F12 menu. F12 → General.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_tip_appear</code></td>
@@ -597,10 +602,10 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 
 The four `_sofbuddy_entity_edit` / `_sofbuddy_entities_draw_verbose` / `_sofbuddy_map_debug_map` /
 `_sofbuddy_map_study_deathmatch` cvars come from the `entity_visualizer` feature, which is
-**disabled by default** in `features/FEATURES.txt`. In a default build they are never registered,
-so they do not appear in the console and the **Map Study** section is hidden from the Cvars tab
-(gated on `_sb_internal_feature_entity_visualizer` via `<cinclude>`). Enable that feature to get
-them.
+**disabled by default** in `features/FEATURES.txt`. The default compile-time build does not
+compile it, so the cvars are never registered and the **Map Study** section is hidden from the
+Cvars tab (gated on `_sb_internal_feature_entity_visualizer` via `<cinclude>`). Universal builds
+compile every feature; enable `entity_visualizer` in F12 → Features (or `features.cfg`) to use it.
 
 - See [OpenGL glBlendFunc docs](https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glBlendFunc.xhtml) for blend values.
 - Cvars with `CVAR_SOFBUDDY_ARCHIVE` persist to `base/sofbuddy.cfg` and are reapplied on startup. `_sofbuddy_feature_*` toggles persist separately in `base/sofbuddy_features.cfg`.
@@ -614,7 +619,7 @@ them.
 </tr></thead><tbody>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sp_cl_info_sofbuddy</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><code>windows-<version>-<build></code>, <code>wine-<version>-<build></code>, or <code>universal-<version>-<build></code>, sent with client userinfo so a server can identify the SoF Buddy channel.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><code>windows-<version>-<build></code>, <code>wine-<version>-<build></code>, <code>proton-<version>-<build></code>, <code>universal-<version>-<build></code>, <code>xp-<version>-<build></code>, or <code>update-test-<version>-<build></code>, sent with client userinfo so a server can identify the SoF Buddy channel.</td>
 </tr>
 </tbody></table>
 
@@ -663,10 +668,6 @@ Written by sof_buddy itself. Most are recomputed each launch, so editing them ha
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_font_scale_rounded</code> / <code>_sb_internal_hud_scale_rounded</code></td>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">Read-only mirror of the effective scale after ratio and glyph-grid rounding.</td>
-</tr>
-<tr>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_font_scale_auto_migrated</code> / <code>_sb_internal_hud_scale_auto_migrated</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">One-shot guards so the legacy <code>-1</code> auto-scale migration runs once.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_tip_appear_vanilla_migrated</code></td>
@@ -723,10 +724,10 @@ SoF Buddy uses two version numbers:
 
 | Part | Where | Example |
 |------|--------|---------|
-| **Version** (`MAJOR.MINOR`) | `VERSION` file (bump manually) | `8.1` |
-| **Build** | GitHub Actions `run_number` (automatic) | `189` |
+| **Version** (`MAJOR.MINOR`) | `VERSION` file (bump manually) | `8.54` |
+| **Build** | GitHub Actions `run_number` (automatic) | `291` |
 
-Published stable tags look like **`v8.1-build189`**; unstable builds use **`v8.1-build190-unstable`** and are GitHub prereleases. Develop on `unstable`, then merge to `master` when the build is ready for stable.
+Published stable tags look like **`v8.54-build291`**; unstable builds append **`-unstable`** (for example `v8.54-build292-unstable`) and are GitHub prereleases. Develop on `unstable`, then merge to `master` when the build is ready for stable.
 
 **Unstable build:** push to `unstable`. CI builds and publishes a prerelease automatically; its release notes come from `## Unreleased` in `CHANGELOG.md`.
 
