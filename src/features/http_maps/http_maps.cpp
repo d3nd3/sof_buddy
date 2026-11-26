@@ -1787,8 +1787,20 @@ void http_maps_refresh_loading_menu_labels(void)
 		map = g_http_maps_state.cached_map_bsp.c_str();
 	else if (!g_http_maps_state.completed_map_bsp.empty())
 		map = g_http_maps_state.completed_map_bsp.c_str();
-	if (map && map[0]) loading_set_current(map);
-	else loading_reset_current_map_unknown();
+	if (map && map[0]) {
+		loading_set_current(map);
+		// Rejoining a map that already completed on an earlier connection can leave the
+		// status at CHECKING: both the early ParseConfigString path and CL_Precache
+		// short-circuit on completed_map_bsp without setting it again. Refresh the label
+		// from the engine FS so the loading screen still reports NOT NEEDED.
+		cvar_t* status = findCvar(const_cast<char*>("_sb_internal_loading_status"));
+		const bool status_checking = !status || !status->string || !status->string[0] ||
+		                             std::strcmp(status->string, "CHECKING") == 0;
+		if (status_checking && http_maps_map_exists_via_engine(map))
+			http_maps_set_loading_status("NOT NEEDED");
+	} else {
+		loading_reset_current_map_unknown();
+	}
 #endif
 }
 

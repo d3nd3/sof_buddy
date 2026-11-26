@@ -2,6 +2,13 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## Unreleased
+
+### Loading screen
+
+- The loading header frame is taller, so the **Map** and **Download** lines are no longer clipped at 1080p with the default menu scale.
+- Rejoining a map that already completed on an earlier connection refreshes the **Download** status from the engine filesystem, so it shows **NOT NEEDED** again instead of staying at **CHECKING**.
+
 ## v8.55
 
 ### UI scaling
