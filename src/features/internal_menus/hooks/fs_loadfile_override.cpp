@@ -27,10 +27,12 @@
 #include "features/more_crosshairs/shared.h"
 #endif
 #include "update_command.h"
+#include "sofbuddy_cfg.h"
 #if FEATURE_SCALED_MENU
 #include "features/scaled_menu/shared.h"
 #include "menu_rmf_transform.h"
 #endif
+#include "cursor_assets.inc"
 
 namespace {
 
@@ -233,6 +235,75 @@ bool load_selected_font(char* path, void** buffer, int& length) {
         warned_mode = mode;
     }
     return false;
+}
+
+static int selected_cursor_style() {
+    if (!detour_Cvar_Get::oCvar_Get) return 0;
+    cvar_t* cvar = detour_Cvar_Get::oCvar_Get(
+        "_sofbuddy_cursor_style", sofbuddy_sofplus_present() ? "1" : "0",
+        CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    if (!cvar) return sofbuddy_sofplus_present() ? 1 : 0;
+    return static_cast<int>(cvar->value + 0.5f) == 1 ? 1 : 0;
+}
+
+static void patch_cursor_m32_name(std::vector<unsigned char>& data) {
+    if (data.size() < 60) return;
+    static const char kCursorName[] = "pics/menus/cursor/cursor";
+    *reinterpret_cast<uint32_t*>(data.data()) = 4u;
+    std::memset(data.data() + 4, 0, 56);
+    std::strncpy(reinterpret_cast<char*>(data.data() + 4), kCursorName, 55);
+}
+
+/*
+    Serve the menu cursor from the selected art.  Vanilla comes from the
+    user's own numbered paks, so we do not redistribute game art.  SoFPlus's
+    cursor is used from sofplus.pak when present, with the bundled copy as a
+    fallback so the option still works without SoFPlus installed.
+*/
+static bool load_cursor_art(char* path, void** buffer, int& length) {
+    if (!path || !buffer) return false;
+    const std::string wanted = normalize_path(path);
+    if (wanted != "pics/menus/cursor/cursor.m32" &&
+        wanted != "pics/menus/cursor/cursor")
+        return false;
+
+    const int style = selected_cursor_style();
+    static const char kCursorEntry[] = "pics/menus/cursor/cursor.m32";
+    std::vector<unsigned char> data;
+
+    if (style == 1) {
+        const std::string sofplus_pak = game_base_dir() + "/base/sofplus.pak";
+        if (!load_pak_entry(sofplus_pak, kCursorEntry, data) || data.empty()) {
+            data.clear();
+            if (kSofPlusCursorM32Size >= 60)
+                data.assign(kSofPlusCursorM32, kSofPlusCursorM32 + kSofPlusCursorM32Size);
+        }
+    } else {
+        const std::vector<std::string> paks = vanilla_font_paks();
+        for (const std::string& pak : paks) {
+            if (load_pak_entry(pak, kCursorEntry, data) && !data.empty())
+                break;
+            data.clear();
+        }
+        if (data.empty()) return false;
+    }
+
+    if (data.size() < 60 || !detour_Z_Malloc::oZ_Malloc) return false;
+    patch_cursor_m32_name(data);
+    void* copy = detour_Z_Malloc::oZ_Malloc(static_cast<int>(data.size() + 1));
+    if (!copy) return false;
+    std::memcpy(copy, data.data(), data.size());
+    static_cast<unsigned char*>(copy)[data.size()] = 0;
+    *buffer = copy;
+    length = static_cast<int>(data.size());
+
+    static int logged_style = -1;
+    if (logged_style != style) {
+        PrintOut(PRINT_LOG, "internal_menus: cursor style %s\n",
+                 style == 1 ? "SoFPlus" : "vanilla");
+        logged_style = style;
+    }
+    return true;
 }
 
 #if FEATURE_MORE_CROSSHAIRS
@@ -563,6 +634,8 @@ int internal_menus_fs_loadfile_override_callback(char* path, void** buffer, bool
     if (!path || !buffer) return original(path, buffer, override_pak);
     int font_length = 0;
     if (load_selected_font(path, buffer, font_length)) return font_length;
+    int cursor_length = 0;
+    if (load_cursor_art(path, buffer, cursor_length)) return cursor_length;
     int crosshair_length = 0;
     if (load_crosshair_art(path, buffer, crosshair_length)) return crosshair_length;
     if (g_menu_internal_files.empty()) return load_menu_file(path, buffer, override_pak, original);

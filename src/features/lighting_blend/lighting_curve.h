@@ -453,6 +453,10 @@ inline CurvePoints make_curve(const float (&values)[kCurvePointCount]) {
 
 	"2x everything" is the old linear identity, so selecting it reproduces the
 	original stock 2 x T x L product.
+
+	The stored curve remains 0..100.  The live editor shows the final
+	brightness after the x2 product (0..200), so its slider value is always
+	twice the stored point.
 */
 constexpr int kOverbrightProfilePoppingHighlights = 0;
 constexpr int kOverbrightProfilePoppingMidHighlight = 1;
@@ -462,6 +466,22 @@ constexpr int kOverbrightProfile2xEverything = 3;
 // profile is appended at 5 and the UI maps its label before Custom.
 constexpr int kOverbrightProfileCustom = 4;
 constexpr int kOverbrightProfileLateHighlights = 5;
+
+// The pre-curve editor shows the final brightness after Overbright's x2
+// product, so its 0..200 slider maps to the stored 0..100 point.  The editor
+// uses a step of 2, so every slider position is an exact stored value.
+inline int overbright_display_percent(float stored) {
+	int display = static_cast<int>(stored * 2.0f + 0.5f);
+	if (display < 0) display = 0;
+	if (display > 200) display = 200;
+	return display;
+}
+
+inline int overbright_stored_percent(int display) {
+	if (display < 0) display = 0;
+	if (display > 200) display = 200;
+	return (display + 1) / 2;
+}
 
 inline CurvePoints overbright_profile_points(int profile) {
 	static const float popping_highlights[kCurvePointCount] = {

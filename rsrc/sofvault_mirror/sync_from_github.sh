@@ -34,6 +34,7 @@ gh_get "$API_LATEST" "$TMP/release.json"
 gh_get "$API_LIST" "$TMP/list.json"
 
 TAG="$(jq -r '.tag_name // .version // .tag // empty' "$TMP/release.json")"
+PRERELEASE="$(jq -r '.prerelease // false' "$TMP/release.json")"
 ASSET_URL="$(jq -r --arg zip "$XP_ZIP" '
   [ .assets[]?.browser_download_url
     | select(test("/" + $zip + "$"; "i"))
@@ -65,6 +66,7 @@ mv "$ROOT/list.json.tmp" "$ROOT/list.json"
 cat > "$ROOT/latest.json.tmp" <<EOF
 {
   "tag_name": "$TAG",
+  "prerelease": $PRERELEASE,
   "html_url": "http://sofvault.org/sof_buddy/releases/latest",
   "zip_url": "$MIRROR_ZIP"
 }

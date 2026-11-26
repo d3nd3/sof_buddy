@@ -4,6 +4,12 @@
     "callback": "scaledMenu_EarlyStartup",
     "priority": 70,
     "phase": "Post"
+  },
+  {
+    "hook": "PostCvarInit",
+    "callback": "scaledMenu_PostCvarInit",
+    "priority": 70,
+    "phase": "Post"
   }
 ]
 

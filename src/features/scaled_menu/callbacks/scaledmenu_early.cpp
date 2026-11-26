@@ -6,6 +6,7 @@
 
 #include "sof_compat.h"
 #include "util.h"
+#include "generated_detours.h"
 #include "../shared.h"
 #if FEATURE_SCALED_MENU && FEATURE_INTRO_SCALER
 #include "../../intro_scaler/shared.h"
@@ -22,6 +23,13 @@ void scaledMenu_EarlyStartup(void)
 #if FEATURE_SCALED_MENU && FEATURE_INTRO_SCALER
     intro_scaler_set_clip_extend(scaled_menu_backdrop_clip_extend);
 #endif
+}
+
+void scaledMenu_PostCvarInit(void)
+{
+    if (detour_Cmd_AddCommand::oCmd_AddCommand)
+        detour_Cmd_AddCommand::oCmd_AddCommand(
+            const_cast<char*>("menu_wide"), Cmd_MenuWide_f);
 }
 
 #endif // UI_MENU

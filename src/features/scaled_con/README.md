@@ -45,3 +45,12 @@ Font rendering is scaled through the shared `glVertex2f` hook. When `g_activeRen
 ### Console Size
 The `_sofbuddy_console_size` CVar controls what fraction of the screen height the console occupies when fully opened.
 
+### Version stamp
+
+`CON_DrawConsole` draws the bottom-right `v1.07f` version stamp at
+`viddef_width - 44`. `Draw_String` advances 8 px per glyph, so the six-character
+stamp is already 48 px wide and clipped before font scaling. Early startup
+patches the `-44` immediate to `-56` (48 px text + 8 px margin). The offset is
+in the virtual width that `hkCon_DrawConsole` divides by the console font scale,
+so the margin scales with the font instead of disappearing at 2x.
+

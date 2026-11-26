@@ -507,6 +507,26 @@ void create_layout_cvars() {
     detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row1_prefix_rmf", "<blank 28 1>", kLayoutCvarFlags, nullptr);
     detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row1_prefix_narrow_rmf", "<blank 124 1>", kLayoutCvarFlags, nullptr);
     detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_tip_font", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    // 0 = original SoF cursor, 1 = SoFPlus cursor. Both are served by the
+    // FS_LoadFile cursor selector, so the SoFPlus art works without SoFPlus.
+    // When the SoFPlus DLL is loaded its cursor is the natural default. Existing
+    // configs from the first cursor build stored the old Vanilla default, so move
+    // that untouched value to SoFPlus once; an explicit later choice is kept.
+    const bool sofplus_loaded = sofbuddy_sofplus_present();
+    const char* cursor_default = sofplus_loaded ? "1" : "0";
+    cvar_t* cursor_style = detour_Cvar_Get::oCvar_Get(
+        "_sofbuddy_cursor_style", cursor_default, CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    cvar_t* cursor_default_migrated = detour_Cvar_Get::oCvar_Get(
+        "_sb_internal_cursor_style_sofplus_default", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    if (cursor_default_migrated && cursor_default_migrated->value == 0.0f &&
+        sofplus_loaded && detour_Cvar_Set2::oCvar_Set2) {
+        if (cursor_style && cursor_style->value == 0.0f)
+            detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_cursor_style"),
+                                         const_cast<char*>("1"), true);
+        detour_Cvar_Set2::oCvar_Set2(
+            const_cast<char*>("_sb_internal_cursor_style_sofplus_default"),
+            const_cast<char*>("1"), true);
+    }
     detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row2_prefix_rmf", "<blank 28 1>", kLayoutCvarFlags, nullptr);
     detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row1_suffix_rmf", "<blank 28 1>", kLayoutCvarFlags, nullptr);
     detour_Cvar_Get::oCvar_Get("_sb_internal_tabs_row2_suffix_rmf", "<blank 28 1>", kLayoutCvarFlags, nullptr);
@@ -621,6 +641,13 @@ void Cmd_SoFBuddy_F12_Menu_f() {
 
 void Cmd_SoFBuddy_Apply_Menu_Hotkey_f() {
     apply_menu_hotkey_binding();
+}
+
+static void Cmd_SoFBuddy_CursorReset_f() {
+    if (!detour_Cvar_Set2::oCvar_Set2) return;
+    detour_Cvar_Set2::oCvar_Set2(
+        const_cast<char*>("_sofbuddy_cursor_style"),
+        const_cast<char*>(sofbuddy_sofplus_present() ? "1" : "0"), true);
 }
 
 void Cmd_SoFBuddy_Apply_Profile_f() {
@@ -1137,6 +1164,7 @@ void internal_menus_PostCvarInit(void) {
     detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_f12_menu"), Cmd_SoFBuddy_F12_Menu_f);
     internal_menus_install_sound_quiet_filter();
     detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_apply_menu_hotkey"), Cmd_SoFBuddy_Apply_Menu_Hotkey_f);
+    detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_cursor_reset"), Cmd_SoFBuddy_CursorReset_f);
     detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_apply_profile"), Cmd_SoFBuddy_Apply_Profile_f);
     mp_profile_guid_register();
     mp_profile_guid_autosync();

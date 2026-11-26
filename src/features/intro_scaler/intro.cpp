@@ -192,6 +192,18 @@ static void intro_ghoul_prepare_draw(void* ghoul) {
 using Draw_RenderRect_t = void(__cdecl*)(int x, int y, int w, int h);
 static Draw_RenderRect_t Draw_RenderRect = nullptr;
 
+// ref_gl is loaded after intro_scaler_install_hooks() runs at early startup, so the
+// import slot is still empty then and this pointer would stay null forever. Backdrop
+// pages (e.g. the svrlist serverbox page) rely on this hook to set the scissor; if
+// the call is skipped, the serverbox's per-column right clips run with the scissor
+// test disabled and a long hostname overruns the Ping column. Resolve the live slot
+// on demand; it may already be wrapped by scaled_menu, which is harmless.
+static void ensure_draw_render_rect() {
+	auto** rr = reinterpret_cast<void**>(
+	    rvaToAbsExe(reinterpret_cast<void*>(kRvaDrawRenderRectIat)));
+	if (rr && *rr) Draw_RenderRect = reinterpret_cast<Draw_RenderRect_t>(*rr);
+}
+
 static bool set_clip_from_backdrop_open() {
 	void* ret = __builtin_return_address(0);
 	return ret == rvaToAbsExe(reinterpret_cast<void*>(kRvaBackdropSetClipOpen));
@@ -199,6 +211,7 @@ static bool set_clip_from_backdrop_open() {
 
 static void __cdecl hk_menu_stm_set_clip(void* stm, int, int* outX, int* outY, int* outW, int* outH) {
 	if (!stm || !outX || !outY || !outW || !outH) return;
+	ensure_draw_render_rect();
 	auto* st = static_cast<char*>(stm);
 	auto* frame = *reinterpret_cast<char**>(stm);
 	if (!frame) return;
@@ -315,7 +328,7 @@ bool intro_scaler_install_hooks(void) {
 		reinterpret_cast<void*>(&hk_ghoul_draw),
 		reinterpret_cast<void**>(&oGhoul_Draw),
 		"intro_ghoul_draw");
-	return ok_stm && ok_ghoul && Draw_RenderRect && oGhoul_Draw;
+	return ok_stm && ok_ghoul && oGhoul_Draw;
 }
 
 #endif // UI_MENU

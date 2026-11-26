@@ -432,7 +432,7 @@ curve is applied.
   intentional, because it is a black-point stretch rather than a brightness
   boost.
 - **`3` Both:** applies Down and then Up. With both amounts at 100% it is the
-  full absolute-min..max → 0..255 stretch. The live hub shows only the amount
+  full absolute-min..max → 0..255 stretch. The Lighting tab shows only the amount
   sliders that the active mode uses.
 - The percentages are map-relative: the same 50% setting recalculates the
   target when the next map has a different min/max.
@@ -591,13 +591,12 @@ The combiner is installed by patching the two `CheckComplexStates` calls and the
 `glEnd` call inside `GL_RenderLightmappedPoly`. The wrappers forward normally
 when Overbright Lighting is off, so the curve presets keep their original state.
 
-The live hub shows only one style row: the **Lighting Style** row and
+The Lighting tab shows only one style row: the **Lighting Style** row and
 **Tone Curve...** button while Overbright is off, or the **Overbright Pre-Curve**
 row and **OB Pre-Curve...** button while it is on. The shared Colour Mode row
 and Map Lighting Normalization stay visible because they apply independently of
-which curve is active. The main Lighting tab no longer duplicates these rows; it
-keeps the Custom manual blend (only when Overbright is off) and the non-preview
-controls.
+which curve is active. The Custom manual blend (only when Overbright is off)
+sits on the same page instead of a separate hub.
 
 ### Overbright Pre-Curve
 
@@ -617,7 +616,10 @@ Lighting Style presets and has its own profile selector,
 
 Selecting a profile writes its values into the overbright curve cvars. Editing
 any slider in the live editor switches the profile to Custom. The reset button
-returns to **Popping mid+highlight**. The pipeline is:
+returns to **Popping mid+highlight**. The editor shows the **final brightness
+after the x2 product**, so its sliders run **0-200%** while the archived cvars
+in the table remain **0-100%**. A displayed 100% is stored 50%, which is the
+value that preserves vanilla brightness. The pipeline is:
 
 ```text
 out = 2 * T * C_ob(L)
@@ -722,56 +724,58 @@ The settings whose effect is easiest to judge in the world open as a right-side
 panel instead of a full menu. The main menu is closed first
 (`killmenu;sofbuddy_menu ...`), so only the panel remains over the game and the
 world stays visible while a value changes. The panels are authored as
-`<stm resize 300 600 global nopush>` pages. `hk_frame_resize()` pins that exact
-size to the right edge (`vid_w - scaled_w - 8`) and scales it down with
-`min(menu scale, (vid_h - 16) / 600)` so it also fits at 640x480. Other resize
-pages stay centred.
+`<stm resize W 600 global nopush>` pages. The main Lighting hub is 380x600 so
+long labels fit; the curve editors are 300x600. `hk_frame_resize()` recognizes
+both sizes, pins them to the right edge (`vid_w - scaled_w - 8`), and scales
+them down with `min(menu scale, (vid_h - 16) / 600, (vid_w - 16) / W)` so they
+also fit at 640x480. Other resize pages stay centred.
 
-The main F12 Lighting tab is now the non-preview page: it keeps
-`gl_ext_multitexture`, the Lighting status readouts, Lightmap Multiplier, the
-Custom manual blend, and the restore/rebuild actions. The preview rows are no
-longer duplicated there. The manual blend remains on the main tab (Custom only,
-while Overbright is off) rather than in the hub.
+The F12 Lighting tab is now the live panel itself. Clicking Lighting in the
+F12 nav closes the full menu (`sofbuddy_close_menu;sofbuddy_menu
+sof_buddy/lighting`) and opens a 380x600 panel pinned to the right edge over the
+game. It contains every lighting control: `gl_ext_multitexture`, the Lighting
+status readouts, Lightmap Multiplier, the Custom manual blend, Overbright,
+normalization, style/pre-curve, colour, shiny/glossy surfaces, D-Light Cut Off, dynamic lights, all
+Ghoul rows, the restore/rebuild actions, and **Back to Menu** / **Back to
+Game**. There is no separate **Live Lighting** hub button.
 
-The live pages are:
+The lighting pages are:
 
-- `lighting_live.rmf` + `lighting_live_content.rmf` - the hub. Overbright
-  Lighting, Map Lighting Normalization (the Up/Down amount sliders appear only
-  for the modes that use them), Colour Mode, Specular Textures, Dynamic
-  Light Threshold, Dynamic Lighting, `gl_dlightintensity`, Ghoul
-  Mode/Specular/Shadows/Light/Minimum Light, **Rebuild Lightmaps**,
-  **Back to Lighting** (full F12 page), and **Back to Game**. The Lighting
-  Style row and **Tone Curve...** button are included only while Overbright is
-  off; the Overbright Pre-Curve profile and **OB Pre-Curve...** button only
-  while it is on. Toggling Overbright rebuilds the hub (`sofbuddy_close_menu;
-  reloadall;sofbuddy_menu sof_buddy/lighting_live`) so the rows swap immediately
-  without stacking a second hub page. `lighting_live_style_row.rmf` and
-  `lighting_live_precurve_row.rmf` hold the two conditional snippets. The live
-  pages and their Back/Close buttons run `sofbuddy_close_menu`, which pops the
-  whole menu stack, so the F12 page cannot remain behind a popout.
+- `lighting.rmf` + `lighting_live_content.rmf` - the live panel opened by the
+  Lighting nav tab. `lighting_live.rmf` is kept as an alias so old last-page/
+  bookmark paths open the same panel. The Lighting Style row and **Tone
+  Curve...** button are included only while Overbright is off; the Overbright
+  Pre-Curve profile and **OB Pre-Curve...** button only while it is on.
+  Toggling Overbright rebuilds the panel (`sofbuddy_close_menu;reloadall;
+  sofbuddy_menu sof_buddy/lighting`) so the rows swap immediately.
+  `lighting_live_style_row.rmf` and `lighting_live_precurve_row.rmf` hold the
+  two conditional snippets.
 - `lighting_curve_live.rmf` + `lighting_curve_live_content.rmf` - the Tone
-  Curve editor (11 sliders, reset, **Back to Live Lighting**, **Back to
-  Game**).
+  Curve editor (11 sliders, reset, **Back to Lighting**, **Back to Game**).
 - `lighting_overbright_curve_live.rmf` +
   `lighting_overbright_curve_live_content.rmf` - the Overbright Pre-Curve editor
-  (profile and Colour Mode lists, 11 sliders, reset, **Back to Live Lighting**,
+  (profile and Colour Mode lists, 11 sliders, reset, **Back to Lighting**,
   **Back to Game**).
 
-**Back to Game** uses `killmenu` and returns to the game. **Back to Live
-Lighting** returns to the hub, and **Back to Lighting** opens the full Lighting
-tab. These navigation buttons use an orange border so they read differently
-from the normal cyan controls. The main Lighting tab has a **Live Lighting
-(preview over game)** button at the top. The hub's **Tone Curve...** and
-**OB Pre-Curve...** buttons open the live editors. `gl_ext_multitexture` and
-**Lightmap Multiplier** remain on the main tab because they need a renderer
-restart or a confirmation dialog.
+The main Lighting hub is 380x600 and the curve editors are 300x600; all are
+pinned to the right edge so the game world stays visible. Opening the Lighting
+tab or an editor closes the full menu first. **Back to Lighting** returns to the live panel, **Back to Menu** opens
+the main Version page, and **Back to Game** uses `killmenu` to return to the
+game. These navigation buttons use an orange border so they read differently
+from the normal cyan controls.
+
+### Two reset actions
+
+The Lighting tab has two deliberately separate resets:
+
+- **Reset SoF Buddy Lighting** (`sofbuddy_lighting_reset`) resets the Buddy
+  curve, Overbright, pre-curve, colour mode, normalization, cutoff, shiny and
+  Ghoul minimum, then reloads all lightmaps.
+- **Reset Ghoul & Dynamic Lights** resets the Ghoul model mode, specular,
+  shadows and light multiplier, plus `gl_dynamic`, `gl_dlightintensity`, and
+  `gl_modulate`. It leaves the Buddy lightmap/curve settings untouched.
 
 ### UI snippets and migration
-
-The main F12 Lighting tab is now the non-preview page. It keeps
-`gl_ext_multitexture`, the Lighting status readouts, the Lightmap Multiplier,
-the Custom manual blend, and the restore/rebuild actions. The preview rows live
-only in the live hub.
 
 - `_sb_internal_lighting_custom_section_rmf` - include gate for the manual blend.
   Empty while Overbright is on; the fragment itself is gated by
@@ -779,19 +783,17 @@ only in the live hub.
 - `_sb_internal_lighting_custom` - `1` only for Custom; gates the manual
   lightmap blend controls.
 - `_sb_internal_lighting_normalize_status` /
-  `_sb_internal_lighting_style0_status` - the status readouts on the main tab.
+  `_sb_internal_lighting_style0_status` - the status readouts on the tab.
 - `_sb_internal_lighting_normalize_show_up` /
   `_sb_internal_lighting_normalize_show_down` - `1` when the active
   normalization mode uses the matching amount slider; set by
-  `lighting_refresh_ui_rmf()`. The live normalize mode list rebuilds the hub so
-  the sliders appear/disappear when the mode changes.
+  `lighting_refresh_ui_rmf()`. The normalize mode list rebuilds the page so the
+  sliders appear/disappear when the mode changes.
 
 `lighting_refresh_ui_rmf()` rebuilds the manual-blend gate from the Overbright
-state. The live hub's Style/Pre-Curve rows are conditional includes driven
-directly by `_sofbuddy_lighting_overbright`, and its Overbright toggle uses
-`sofbuddy_lighting_overbright_live_commit` to apply the setting and rebuild the
-hub. The old centred popup pages and the unused style/pre-curve snippets were
-removed.
+state. The Style/Pre-Curve rows are conditional includes driven directly by
+`_sofbuddy_lighting_overbright`, and the Overbright toggle uses
+`sofbuddy_lighting_overbright_commit` to apply the setting and rebuild the page.
 
 Migration is handled in `lightblend_PostCvarInit()`:
 
@@ -1038,15 +1040,16 @@ count at `+0xB4` and the surface array at `+0xB8`.
   Overbright Pre-Curve output percentages. Defaults to the **Popping
   mid+highlight** profile, `0,5,10,15,20,25,40,55,70,85,100`; **2x everything**
   restores the identity `0,10,20,...,100` and the stock product. Archived
-  independently of the Lighting Style curve.
-- `_sofbuddy_lighting_cutoff` - dynamic light threshold (default `64`).
+  independently of the Lighting Style curve. The live editor displays these as
+  0-200% after the x2 product (displayed = stored x 2).
+- `_sofbuddy_lighting_cutoff` - **D-Light Cut Off** (default `64`).
 - `_sofbuddy_water_size` - water warp size (default `64`, minimum `16`).
-- `_sofbuddy_shiny_spherical` - shiny detail-texture mode (default `1`):
-  - `0` - Off: skip the shiny/env-map pass entirely
-  - `1` - Default: stock behaviour (spherical on `SURF_SIMPLE_SPHERICAL`, plus the flat-surface heuristic)
-  - `2` - No spherical: draw every shiny surface with the non-spherical/planar projection
-  - `3` - All spherical: force every shiny surface through `GL_SPHERE_MAP`
-  - `4` - Both (experimental): draw every shiny surface with both projections; forces the flat threshold to `10.1f` so every surface is also queued for the sphere pass
+- `_sofbuddy_shiny_spherical` - **Shiny/Glossy surfaces** mode (default `1`):
+  - `0` - **Disabled**: skip the shiny/env-map pass entirely
+  - `1` - **Engine Decides**: stock behaviour (spherical on `SURF_SIMPLE_SPHERICAL`, plus the flat-surface heuristic)
+  - `2` - **As Planar**: draw every shiny surface with the non-spherical/planar projection
+  - `3` - **As Sphere Map**: force every shiny surface through `GL_SPHERE_MAP`
+  - `4` - **Planar And SphereMap - double** (experimental): draw every shiny surface with both projections; forces the flat threshold to `10.1f` so every surface is also queued for the sphere pass
 
 Spherical depends on **camera position and view angle**. The non-spherical/planar
 projection is built from the camera position relative to the surface and a

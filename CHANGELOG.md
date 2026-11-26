@@ -2,6 +2,39 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.55
+
+### UI scaling
+
+- **Restore Scaling Defaults now resets every scale slider.** The button used to write only the computed absolute scale cvars, leaving the percentage sliders (and the other mode's stored value) untouched; switching Smooth → Integer → Smooth then brought the old scales back and each section had to be reset by hand. It now resets the font, HUD, and menu percentages and their computed scales together, so both modes return to the documented 75% default. The per-section **Reset to default** buttons also clear the stored percentage in Integer mode.
+
+### Menus
+
+- **New Mouse cursor option (Vanilla / SoFPlus).** SoFPlus ships a cursor override inside `sofplus.pak`. The new F12 → General setting defaults to **SoFPlus when the SoFPlus DLL is loaded**, otherwise **Vanilla**, works whether or not SoFPlus is installed, and can serve the SoFPlus cursor from a bundled copy when SoFPlus is absent. Configs written by the first cursor build (which defaulted to Vanilla) migrate to SoFPlus once when SoFPlus is loaded. Changing it restarts the renderer so the cached cursor image is reloaded.
+
+### Updater
+
+- **Windows XP `win32 error 12175` fixed at the client fallback:** the startup check now uses `latest.json` directly when its tag matches the selected channel, and `by_tag`-selected releases reuse `latest.json` for the current tag. The full `list.json`/`by_tag` feeds are only fetched when needed, so an HTTPS redirect on those paths no longer breaks the normal stable check.
+- **XP TLS errors now name the real cause:** if WinHTTP returns `12175` after an HTTP→HTTPS redirect, the message says the mirror redirected to HTTPS and XP cannot negotiate modern TLS/SNI, instead of implying a local Windows setting problem. XP zip downloads are also normalized to the plain-HTTP SFVault mirror.
+- The SofVault mirror now includes `check_http.sh`; it fails on any `latest.json`, `list.json`, `by_tag`, `latest`, or `files/` endpoint that redirects to HTTPS. The mirror README documents the required nginx exception.
+
+### Lighting
+
+- Lighting labels are clearer: **Shiny/Glossy surfaces** now uses **Disabled**, **Engine Decides**, **As Planar**, **As Sphere Map**, and **Planar And SphereMap - double**; the dynamic-light cutoff is labelled **D-Light Cut Off** and `gl_dlightintensity` is **D-Light Intensity**. The live panel is grouped into Renderer, Lighting Style, Dynamic Lighting, Ghoul Models, Engine, Lighting Status, and Maintenance sections, with extra spacing above slider groups.
+- **Overbright Pre-Curve sliders now show 0-200%.** Because Overbright multiplies by 2, the editor labels each point with the final brightness after that product instead of the stored 0-100 value. The archived `_sofbuddy_lighting_overbright_curve_*` cvars and profiles are unchanged; displayed 100% = stored 50%, and the slider steps by 2 display units so every position maps to an exact stored value.
+- **The Lighting nav tab now opens the live panel directly.** The old **Live Lighting (preview over game)** button is gone, and every lighting control lives in the 380x600 panel over the game: `gl_ext_multitexture`, Overbright, Map Lighting Normalization, the Style/Pre-Curve rows, Colour Mode, Shiny/Glossy surfaces, D-Light Cut Off, Dynamic Lights, `gl_dlightintensity`, all Ghoul rows, Smooth Lightstyles, Lightmap Multiplier, the Custom manual blend, Lighting status, Rebuild Lightmaps, and the reset/restart actions. **Back to Menu** returns to the full menu and **Back to Game** closes the panel. The two reset actions are now **Reset SoF Buddy Lighting** (curve/overbright/normalization/colour/cutoff/shiny/Ghoul minimum) and **Reset Ghoul & Dynamic Lights** (Ghoul model lighting, dynamic lights, `gl_dlightintensity`, `gl_modulate`) so their different scopes are obvious.
+- The 11-point **Tone Curve** and **Overbright Pre-Curve** editors open as live-preview panels pinned to the right edge of the screen. The main menu closes first, so the game world stays visible while sliders move; each panel has the 11 sliders, a reset, **Back to Lighting**, and **Back to Game**. The editors are opened from the Lighting tab's **Tone Curve...** and **OB Pre-Curve...** buttons. Back/navigation buttons use an orange border so they stand out from normal controls, and the panels scale down to fit short screens.
+
+### Scaled console
+
+- The bottom-right console version stamp (`v1.07f`) no longer clips when the console font is scaled. `CON_DrawConsole` positioned it with a fixed 44 px offset, but `Draw_String` advances 8 px per character, so the six-character string already filled 48 px. The offset is now 56 px (48 px text + 8 px margin), and it scales with the virtual console width, so the stamp stays fully visible at every font scale.
+
+### Scaled menu
+
+- **Backdrop menu pages now set their scissor correctly.** Pages that declare a `<backdrop>` — including the SoFPlus `svrlist` serverbox page — delegate their clip to `menu_stm_set_clip` instead of `stm_c::Render`. The intro-scaler hook for that function is installed at early startup, before ref_gl loads, and it cached an empty `Draw_RenderRect` import slot, so it never called `Draw_RenderRect` and the scissor test stayed disabled. The serverbox's per-column `Draw_RenderRectRightClip(<tab>)` calls then changed the scissor rect without enabling the test, so a long hostname ran straight through the Ping/Type/Map columns. The hook now resolves the live import slot on first use, so the tab edge clips the row text again.
+- **Loose user menus no longer get the 4:3→wide frame correction by default.** The stock `menu <name>` command now leaves menus whose `.rmf` exists on disk under `User/menus`, `base/menus`, `User`, `base`, or the game root at their authored frame geometry. Stock pak menus keep the correction. The new **`menu_wide <name> [frame]`** wrapper forces the correction for any menu, including loose user menus. `sof_buddy/*` pages still always skip it.
+- The **Menu tooltip Appear (ms)** default is now **3750 ms**, the engine's exact spawn gate at the Buddy `tip_duration` of 15000 ms (`tip_duration / 4`). The old 750 ms and 625 ms defaults migrate once (guarded by `_sb_internal_tip_appear_vanilla_migrated` and `_sb_internal_tip_appear_spawn_migrated`); custom values are kept. The slider now goes up to 5000 ms.
+
 ## v8.54
 
 ### Sound

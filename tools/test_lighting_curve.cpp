@@ -83,6 +83,18 @@ int main() {
 	custom_profile.p[5] = 99.0f;
 	assert(overbright_profile_for_points(custom_profile) == kOverbrightProfileCustom);
 
+	// The live editor displays the final brightness after the x2 product
+	// (0..200) while the stored curve stays 0..100.
+	for (int stored = 0; stored <= 100; ++stored) {
+		assert(overbright_display_percent(static_cast<float>(stored)) == stored * 2);
+		assert(overbright_stored_percent(stored * 2) == stored);
+	}
+	assert(overbright_display_percent(-10.0f) == 0);
+	assert(overbright_display_percent(150.0f) == 200);
+	assert(overbright_stored_percent(-1) == 0);
+	assert(overbright_stored_percent(201) == 100);
+	assert(overbright_stored_percent(199) == 100);
+
 	// The Overbright product is 2 * T * C(L), so C(L) must be L/2 to match
 	// vanilla.  Popping highlights does that through 60% input; above that it
 	// deliberately lifts.  Keep this invariant when tuning the profile.

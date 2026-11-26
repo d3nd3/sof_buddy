@@ -45,6 +45,18 @@ pages use the same ratio for width, which fits the 4:3 page into the narrower
 16:9 centre. This restores the original 4:3→wide fit without tying frames to
 menuScale.
 
+### `menu` vs `menu_wide` and loose user menus
+
+The stock `menu <name> [frame]` command leaves loose user menus at their authored
+640×480 frame geometry. `M_PushMenu` treats a menu as user when its `.rmf` exists
+on disk under `User/menus`, `base/menus`, `User`, `base`, or the game root; those
+pages skip the 4:3→wide height correction (and the `ss_content` width pass).
+Stock menus served from the numbered/SoFPlus paks keep the correction.
+
+`menu_wide <name> [frame]` wraps the stock command and forces the correction for
+that push, including loose user menus. `sof_buddy/*` pages always skip it, even
+when pushed through `menu_wide`.
+
 The old conversion to `authored × menuScale` has been removed: it made frames
 shrink and drift at menu scales below `C` (for example 800×600 with a 1.19 menu
 scale) and broke `m_join` and other framed menus. At 4:3 the height factor is 1.0,
@@ -62,7 +74,8 @@ authors the tab grid and content spacers in 640×480 units so the two tab rows a
 page body stay together at the source resolution. Internal `loading/*` pages are
 not excluded from the normal frame height correction: the loading page is a real
 scaled menu and must get the same 4:3→widescreen frame-height treatment as stock
-loading pages.
+loading pages. Loose user menus opened with plain `menu` also keep the authored
+frame canvas; only stock pak menus and `menu_wide` get the correction.
 
 ### Content is scaled by the vertical design (menuScale)
 
@@ -153,11 +166,11 @@ Per context:
   shifts the three text lines down with the taller icons; the 128 px cell width and
   32 px row padding in `GetIndices`/`Setup`/`Draw` are patched with `menuScale`.
 
-The lighting live-preview panels reserve the exact `<stm resize 300 600>` size.
-`hk_frame_resize` recognizes that size, scales it by
-`min(menu scale, (vid_h - 16) / 600, (vid_w - 16) / 300)`, and pins the resulting
-box to the right edge with an 8 px margin. Every other resize page keeps the
-centred layout.
+The lighting live-preview pages use `<stm resize 300 600>` for the curve editors
+and `<stm resize 380 600>` for the main hub. `hk_frame_resize` recognizes both
+sizes, scales them by `min(menu scale, (vid_h - 16) / 600, (vid_w - 16) / W)`,
+and pins the resulting box to the right edge with an 8 px margin. Every other
+resize page keeps the centred layout.
 
 ## Rect fields
 
@@ -498,8 +511,18 @@ page's absolute canvas (`frame_c::Resize` stores 1.0), so an open resize dialog 
 the cursor to stock pixels at higher resolutions (96 px → 32 px at 1080p). The four
 scale reads in that function are patched to load `screen_x_scale` (`vid_w/640`, the
 scale normal menu pages use) instead, so the cursor keeps its normal size and hotspot
-while a resize popup is up. At 480p the two scales are both 1.0, which is why the stock
-shrink was not visible there.
+while a resize popup is up.
+
+The cursor art itself is selectable with `_sofbuddy_cursor_style`: `0` is the
+original SoF cursor from the numbered paks, `1` is the SoFPlus cursor. When the
+SoFPlus DLL is loaded the SoFPlus cursor is the default, otherwise Vanilla is;
+configs from the first cursor build migrate once. SoFPlus ships its cursor as
+`pics/menus/cursor/cursor.m32` inside `sofplus.pak`, which normally overrides the
+base game's file. The `FS_LoadFile` hook serves the selected art at that same
+path, using `sofplus.pak` when present and a bundled SoFPlus cursor otherwise.
+Changing the setting restarts the renderer because the pic is cached by ref_gl.
+At 480p the two scales are both 1.0, which is why the stock shrink was not
+visible there.
 
 ## Ghouls and bghouls
 
@@ -559,7 +582,8 @@ in `menu_variant.cpp`; the FS-path fallback and RMF transforms live in
 `internal_menus/hooks/menu_rmf_transform.cpp`. The old `_ss`-specific frame,
 border, topic, and join-menu corrections have been removed. `_ns` pages are
 authored in 640×480 space and receive the normal frame height correction described
-above.
+above when served from a pak (stock/SoFPlus); loose user `_ns` pages opened with
+plain `menu` keep the authored geometry.
 
 When SoFPlus selects the `_ss` variant (its `_spf_cl_video_shortscreen`
 wide-screen test) and the menu is in the whitelist, the FS loader replaces the
@@ -654,9 +678,9 @@ Fix:
   625 ms). `hk_menu_create_tip` records the new
   `(menu, tip, source rect)` and rewrites `tip->start(+0x18)` to
   `created − duration/4 + _sofbuddy_menu_tip_appear`, so the tooltip appears after
-  exactly the configured delay (default **625 ms**, matching vanilla; `0` =
-  immediate). The fade-out threshold moves with the start, so the visible time is
-  unchanged.
+  exactly the configured delay (default **3750 ms**, the engine's own spawn gate
+  at the Buddy `tip_duration` of 15000 ms; `0` = immediate). The fade-out
+  threshold moves with the start, so the visible time is unchanged.
 - The value is exposed as **Menu tooltip Appear (ms)** in F12 → General → Menu.
   The tooltip font is selectable there as **Tooltip font** (Small default, Medium,
   Title) and applies when the menu is reopened. **Menu font size style**

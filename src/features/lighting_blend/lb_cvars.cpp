@@ -30,6 +30,7 @@ cvar_t * gl_ext_multitexture = NULL;
 
 cvar_t * _sofbuddy_lighting_curve[lighting_curve_detail::kCurvePointCount] = {};
 cvar_t * _sofbuddy_lighting_overbright_curve[lighting_curve_detail::kCurvePointCount] = {};
+cvar_t * _sb_internal_lighting_overbright_display[lighting_curve_detail::kCurvePointCount] = {};
 cvar_t * _sofbuddy_lighting_preserve_color = NULL;
 cvar_t * _sofbuddy_lighting_normalize = NULL;
 cvar_t * _sofbuddy_lighting_normalize_up = NULL;
@@ -69,6 +70,22 @@ static const char* kOverbrightCurveCvarNames[lighting_curve_detail::kCurvePointC
 	"_sofbuddy_lighting_overbright_curve_80",
 	"_sofbuddy_lighting_overbright_curve_90",
 	"_sofbuddy_lighting_overbright_curve_100",
+};
+
+// UI-only mirrors: 0..200, exactly twice the stored 0..100 curve point.  The
+// menu shows the brightness after the Overbright x2 product.
+static const char* kOverbrightDisplayCvarNames[lighting_curve_detail::kCurvePointCount] = {
+	"_sb_internal_lighting_overbright_display_0",
+	"_sb_internal_lighting_overbright_display_10",
+	"_sb_internal_lighting_overbright_display_20",
+	"_sb_internal_lighting_overbright_display_30",
+	"_sb_internal_lighting_overbright_display_40",
+	"_sb_internal_lighting_overbright_display_50",
+	"_sb_internal_lighting_overbright_display_60",
+	"_sb_internal_lighting_overbright_display_70",
+	"_sb_internal_lighting_overbright_display_80",
+	"_sb_internal_lighting_overbright_display_90",
+	"_sb_internal_lighting_overbright_display_100",
 };
 cvar_t * _sb_internal_lighting_multitexture_restore = NULL;
 cvar_t * _sb_internal_lighting_normalize_status = NULL;
@@ -134,6 +151,17 @@ void create_lightingblend_cvars(void) {
 		_sofbuddy_lighting_overbright_curve[i] = detour_Cvar_Get::oCvar_Get(
 			kOverbrightCurveCvarNames[i], default_value,
 			CVAR_SOFBUDDY_ARCHIVE, &lighting_overbright_curve_change);
+	}
+	// The pre-curve editor shows the final brightness after the x2 product, so
+	// its sliders use 0..200 even though the stored curve remains 0..100.
+	for (int i = 0; i < lighting_curve_detail::kCurvePointCount; ++i) {
+		char default_display[8];
+		std::snprintf(default_display, sizeof(default_display), "%d",
+		              lighting_curve_detail::overbright_display_percent(
+		                  overbright_defaults.p[i]));
+		_sb_internal_lighting_overbright_display[i] = detour_Cvar_Get::oCvar_Get(
+			kOverbrightDisplayCvarNames[i], default_display, 0,
+			&lighting_overbright_display_change);
 	}
 	_sofbuddy_lighting_preserve_color = detour_Cvar_Get::oCvar_Get("_sofbuddy_lighting_preserve_color","2",CVAR_SOFBUDDY_ARCHIVE,&lighting_preserve_color_change);
 	_sofbuddy_lighting_normalize = detour_Cvar_Get::oCvar_Get("_sofbuddy_lighting_normalize","0",CVAR_SOFBUDDY_ARCHIVE,&lighting_normalize_change);

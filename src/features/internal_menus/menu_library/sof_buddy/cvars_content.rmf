@@ -324,9 +324,9 @@
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_lighting_cutoff atext "_sofbuddy_lighting_cutoff : " noshade tip "Dynamic Light Distance Cutoff (F12 Lighting): min dynamic-light contribution / BSP culling margin (DLIGHT_CUTOFF). Default 64."><br>
+<ctext _sofbuddy_lighting_cutoff atext "_sofbuddy_lighting_cutoff : " noshade tip "D-Light Cut Off (F12 Lighting): min dynamic-light contribution / BSP culling margin (DLIGHT_CUTOFF). Default 64."><br>
 <font type {font_title} tint gray atint gray>
-"Default 64 - Lighting cutoff."
+"Default 64 - D-Light Cut Off."
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
@@ -342,9 +342,9 @@
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_shiny_spherical atext "_sofbuddy_shiny_spherical : " noshade tip "Shiny detail textures (F12 Lighting): 0 off, 1 default, 2 no spherical (planar: camera position only), 3 all spherical (camera position + view angle), 4 both (experimental). Default 1."><br>
+<ctext _sofbuddy_shiny_spherical atext "_sofbuddy_shiny_spherical : " noshade tip "Shiny/Glossy surfaces (F12 Lighting): 0 Disabled, 1 Engine Decides, 2 As Planar (camera position only), 3 As Sphere Map (camera position + view angle), 4 Planar And SphereMap - double (experimental). Default 1."><br>
 <font type {font_title} tint gray atint gray>
-"Default 1 - Default shiny detail (spherical where flagged or flat)."
+"Default 1 - Engine Decides (spherical where flagged or flat)."
 <hbr>
 
 <font type {font_title} tint sb_subtle atint sb_subtle>
@@ -529,9 +529,9 @@
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_menu_tip_appear atext "_sofbuddy_menu_tip_appear : " noshade tip "Tooltip appear delay in ms. 0 immediate. Default 625 (vanilla 2500/4)."><br>
+<ctext _sofbuddy_menu_tip_appear atext "_sofbuddy_menu_tip_appear : " noshade tip "Tooltip appear delay in ms. 0 immediate. Default 3750 = engine tip_duration 15000 / 4."><br>
 <font type {font_title} tint gray atint gray>
-"Default 625 - Tooltip appearance delay (ms, vanilla)."
+"Default 3750 - Tooltip appearance delay (ms, engine 15000/4)."
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
@@ -544,6 +544,12 @@
 <ctext _sofbuddy_menu_font_size_style atext "_sofbuddy_menu_font_size_style : " noshade tip "F12 font tier preset: 0 Small, 1 Normal, 2 Large, 3 Extra Large. Default 0 (Small)."><br>
 <font type {font_title} tint gray atint gray>
 "Default 0 - Small F12 font tier preset."
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_cursor_style atext "_sofbuddy_cursor_style : " noshade tip "Menu cursor art: 0 Vanilla (original SoF), 1 SoFPlus. The default is SoFPlus when the SoFPlus DLL is loaded, otherwise Vanilla (0). Works with or without SoFPlus installed."><br>
+<font type {font_title} tint gray atint gray>
+"Default - SoFPlus when the SoFPlus DLL is loaded, else Vanilla."
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>

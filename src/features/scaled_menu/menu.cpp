@@ -53,6 +53,7 @@ float g_scaledMenuSelectionScale = 1.0f;
 
 static char s_pushed_menu_name[64] = {0};
 static bool s_skip_vertical_shrink = false;
+static bool s_menu_wide_requested = false;
 
 static bool name_contains_ci(const char* s, const char* needle) {
 	if (!s || !needle || !*needle) return false;
@@ -84,7 +85,7 @@ namespace scaled_menu_detail {
 static void tip_source_reset(void);
 }
 
-void scaled_menu_set_pushed_menu(const char* name) {
+void scaled_menu_set_pushed_menu(const char* name, bool skip_vertical_shrink) {
 	scaled_menu_detail::tip_source_reset();
 	scaled_menu_variant_reset();
 	char redirected[64];
@@ -95,7 +96,29 @@ void scaled_menu_set_pushed_menu(const char* name) {
 			s_pushed_menu_name[i] = name[i];
 	}
 	s_pushed_menu_name[i] = '\0';
-	s_skip_vertical_shrink = false;
+	s_skip_vertical_shrink = skip_vertical_shrink;
+}
+
+void scaled_menu_request_menu_wide(void) {
+	s_menu_wide_requested = true;
+}
+
+bool scaled_menu_consume_menu_wide_request(void) {
+	const bool requested = s_menu_wide_requested;
+	s_menu_wide_requested = false;
+	return requested;
+}
+
+void Cmd_MenuWide_f(void) {
+	scaled_menu_request_menu_wide();
+	using MenuCommand_t = void(__cdecl*)(void);
+	auto menu_command = reinterpret_cast<MenuCommand_t>(
+	    rvaToAbsExe(reinterpret_cast<void*>(0x000C78F0)));
+	if (menu_command)
+		menu_command();
+	// If menu_f rejected the arguments it never reached M_PushMenu; make sure the
+	// one-shot request cannot leak into the next regular `menu` command.
+	s_menu_wide_requested = false;
 }
 
 namespace scaled_menu_detail {
@@ -433,6 +456,24 @@ static void __cdecl hk_draw_render_rect(int x, int y, int w, int h) {
 		w = current_vid_w;
 	}
 	if (oDraw_RenderRect) oDraw_RenderRect(x, y, w, h);
+}
+
+// The engine fills its ref_gl import slots only after ref_gl loads, which happens
+// after scaled_menu_install_hooks() ran from DllMain. If we miss that window the
+// engine's Draw_RenderRect calls go straight to ref_gl, and our menu_stm_set_clip
+// hook has Draw_RenderRect == nullptr. Backdrop pages (the serverbox page uses
+// <backdrop>) delegate their scissor to that hook, so the scissor test stays off
+// and the serverbox's per-cell Draw_RenderRectRightClip has no effect: a long
+// hostname runs straight through the Ping column. Resolve and hook the slot
+// lazily whenever a menu renders.
+static void ensure_draw_render_rect_hook() {
+	auto** rr = reinterpret_cast<void**>(rvaToAbsExe(reinterpret_cast<void*>(kRvaDrawRenderRectIat)));
+	if (!rr || !*rr) return;
+	void* entry = *rr;
+	if (!entry || entry == reinterpret_cast<void*>(&hk_draw_render_rect)) return;
+	oDraw_RenderRect = reinterpret_cast<Draw_RenderRect_t>(entry);
+	Draw_RenderRect = oDraw_RenderRect;
+	writeUnsignedIntegerAt(rr, reinterpret_cast<unsigned int>(&hk_draw_render_rect));
 }
 
 using Draw_BeveledBox_t = void(__cdecl*)(int x, int y, int w, int h, void* tint);
@@ -1526,24 +1567,27 @@ static void hk_hbar_draw(void* hbar) {
 using Frame_Resize_t = void(__thiscall*)(void* frame, char* w, char* h);
 static Frame_Resize_t oFrame_Resize = nullptr;
 
-// Lighting live-preview pages request the exact `resize 300 600` size so they
-// can be pinned to the right edge of the screen instead of being centred. The
+// Lighting live-preview pages request an exact `resize W 600` size so they can
+// be pinned to the right edge of the screen instead of being centred. The main
+// hub is 380 wide so long list labels fit; the curve editors stay at 300. The
 // page is scaled down on short screens so it still fits at 640x480. Keep the
 // numbers in sync with lighting_*_live.rmf.
 static constexpr float kLivePanelW = 300.0f;
+static constexpr float kLiveWidePanelW = 380.0f;
 static constexpr float kLivePanelH = 600.0f;
 static constexpr int kLivePanelMargin = 8;
 
 static bool is_live_panel_resize(const char* w, const char* h) {
-	return w && h && std::strcmp(w, "300") == 0 && std::strcmp(h, "600") == 0;
+	if (!w || !h || std::strcmp(h, "600") != 0) return false;
+	return std::strcmp(w, "300") == 0 || std::strcmp(w, "380") == 0;
 }
 
-static void scale_live_panel(void* frame) {
+static void scale_live_panel(void* frame, float panel_w) {
 	char* f = static_cast<char*>(frame);
 	float s = scaled_menu_screen_scale();
 	if (!std::isfinite(s) || s <= 0.0f) s = 1.0f;
 	const float fit_h = static_cast<float>(current_vid_h - 2 * kLivePanelMargin) / kLivePanelH;
-	const float fit_w = static_cast<float>(current_vid_w - 2 * kLivePanelMargin) / kLivePanelW;
+	const float fit_w = static_cast<float>(current_vid_w - 2 * kLivePanelMargin) / panel_w;
 	s = std::min(s, std::min(fit_h, fit_w));
 	if (s < 0.5f) s = 0.5f;
 	if (char* menu = *reinterpret_cast<char**>(f + kFrame_Menu)) {
@@ -1582,7 +1626,8 @@ static void hk_frame_resize(void* frame, char* w, char* h) {
 	// precache/player dialog).
 	const bool live_panel = is_live_panel_resize(w, h);
 	if (live_panel) {
-		scale_live_panel(frame);
+		const float panel_w = std::strcmp(w, "380") == 0 ? kLiveWidePanelW : kLivePanelW;
+		scale_live_panel(frame, panel_w);
 		return;
 	}
 	if (!scaled_menu_uniform_actual_active() || scaled_menu_skip_for_intro_disclaimer()) return;
@@ -1607,8 +1652,9 @@ static void hk_frame_resize(void* frame, char* w, char* h) {
 	*reinterpret_cast<int*>(f + kFrame_OffY) = (current_vid_h - scaled_h) / 2;
 }
 
-// Internal sof_buddy pages keep the stock frame canvas, so their frames skip the
-// 4:3 -> wide height correction. Other menus follow the normal frame rules.
+// Internal sof_buddy pages keep the stock frame canvas, so they skip the
+// 4:3 -> wide height correction. Loose user menus are marked by
+// scaled_menu_M_PushMenu_pre; stock pak menus keep the correction.
 static void note_menu_source(const char* name) {
 	if (!name || !*name) return;
 	if (name_contains_ci(name, "sof_buddy/"))
@@ -1620,7 +1666,7 @@ struct FrameDimsRec {
 	void* frame;
 	int w;
 	int h;
-	bool skip_vertical_shrink; // sof_buddy/* pages keep the stock frame canvas
+	bool skip_vertical_shrink; // sof_buddy/* pages and loose user menus keep authored frame geometry
 	bool height_shrunk;        // hk_frame_link applies at most once per ctor
 	bool width_shrunk;         // ss_content pages shrink width once as well
 };
@@ -2398,6 +2444,10 @@ static bool set_clip_from_backdrop_open() {
 
 static void __cdecl hk_menu_stm_set_clip(void* stm, int, int* outX, int* outY, int* outW, int* outH) {
 	if (!stm || !outX || !outY || !outW || !outH) return;
+	// Backdrop pages have no per-stm Draw_RenderRect of their own; the engine relies
+	// on this function to set (and enable) the scissor. Make sure the import is hooked
+	// and the original pointer is live before we compute and apply the rect.
+	ensure_draw_render_rect_hook();
 	auto* st = static_cast<char*>(stm);
 	auto* frame = *reinterpret_cast<char**>(stm);
 	if (!frame) return;
@@ -2500,6 +2550,11 @@ void scaled_menu_on_vid_layout_changed(void) {
 }
 
 void scaled_menu_sync_scale_from_engine(void) {
+	// The engine fills its ref_gl import slots after ref_gl loads. By the first video
+	// check the slot is live; install (or re-install after a renderer reload) the
+	// Draw_RenderRect hook before the menu lays out. Backdrop pages depend on it to
+	// set the scissor that the serverbox's per-column right clips then adjust.
+	ensure_draw_render_rect_hook();
 	// Cheap and idempotent: recompute screen ratios from the actual video size and
 	// re-clamp menuScale to the new resolution max. Called before menu layout is measured
 	// so the first open uses the same scale the second open does.
@@ -2540,12 +2595,7 @@ void scaled_menu_sync_scale_from_engine(void) {
 void scaled_menu_refresh_open_canvases(void) {}
 
 bool scaled_menu_install_hooks(void) {
-	auto** rr = reinterpret_cast<void**>(rvaToAbsExe(reinterpret_cast<void*>(kRvaDrawRenderRectIat)));
-	if (rr && *rr) {
-		oDraw_RenderRect = reinterpret_cast<Draw_RenderRect_t>(*rr);
-		Draw_RenderRect = oDraw_RenderRect;
-		writeUnsignedIntegerAt(rr, reinterpret_cast<unsigned int>(&hk_draw_render_rect));
-	}
+	ensure_draw_render_rect_hook();
 	bool ok = true;
 #if !FEATURE_INTRO_SCALER
 	ok = install_one(
