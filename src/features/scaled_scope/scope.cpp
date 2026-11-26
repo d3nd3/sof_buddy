@@ -4,6 +4,11 @@
     Keeps the sniper scope overlay in its authored 4:3 shape on widescreen
     resolutions, centres it with black side bars, and scales the magnification
     readout with the scope instead of leaving it at stock pixel size.
+
+    cScope::Draw positions every overlay element from viddef_width/viddef_height
+    (full screen). The fix remaps each draw into a centred 4:3 virtual frame:
+    coordinates are scaled about the screen centre, sizes are scaled by the same
+    ratio, and the magnification text is remapped and scaled with the run.
 */
 
 #include "feature_config.h"
@@ -17,32 +22,32 @@
 #include "../scaled_ui_base/shared.h"
 #include "shared.h"
 
+#include <cmath>
 #include <cstring>
 
 namespace {
 
 struct ScopeFixState {
     bool active = false;
-    bool drew = false;
     int width = 0;
     int height = 0;
     int virtualWidth = 0;
     int virtualHeight = 0;
-    int originX = 0;
-    int originY = 0;
     float textScale = 1.0f;
-    int vinettaQuad = 0;
 };
 
 ScopeFixState g_scopeFix;
 
-// cScope fields patched while its Draw runs: text offsets, centre and the
-// proportionally-sized overlay extents (0x04, 0x08, 0x30..0x58).
-const int kScopeFields[] = {1, 2, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22};
-int g_savedScopeFields[sizeof(kScopeFields) / sizeof(kScopeFields[0])];
+int remap_coord(int value, int center, int virtualSize, int size) {
+    if (size <= 0) return value;
+    const double s = static_cast<double>(virtualSize) / static_cast<double>(size);
+    return center + static_cast<int>(std::lround((value - center) * s));
+}
 
-int scale_int(int value, double ratio) {
-    return static_cast<int>(static_cast<double>(value) * ratio);
+int remap_size(int value, int virtualSize, int size) {
+    if (size <= 0) return value;
+    const double s = static_cast<double>(virtualSize) / static_cast<double>(size);
+    return static_cast<int>(std::lround(static_cast<double>(value) * s));
 }
 
 void draw_black_bars(void) {
@@ -79,53 +84,59 @@ bool scaled_scope_active(void) {
 }
 
 float scaled_scope_text_scale(void) {
-    return (g_scopeFix.active && g_scopeFix.drew) ? g_scopeFix.textScale : 1.0f;
+    return g_scopeFix.active ? g_scopeFix.textScale : 1.0f;
 }
 
 void scaled_scope_note_stretch_pic(int& x, int& y, int& w, int& h, const char* name) {
     if (!g_scopeFix.active) return;
-    g_scopeFix.drew = true;
 
-    // The four vinetta quads are the black overlay around the scope tube.  The
-    // engine sizes them from the full viddef; redirect them to the centred 4:3
-    // frame so the vignette does not stretch with the aspect ratio.
-    if (!name || !std::strstr(name, "vinette")) return;
+    const int cx = g_scopeFix.width / 2;
+    const int cy = g_scopeFix.height / 2;
 
-    const int leftWidth = g_scopeFix.virtualWidth / 2;
-    const int rightWidth = g_scopeFix.virtualWidth - leftWidth;
-    const int topHeight = g_scopeFix.virtualHeight / 2;
-    const int bottomHeight = g_scopeFix.virtualHeight - topHeight;
-    const int left = g_scopeFix.originX;
-    const int top = g_scopeFix.originY;
-    const int right = left + g_scopeFix.virtualWidth;
-    const int bottom = top + g_scopeFix.virtualHeight;
-
-    switch (g_scopeFix.vinettaQuad++ & 3) {
-        case 0:
-            x = left;
-            y = top;
-            w = leftWidth;
-            h = topHeight;
-            break;
-        case 1:
-            x = right;
-            y = top;
-            w = -rightWidth;
-            h = topHeight;
-            break;
-        case 2:
-            x = left;
-            y = bottom;
-            w = leftWidth;
-            h = -bottomHeight;
-            break;
-        default:
-            x = right;
-            y = bottom;
-            w = -rightWidth;
-            h = -bottomHeight;
-            break;
+    // The four crosshair bars are the only overlay quads with hard-coded design
+    // sizes: the engine draws them 16 px thick with an 8 px centre gap, which
+    // does not scale with the resolution. Their long axes are viddef-based, so
+    // remap those normally; scale the fixed thickness/gap by the vertical design
+    // scale instead.
+    if (name && std::strstr(name, "retic")) {
+        const double s = static_cast<double>(g_scopeFix.textScale);
+        const double sx = static_cast<double>(g_scopeFix.virtualWidth) / g_scopeFix.width;
+        const double sy = static_cast<double>(g_scopeFix.virtualHeight) / g_scopeFix.height;
+        const int aw = w < 0 ? -w : w;
+        const int ah = h < 0 ? -h : h;
+        if (aw > ah) {
+            x = remap_coord(x, cx, g_scopeFix.virtualWidth, g_scopeFix.width);
+            w = remap_size(w, g_scopeFix.virtualWidth, g_scopeFix.width);
+            y = remap_coord(y, cy, g_scopeFix.virtualHeight, g_scopeFix.height) -
+                static_cast<int>(std::lround(8.0 * (s - sy)));
+            h = static_cast<int>(std::lround(static_cast<double>(h) * s));
+        } else {
+            y = remap_coord(y, cy, g_scopeFix.virtualHeight, g_scopeFix.height);
+            h = remap_size(h, g_scopeFix.virtualHeight, g_scopeFix.height);
+            x = remap_coord(x, cx, g_scopeFix.virtualWidth, g_scopeFix.width) -
+                static_cast<int>(std::lround(8.0 * (s - sx)));
+            w = static_cast<int>(std::lround(static_cast<double>(w) * s));
+        }
+        return;
     }
+
+    x = remap_coord(x, cx, g_scopeFix.virtualWidth, g_scopeFix.width);
+    y = remap_coord(y, cy, g_scopeFix.virtualHeight, g_scopeFix.height);
+    w = remap_size(w, g_scopeFix.virtualWidth, g_scopeFix.width);
+    h = remap_size(h, g_scopeFix.virtualHeight, g_scopeFix.height);
+}
+
+void scaled_scope_remap_text(int& x, int& y) {
+    if (!g_scopeFix.active) return;
+
+    const float sy = static_cast<float>(g_scopeFix.virtualHeight) /
+                     static_cast<float>(g_scopeFix.height);
+    x = remap_coord(x, g_scopeFix.width / 2, g_scopeFix.virtualWidth, g_scopeFix.width);
+    y = remap_coord(y, g_scopeFix.height / 2, g_scopeFix.virtualHeight, g_scopeFix.height);
+    // cScope::Draw places the readout 8 px above the gauge with a fixed pixel
+    // offset; scale that offset with the readout so its spacing matches.
+    y -= static_cast<int>(std::lround(
+        8.0 * (static_cast<double>(g_scopeFix.textScale) - sy)));
 }
 
 void hkcScope_Draw(void* self, detour_cScope_Draw::tcScope_Draw original) {
@@ -162,50 +173,21 @@ void hkcScope_Draw(void* self, detour_cScope_Draw::tcScope_Draw original) {
         return;
     }
 
-    int* scope = static_cast<int*>(self);
-    for (size_t i = 0; i < sizeof(kScopeFields) / sizeof(kScopeFields[0]); ++i)
-        g_savedScopeFields[i] = scope[kScopeFields[i]];
-
     g_scopeFix.active = true;
-    g_scopeFix.drew = false;
     g_scopeFix.width = width;
     g_scopeFix.height = height;
     g_scopeFix.virtualWidth = virtualWidth;
     g_scopeFix.virtualHeight = virtualHeight;
-    g_scopeFix.originX = (width - virtualWidth) / 2;
-    g_scopeFix.originY = (height - virtualHeight) / 2;
     g_scopeFix.textScale = static_cast<float>(virtualHeight) / 480.0f;
-    g_scopeFix.vinettaQuad = 0;
 
-    // Keep the overlay centred on the real screen while sizing its parts from
-    // the 4:3 design frame.  Text uses this[1]/this[2] as screen offsets, so
-    // shifting them also moves the magnification readout with the scope.
-    scope[1] += scale_int(width, 300.0 / 640.0) -
-                scale_int(virtualWidth, 300.0 / 640.0);
-    scope[2] += scale_int(height, 70.0 / 480.0) -
-                scale_int(virtualHeight, 70.0 / 480.0);
-    scope[12] = width / 2;
-    scope[13] = height / 2;
-    scope[14] = scale_int(virtualWidth, 0.625);
-    scope[15] = scale_int(virtualHeight, 2.0 / 3.0);
-    scope[16] = scale_int(virtualWidth, 0.2);
-    scope[17] = scale_int(virtualHeight, 4.0 / 15.0);
-    scope[18] = scale_int(virtualWidth, 0.1953125);
-    scope[19] = scale_int(virtualHeight, 0.2604166666666667);
-    scope[20] = scale_int(virtualWidth, 0.003125);
-    scope[21] = scale_int(virtualHeight, 0.004166666666666667);
-    scope[22] = scale_int(virtualHeight, 0.008333333333333333);
-
+    // cScope::Draw reads only viddef_* and its own fields; the Draw_StretchPic,
+    // R_DrawFont and FillRGB hooks remap what it emits into the 4:3 frame while
+    // this flag is set.
     original(self);
 
-    if (g_scopeFix.drew) draw_black_bars();
-
-    for (size_t i = 0; i < sizeof(kScopeFields) / sizeof(kScopeFields[0]); ++i)
-        scope[kScopeFields[i]] = g_savedScopeFields[i];
+    draw_black_bars();
 
     g_scopeFix.active = false;
-    g_scopeFix.drew = false;
-    g_scopeFix.vinettaQuad = 0;
 }
 
 #endif // FEATURE_SCALED_SCOPE

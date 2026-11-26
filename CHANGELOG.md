@@ -103,6 +103,7 @@ User-facing highlights. Older detail is summarized at the bottom.
 ### Scaled scope
 
 - New `scaled_scope` feature. The sniper scope overlay now keeps its authored 4:3 proportions on widescreen displays instead of stretching with the aspect ratio. The scope is centred with black side bars (top/bottom bars on displays narrower than 4:3), and the magnification readout scales with the scope so it stays legible at 1080p and above.
+- Follow-up for issue #32: **every** `cScope::Draw` element is now remapped into the 4:3 frame, not just the tube and vignette. The ammo/zoom-level gauge on the right, the arrows, the crosshair bars and the readout position all keep their authored proportions, and the readout glyphs scale with the scope. `cScope::Draw` (`0x6EA0`) was missing from `funcmaps/SoF.exe.json`, so the callsite classifier could not identify the scope's `Draw_StretchPic`/`R_DrawFont` calls; the scope hooks now also key off the active-frame flag, and the function start is in the map again.
 
 ### Scaled menu
 

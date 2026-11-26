@@ -14,6 +14,9 @@
 #if FEATURE_SCALED_MENU && defined(UI_MENU)
 #include "../../scaled_menu/shared.h"
 #endif
+#if FEATURE_SCALED_SCOPE
+#include "../../scaled_scope/shared.h"
+#endif
 #include <cmath>
 #include <math.h>
 #include <string.h>
@@ -362,6 +365,15 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 			if (rr && *rr)
 				reinterpret_cast<DrawRenderRect_t>(*rr)(0, 0, current_vid_w, current_vid_h);
 		}
+#if FEATURE_SCALED_SCOPE
+		// cScope::Draw positions the magnification readout in full-screen space.
+		// Remap the run into the centred 4:3 frame and classify it as scope text
+		// so the vertex scaler grows it by the scope's vertical design scale.
+		if (scaled_scope_active()) {
+			scaled_scope_remap_text(screenX, screenY);
+			g_currentFontCaller = FontCaller::ScopeDraw;
+		}
+#endif
 		original(screenX, screenY, text, colorPalette, font, rememberLastColor);
 
 	if (g_currentFontCaller != FontCaller::MissionStatus &&
