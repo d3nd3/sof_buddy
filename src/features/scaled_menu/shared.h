@@ -32,6 +32,10 @@ void scaled_menu_tip_bounds_vertex(float x, float y);
 // Unclamped screen-space X the current tooltip is anchored at (the mouse), while
 // tip_c::Render runs. Long tips use it to reflow inside the screen edges.
 bool scaled_menu_tip_anchor_x(int* x);
+// While tip_c::Render runs, the alpha (0..255) the tooltip should use. The engine
+// derives its fade length from tip_duration/16; this keeps the stock fade speed
+// while Buddy's longer tip_duration only extends how long the tip stays visible.
+bool scaled_menu_tip_fade_alpha(unsigned char* alpha);
 void scaledMenu_EarlyStartup(void);
 // In the injected 16:9 chrome, anchor a global page's backdrop at the menu origin so
 // the background spans the full screen instead of starting at the ss_content X offset.
