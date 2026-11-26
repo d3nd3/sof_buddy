@@ -215,6 +215,7 @@ chosen folder already contains a SoF Plus client (`spcl.dll` or `SofPlus.dll`).
 - `sofbuddy_master_next` — Query the next configured GameSpy master server.
 - `sofbuddy_menu <name>` — Open an embedded internal menu page (examples: `loading`, `sof_buddy`).
 - `sofbuddy_menu <menu>/<page>` — Open a specific embedded page (e.g. `sofbuddy_menu sof_buddy/cpu`).
+- `sofbuddy_apply_vid_mode` — Apply the resolution staged in F12 → Graphics (runs `vid_restart` and reopens the Graphics page).
 - `menu_wide <menu> [frame]` — Open a menu with the 4:3→wide frame correction forced. Plain `menu` leaves loose user menus under `User/menus`/`base/menus` at their authored frame geometry; stock pak menus keep the correction either way.
 - `sofbuddy_apply_profile_comp` — Apply competitive/low-visual profile preset.
 - `sofbuddy_apply_profile_visual` — Apply visual/high-fidelity profile preset.
