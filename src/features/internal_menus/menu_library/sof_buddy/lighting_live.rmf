@@ -1,4 +1,4 @@
-<stm resize 300 600 global nopush>
+<stm resize 380 600 global nopush>
 <include tints>
 
 <frame main 0 0 border 0 0 clear backfill clear>

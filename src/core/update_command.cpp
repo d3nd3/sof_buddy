@@ -158,6 +158,7 @@ struct ReleaseInfo {
     std::string html_url;
     std::string zip_url;
     std::string body;
+    bool prerelease = false;
 };
 
 constexpr const char* kPendingUpdateManifest = "sof_buddy/update/pending_update.txt";
@@ -293,16 +294,27 @@ bool cvar_is_empty_or_value(cvar_t* c, const char* expected) {
 }
 
 void append_tls_failure_hint(std::string& error, const ParsedUrl& parsed) {
-    if (!parsed.secure) return;
-
     const std::string host = to_lower_ascii(wide_to_utf8(parsed.host));
-    if (host.find("github.com") == std::string::npos &&
-        host.find("githubusercontent.com") == std::string::npos) {
+    const bool github_host =
+        host.find("github.com") != std::string::npos ||
+        host.find("githubusercontent.com") != std::string::npos;
+
+    if (parsed.secure && github_host) {
+        error += ". TLS handshake/certificate failed. GitHub requires modern TLS; on Windows XP WinHTTP this often fails. ";
+        error += "Use manual update, or set _sofbuddy_update_api_url to an XP-compatible mirror/proxy feed.";
         return;
     }
 
-    error += ". TLS handshake/certificate failed. GitHub requires modern TLS; on Windows XP WinHTTP this often fails. ";
-    error += "Use manual update, or set _sofbuddy_update_api_url to an XP-compatible mirror/proxy feed.";
+#if defined(SOFBUDDY_XP_BUILD)
+    // WinHTTP follows an HTTP -> HTTPS redirect internally, so parsed.secure
+    // stays false when the handshake fails at the redirect target.  Say what
+    // actually happened instead of sending XP users to their TLS settings.
+    error += ". Windows XP WinHTTP could not complete the TLS handshake";
+    if (!parsed.secure)
+        error += " after the server redirected this plain-HTTP URL to HTTPS";
+    error += ". Windows XP cannot negotiate modern TLS/SNI; use the plain-HTTP SFVault mirror ";
+    error += "(http://sofvault.org/sof_buddy/releases/) or update manually.";
+#endif
 }
 
 std::string wine_unix_path(const char* windows_path) {
@@ -927,6 +939,18 @@ bool api_url_uses_json_release_feed(const std::string& api_url) {
     return api_url.rfind("/latest.json") != std::string::npos;
 }
 
+std::string json_release_feed_base(const std::string& api_url) {
+    if (!api_url_uses_json_release_feed(api_url)) return std::string();
+    const size_t pos = api_url.rfind("/latest.json");
+    if (pos == std::string::npos) return std::string();
+    return api_url.substr(0, pos);
+}
+
+std::string force_http_url(const std::string& url) {
+    if (url.rfind("https://", 0) == 0) return "http://" + url.substr(8);
+    return url;
+}
+
 bool update_production_urls_allowed(void) {
 #if defined(SOFBUDDY_UPDATE_TEST_BUILD)
     if (!detour_Cvar_Get::oCvar_Get) return false;
@@ -958,9 +982,26 @@ bool update_fetch_url_allowed(const std::string& url, std::string& error) {
 
 void finalize_xp_mirror_release(ReleaseInfo& info, const std::string& api_url) {
 #if defined(SOFBUDDY_XP_BUILD)
-    if (!api_url_uses_sofvault_mirror(api_url)) return;
-    if (zip_matches_build_preference(info.zip_url)) return;
-    info.zip_url = std::string(kUpdateSofVaultFilesBase) + kUpdateSofVaultXpZipName;
+    const std::string mirror_zip =
+        std::string(kUpdateSofVaultFilesBase) + kUpdateSofVaultXpZipName;
+    const bool mirror_api = api_url_uses_sofvault_mirror(api_url);
+    const bool mirror_zip_url = info.zip_url.find("sofvault.org") != std::string::npos;
+    const bool github_zip_url =
+        info.zip_url.find("github.com") != std::string::npos ||
+        info.zip_url.find("githubusercontent.com") != std::string::npos;
+
+    // The mirror serves the XP zip over plain HTTP.  Cached or hand-edited
+    // feeds may still carry an https URL, which XP WinHTTP cannot use.
+    info.zip_url = force_http_url(info.zip_url);
+
+    if (zip_matches_build_preference(info.zip_url) &&
+        !github_zip_url && (!mirror_api || mirror_zip_url)) {
+        return;
+    }
+
+    // GitHub only serves release assets over HTTPS.  XP cannot negotiate
+    // modern TLS, so always use the mirror copy for the current XP build.
+    info.zip_url = mirror_zip;
 #endif
 }
 
@@ -1328,11 +1369,9 @@ std::string get_update_target_tag() {
 
 std::string get_update_releases_list_api_url() {
     const std::string api_url = get_update_api_url();
-    if (api_url_uses_json_release_feed(api_url)) {
-        const size_t pos = api_url.rfind("/latest.json");
-        if (pos != std::string::npos)
-            return api_url.substr(0, pos) + "/list.json";
-    }
+    const std::string feed_base = json_release_feed_base(api_url);
+    if (!feed_base.empty())
+        return feed_base + "/list.json";
     const size_t pos = api_url.rfind("/releases/latest");
     if (pos != std::string::npos)
         return api_url.substr(0, pos) + "/releases?per_page=30";
@@ -1368,6 +1407,7 @@ bool parse_release_json_body(const std::string& body, const std::string& api_url
     const std::string releases_url = get_update_releases_url();
 
     out.release_name.clear();
+    out.prerelease = false;
     json_find_string_field(body, "name", 0, out.release_name, nullptr);
     if (!json_find_string_field(body, "tag_name", 0, out.tag_name, nullptr) &&
         !json_find_string_field(body, "version", 0, out.tag_name, nullptr) &&
@@ -1375,6 +1415,9 @@ bool parse_release_json_body(const std::string& body, const std::string& api_url
         error = "Update feed missing version tag (expected tag_name/version/tag)";
         return false;
     }
+    bool prerelease = false;
+    if (json_find_bool_field(body, "prerelease", 0, prerelease, nullptr))
+        out.prerelease = prerelease;
     if (!json_find_string_field(body, "html_url", 0, out.html_url, nullptr) &&
         !json_find_string_field(body, "release_url", 0, out.html_url, nullptr)) {
         out.html_url = releases_url;
@@ -1454,6 +1497,25 @@ bool fetch_release_list_entries(std::vector<ReleaseListEntry>& out_entries, std:
 }
 
 bool fetch_channel_release(bool unstable, ReleaseInfo& out, std::string& error) {
+    const std::string api_url = get_update_api_url();
+    if (api_url_uses_json_release_feed(api_url)) {
+        // latest.json is the only feed on the HTTP mirror that is guaranteed
+        // to work for XP.  Use it directly when it is the requested channel,
+        // and fall back to the full list only for the other channel.
+        ReleaseInfo latest;
+        std::string latest_error;
+        if (fetch_release_from_api_url(api_url, latest, latest_error)) {
+            const bool latest_unstable =
+                release_tag_is_unstable(latest.tag_name, latest.prerelease);
+            if (latest_unstable == unstable) {
+                out = latest;
+                return true;
+            }
+        } else {
+            error = latest_error;
+        }
+    }
+
     if (!unstable) {
         const std::string api_url = get_stable_release_api_url();
         if (!api_url.empty())
@@ -1461,7 +1523,12 @@ bool fetch_channel_release(bool unstable, ReleaseInfo& out, std::string& error) 
     }
 
     std::vector<ReleaseListEntry> entries;
-    if (!fetch_release_list_entries(entries, error)) return false;
+    std::string list_error;
+    if (!fetch_release_list_entries(entries, list_error)) {
+        if (!error.empty()) error += "; ";
+        error += list_error;
+        return false;
+    }
     for (const auto& entry : entries) {
         if (entry.unstable != unstable) continue;
         return fetch_release_by_tag(entry.tag_name, out, error);
@@ -1485,12 +1552,19 @@ bool fetch_release_by_tag(const std::string& tag, ReleaseInfo& out, std::string&
         return false;
     }
     const std::string api_url = get_update_api_url();
-    if (api_url_uses_json_release_feed(api_url)) {
-        const size_t pos = api_url.rfind("/latest.json");
-        if (pos != std::string::npos) {
-            std::string url = api_url.substr(0, pos) + "/by_tag/" + tag + ".json";
-            return fetch_release_from_api_url(url, out, error);
+    const std::string feed_base = json_release_feed_base(api_url);
+    if (!feed_base.empty()) {
+        // XP can fetch latest.json over plain HTTP; by_tag/ is still redirected
+        // to HTTPS on some mirror configs.  Avoid that request when the tag is
+        // the current release.
+        ReleaseInfo latest;
+        std::string latest_error;
+        if (fetch_release_from_api_url(api_url, latest, latest_error) &&
+            latest.tag_name == tag) {
+            out = latest;
+            return true;
         }
+        return fetch_release_from_api_url(feed_base + "/by_tag/" + tag + ".json", out, error);
     }
     std::string url = "https://api.github.com/repos/d3nd3/sof_buddy/releases/tags/";
     url += tag;

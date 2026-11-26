@@ -203,9 +203,15 @@ inline void handleFontVertex(float x, float y, bool scaleX, bool scaleY, bool in
 			}
 			const float s = snapped_text_scale_active(fontScale);
 			if (s != 1.0f) {
-				if (scaleX) x = pivotx + (x - pivotx) * s;
-				if (scaleY) y = pivoty + (y - pivoty) * s;
-				orig_glVertex2f(x + (characterIndex * realFontSizes[realFont]) * (s - 1.0f), y);
+				// The engine's glyph x already contains the real proportional
+				// advance (narrow glyphs such as 'I' are closer than 'M', and
+				// spaces advance without emitting a quad). Scale the whole run
+				// around its first glyph so those advances grow by s. The old
+				// per-glyph pivot + characterIndex * fixed-font advance added a
+				// fake gap after every narrow glyph ("MI SSI ON").
+				orig_glVertex2f(
+				    g_menuFontPivotX + (x - g_menuFontPivotX) * s,
+				    g_menuFontPivotY + (y - g_menuFontPivotY) * s);
 			} else {
 				orig_glVertex2f(x, y);
 			}

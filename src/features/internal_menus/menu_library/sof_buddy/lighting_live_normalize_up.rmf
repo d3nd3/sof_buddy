@@ -1,2 +1,3 @@
+<hbr>
 <ctext _sofbuddy_lighting_normalize_up atext "Up amount % : " tint sb_accent atint sb_accent noshade tip "0% leaves the map maximum; 100% moves it to 255. Used by Up and Both."><br>
 <slider cvari _sofbuddy_lighting_normalize_up min 0 max 100 step 1><hbr>

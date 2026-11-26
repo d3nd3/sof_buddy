@@ -1,12 +1,6 @@
-<stm nopush global>
+<stm resize 380 600 global nopush>
 <include tints>
-{theme_tints}
-<key escape "sofbuddy_menu sof_buddy">
-<cursor 1>
 
-<defaults noborder tiptint black tipbtint white tipfont {tipfont}>
-
-<cinclude _sb_internal_tabs_wide sof_buddy/nav_frame_lighting_wide>
-<cninclude _sb_internal_tabs_wide sof_buddy/nav_frame_lighting_narrow>
-<frame center_panel 640 0 page sof_buddy/lighting_content border 0 0 clear backfill clear>
+<frame main 0 0 border 0 0 clear backfill clear>
+<frame content 0 0 page sof_buddy/lighting_live_content cut main>
 </stm>

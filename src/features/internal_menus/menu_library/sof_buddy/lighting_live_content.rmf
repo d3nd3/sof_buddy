@@ -15,33 +15,101 @@
 <blank 6 1>
 <normal>
 
+
 <center>
-<hbr>
 <font type {font_title} tint sb_accent atint sb_accent>
-"LIVE LIGHTING"
+"_____________________________"
 <hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<text "LIVE LIGHTING">
+<center>
+<font type {font_title} tint cyan atint cyan>
+"_____________________________"
+<hbr>
+<hbr>
+
+<center>
+<font type {font_small} tint cyan atint cyan>
+<text "Renderer">
 <hbr>
 <font type {font_small} tint white atint white>
-<list "Off,On" cvari _sofbuddy_lighting_overbright atext "Overbright : " key mouse1 "sofbuddy_lighting_overbright_live_commit" key mouse2 "sofbuddy_lighting_overbright_live_commit" noshade tip "Raven's 2 x L x T lighting. Works with gl_ext_multitexture on or off."><br>
+<list "Off,On" cvar gl_ext_multitexture atext "gl_ext_multitexture : " key mouse1 "vid_restart" key mouse2 "vid_restart" noshade tip "Also on the Graphics tab. Curve presets and Overbright Lighting work On or Off; non-default Custom blends need Off. Changing restarts the renderer."><br>
+<hbr>
+
+<center>
+<font type {font_small} tint cyan atint cyan>
+<text "Lighting Style">
+<hbr>
+<font type {font_small} tint white atint white>
+<list "Off,On" cvari _sofbuddy_lighting_overbright atext "Overbright : " key mouse1 "sofbuddy_lighting_overbright_commit" key mouse2 "sofbuddy_lighting_overbright_commit" noshade tip "Raven's 2 x L x T lighting. Works with gl_ext_multitexture on or off."><br>
 <list "Off,Up,Down,Both" cvari _sofbuddy_lighting_normalize atext "Normalize : " key mouse1 "sofbuddy_lighting_normalize_live_commit" key mouse2 "sofbuddy_lighting_normalize_live_commit" noshade tip "Map lighting normalization. Up moves the map maximum toward 255; Down moves the minimum toward 0; Both applies both. The matching amount sliders appear below. Rebuilds the map's lightmaps once when changed."><br>
 <cinclude _sb_internal_lighting_normalize_show_up sof_buddy/lighting_live_normalize_up>
 <cinclude _sb_internal_lighting_normalize_show_down sof_buddy/lighting_live_normalize_down>
 <cninclude _sofbuddy_lighting_overbright sof_buddy/lighting_live_style_row>
 <cinclude _sofbuddy_lighting_overbright sof_buddy/lighting_live_precurve_row>
 <list "Per-channel,Preserve brightness,Preserve colour" cvari _sofbuddy_lighting_preserve_color atext "Colour : " noshade tip "How the active curve is applied to the lightmap. Preserve colour is the default."><br>
-<list "Off,Default,No Spherical,All Spherical,Both (Experimental)" match "0,1,2,3,4" cvari _sofbuddy_shiny_spherical atext "Shiny : " noshade tip "0=Off, 1=Default, 2=Planar (position only), 3=Sphere (SPHERE_MAP, view angle), 4=Both (exp)."><br>
-<ctext _sofbuddy_lighting_cutoff atext "Threshold : " tint sb_accent atint sb_accent noshade tip "Minimum dynamic-light contribution on surfaces."><br>
+<list "Disabled,Engine Decides,As Planar,As Sphere Map,Planar And SphereMap - double" match "0,1,2,3,4" cvari _sofbuddy_shiny_spherical atext "Shiny/Glossy surfaces : " noshade tip "Disabled skips the shiny pass. Engine Decides keeps stock behavior (spherical where flagged, plus the flat-surface heuristic). As Planar uses camera position only. As Sphere Map uses SPHERE_MAP with camera position and view angle. Planar And SphereMap - double draws both (experimental)."><br>
+<hbr>
+
+<center>
+<font type {font_small} tint cyan atint cyan>
+<text "Dynamic Lighting">
+<hbr>
+<font type {font_small} tint white atint white>
+<hbr>
+<ctext _sofbuddy_lighting_cutoff atext "D-Light Cut Off : " tint sb_accent atint sb_accent noshade tip "Dynamic light distance cutoff (DLIGHT_CUTOFF). Minimum dynamic-light contribution on surfaces."><br>
 <slider cvari _sofbuddy_lighting_cutoff min 1 max 256 step 1><hbr>
 <list "Off,On" cvar gl_dynamic atext "Dynamic Lights : " noshade tip "Dynamic lights on world surfaces. Big FPS hit."><br>
-<ctext gl_dlightintensity atext "dlightintensity : " tint sb_accent atint sb_accent noshade><br>
+<hbr>
+<ctext gl_dlightintensity atext "D-Light Intensity : " tint sb_accent atint sb_accent noshade><br>
 <slider cvar gl_dlightintensity min 0 max 4 step 0.5><hbr>
+<hbr>
+
+<center>
+<font type {font_small} tint cyan atint cyan>
+<text "Ghoul Models">
+<hbr>
+<font type {font_small} tint white atint white>
 <list "Flat,Balanced,High Quality,GPU" match "0,1,2,3" cvar ghl_light_method atext "Ghoul Mode : " noshade tip "Ghoul model lighting quality. High Quality adds specular and coloured lights."><br>
 <list "Off,On" match "0,1" cvar ghl_specular atext "Ghoul Specular : " noshade tip "Specular highlights on Ghoul models. High Quality mode only."><br>
 <list "Disable,Low quality,High quality" match "0,1,2" cvar ghl_shadows atext "Ghoul Shadows : " noshade tip "Shadow quality on Ghoul models."><br>
+<hbr>
 <ctext ghl_light_multiply atext "Ghoul Light : " tint sb_accent atint sb_accent noshade tip "Model light multiplier. Only when Ghoul Mode is not Flat."><br>
 <slider cvar ghl_light_multiply min 0 max 2 step 0.1><hbr>
 <list "Vanilla,Bypass" match "0,1" cvari _sofbuddy_lighting_ghoul_min_light atext "Ghoul Min : " noshade tip "Vanilla keeps the 0.1 minimum for RF_MINLIGHT models. Bypass lets them go fully dark."><br>
+<hbr>
+
+<center>
+<font type {font_small} tint cyan atint cyan>
+<text "Engine">
+<hbr>
+<font type {font_small} tint white atint white>
+<list "Off,On" cvari _sofbuddy_lightstyle_interpolation atext "Smooth Lightstyles : " noshade tip "Blend animated light styles between frames instead of stepping at 10 Hz. Off keeps stock behavior."><br>
+<hbr>
+<ctext _sb_internal_lighting_gl_modulate atext "Lightmap Multiplier : " tint sb_accent atint sb_accent noshade tip "Scales baked lightmap brightness (gl_modulate). Highly recommended to keep at 1 to prevent flat lighting; changing it asks for confirmation."><br>
+<slider cvar _sb_internal_lighting_gl_modulate min 0 max 4 step 0.1><br>
+<includecvar _sb_internal_lighting_custom_section_rmf>
+<hbr>
+
+<center>
+<font type {font_small} tint cyan atint cyan>
+<text "Lighting Status">
+<hbr>
+<font type {font_small} tint sb_subtle atint sb_subtle>
+<ctext _sb_internal_lighting_normalize_status atext "Normalization : " noshade><br>
+<ctext _sb_internal_lighting_style0_status tip "Current map's static light style 0, read from CS_LIGHTS+0. Quake mapping: 'm' = 1.00, 'l' = 0.92, 'z' = 2.08. A value below 1.00 leaves more headroom for other light styles." noshade><br>
+<hbr>
+
+<center>
+<font type {font_small} tint cyan atint cyan>
+<text "Maintenance">
+<hbr>
+<font type {font_small} tint white atint white>
 <text "Rebuild Lightmaps" tip "Rebuild the current map's lightmaps after a manual change." key mouse1 "sofbuddy_lighting_rebuild" border 8 1 cyan regular align center><hbr>
-<text "Back to Lighting" tip "Return to the full Lighting tab." key mouse1 "sofbuddy_close_menu;sofbuddy_menu sof_buddy/lighting" border 8 1 orange regular align center><hbr>
+<text "Reset SoF Buddy Lighting" tip "Reset the Buddy curve, Overbright, pre-curve, colour mode, normalization, cutoff, shiny and Ghoul minimum to defaults. Reloads all lightmaps." key mouse1 "sofbuddy_lighting_reset;set _sofbuddy_lightstyle_interpolation 0;sofbuddy_close_menu;reloadall;sofbuddy_menu sof_buddy/lighting" border 8 1 cyan regular align center><hbr>
+<text "Reset Ghoul & Dynamic Lights" tip "Reset Ghoul model lighting, dynamic lights, dlight intensity and the lightmap multiplier to engine-friendly defaults. Does not change the Buddy curve or overbright settings." key mouse1 "set ghl_light_method 2;set ghl_specular 0;set ghl_shadows 0;set gl_dynamic 1;set gl_modulate 1;set ghl_light_multiply 1.3;set gl_dlightintensity 2;refresh" border 8 1 cyan regular align center><hbr>
+<text "Vid Restart" key mouse1 "vid_restart" border 8 1 cyan regular align center><hbr>
+<text "Back to Menu" tip "Open the full SoF Buddy menu." key mouse1 "sofbuddy_close_menu;sofbuddy_menu sof_buddy/main" border 8 1 orange regular align center><hbr>
 <text "Back to Game" tip "Close the live panel and return to the game." key mouse1 "sofbuddy_close_menu" border 8 1 orange regular align center>
 </stm>

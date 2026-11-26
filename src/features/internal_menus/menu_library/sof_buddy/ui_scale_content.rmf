@@ -77,6 +77,6 @@
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<text "Restore Scaling Defaults" key mouse1 "set _sofbuddy_font_pack 0;set _sofbuddy_font_scale 1;set _sofbuddy_console_size 0.5;set _sofbuddy_hud_scale 1;set _sofbuddy_menu_scale 1;set _sofbuddy_scale_cinematic_pics 1;set _sofbuddy_icons_autoscale 1;set _sofbuddy_scale_round_auto 0;set _sofbuddy_scale_round_ratio 0.25;set _sofbuddy_crossh_scale_auto 0;sofbuddy_menu sof_buddy/ui_scale" border 8 1 cyan regular align center>
+<text "Restore Scaling Defaults" key mouse1 "set _sofbuddy_font_pack 0;set _sofbuddy_console_size 0.5;set _sofbuddy_scale_cinematic_pics 1;set _sofbuddy_icons_autoscale 1;set _sofbuddy_scale_round_auto 0;set _sofbuddy_scale_round_ratio 0.25;set _sofbuddy_crossh_scale_auto 0;sofbuddy_scale_reset all;sofbuddy_menu sof_buddy/ui_scale" border 8 1 cyan regular align center>
 <text "Close" key mouse1 "popmenu" border 8 1 cyan regular align center>
 </stm>

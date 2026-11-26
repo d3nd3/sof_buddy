@@ -12,7 +12,7 @@
 - _sofbuddy_icons_autoscale: Scale team icons + playernames with HUD scale (default: 0)
 	- _sofbuddy_scale_round_auto: Snap cinematic image scale to round steps (default: 0)
 	- _sofbuddy_scale_round_ratio: Round step for scale values (default: 0.25)
-	- _sofbuddy_menu_tip_appear: milliseconds before a menu tooltip appears (default: 625 = vanilla)
+	- _sofbuddy_menu_tip_appear: milliseconds before a menu tooltip appears (default: 3750 = engine tip_duration 15000 / 4)
 	- _sofbuddy_menu_font_size_style: F12 menu text preset 0=Small, 1=Normal, 2=Large, 3=Extra Large (default: 0)
 */
 
@@ -234,16 +234,26 @@ void reapply_scale_percentages(void) {
 }
 
 static void scale_reset_default(cvar_t* pct, cvar_t* scale, float max_scale, bool integer_mode) {
+	if (!detour_Cvar_Set2::oCvar_Set2) return;
+	// Store the default percentage in both modes. In Smooth mode it drives the
+	// absolute scale; in Integer mode it is only used after switching back to
+	// Smooth. Leaving it untouched in Integer mode made a later Integer ->
+	// Smooth switch resurrect the old scale after a reset.
+	if (pct)
+		detour_Cvar_Set2::oCvar_Set2(pct->name, const_cast<char*>("75"), true);
 	if (integer_mode) {
 		float value = std::round(1.0f + (max_scale - 1.0f) * 0.75f);
 		if (value < 1.0f) value = 1.0f;
 		if (max_scale >= 1.0f && value > max_scale) value = max_scale;
 		char buf[32];
 		std::snprintf(buf, sizeof(buf), "%.0f", value);
-		if (scale && detour_Cvar_Set2::oCvar_Set2)
+		if (scale)
 			detour_Cvar_Set2::oCvar_Set2(scale->name, buf, true);
-	} else if (pct && detour_Cvar_Set2::oCvar_Set2) {
-		detour_Cvar_Set2::oCvar_Set2(pct->name, const_cast<char*>("75"), true);
+	} else {
+		// Cvar_Set2 may not run the pct callback when the value is already 75,
+		// so apply the default explicitly as well. This also corrects a stale
+		// absolute scale left behind by an older Restore Scaling Defaults.
+		apply_percent_to_scale(pct, scale, max_scale);
 	}
 }
 
@@ -257,27 +267,39 @@ static void Cmd_SoFBuddy_ScaleReset_f(void) {
 	const char* target = detour_Cmd_Argv::oCmd_Argv(1);
 	if (!target) return;
 	const bool integer_mode = !scale_mode_is_smooth();
+	const bool all = std::strcmp(target, "all") == 0;
+	bool matched = false;
 #if FEATURE_SCALED_CON
-	if (std::strcmp(target, "font") == 0) {
+	if (all || std::strcmp(target, "font") == 0) {
 		scale_reset_default(_sofbuddy_font_scale_pct, _sofbuddy_font_scale, auto_scale_resolution_ratio_font(), integer_mode);
-		sofbuddy_cfg_save_now();
-		return;
+		matched = true;
+		if (!all) {
+			sofbuddy_cfg_save_now();
+			return;
+		}
 	}
 #endif
 #if FEATURE_SCALED_HUD
-	if (std::strcmp(target, "hud") == 0) {
+	if (all || std::strcmp(target, "hud") == 0) {
 		scale_reset_default(_sofbuddy_hud_scale_pct, _sofbuddy_hud_scale, auto_scale_resolution_ratio_hud(), integer_mode);
-		sofbuddy_cfg_save_now();
-		return;
+		matched = true;
+		if (!all) {
+			sofbuddy_cfg_save_now();
+			return;
+		}
 	}
 #endif
 #if FEATURE_SCALED_MENU
-	if (std::strcmp(target, "menu") == 0) {
+	if (all || std::strcmp(target, "menu") == 0) {
 		scale_reset_default(_sofbuddy_menu_scale_pct, _sofbuddy_menu_scale, auto_scale_resolution_ratio(), integer_mode);
-		sofbuddy_cfg_save_now();
-		return;
+		matched = true;
+		if (!all) {
+			sofbuddy_cfg_save_now();
+			return;
+		}
 	}
 #endif
+	if (matched) sofbuddy_cfg_save_now();
 }
 
 static void scale_mode_change(cvar_t* cvar) {
@@ -344,20 +366,33 @@ void create_scaled_ui_cvars(void) {
     if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
     _sofbuddy_menu_scale_pct = detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_scale_pct", "75", CVAR_SOFBUDDY_ARCHIVE, menu_scale_pct_change);
     _sofbuddy_menu_scale = detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_scale", "1", CVAR_SOFBUDDY_ARCHIVE, menuscale_change);
-    _sofbuddy_menu_tip_appear = detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_tip_appear", "625", CVAR_SOFBUDDY_ARCHIVE, nullptr);
-    // SoF's stock tip_duration is 2500 ms and a tip becomes visible at duration/4,
-    // so vanilla tooltips appear after 625 ms. 750 was the old Buddy default; move
-    // it to the vanilla delay exactly once, guarded by an archived marker so a
-    // user who later chooses 750 deliberately keeps it.
+    _sofbuddy_menu_tip_appear = detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_tip_appear", "3750", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    // SoF's stock tip_duration is 2500 ms and a tip becomes visible at duration/4.
+    // Buddy sets tip_duration to 15000 ms, so the engine's own spawn gate is
+    // 15000 / 4 = 3750 ms. The old Buddy defaults were 250/750/625; move 750 to
+    // the 625 vanilla value once (guarded), then move 625 to the current 3750 ms
+    // default once (guarded separately so a later deliberate 625 is kept).
     cvar_t* tip_appear_migrated = detour_Cvar_Get::oCvar_Get(
         "_sb_internal_tip_appear_vanilla_migrated", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
-    if (tip_appear_migrated && tip_appear_migrated->value == 0.0f &&
-        detour_Cvar_Set2::oCvar_Set2) {
+    const bool tip_appear_vanilla_guard_unset =
+        tip_appear_migrated && tip_appear_migrated->value == 0.0f;
+    if (tip_appear_vanilla_guard_unset && detour_Cvar_Set2::oCvar_Set2) {
         if (_sofbuddy_menu_tip_appear && _sofbuddy_menu_tip_appear->value == 750.0f)
             detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_menu_tip_appear"),
                                          const_cast<char*>("625"), true);
         detour_Cvar_Set2::oCvar_Set2(
             const_cast<char*>("_sb_internal_tip_appear_vanilla_migrated"),
+            const_cast<char*>("1"), true);
+    }
+    cvar_t* tip_spawn_migrated = detour_Cvar_Get::oCvar_Get(
+        "_sb_internal_tip_appear_spawn_migrated", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    if (tip_spawn_migrated && tip_spawn_migrated->value == 0.0f &&
+        detour_Cvar_Set2::oCvar_Set2) {
+        if (_sofbuddy_menu_tip_appear && _sofbuddy_menu_tip_appear->value == 625.0f)
+            detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_menu_tip_appear"),
+                                         const_cast<char*>("3750"), true);
+        detour_Cvar_Set2::oCvar_Set2(
+            const_cast<char*>("_sb_internal_tip_appear_spawn_migrated"),
             const_cast<char*>("1"), true);
     }
     _sofbuddy_menu_font_size_style = detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_font_size_style", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);

@@ -1035,6 +1035,8 @@ static void lighting_update_style0_status(void) {
 static const char kLightingCustomSectionRmf[] = R"RMF(<cinclude _sb_internal_lighting_custom sof_buddy/lighting_custom>
 )RMF";
 
+static void lighting_sync_overbright_display_cvars(void);
+
 /*
 	The F12 Lighting tab only includes the manual blend section.  It is a
 	Custom-only, Overbright-off control; the live hub owns the preview rows.
@@ -1043,6 +1045,8 @@ static void lighting_refresh_ui_rmf(void) {
 	if (!detour_Cvar_Get::oCvar_Get) {
 		return;
 	}
+
+	lighting_sync_overbright_display_cvars();
 
 	const bool overbright_active =
 		RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_LIGHTING_BLEND) &&
@@ -1339,6 +1343,76 @@ static int lighting_overbright_profile_selected(void) {
 	return profile;
 }
 
+static int lighting_overbright_display_index(const cvar_t* cvar) {
+	if (!cvar) {
+		return -1;
+	}
+	for (int i = 0; i < lighting_curve_detail::kCurvePointCount; ++i) {
+		if (_sb_internal_lighting_overbright_display[i] == cvar) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+/*
+	Keep the 0..200 UI mirrors in step with the stored 0..100 pre-curve
+	values.  The editor shows the brightness after Overbright's x2 product.
+*/
+static void lighting_sync_overbright_display_cvars(void) {
+	if (!detour_Cvar_Set2::oCvar_Set2) {
+		return;
+	}
+	const lighting_curve_detail::CurvePoints defaults =
+		lighting_curve_detail::overbright_profile_points(
+			lighting_curve_detail::kOverbrightProfilePoppingMidHighlight);
+	const bool old_sync = s_syncing_cvars;
+	s_syncing_cvars = true;
+	for (int i = 0; i < lighting_curve_detail::kCurvePointCount; ++i) {
+		cvar_t* display_cvar = _sb_internal_lighting_overbright_display[i];
+		if (!display_cvar || !display_cvar->name) {
+			continue;
+		}
+		const float curve = cvar_float_or(_sofbuddy_lighting_overbright_curve[i],
+		                                  defaults.p[i]);
+		const int display = lighting_curve_detail::overbright_display_percent(curve);
+		char buffer[8];
+		std::snprintf(buffer, sizeof(buffer), "%d", display);
+		if (!display_cvar->string || strcmp(display_cvar->string, buffer) != 0) {
+			detour_Cvar_Set2::oCvar_Set2(display_cvar->name, buffer, true);
+		}
+	}
+	s_syncing_cvars = old_sync;
+}
+
+void lighting_overbright_display_change(cvar_t* cvar) {
+	if (s_syncing_cvars || !cvar || !detour_Cvar_Set2::oCvar_Set2) {
+		return;
+	}
+	const int index = lighting_overbright_display_index(cvar);
+	if (index < 0) {
+		return;
+	}
+	int display = static_cast<int>(cvar->value + 0.5f);
+	if (display < 0) display = 0;
+	if (display > 200) display = 200;
+	// 0..200 display -> 0..100 stored.  The editor uses step 2, so this is
+	// exact for every slider position.
+	const int curve = lighting_curve_detail::overbright_stored_percent(display);
+	cvar_t* curve_cvar = _sofbuddy_lighting_overbright_curve[index];
+	if (!curve_cvar || !curve_cvar->name) {
+		return;
+	}
+	char buffer[8];
+	std::snprintf(buffer, sizeof(buffer), "%d", curve);
+	if (curve_cvar->string && strcmp(curve_cvar->string, buffer) == 0) {
+		return;
+	}
+	// Leave the normal curve callback enabled so it updates the profile and
+	// applies/rebuilds the lightmaps when Overbright is on.
+	detour_Cvar_Set2::oCvar_Set2(curve_cvar->name, buffer, true);
+}
+
 static void lighting_read_overbright_curve_points(lighting_curve_detail::CurvePoints& points) {
 	const lighting_curve_detail::CurvePoints defaults =
 		lighting_curve_detail::overbright_profile_points(
@@ -1369,6 +1443,7 @@ static void lighting_write_overbright_curve_cvars(const float* values) {
 		}
 	}
 	s_syncing_cvars = old_sync;
+	lighting_sync_overbright_display_cvars();
 }
 
 static void lighting_sync_overbright_profile_curve_cvars(void) {
@@ -1948,6 +2023,8 @@ void lighting_overbright_curve_change(cvar_t * cvar) {
 	if (s_syncing_cvars || !cvar) {
 		return;
 	}
+
+	lighting_sync_overbright_display_cvars();
 
 	// Keep the profile list honest: an edited curve becomes Custom unless it
 	// happens to match another built-in overbright profile exactly.  Skip this
@@ -2748,26 +2825,25 @@ static void Cmd_Lighting_Overbright_Commit_f(void) {
 }
 
 /*
-	Live-hub version of the Overbright toggle commit.  The hub is already open
-	over the game; rebuild the page so the Style/Pre-Curve rows swap.  A plain
-	`refresh` only reinitialises widgets and would not re-evaluate cinclude.
+	Legacy live-hub Overbright commit (kept for old menu/script references).
+	Rebuild the canonical Lighting tab so the Style/Pre-Curve rows swap.
 */
 static void Cmd_Lighting_Overbright_Live_Commit_f(void) {
 	lighting_apply_effective_settings(true);
 	lighting_refresh_ui_rmf();
 	if (detour_Cbuf_AddText::oCbuf_AddText) {
-		detour_Cbuf_AddText::oCbuf_AddText("sofbuddy_close_menu;reloadall;sofbuddy_menu sof_buddy/lighting_live\n");
+		detour_Cbuf_AddText::oCbuf_AddText("sofbuddy_close_menu;reloadall;sofbuddy_menu sof_buddy/lighting\n");
 	}
 }
 
 /*
-	Live-hub version of the normalization mode commit.  The Up/Down amount
-	sliders are conditional includes, so rebuild the hub after switching mode.
+	Normalization mode commit.  The Up/Down amount sliders are conditional
+	includes, so rebuild the Lighting tab after switching mode.
 */
 static void Cmd_Lighting_Normalize_Live_Commit_f(void) {
 	lighting_apply_effective_settings(true);
 	if (detour_Cbuf_AddText::oCbuf_AddText) {
-		detour_Cbuf_AddText::oCbuf_AddText("sofbuddy_close_menu;reloadall;sofbuddy_menu sof_buddy/lighting_live\n");
+		detour_Cbuf_AddText::oCbuf_AddText("sofbuddy_close_menu;reloadall;sofbuddy_menu sof_buddy/lighting\n");
 	}
 }
 

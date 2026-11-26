@@ -145,7 +145,7 @@ Callers of `R_DrawFont` - used for text rendering:
 | `InputHandle` | Input field text | `0x000D4060` | SoF.exe | Menu scale | Text input fields |
 | `FileboxHandle` | File box text | `0x000D9F80` | SoF.exe | Menu scale | File browser |
 | `LoadboxGetIndices` | Load box text | `0x000DBF10` | SoF.exe | Menu scale | Loading screen text |
-| `ServerboxDraw` | Server browser text | `0x000DE8D0` | SoF.exe | Menu scale | Server list |
+| `ServerboxDraw` | Server browser text | `0x000DE8D0` | SoF.exe | — | Classified; not in the menu text scale switch |
 | `TipRender` | Tip text | `0x000EA8A0` | SoF.exe | Menu scale | Help/tip messages |
 | `MenuSystemText` | Any menu-module widget text | `0x000C3EF0`–`0x000EB000` | SoF.exe | Menu scale | Range-classified fallback (text_c, vbar, helpers) |
 | `DrawLine` | Line text | `0x00002A40` | ref.dll | None | Text on lines |
@@ -204,7 +204,7 @@ Applied to:
 - `src/features/scaled_menu/` - Menu scaling implementation
 
 ### Menu Scale (`menuScale` — `scaled_menu`)
-Applied to all SoF.exe menu-module font runs. Every glyph of a run is scaled
+Applied to the SoF.exe menu-module font runs below. Every glyph of a run is scaled
 uniformly around that run's own start (first glyph), so text keeps the position
 the menu layout gave it and only the glyphs grow. `R_DrawFont` screen
 coordinates and `R_Strlen` / `R_StrHeight` stay stock — nothing is translated by
@@ -215,9 +215,13 @@ the scaler, and at `menuScale` 1 the draw path is identical to vanilla.
 - `FontCaller::InputHandle` - Input field text
 - `FontCaller::FileboxHandle` - File box text
 - `FontCaller::LoadboxGetIndices` - Load box text
-- `FontCaller::ServerboxDraw` - Server browser text
 - `FontCaller::TipRender` - Tip text
 - `FontCaller::MenuSystemText` - Range-classified menu widget text (>= 0x000C3EF0, < 0x000EB000)
+
+`ServerBox_Draw` (0xDE8D0) does not set up an EBP frame, so the external stack
+walker cannot report it. Its `R_DrawFont` runs are classified through an outer
+menu caller (normally `MenuSystemText`) and scaled there; the explicit
+`FontCaller::ServerboxDraw` entry is not reached by the text scaler.
 
 The scale is snapped per font via `snapped_text_scale(scaled_menu_screen_scale(),
 font_glyph_px(font))`.

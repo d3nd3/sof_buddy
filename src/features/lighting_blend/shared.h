@@ -45,6 +45,9 @@ extern cvar_t * _sofbuddy_lighting_curve[lighting_curve_detail::kCurvePointCount
 // Separate 11-point curve applied before the Overbright x2.  Identity by
 // default, so enabling Overbright alone still produces the stock 2*T*L product.
 extern cvar_t * _sofbuddy_lighting_overbright_curve[lighting_curve_detail::kCurvePointCount];
+// UI-only mirror of the overbright curve.  The stored curve stays 0..100 but
+// the editor shows the final brightness after the x2 product (0..200%).
+extern cvar_t * _sb_internal_lighting_overbright_display[lighting_curve_detail::kCurvePointCount];
 extern cvar_t * _sofbuddy_lighting_preserve_color;
 extern cvar_t * _sofbuddy_lighting_normalize;
 extern cvar_t * _sofbuddy_lighting_normalize_up;
@@ -92,6 +95,7 @@ void lighting_overbright_change(cvar_t * cvar);
 void lighting_preset_change(cvar_t * cvar);
 void lighting_curve_change(cvar_t * cvar);
 void lighting_overbright_curve_change(cvar_t * cvar);
+void lighting_overbright_display_change(cvar_t * cvar);
 void lighting_overbright_profile_change(cvar_t * cvar);
 void lighting_preserve_color_change(cvar_t * cvar);
 void lighting_normalize_change(cvar_t * cvar);

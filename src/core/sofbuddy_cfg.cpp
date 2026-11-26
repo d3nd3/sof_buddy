@@ -338,6 +338,10 @@ void exec_cfg_lines_from_path(const std::string& path) {
 
 } // namespace
 
+bool sofbuddy_sofplus_present(void) {
+    return sofplus_present();
+}
+
 void sofbuddy_cfg_exec_startup(void) {
     if (g_cfg_exec_queued) {
         return;

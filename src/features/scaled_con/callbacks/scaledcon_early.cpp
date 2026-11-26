@@ -36,7 +36,15 @@ void scaledCon_EarlyStartup(void)
     WriteByte(rvaToAbsExe((void*)0x0002104B), 0x90);
     WriteByte(rvaToAbsExe((void*)0x0002104C), 0x90);
     WriteByte(rvaToAbsExe((void*)0x0002104D), 0x90);
-    
+
+    // CON_DrawConsole draws the bottom-right version string at
+    // viddef_width - 44. Draw_String advances 8 px per glyph, so the six
+    // characters of "v1.07f" are 48 px wide and clip even before scaling.
+    // Use 56 (48 + 8 px margin). The value is in the virtual width that
+    // hkCon_DrawConsole divides by the console font scale, so the margin
+    // scales with the font instead of shrinking to zero.
+    WriteByte(rvaToAbsExe((void*)0x00021074), 0xC8);
+
     PrintOut(PRINT_LOG, "scaled_con: Early startup complete\n");
 }
 
