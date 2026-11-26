@@ -2,6 +2,12 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.58
+
+### Crosshairs
+
+- **Stock crosshair tints are now fully saturated.** The previous palette mixed in 20–55% of the other channels to keep the colors soft, which made red, green, and blue look pastel. Red is now `(1,0,0)`, green `(0,1,0)`, blue `(0,0,1)`, with pure yellow/cyan/magenta and saturated orange/purple.
+
 ## v8.57
 
 ### Scaled scope

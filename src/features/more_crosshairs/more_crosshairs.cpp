@@ -246,14 +246,14 @@ static int stock_tint_index() {
 static void stock_tint_rgb(int idx, float& r, float& g, float& b) {
     r = g = b = 1.0f;
     switch (idx) {
-        case 1: r = 1.0f; g = 0.2f; b = 0.2f; break;   // red
-        case 2: r = 0.2f; g = 1.0f; b = 0.2f; break;   // green
-        case 3: r = 0.35f; g = 0.55f; b = 1.0f; break; // blue
-        case 4: r = 1.0f; g = 1.0f; b = 0.2f; break;   // yellow
-        case 5: r = 0.2f; g = 1.0f; b = 1.0f; break;   // cyan
-        case 6: r = 1.0f; g = 0.2f; b = 1.0f; break;   // magenta
-        case 7: r = 1.0f; g = 0.55f; b = 0.1f; break;  // orange
-        case 8: r = 0.65f; g = 0.2f; b = 1.0f; break;  // purple
+        case 1: r = 1.0f; g = 0.0f; b = 0.0f; break;   // red
+        case 2: r = 0.0f; g = 1.0f; b = 0.0f; break;   // green
+        case 3: r = 0.0f; g = 0.0f; b = 1.0f; break;   // blue
+        case 4: r = 1.0f; g = 1.0f; b = 0.0f; break;   // yellow
+        case 5: r = 0.0f; g = 1.0f; b = 1.0f; break;   // cyan
+        case 6: r = 1.0f; g = 0.0f; b = 1.0f; break;   // magenta
+        case 7: r = 1.0f; g = 0.5f; b = 0.0f; break;   // orange
+        case 8: r = 0.6f; g = 0.0f; b = 1.0f; break;   // purple
         default: break;
     }
 }
