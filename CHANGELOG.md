@@ -2,12 +2,21 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
-## Unreleased
+## v8.56
 
 ### Loading screen
 
 - The loading header frame is taller, so the **Map** and **Download** lines are no longer clipped at 1080p with the default menu scale.
 - Rejoining a map that already completed on an earlier connection refreshes the **Download** status from the engine filesystem, so it shows **NOT NEEDED** again instead of staying at **CHECKING**.
+
+### Menus
+
+- **Graphics resolution changes now use Select then Apply.** The F12 → Graphics resolution list cycles through a staged value and leaves `gl_mode` alone until **Apply Resolution** is pressed, which copies the choice, runs `vid_restart`, and reopens the page. Previously every click applied immediately and rebuilt the page, so the first click could jump to 640×480 and later clicks appeared stuck or restarted the list. Leaving the page now discards an unapplied selection, and simply browsing resolutions never changes the archived `gl_mode`. While fullscreen is on, the list is filtered to modes the monitor reports, so legacy entries such as 960×720 can no longer drop the game into a window; windowed mode still shows the full list. The invalid `gl_mode` placeholders 0–2 (320×240/400×300/512×384) are no longer offered, so the picker starts at 640×480. The Graphics page shows whether the list is filtered, and the active mode stays available as `(current)` if filtering would remove it.
+
+### Scaled menu
+
+- **Topic tickers stay inside their band again.** The full-screen scissor was meant for the full-width, non-global main-menu tape, but it also applied to global topic tickers such as the Start Game page. Those already clip to their own box, so the override let their text scroll across the menu and past its edges. The screen scissor now applies only to non-global bolted tickers; global tickers keep the engine's ticker-box clip.
+- **Tooltips now fade in at vanilla speed.** The engine scales its fade ramp with `tip_duration / 16`, so Buddy's longer 15000 ms duration stretched the fade to almost a second even though the tip only starts at `tip_duration / 4`. The tip renderer now caps the box and text alpha ramp at stock SoF's `2500 / 16 = 156 ms` for both the fade-in and the fade-out; the `tip_duration` setting keeps controlling how long the tip stays on screen, and shorter custom durations still use their own faster ramp.
 
 ## v8.55
 

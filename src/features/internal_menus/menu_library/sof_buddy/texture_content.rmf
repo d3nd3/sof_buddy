@@ -32,7 +32,8 @@
 "Video"
 <font type {font_title} tint sb_accent atint sb_accent>
 <ctext _sp_cl_info_vid_mode atext "Current : " noshade><br>
-<ctext gl_mode atext "gl_mode : " noshade><br>
+<ctext gl_mode atext "Active gl_mode : " noshade><br>
+<ctext _sb_internal_vid_mode_filter_note tint sb_subtle atint sb_subtle noshade><br>
 <font type {font_title} tint white atint white>
 <includecvar _sb_internal_vid_mode_list_rmf>
 

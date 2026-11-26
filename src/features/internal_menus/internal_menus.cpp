@@ -42,6 +42,7 @@
 #include <cstring>
 #include <cmath>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -418,25 +419,96 @@ void append_vid_mode_entry(std::string& labels, std::string& values, int index, 
     values += std::to_string(index);
 }
 
-bool build_vid_mode_list_from_sp_cvars(std::string& labels, std::string& values) {
+bool parse_vid_mode_dimensions(const std::string& label, int& width, int& height) {
+    const char* p = label.c_str();
+    char* end = nullptr;
+    const long parsed_width = std::strtol(p, &end, 10);
+    if (end == p || parsed_width <= 0) return false;
+    while (*end == ' ' || *end == '\t') ++end;
+    if (*end != 'x' && *end != 'X') return false;
+    p = end + 1;
+    while (*p == ' ' || *p == '\t') ++p;
+    const long parsed_height = std::strtol(p, &end, 10);
+    if (end == p || parsed_height <= 0) return false;
+    width = static_cast<int>(parsed_width);
+    height = static_cast<int>(parsed_height);
+    return true;
+}
+
+struct SupportedDisplayModes {
+    bool valid = false;
+    std::set<std::pair<int, int>> modes;
+};
+
+struct SofVidModeResolution {
+    int index;
+    int width;
+    int height;
+};
+
+// SoF.exe accepts gl_mode 3..9 only. Modes 0..2 exist in the table but the
+// engine's mode helper rejects them, so they are never offered here.
+constexpr SofVidModeResolution kSofVidModes[] = {
+    {3, 640, 480},   {4, 800, 600},  {5, 960, 720},
+    {6, 1024, 768},  {7, 1152, 864}, {8, 1280, 960},
+    {9, 1600, 1200},
+};
+
+// Enumerate the resolutions the display driver reports for the current
+// monitor. SoF's own vid_mode table (and therefore _sp_cl_vid_mode_N) includes
+// old modes such as 960x720 that the monitor may not accept; selecting one
+// makes the renderer fall back to a window. Fullscreen should only offer modes
+// that EnumDisplaySettings knows about.
+SupportedDisplayModes query_supported_display_modes() {
+    SupportedDisplayModes result;
+    DEVMODEA dm;
+    for (DWORD i = 0; i < 4096; ++i) {
+        std::memset(&dm, 0, sizeof(dm));
+        dm.dmSize = sizeof(dm);
+        if (!EnumDisplaySettingsA(nullptr, i, &dm)) break;
+        if (dm.dmBitsPerPel != 0 && dm.dmBitsPerPel < 16) continue;
+        result.modes.insert(std::make_pair(static_cast<int>(dm.dmPelsWidth),
+                                           static_cast<int>(dm.dmPelsHeight)));
+    }
+    result.valid = !result.modes.empty();
+    return result;
+}
+
+bool vid_mode_is_supported(const std::string& label, bool filter_modes,
+                           const SupportedDisplayModes& supported) {
+    if (!filter_modes) return true;
+    int width = 0;
+    int height = 0;
+    // Keep labels we cannot parse rather than hiding modes silently.
+    if (!parse_vid_mode_dimensions(label, width, height)) return true;
+    return supported.modes.find(std::make_pair(width, height)) != supported.modes.end();
+}
+
+bool build_vid_mode_list_from_sp_cvars(std::string& labels, std::string& values,
+                                       bool filter_modes,
+                                       const SupportedDisplayModes& supported) {
     bool any = false;
-    for (int i = 0; i < 32; ++i) {
+    for (const SofVidModeResolution& mode : kSofVidModes) {
         char name[40];
-        std::snprintf(name, sizeof(name), "_sp_cl_vid_mode_%d", i);
+        std::snprintf(name, sizeof(name), "_sp_cl_vid_mode_%d", mode.index);
         cvar_t* cv = findCvar(name);
-        if (!cv) break;
+        if (!cv || !cv->string) continue;
         const std::string label = vid_mode_label_from_cvar_string(cv->string);
-        if (label.empty()) break;
-        append_vid_mode_entry(labels, values, i, label);
+        if (label.empty()) continue;
+        if (!vid_mode_is_supported(label, filter_modes, supported)) continue;
+        append_vid_mode_entry(labels, values, mode.index, label);
         any = true;
     }
     return any;
 }
 
-bool build_vid_mode_list_from_info_cvar(std::string& labels, std::string& values) {
+bool build_vid_mode_list_from_info_cvar(std::string& labels, std::string& values,
+                                        bool filter_modes,
+                                        const SupportedDisplayModes& supported) {
     cvar_t* cv = findCvar(const_cast<char*>("_sp_cl_info_vid_modes"));
     if (!cv || !cv->string || !cv->string[0]) return false;
-    int index = 0;
+    bool any = false;
+    std::set<int> seen;
     const char* cursor = cv->string;
     while (*cursor) {
         const char* comma = std::strchr(cursor, ',');
@@ -449,12 +521,52 @@ bool build_vid_mode_list_from_info_cvar(std::string& labels, std::string& values
             cursor += std::strlen(cursor);
         }
         token = trim_ascii(token.c_str());
-        if (!token.empty()) {
-            append_vid_mode_entry(labels, values, index, token);
-            ++index;
+        if (token.empty()) continue;
+
+        int width = 0;
+        int height = 0;
+        if (!parse_vid_mode_dimensions(token, width, height)) continue;
+        for (const SofVidModeResolution& mode : kSofVidModes) {
+            if (mode.width != width || mode.height != height) continue;
+            if (!vid_mode_is_supported(token, filter_modes, supported)) break;
+            if (seen.insert(mode.index).second) {
+                append_vid_mode_entry(labels, values, mode.index, token);
+                any = true;
+            }
+            break;
         }
     }
-    return index > 0;
+    return any;
+}
+
+bool comma_list_contains(const std::string& list, const char* value) {
+    if (!value || !value[0]) return false;
+    size_t start = 0;
+    while (start <= list.size()) {
+        size_t end = list.find(',', start);
+        if (end == std::string::npos) end = list.size();
+        if (list.compare(start, end - start, value) == 0) return true;
+        if (end == list.size()) break;
+        start = end + 1;
+    }
+    return false;
+}
+
+std::string vid_mode_label_for_index(const char* index) {
+    if (!index || !index[0]) return std::string();
+    char name[48];
+    std::snprintf(name, sizeof(name), "_sp_cl_vid_mode_%.32s", index);
+    cvar_t* cv = findCvar(name);
+    if (cv && cv->string) {
+        const std::string label = vid_mode_label_from_cvar_string(cv->string);
+        if (!label.empty()) return label;
+    }
+    cvar_t* info = findCvar(const_cast<char*>("_sp_cl_info_vid_mode"));
+    if (info && info->string) {
+        const std::string label = trim_ascii(info->string);
+        if (!label.empty()) return label;
+    }
+    return std::string("gl_mode ") + index;
 }
 
 } // namespace
@@ -466,26 +578,90 @@ void internal_menus_refresh_vid_mode_list_rmf(void) {
     if (!rmf_cvar)
         rmf_cvar = detour_Cvar_Get::oCvar_Get("_sb_internal_vid_mode_list_rmf", "", 0, nullptr);
 
+    // Match ref_gl_defaults: default 0, not 3 (community-edition refresh glitch).
+    cvar_t* gl_mode = detour_Cvar_Get::oCvar_Get("gl_mode", "0", 0, nullptr);
+    const char* active_mode =
+        (gl_mode && gl_mode->string && gl_mode->string[0]) ? gl_mode->string : "0";
+
+    // In fullscreen, only offer modes the monitor actually reports. SoF's
+    // 960x720 (and other legacy entries) can make ref_gl fall back to a window;
+    // once that happens the next fullscreen request may not recover until the
+    // mode is changed. Windowed keeps the full list so odd-sized windows still
+    // work.
+    cvar_t* fullscreen = detour_Cvar_Get::oCvar_Get("vid_fullscreen", "1", 0, nullptr);
+    const bool want_fullscreen = fullscreen && fullscreen->value != 0.0f;
+    SupportedDisplayModes supported;
+    if (want_fullscreen) supported = query_supported_display_modes();
+    bool filter_modes = want_fullscreen && supported.valid;
+    bool monitor_list_unavailable = want_fullscreen && !supported.valid;
+
     std::string labels;
     std::string values;
-    if (!build_vid_mode_list_from_sp_cvars(labels, values))
-        build_vid_mode_list_from_info_cvar(labels, values);
+    if (!build_vid_mode_list_from_sp_cvars(labels, values, filter_modes, supported))
+        build_vid_mode_list_from_info_cvar(labels, values, filter_modes, supported);
+
+    if (filter_modes && (labels.empty() || values.empty())) {
+        // Some drivers / virtual desktops report no usable modes. Showing the
+        // full SoF list is better than hiding every resolution.
+        filter_modes = false;
+        monitor_list_unavailable = true;
+        labels.clear();
+        values.clear();
+        if (!build_vid_mode_list_from_sp_cvars(labels, values, false, supported))
+            build_vid_mode_list_from_info_cvar(labels, values, false, supported);
+    }
+
+    // Keep the active mode representable even when the filter removed it or
+    // gl_mode is outside SoF's valid 3..9 range.
+    if (!values.empty() && !comma_list_contains(values, active_mode)) {
+        const std::string current_label = vid_mode_label_for_index(active_mode);
+        if (!current_label.empty()) {
+            if (!labels.empty()) {
+                labels.push_back(',');
+                values.push_back(',');
+            }
+            labels += current_label;
+            labels += " (current)";
+            values += active_mode;
+        }
+    }
 
     if (labels.empty() || values.empty()) {
         detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_vid_mode_list_rmf"),
                                      const_cast<char*>(""), true);
+        set_runtime_cvar_str("_sb_internal_vid_mode_filter_note", "");
         return;
     }
 
-    // Match ref_gl_defaults: default 0, not 3 (community-edition refresh glitch).
-    detour_Cvar_Get::oCvar_Get("gl_mode", "0", 0, nullptr);
+    // Selecting a row only stages the choice. Applying every click ran
+    // vid_restart, which rebuilt this page before the next click and made the
+    // list appear to reset (the first click applied 640x480, then the next
+    // click looked stuck). Keep the live gl_mode untouched until Apply.
+    detour_Cvar_Get::oCvar_Get("_sb_internal_vid_mode_pending", active_mode, 0, nullptr);
+    set_runtime_cvar_str("_sb_internal_vid_mode_pending", active_mode);
+
+    const char* filter_note = "Mode list: all modes (windowed)";
+    std::string tip = "Windowed: all modes. ";
+    if (filter_modes) {
+        filter_note = "Mode list: fullscreen-supported";
+        tip = "Fullscreen: monitor-supported modes only. ";
+    } else if (monitor_list_unavailable) {
+        filter_note = "Mode list: all modes (no monitor data)";
+        tip = "Fullscreen: all modes (monitor list unavailable). ";
+    }
+    tip += "Cycle, then Apply Resolution.";
+    detour_Cvar_Get::oCvar_Get("_sb_internal_vid_mode_filter_note", "", 0, nullptr);
+    set_runtime_cvar_str("_sb_internal_vid_mode_filter_note", filter_note);
 
     std::string rmf = "<list \"";
     rmf += labels;
     rmf += "\" match \"";
     rmf += values;
-    rmf += "\" cvar gl_mode atext \"Resolution : \" key mouse1 \"vid_restart;sofbuddy_menu sof_buddy/texture\" key mouse2 \"vid_restart;sofbuddy_menu sof_buddy/texture\" "
-            "noshade tip \"Pick a gl_mode entry (0-9). Each entry maps to _sp_cl_vid_mode_N. Takes effect after vid_restart.\"><hbr>";
+    rmf += "\" cvar _sb_internal_vid_mode_pending atext \"Resolution : \" noshade tip \"";
+    rmf += tip;
+    rmf += "\"><hbr>"
+           "<text \"Apply Resolution\" key mouse1 \"sofbuddy_apply_vid_mode\" border 8 1 cyan regular align center "
+           "tip \"Restart video at the resolution selected above. Browsing the list does not change the game until you press this.\"><hbr>";
     detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sb_internal_vid_mode_list_rmf"),
                                  const_cast<char*>(rmf.c_str()), true);
 }
@@ -495,6 +671,8 @@ void create_layout_cvars() {
 
     constexpr int kLayoutCvarFlags = 0;
     detour_Cvar_Get::oCvar_Get("_sb_internal_vid_mode_list_rmf", "", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_vid_mode_pending", "0", kLayoutCvarFlags, nullptr);
+    detour_Cvar_Get::oCvar_Get("_sb_internal_vid_mode_filter_note", "", kLayoutCvarFlags, nullptr);
     detour_Cvar_Get::oCvar_Get("_sb_internal_menu_vid_w", "640", kLayoutCvarFlags, nullptr);
     detour_Cvar_Get::oCvar_Get("_sb_internal_menu_vid_h", "480", kLayoutCvarFlags, nullptr);
     detour_Cvar_Get::oCvar_Get("_sb_internal_center_panel_px", "640", kLayoutCvarFlags, nullptr);
@@ -1116,12 +1294,39 @@ static void Cmd_SoFBuddy_Close_Menu_f(void) {
     internal_menus_close_all_pages();
 }
 
+// Copy the staged Graphics resolution into gl_mode, then restart video and
+// reopen the page. Keeping the staged value separate means browsing the list
+// never changes the resolution (or the archived gl_mode) until Apply.
+static void Cmd_SoFBuddy_Apply_Vid_Mode_f(void) {
+    if (!detour_Cvar_Get::oCvar_Get || !detour_Cvar_Set2::oCvar_Set2 ||
+        !detour_Cmd_ExecuteString::oCmd_ExecuteString)
+        return;
+
+    cvar_t* gl_mode = detour_Cvar_Get::oCvar_Get("gl_mode", "0", 0, nullptr);
+    cvar_t* pending =
+        detour_Cvar_Get::oCvar_Get("_sb_internal_vid_mode_pending", "", 0, nullptr);
+    if (!gl_mode || !pending || !pending->string || !pending->string[0]) return;
+
+    const bool changed =
+        !gl_mode->string || std::strcmp(gl_mode->string, pending->string) != 0;
+    if (!changed) {
+        detour_Cmd_ExecuteString::oCmd_ExecuteString("refresh");
+        return;
+    }
+
+    detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("gl_mode"), pending->string, true);
+    detour_Cmd_ExecuteString::oCmd_ExecuteString(
+        "vid_restart;sofbuddy_menu sof_buddy/texture");
+}
+
 static bool register_sofbuddy_menu_command(void) {
     if (sofbuddy_menu_command_registered) return true;
     if (!detour_Cmd_AddCommand::oCmd_AddCommand) return false;
 
     detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_menu"), Cmd_SoFBuddy_Menu_f);
     detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_close_menu"), Cmd_SoFBuddy_Close_Menu_f);
+    detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_apply_vid_mode"),
+                                           Cmd_SoFBuddy_Apply_Vid_Mode_f);
     sofbuddy_menu_command_registered = true;
     return true;
 }

@@ -215,6 +215,7 @@ chosen folder already contains a SoF Plus client (`spcl.dll` or `SofPlus.dll`).
 - `sofbuddy_lighting_reset` — Reset the SoF Buddy lighting defaults (curve, overbright, pre-curve, colour mode, normalization, cutoff, shiny, Ghoul minimum), also available as **Reset SoF Buddy Lighting** in F12 → Lighting.
 - `sofbuddy_menu <name>` — Open an embedded internal menu page (examples: `loading`, `sof_buddy`).
 - `sofbuddy_menu <menu>/<page>` — Open a specific embedded page (e.g. `sofbuddy_menu sof_buddy/cpu`).
+- `sofbuddy_apply_vid_mode` — Apply the resolution staged in F12 → Graphics (runs `vid_restart` and reopens the Graphics page).
 - `menu_wide <menu> [frame]` — Open a menu with the 4:3→wide frame correction forced. Plain `menu` leaves loose user menus under `User/menus`/`base/menus` at their authored frame geometry; stock pak menus keep the correction either way.
 - `sofbuddy_apply_profile` — Apply the profile selected by `_sofbuddy_perf_profile` (`0` Competitive, `1` High Visual, `2` Low Visual, `3` Custom/Current).
 - `sofbuddy_update` — Check the selected channel/tag from the configured update feed and compare with your current version.

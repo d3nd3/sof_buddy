@@ -420,6 +420,14 @@ constexpr ptrdiff_t kMenuC_GlobalClipW = 0xA4;
 constexpr ptrdiff_t kMenuC_GlobalClipH = 0xA8;
 constexpr ptrdiff_t kMenuC_ScreenScale = 0xAC;
 
+// tip_c layout: +0x18 is the creation/appear time, +0x1C the lifetime, +0x20 the
+// appeared flag. tip_c::Render fades over lifetime/16, so Buddy's longer lifetime
+// would also stretch the fade.
+constexpr ptrdiff_t kTip_Start = 0x18;
+constexpr ptrdiff_t kTip_Duration = 0x1C;
+// Stock SoF tip_duration. The engine's own fade ramp is 2500 / 16 = 156 ms.
+constexpr int kVanillaTipDurationMs = 2500;
+
 // stm_c / frame_c layout
 constexpr ptrdiff_t kStm_GlobalPage = 0x89;
 constexpr ptrdiff_t kStm_ScrollTotal = 0x7C;
@@ -448,10 +456,10 @@ constexpr uintptr_t kRvaStmClampScroll = 0x000EA160u;
 using Draw_RenderRect_t = void(__cdecl*)(int x, int y, int w, int h);
 static Draw_RenderRect_t Draw_RenderRect = nullptr;
 static Draw_RenderRect_t oDraw_RenderRect = nullptr;
-static bool s_ticker_draw_bolted = false;
+static bool s_ticker_fullscreen_scissor = false;
 
 static void __cdecl hk_draw_render_rect(int x, int y, int w, int h) {
-	if (oDraw_RenderRect && s_ticker_draw_bolted && current_vid_w > 0) {
+	if (oDraw_RenderRect && s_ticker_fullscreen_scissor && current_vid_w > 0) {
 		x = 0;
 		w = current_vid_w;
 	}
@@ -490,7 +498,8 @@ static int s_tip_box_h = 0;
 static void __cdecl hk_draw_beveled_box(int x, int y, int w, int h, void* tint) {
 	// tip_c::Render draws its background before the text, so use the previous frame's
 	// measured glyph bounds (stable while the same tip is hovered). The first frame of
-	// a new tip is invisible: the fade starts at alpha 0 when the tip becomes active.
+	// a new tip is effectively invisible: the fade starts at near-zero alpha when the
+	// tip becomes active.
 	// Width matters too: a long tip is reflowed into several lines, so the stock
 	// single-line box is too wide.
 	if (s_tip_box_active) {
@@ -499,6 +508,11 @@ static void __cdecl hk_draw_beveled_box(int x, int y, int w, int h, void* tint) 
 		w = s_tip_box_w;
 		h = s_tip_box_h;
 	}
+	// paletteRGBA_c stores the tip alpha in its high byte (ref_gl's
+	// Draw_BeveledBox passes it to glColor4ub).
+	unsigned char alpha = 0;
+	if (tint && scaled_menu_tip_fade_alpha(&alpha))
+		static_cast<unsigned char*>(tint)[3] = alpha;
 	if (oDraw_BeveledBox) oDraw_BeveledBox(x, y, w, h, tint);
 }
 
@@ -1923,13 +1937,21 @@ static Ticker_Draw_t oTicker_Draw = nullptr;
 __attribute__((thiscall))
 #endif
 static char hk_ticker_draw(void* ticker) {
-	const bool previous = s_ticker_draw_bolted;
+	const bool previous = s_ticker_fullscreen_scissor;
 	char* t = static_cast<char*>(ticker);
-	s_ticker_draw_bolted =
-	    t && (*reinterpret_cast<uint8_t*>(t + kRect_Bolted) ||
-	          *reinterpret_cast<void**>(t + kRect_BoltAnchor) != nullptr);
+	bool bolted = false;
+	bool global_page = false;
+	if (t) {
+		bolted = *reinterpret_cast<uint8_t*>(t + kRect_Bolted) ||
+		         *reinterpret_cast<void**>(t + kRect_BoltAnchor) != nullptr;
+		char* stm = *reinterpret_cast<char**>(t + kRect_MenuPtr);
+		global_page =
+		    stm && *reinterpret_cast<uint8_t*>(stm + kStm_GlobalPage) != 0;
+	}
+	s_ticker_fullscreen_scissor =
+	    scaled_menu_detail::ticker_scissor_uses_screen(bolted, global_page);
 	const int ret = thiscall_noargs_int(ticker, reinterpret_cast<void*>(oTicker_Draw));
-	s_ticker_draw_bolted = previous;
+	s_ticker_fullscreen_scissor = previous;
 	return static_cast<char>(ret);
 }
 
@@ -2062,6 +2084,38 @@ bool tip_anchor_x(int* x) {
 	if (!s_tip_anchor_active || !x) return false;
 	*x = s_tip_anchor_x_value;
 	return true;
+}
+
+// hk_tip_render publishes the corrected alpha while tip_c::Render runs. The
+// Draw_BeveledBox and R_DrawFont hooks replace the engine's value: the engine ties
+// the fade length to tip_duration/16, and Buddy keeps the tip on screen for much
+// longer than stock SoF, which otherwise made the fade almost a second long.
+static bool s_tip_fade_active = false;
+static unsigned char s_tip_fade_alpha = 255;
+
+static unsigned char tip_fade_alpha_for(int elapsed, int duration) {
+	// duration 0 makes the engine free the tip in the same frame; keep it invisible.
+	if (duration <= 0) return 0;
+
+	// tip_c::Render only starts drawing after start + duration/4.
+	const int appear = duration / 4;
+	if (elapsed <= appear) return 0;
+
+	int fade = duration / 16;
+	if (fade > kVanillaTipDurationMs / 16) fade = kVanillaTipDurationMs / 16;
+	if (fade <= 0) return elapsed > duration ? 0 : 255;
+
+	const int since_appear = elapsed - appear;
+	if (since_appear < fade)
+		return static_cast<unsigned char>((since_appear * 255) / fade);
+
+	const int fade_out_start = duration - fade;
+	if (elapsed > fade_out_start) {
+		const int remaining = duration - elapsed;
+		if (remaining <= 0) return 0;
+		return static_cast<unsigned char>((remaining * 255) / fade);
+	}
+	return 255;
 }
 
 static void tip_source_store(void* menu, void* tip, void* rect, void* stm,
@@ -2267,6 +2321,17 @@ static void hk_tip_render(void* tip, void* menu) {
 	    *reinterpret_cast<int*>(static_cast<char*>(tip) + 0x10) +
 	    *reinterpret_cast<int*>(static_cast<char*>(menu) + kMenuC_FreeX);
 	s_tip_anchor_active = true;
+	const bool previous_fade_active = s_tip_fade_active;
+	const unsigned char previous_fade_alpha = s_tip_fade_alpha;
+	s_tip_fade_active = false;
+	if (detour_Sys_Milliseconds::oSys_Milliseconds) {
+		const int now = detour_Sys_Milliseconds::oSys_Milliseconds();
+		const int start = *reinterpret_cast<int*>(static_cast<char*>(tip) + kTip_Start);
+		const int duration =
+		    *reinterpret_cast<int*>(static_cast<char*>(tip) + kTip_Duration);
+		s_tip_fade_alpha = tip_fade_alpha_for(now - start, duration);
+		s_tip_fade_active = true;
+	}
 	if (oTip_Render) {
 #if defined(__GNUC__) && defined(__i386__)
 		thiscall_1arg_void(tip, menu, reinterpret_cast<void*>(oTip_Render));
@@ -2274,6 +2339,8 @@ static void hk_tip_render(void* tip, void* menu) {
 		oTip_Render(tip, menu);
 #endif
 	}
+	s_tip_fade_active = previous_fade_active;
+	s_tip_fade_alpha = previous_fade_alpha;
 	s_tip_anchor_active = false;
 	s_tip_box_active = false;
 	tip_bounds_end(source);
@@ -2500,6 +2567,12 @@ void scaled_menu_tip_bounds_vertex(float x, float y) {
 
 bool scaled_menu_tip_anchor_x(int* x) {
 	return tip_anchor_x(x);
+}
+
+bool scaled_menu_tip_fade_alpha(unsigned char* alpha) {
+	if (!s_tip_fade_active || !alpha) return false;
+	*alpha = s_tip_fade_alpha;
+	return true;
 }
 
 void scaled_menu_backdrop_clip_extend(int* x, int* w, const void* menu_c) {

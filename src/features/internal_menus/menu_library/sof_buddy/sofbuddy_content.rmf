@@ -49,7 +49,7 @@
 <font type {font_title} tint white atint white>
 {menu_theme_list}
 <ctext tip_duration atext "Menu tooltip Duration (ms) : " tint sb_accent atint sb_accent noshade><br>
-<slider cvari tip_duration min 0 max 30000 step 250 tip "How long menu tooltips stay visible (ms). SoF Buddy default 15000."><hbr>
+<slider cvari tip_duration min 0 max 30000 step 250 tip "How long menu tooltips stay visible (ms). Fade speed stays vanilla. SoF Buddy default 15000."><hbr>
 <ctext _sofbuddy_menu_tip_appear atext "Menu tooltip Appear (ms) : " tint sb_accent atint sb_accent noshade><br>
 <slider cvari _sofbuddy_menu_tip_appear min 0 max 5000 step 50 tip "Delay before a tooltip appears. 0 = immediate. Default 3750 = the engine spawn gate at tip_duration 15000 (15000/4).">
 <hbr>
