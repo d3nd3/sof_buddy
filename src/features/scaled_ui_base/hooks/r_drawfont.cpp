@@ -11,6 +11,9 @@
 #if FEATURE_INTRO_SCALER
 #include "../../intro_scaler/shared.h"
 #endif
+#if FEATURE_SCALED_MENU && defined(UI_MENU)
+#include "../../scaled_menu/shared.h"
+#endif
 #include <cmath>
 #include <math.h>
 #include <string.h>
@@ -57,6 +60,87 @@ static FontCaller fontCallerFromRenderType(uiRenderType rt)
     default: return FontCaller::Unknown;
     }
 }
+
+#if FEATURE_SCALED_MENU && defined(UI_MENU)
+#include "../../scaled_menu/tip_wrap.h"
+
+struct TipMeasureCtx {
+	char* font;
+	float scale;
+};
+
+static int measure_tip_line(const char* text, void* user) {
+	const TipMeasureCtx* ctx = static_cast<const TipMeasureCtx*>(user);
+	if (!ctx || !ctx->font || !detour_R_Strlen::oR_Strlen) return 0;
+	return static_cast<int>(std::lround(
+	    static_cast<double>(detour_R_Strlen::oR_Strlen(
+	        const_cast<char*>(text), ctx->font)) *
+	    static_cast<double>(ctx->scale)));
+}
+
+// Reflow a tooltip that is wider than the screen into left-aligned lines. The engine
+// still owns the bevel box, fade and hover timing; only its single R_DrawFont run is
+// replaced. Returns false when the stock single-line draw should be left untouched.
+static bool draw_wrapped_tip(int x, int y, char* text, int colorPalette, char* font,
+                             bool rememberLastColor,
+                             detour_R_DrawFont::tR_DrawFont original) {
+	if (!text || !font || !original ||
+	    !detour_R_Strlen::oR_Strlen || !detour_R_StrHeight::oR_StrHeight)
+		return false;
+	(void)x;  // the unclamped mouse anchor replaces the engine's shifted x
+	int anchorX = 0;
+	if (!scaled_menu_tip_anchor_x(&anchorX)) return false;
+
+	const int vidW = current_vid_w > 0 ? current_vid_w : 640;
+	const int vidH = current_vid_h > 0 ? current_vid_h : 480;
+	const int margin = 12;
+	const int maxWidth = vidW - margin * 2;
+	if (maxWidth <= 0) return false;
+	const float scale = scaled_menu_snapped_text_scale(realFont);
+	TipMeasureCtx measureCtx{font, scale};
+	const auto widthOf = [&](const char* s) -> int {
+		return measure_tip_line(s, &measureCtx);
+	};
+	if (widthOf(text) <= maxWidth) return false;  // fits as a single line
+
+	char lines[1024];  // NUL-separated line strings
+	int lineStart[24];
+	const int lineCount = scaled_menu_detail::wrap_tip_text(
+	    text, maxWidth, measure_tip_line, &measureCtx, lines,
+	    static_cast<int>(sizeof(lines)), lineStart,
+	    static_cast<int>(sizeof(lineStart) / sizeof(lineStart[0])));
+	if (lineCount <= 0) return false;
+
+	const int lineH = static_cast<int>(std::lround(
+	    static_cast<double>(detour_R_StrHeight::oR_StrHeight(font)) *
+	    static_cast<double>(scale)));
+	const int glyphH = lineH > 0 ? lineH : 8;
+	const int advance = glyphH + 2;  // tight leading keeps tooltips compact
+	int blockWidth = 0;
+	for (int i = 0; i < lineCount; ++i) {
+		const int w = widthOf(lines + lineStart[i]);
+		if (w > blockWidth) blockWidth = w;
+	}
+
+	int blockX = anchorX;
+	if (blockX + blockWidth > vidW - margin) blockX = vidW - margin - blockWidth;
+	if (blockX < margin) blockX = margin;
+	int blockY = y;
+	const int blockHeight = (lineCount - 1) * advance + glyphH;
+	if (blockY + blockHeight > vidH - margin) blockY = vidH - margin - blockHeight;
+	if (blockY < margin) blockY = margin;
+
+	for (int i = 0; i < lineCount; ++i) {
+		// Each line is its own glyph run: restart the texture-quad and font-run state
+		// so the scaled-text pivots are taken from that line's first glyph.
+		characterIndex = 0;
+		resetGlVertexQuadState();
+		original(blockX, blockY + i * advance, lines + lineStart[i], colorPalette,
+		         font, rememberLastColor);
+	}
+	return true;
+}
+#endif
 
 void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor, detour_R_DrawFont::tR_DrawFont original) {
     if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) &&
@@ -249,6 +333,18 @@ void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char 
 			}
 		}
 	}
+#if FEATURE_SCALED_MENU && defined(UI_MENU)
+		if (g_currentFontCaller == FontCaller::TipRender && text && font &&
+		    RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU) &&
+		    draw_wrapped_tip(screenX, screenY, text, colorPalette, font,
+		                     rememberLastColor, original)) {
+			g_currentFontCaller = FontCaller::Unknown;
+			characterIndex = 0;
+			g_activeDrawCall = DrawRoutineType::None;
+			resetGlVertexQuadState();
+			return;
+		}
+#endif
 		const bool versionStamp = scaled_menu_version_stamp(text, static_cast<int>(realFont));
 		if (versionStamp) {
 			auto** rr = reinterpret_cast<void**>(

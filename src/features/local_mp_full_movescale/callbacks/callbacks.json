@@ -1,0 +1,14 @@
+[
+  {
+    "hook": "PostCvarInit",
+    "callback": "lmfm_PostCvarInit",
+    "priority": 50,
+    "phase": "Post"
+  },
+  {
+    "hook": "GameDllLoaded",
+    "callback": "lmfm_GameDllLoaded",
+    "priority": 60,
+    "phase": "Post"
+  }
+]

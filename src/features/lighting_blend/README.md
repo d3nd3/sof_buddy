@@ -18,7 +18,7 @@ Extends SoF's lightmap pass with a user-selectable lighting style:
   it uses the original `GL_DST_COLOR`, `GL_SRC_COLOR` framebuffer blend. While
   it is on, the Lighting Style preset list and manual blend section are hidden;
   a separate **Overbright Pre-Curve** with its own profiles (default
-  **Late highlights**) and Colour Mode appear in their place. The stored
+  **Popping mid+highlight**) and Colour Mode appear in their place. The stored
   Lighting Style curve is untouched and returns when the toggle is turned off.
 - **Custom** - the 11-point lightmap tone curve plus the manual blend factors.
   Selecting Custom after a preset starts from that preset's slider values;
@@ -48,22 +48,22 @@ control points but matches the intuitive “input light -> output light” model
 
 Three output modes are available:
 
-- **Preserve brightness** (`_sofbuddy_lighting_preserve_color 1`, default and
-  what all built-in curve presets use) applies the curve to Rec.709 luminance
-  and scales R/G/B by the same factor. This preserves hue and saturation while
-  no channel clips, but a saturated pixel whose luma target needs more than 1.0
-  in its brightest channel still clips at the top, producing a narrower
-  whitening zone than per-channel mode.
+- **Preserve colour** (`_sofbuddy_lighting_preserve_color 2`, default) applies
+  the curve to the brightest channel (HSV value) and scales R/G/B by the same
+  factor. Since no channel is larger than the value used for the lookup, the
+  result can never exceed 255: hue and saturation ratios are preserved exactly
+  and there is no clipping/whitening. The trade-off is that a colour already
+  near white has no headroom and cannot be brightened further by the curve.
+- **Preserve brightness** (`_sofbuddy_lighting_preserve_color 1`, what all
+  built-in Lighting Style curve presets use) applies the curve to Rec.709
+  luminance and scales R/G/B by the same factor. This preserves hue and
+  saturation while no channel clips, but a saturated pixel whose luma target
+  needs more than 1.0 in its brightest channel still clips at the top, producing
+  a narrower whitening zone than per-channel mode.
 - **Per-channel** (`_sofbuddy_lighting_preserve_color 0`) applies the curve to
   R, G, and B independently. Aggressive gains make coloured lights clip at
   different levels and look more saturated/neon. This is the classic overbright
   look.
-- **Preserve colour** (`_sofbuddy_lighting_preserve_color 2`) applies the curve
-  to the brightest channel (HSV value) and scales R/G/B by the same factor.
-  Since no channel is larger than the value used for the lookup, the result can
-  never exceed 255: hue and saturation ratios are preserved exactly and there is
-  no clipping/whitening. The trade-off is that a colour already near white has
-  no headroom and cannot be brightened further by the curve.
 
 Overbright Lighting uses its own pre-curve, so the stored Lighting Style curve
 and the Overbright curve never overwrite each other. The colour mode still
@@ -160,7 +160,7 @@ Curve preset:
   O_c = clamp01(T_c * L_c)
 
 Overbright 2x:
-  C_ob(x) = Overbright Pre-Curve (Late highlights by default)
+  C_ob(x) = Overbright Pre-Curve (Popping mid+highlight by default)
   L_c = preserve(C_ob(G(L_raw,c)))        // or per-channel C_ob
   O_c = clamp01(2 * T_c * L_c)
 
@@ -584,7 +584,7 @@ path (and the existing blend) until the next renderer restart, when both switch
 together. The x2 happens after the texture multiply, so dark textures can still
 reach white. The **Overbright Pre-Curve** is applied to the lightmap before the
 combiner or framebuffer blend in both paths, so it works with multitexture on or
-off. Its default is **Late highlights**; the **2x everything** profile is the
+off. Its default is **Popping mid+highlight**; the **2x everything** profile is the
 linear identity that keeps the stock `2*T*L` product.
 
 The combiner is installed by patching the two `CheckComplexStates` calls and the
@@ -608,27 +608,29 @@ Lighting Style presets and has its own profile selector,
 
 | Profile | Values | Character |
 |---|---|---|
-| **Late highlights** (default) | `0,5,10,15,20,25,30,35,45,65,100` | Vanilla through 70% input, then only the top range pops. |
+| **Popping mid+highlight** (default) | `0,5,10,15,20,25,40,55,70,85,100` | Half through 60% input, then brighter midtones and highlights. |
+| **Late highlights** | `0,5,10,15,20,25,30,35,45,65,100` | Gentler: vanilla through 70% input, then only the top range pops. |
 | **Popping highlights** | `0,5,10,15,20,25,30,45,60,80,100` | Stronger pop starting above 60% input. |
-| **Popping mid+highlight** | `0,5,10,15,20,25,40,55,70,85,100` | Brighter midtones and highlights. |
 | **Preserve Darks only** | `0,5,10,15,23,33,45,59,75,93,100` | Keeps shadows dark and lifts mostly the upper range. |
 | **2x everything** | `0,10,20,30,40,50,60,70,80,90,100` | Linear identity: the original stock `2*T*L` look. |
 | **Custom** | edited values | Selected automatically when a slider is edited. |
 
 Selecting a profile writes its values into the overbright curve cvars. Editing
 any slider in the live editor switches the profile to Custom. The reset button
-returns to **Late highlights**. The pipeline is:
+returns to **Popping mid+highlight**. The pipeline is:
 
 ```text
 out = 2 * T * C_ob(L)
 ```
 
-The default Late profile is half through 70% input, so `2 * C(0.5) = 0.50`,
-`2 * C(0.6) = 0.60`, and `2 * C(0.7) = 0.70` all match vanilla. Above that it
-lifts: `2 * C(0.8) = 0.90`, `2 * C(0.9) = 1.30`, and `2 * C(1.0) = 2.0` (white).
-Popping highlights is the stronger option: half through 60%, then
-`2 * C(0.7) = 0.90` and `2 * C(0.8) = 1.20` (clipped). A Custom curve must stay
-at half to keep a tone unchanged; setting a point to identity makes the x2
+The default Popping mid+highlight profile is half through 60% input, so
+`2 * C(0.5) = 0.50` and `2 * C(0.6) = 0.60` match vanilla. Above that it lifts:
+`2 * C(0.7) = 0.80`, `2 * C(0.8) = 1.10` (clipped), `2 * C(0.9) = 1.40`
+(clipped), and `2 * C(1.0) = 2.0` (white). Late highlights is the gentler
+option: half through 70%, then `2 * C(0.8) = 0.90`, `2 * C(0.9) = 1.30`, and
+`2 * C(1.0) = 2.0` (white). Popping highlights is stronger: half through 60%,
+then `2 * C(0.7) = 0.90` and `2 * C(0.8) = 1.20` (clipped). A Custom curve must
+stay at half to keep a tone unchanged; setting a point to identity makes the x2
 double that tone instead.
 The crossover is in gamma-corrected lightmap space, not linear light. The
 stored Lighting Style curve is untouched and returns when Overbright is
@@ -1012,8 +1014,8 @@ count at `+0xB4` and the surface array at `+0xB8`.
   Output is clamped to 0..100; map lower inputs to 100 for overbright. Every
   built-in curve preset writes its values here.
 - `_sofbuddy_lighting_preserve_color` - `0` per-channel curve,
-  `1` preserve brightness (luminance, default), `2` preserve colour (brightest
-  channel). Built-in curve presets select `1`.
+  `1` preserve brightness (luminance), `2` preserve colour (brightest channel,
+  default). Built-in Lighting Style curve presets select `1`.
 - `_sofbuddy_lighting_normalize` - `0` map lighting normalization off
   (default), `1` Up (move the max toward white), `2` Down (move the absolute min
   toward black, max kept), `3` Both (Down then Up). Down has no effect when the
@@ -1028,15 +1030,15 @@ count at `+0xB4` and the surface array at `+0xB8`.
   toggle. `1` uses the original `2 * L * T` product; `0` uses the selected
   Lighting Style. It never changes `gl_ext_multitexture`. Default `0`.
 - `_sofbuddy_lighting_overbright_profile` - overbright-only pre-curve profile:
-  `0` Popping highlights, `1` Popping mid+highlight, `2` Preserve Darks only,
-  `3` 2x everything (linear identity), `4` Custom, `5` Late highlights
-  (default). Selecting a profile writes its values into the overbright curve
+  `0` Popping highlights, `1` Popping mid+highlight (default), `2` Preserve
+  Darks only, `3` 2x everything (linear identity), `4` Custom, `5` Late
+  highlights. Selecting a profile writes its values into the overbright curve
   cvars; editing a slider switches to Custom.
 - `_sofbuddy_lighting_overbright_curve_0`, `_10`, ... `_100` - the separate
-  Overbright Pre-Curve output percentages. Defaults to the **Late highlights**
-  profile, `0,5,10,15,20,25,30,35,45,65,100`; **2x everything** restores the
-  identity `0,10,20,...,100` and the stock product. Archived independently of
-  the Lighting Style curve.
+  Overbright Pre-Curve output percentages. Defaults to the **Popping
+  mid+highlight** profile, `0,5,10,15,20,25,40,55,70,85,100`; **2x everything**
+  restores the identity `0,10,20,...,100` and the stock product. Archived
+  independently of the Lighting Style curve.
 - `_sofbuddy_lighting_cutoff` - dynamic light threshold (default `64`).
 - `_sofbuddy_water_size` - water warp size (default `64`, minimum `16`).
 - `_sofbuddy_shiny_spherical` - shiny detail-texture mode (default `1`):
@@ -1069,7 +1071,7 @@ All persisted CVars use `CVAR_SOFBUDDY_ARCHIVE` and are saved to
   into the 11 slider cvars, select Preserve brightness, and switch to Custom.
 - `sofbuddy_lighting_curve_templates` - list the curve-template aliases.
 - `sofbuddy_lighting_overbright_curve_reset` - reset the Overbright Pre-Curve
-  and profile to **Late highlights**.
+  and profile to **Popping mid+highlight**.
 - `sofbuddy_gl_modulate_confirm` - apply the pending Lightmap Multiplier value
   and close the warning popup.
 - `sofbuddy_gl_modulate_cancel` - discard the pending value, restore the existing

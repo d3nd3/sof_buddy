@@ -36,10 +36,13 @@ CATEGORIES = {
         "vsync_toggle",
         "lighting_blend",
         "lightstyle_interpolation",
+        "model_anisotropic",
     ],
     "Gameplay Features": [
         "more_crosshairs",
         "teamicons_offset",
+        "forcerun_singleplayer",
+        "local_mp_full_movescale",
         "entity_visualizer",
     ],
     "Networking Features": [

@@ -363,6 +363,28 @@ functions:
     detour_len: 0
     params: []
 
+  - name: CL_BaseMove
+    module: SofExe
+    identifier: "0x00004B20"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: void*
+        name: cmd
+
+  - name: ghoul_set_gl_table
+    module: SofExe
+    identifier: "0x00070780"
+    return_type: void
+    calling_convention: __thiscall
+    detour_len: 0
+    params:
+      - type: void*
+        name: self
+      - type: void*
+        name: table
+
   - name: SV_ShutdownGameProgs
     module: SofExe
     identifier: "0x005CD70"

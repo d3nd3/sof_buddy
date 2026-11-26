@@ -43,18 +43,22 @@ static void new_system_bug_InitDefaults(void)
 	
 	PrintOut(PRINT_LOG, "New System Bug Fix: Applying optimal defaults...\n");
 
-	// R_Init is still building its command buffer here. Append the profile and
-	// overrides together so exec inserts highest.cfg before the safe values.
+	// R_Init is still building its command buffer here. Apply highest.cfg *now*
+	// (EXEC_NOW, not EXEC_APPEND): S_Init runs later in CL_Init and reads s_khz, so
+	// appending the block let drivers/memory1.cfg's "s_khz 11" reach the mixer. The
+	// stock cascade uses EXEC_NOW at this same point, so this is safe. Execute the
+	// profile first, then the safe overrides on top of it.
 	using ref_cmd_execute_text_t = void (__cdecl *)(int, char*);
 	ref_cmd_execute_text_t* cmd_execute_text =
 		reinterpret_cast<ref_cmd_execute_text_t*>(rvaToAbsRef((void*)0x0008FDE4));
 	if (cmd_execute_text && *cmd_execute_text) {
-		char commands[] =
-			"exec drivers/highest.cfg\n"
-			"set fx_maxdebrisonscreen 128\n"
-			"set r_isf GL_SOLID_FORMAT\n"
-			"set r_iaf GL_ALPHA_FORMAT\n";
-		(*cmd_execute_text)(2, commands); // EXEC_APPEND
+		char highest[] = "exec drivers/highest.cfg";
+		(*cmd_execute_text)(0, highest); // EXEC_NOW
+		if (detour_Cmd_ExecuteString::oCmd_ExecuteString) {
+			detour_Cmd_ExecuteString::oCmd_ExecuteString("set fx_maxdebrisonscreen 128");
+			detour_Cmd_ExecuteString::oCmd_ExecuteString("set r_isf GL_SOLID_FORMAT");
+			detour_Cmd_ExecuteString::oCmd_ExecuteString("set r_iaf GL_ALPHA_FORMAT");
+		}
 	} else {
 		PrintOut(PRINT_BAD, "New System Bug Fix: ref Cmd_ExecuteText unavailable\n");
 	}

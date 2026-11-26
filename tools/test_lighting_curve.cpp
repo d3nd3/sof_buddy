@@ -109,8 +109,8 @@ int main() {
 	assert(apply_byte(17, popping) == 9);
 	assert(apply_byte_nearest_even(17, popping) == 8);
 
-	// Late highlights is the default: half through 70% input, then a top-end
-	// lift.  It must preserve the low range just like Popping.
+	// Late highlights is the gentler profile: half through 70% input, then a
+	// top-end lift.  It must preserve the low range just like Popping.
 	const CurvePoints late =
 		overbright_profile_points(kOverbrightProfileLateHighlights);
 	int late_bias = 0;

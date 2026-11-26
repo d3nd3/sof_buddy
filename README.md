@@ -48,7 +48,7 @@
 - 🖱️ **Raw mouse input** — Direct hardware input without Windows acceleration; your existing sensitivity settings still work.
 - 🏷️ **Widescreen fixes** — Team icons and player names stay correctly positioned and scale with your HUD, and the sniper scope keeps its 4:3 shape with the magnification readout scaled to match.
 - 🖼️ **HD textures & extended skins** — High-resolution texture support plus extra multiplayer player models.
-- 🌙 **Better lighting** — Q3/Daikatana-style overbright lightmaps that work with multitexture on, an 11-point lightmap tone curve (2x Linear, 4x Linear, Soft Glow, High Contrast, Deep Shadows, Film Slope, Cliff Edge, Bright Punch, and Midnight presets), separate **Overbright Pre-Curve** profiles (Late highlights, Popping highlights, Popping mid+highlight, Preserve Darks only, 2x everything, Custom), optional map lighting normalization, and optional smooth light-style interpolation. The curve editors and the main preview-sensitive lighting controls open as live side panels over the game, so changes can be judged while the world stays visible.
+- 🌙 **Better lighting** — Q3/Daikatana-style overbright lightmaps that work with multitexture on, an 11-point lightmap tone curve (2x Linear, 4x Linear, Soft Glow, High Contrast, Deep Shadows, Film Slope, Cliff Edge, Bright Punch, and Midnight presets), separate **Overbright Pre-Curve** profiles (Popping mid+highlight (default), Late highlights, Popping highlights, Preserve Darks only, 2x everything, Custom), optional map lighting normalization, and optional smooth light-style interpolation. The curve editors and the main preview-sensitive lighting controls open as live side panels over the game, so changes can be judged while the world stays visible.
 - 🌐 **Multiplayer quality of life** — HTTP map downloads, a GameSpy master selector with known-host fallback, and faster server setup.
 - ⬆️ **In-game updater** — Check, download, and install releases without leaving the game; choose the stable master channel or unstable prerelease builds, get an optional startup prompt, and (in the graphical updater) merge new recommended feature defaults while keeping explicit overrides.
 - 🎮 **One-click Windows installer** — Installs SoF Buddy and can optionally set up the official SoF Plus client, with automatic CD/GOG detection.
@@ -139,7 +139,8 @@ normal settings reset, for users expecting a newly added feature.
 It also offers a **Select Additional Tasks** page with **Optional installation
 options**. After you pick the game directory, Setup probes `SoF.exe` and
 pre-checks the first two tasks when they still make sense for your retail build;
-**Install SoF Plus client** stays off unless you enable it.
+**Install SoF Plus client** is off by default, and is only pre-ticked when the
+chosen folder already contains a SoF Plus client (`spcl.dll` or `SofPlus.dll`).
 
 - **[OPTIONAL] Apply Windows 10+ Application Compatibility fix** — For a
   recognized `SoF.exe`, applies the same PE change GOG uses so the game behaves
@@ -400,7 +401,7 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_preserve_color</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. <code>0</code> per-channel curve (classic overbright, more saturated). <code>1</code> preserve brightness: curve on luminance, RGB scaled together; may still clip bright saturated colours. <code>2</code> preserve colour: curve on the brightest channel, RGB scaled together; never clips, so hue and saturation stay exact, but colours already near white cannot brighten further. Built-in curve presets select <code>1</code>. F12 → Lighting → **Live Lighting (preview over game)** → Colour.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>2</code>. <code>0</code> per-channel curve (classic overbright, more saturated). <code>1</code> preserve brightness: curve on luminance, RGB scaled together; may still clip bright saturated colours. <code>2</code> preserve colour: curve on the brightest channel, RGB scaled together; never clips, so hue and saturation stay exact, but colours already near white cannot brighten further. Built-in Lighting Style presets select <code>1</code>. F12 → Lighting → **Live Lighting (preview over game)** → Colour.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_normalize</code></td>
@@ -424,15 +425,15 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_overbright_profile</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>5</code>. Overbright-only pre-curve profile, separate from Lighting Style: <code>0</code> Popping highlights, <code>1</code> Popping mid+highlight, <code>2</code> Preserve Darks only, <code>3</code> 2x everything (linear identity / stock 2 × T × L), <code>4</code> Custom, <code>5</code> Late highlights (default). Selecting a profile writes its 11 values into the overbright curve cvars; editing a slider in the editor switches to Custom. F12 → Lighting → **Live Lighting (preview over game)** → Pre-Curve.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Overbright-only pre-curve profile, separate from Lighting Style: <code>0</code> Popping highlights, <code>1</code> Popping mid+highlight (default), <code>2</code> Preserve Darks only, <code>3</code> 2x everything (linear identity / stock 2 × T × L), <code>4</code> Custom, <code>5</code> Late highlights. Selecting a profile writes its 11 values into the overbright curve cvars; editing a slider in the editor switches to Custom. F12 → Lighting → **Live Lighting (preview over game)** → Pre-Curve.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_overbright_curve_0</code> … <code>_sofbuddy_lighting_overbright_curve_100</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> Late highlights <code>0,5,10,15,20,25,30,35,45,65,100</code>. Separate 11-point pre-curve applied before the Overbright 2× product: <code>2 × T × C(L)</code>. The <strong>2x everything</strong> profile restores the identity <code>0,10,20,...,100</code> and the stock Overbright product. Archived separately from the Lighting Style curve; works with <code>gl_ext_multitexture</code> on or off. <strong>Performance:</strong> no per-frame cost; edits rebuild lightmaps once. F12 → Lighting → **Live Lighting (preview over game)** → **OB Pre-Curve...** (opens a live side panel).</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> Popping mid+highlight <code>0,5,10,15,20,25,40,55,70,85,100</code>. Separate 11-point pre-curve applied before the Overbright 2× product: <code>2 × T × C(L)</code>. The <strong>2x everything</strong> profile restores the identity <code>0,10,20,...,100</code> and the stock Overbright product. Archived separately from the Lighting Style curve; works with <code>gl_ext_multitexture</code> on or off. <strong>Performance:</strong> no per-frame cost; edits rebuild lightmaps once. F12 → Lighting → **Live Lighting (preview over game)** → **OB Pre-Curve...** (opens a live side panel).</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_lighting_cutoff</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>64</code>. Dynamic light threshold (DLIGHT_CUTOFF). F12 → Lighting → **Live Lighting (preview over game)** → Threshold.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>64</code>. Dynamic light distance cutoff (DLIGHT_CUTOFF). F12 → Lighting → **Live Lighting (preview over game)** → Threshold.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_water_size</code></td>
@@ -457,6 +458,14 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_rawmouse</code></td>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Raw mouse input via the Raw Input API, bypassing Windows pointer acceleration. <code>1</code> on, <code>0</code> off. F12 → Gameplay.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_forcerun_singleplayer</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>0</code>. Force run speed in singleplayer instead of walking; the walk key still slows you down. <code>1</code> on, <code>0</code> off. F12 → Gameplay.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_local_mp_full_movescale</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>1</code>. Locally hosted multiplayer games ignore the saved <code>g_movescale</code> server setting and run at full movement speed. <code>0</code> keeps the saved value (Half/Full). Dedicated servers and remote clients are unaffected. F12 → Gameplay.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sp_cl_master_gamespy</code></td>
@@ -540,7 +549,7 @@ Internal bookkeeping cvars (layout math, migration guards, runtime status read-o
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_tip_appear</code></td>
-<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>750</code>. Tooltip appearance delay in milliseconds (<code>0</code> immediate). F12 → General.</td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%"><strong>Default</strong> <code>625</code>. Tooltip appearance delay in milliseconds (<code>0</code> immediate). 625 matches stock SoF (<code>tip_duration</code> 2500 / 4). F12 → General.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sofbuddy_menu_tip_font</code></td>
@@ -658,6 +667,10 @@ Written by sof_buddy itself. Most are recomputed each launch, so editing them ha
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_font_scale_auto_migrated</code> / <code>_sb_internal_hud_scale_auto_migrated</code></td>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">One-shot guards so the legacy <code>-1</code> auto-scale migration runs once.</td>
+</tr>
+<tr>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_tip_appear_vanilla_migrated</code></td>
+<td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;width:66%">One-shot guard so the old 750 ms tooltip default moves to the vanilla 625 ms exactly once; a later deliberate 750 is kept.</td>
 </tr>
 <tr>
 <td style="text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #30363d;word-break:break-word;overflow-wrap:anywhere;width:34%"><code>_sb_internal_loading_progress</code> / <code>_sb_internal_loading_current</code> / <code>_sb_internal_loading_status</code> / <code>_sb_internal_loading_network</code></td>

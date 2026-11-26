@@ -1,0 +1,7 @@
+[
+  {
+    "function": "ghoul_set_gl_table",
+    "callback": "hk_ghoul_set_gl_table",
+    "override": true
+  }
+]

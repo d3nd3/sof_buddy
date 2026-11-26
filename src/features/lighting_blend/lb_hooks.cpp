@@ -686,12 +686,12 @@ static lighting_curve_detail::CurvePoints effective_curve_points(void) {
 
 	if (lighting_raven_product_requested()) {
 		// Overbright has its own pre-curve and separate profiles.  The default
-		// is Late highlights; 2x everything is the old linear identity, so the
-		// stock Overbright product remains 2*T*L.  A darker curve gives
+		// is Popping mid+highlight; 2x everything is the old linear identity, so
+		// the stock Overbright product remains 2*T*L.  A darker curve gives
 		// 2*T*C(L) and leaves the stored Lighting Style curve untouched.
 		const lighting_curve_detail::CurvePoints defaults =
 			lighting_curve_detail::overbright_profile_points(
-				lighting_curve_detail::kOverbrightProfileLateHighlights);
+				lighting_curve_detail::kOverbrightProfilePoppingMidHighlight);
 		for (int i = 0; i < lighting_curve_detail::kCurvePointCount; ++i) {
 			points.p[i] = cvar_float_or(_sofbuddy_lighting_overbright_curve[i],
 			                            defaults.p[i]);
@@ -1330,11 +1330,11 @@ static void lighting_sync_preset_curve_cvars(void) {
 
 static int lighting_overbright_profile_selected(void) {
 	if (!_sofbuddy_lighting_overbright_profile) {
-		return lighting_curve_detail::kOverbrightProfileLateHighlights;
+		return lighting_curve_detail::kOverbrightProfilePoppingMidHighlight;
 	}
 	int profile = static_cast<int>(_sofbuddy_lighting_overbright_profile->value + 0.5f);
 	if (profile < 0 || profile > lighting_curve_detail::kOverbrightProfileLateHighlights) {
-		profile = lighting_curve_detail::kOverbrightProfileLateHighlights;
+		profile = lighting_curve_detail::kOverbrightProfilePoppingMidHighlight;
 	}
 	return profile;
 }
@@ -1342,7 +1342,7 @@ static int lighting_overbright_profile_selected(void) {
 static void lighting_read_overbright_curve_points(lighting_curve_detail::CurvePoints& points) {
 	const lighting_curve_detail::CurvePoints defaults =
 		lighting_curve_detail::overbright_profile_points(
-			lighting_curve_detail::kOverbrightProfileLateHighlights);
+			lighting_curve_detail::kOverbrightProfilePoppingMidHighlight);
 	for (int i = 0; i < lighting_curve_detail::kCurvePointCount; ++i) {
 		points.p[i] = cvar_float_or(_sofbuddy_lighting_overbright_curve[i],
 		                            defaults.p[i]);
@@ -1388,9 +1388,13 @@ static bool s_overbright_profile_migrated = false;
 
 /*
 	Migration for configs created before the Overbright profiles existed:
-	- the old linear identity curve becomes the new Late highlights default
+	- the old linear identity curve becomes the new default pre-curve
 	- a hand-tuned curve is kept and marked Custom
 	- a curve that matches a profile selects that profile
+
+	Then a one-shot defaults migration moves the old default values (Late
+	highlights + Preserve brightness) to the current defaults (Popping
+	mid+highlight + Preserve colour).  Deliberate custom values are kept.
 */
 static void lighting_migrate_overbright_profile_once(void) {
 	if (s_overbright_profile_migrated || !_sofbuddy_lighting_overbright_profile) {
@@ -1408,19 +1412,45 @@ static void lighting_migrate_overbright_profile_once(void) {
 	    detected == lighting_curve_detail::kOverbrightProfile2xEverything) {
 		const lighting_curve_detail::CurvePoints defaults =
 			lighting_curve_detail::overbright_profile_points(
-				lighting_curve_detail::kOverbrightProfileLateHighlights);
+				lighting_curve_detail::kOverbrightProfilePoppingMidHighlight);
 		lighting_write_overbright_curve_cvars(defaults.p);
-		set_cvar_string(_sofbuddy_lighting_overbright_profile, "5");
+		set_cvar_string(_sofbuddy_lighting_overbright_profile, "1");
+	} else if (profile != lighting_curve_detail::kOverbrightProfileCustom &&
+	           detected != profile) {
+		char buffer[4];
+		std::snprintf(buffer, sizeof(buffer), "%d", detected);
+		set_cvar_string(_sofbuddy_lighting_overbright_profile, buffer);
+	}
+
+	cvar_t* defaults_guard = findCvar(const_cast<char*>("_sb_internal_lighting_defaults_v2"));
+	if (defaults_guard && defaults_guard->value != 0.0f) {
 		return;
 	}
 
-	if (profile == lighting_curve_detail::kOverbrightProfileCustom || detected == profile) {
-		return;
+	// Re-read after the pre-profile migration above.
+	const int migrated_profile = lighting_overbright_profile_selected();
+	lighting_read_overbright_curve_points(current);
+	const int migrated_detected =
+		lighting_curve_detail::overbright_profile_for_points(current);
+	if (migrated_profile == lighting_curve_detail::kOverbrightProfileLateHighlights &&
+	    migrated_detected == lighting_curve_detail::kOverbrightProfileLateHighlights) {
+		const lighting_curve_detail::CurvePoints defaults =
+			lighting_curve_detail::overbright_profile_points(
+				lighting_curve_detail::kOverbrightProfilePoppingMidHighlight);
+		lighting_write_overbright_curve_cvars(defaults.p);
+		set_cvar_string(_sofbuddy_lighting_overbright_profile, "1");
 	}
 
-	char buffer[4];
-	std::snprintf(buffer, sizeof(buffer), "%d", detected);
-	set_cvar_string(_sofbuddy_lighting_overbright_profile, buffer);
+	if (_sofbuddy_lighting_preserve_color &&
+	    static_cast<int>(_sofbuddy_lighting_preserve_color->value + 0.5f) == 1) {
+		set_cvar_string(_sofbuddy_lighting_preserve_color, "2");
+	}
+
+	if (detour_Cvar_Set2::oCvar_Set2) {
+		detour_Cvar_Set2::oCvar_Set2(
+			const_cast<char*>("_sb_internal_lighting_defaults_v2"),
+			const_cast<char*>("1"), true);
+	}
 }
 
 /*
@@ -2550,8 +2580,8 @@ static void Cmd_Lighting_Reset_f(void) {
 	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_lightblend_dst"), const_cast<char*>("GL_SRC_COLOR"), true);
 	lighting_reset_curve_cvars();
 	lighting_reset_overbright_curve_cvars();
-	set_cvar_string(_sofbuddy_lighting_overbright_profile, "5");
-	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_lighting_preserve_color"), const_cast<char*>("1"), true);
+	set_cvar_string(_sofbuddy_lighting_overbright_profile, "1");
+	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_lighting_preserve_color"), const_cast<char*>("2"), true);
 	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_lighting_normalize"), const_cast<char*>("0"), true);
 	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_lighting_normalize_up"), const_cast<char*>("100"), true);
 	detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_lighting_normalize_down"), const_cast<char*>("100"), true);
@@ -2574,7 +2604,7 @@ static void Cmd_Lighting_Curve_Reset_f(void) {
 
 static void Cmd_Lighting_Overbright_Curve_Reset_f(void) {
 	lighting_reset_overbright_curve_cvars();
-	set_cvar_string(_sofbuddy_lighting_overbright_profile, "5");
+	set_cvar_string(_sofbuddy_lighting_overbright_profile, "1");
 	lighting_apply_effective_settings(true);
 }
 
@@ -2633,7 +2663,7 @@ static void Cmd_Lighting_Status_f(void) {
 		ob_curve[0] = '\0';
 		const lighting_curve_detail::CurvePoints defaults =
 			lighting_curve_detail::overbright_profile_points(
-				lighting_curve_detail::kOverbrightProfileLateHighlights);
+				lighting_curve_detail::kOverbrightProfilePoppingMidHighlight);
 		for (int i = 0; i < lighting_curve_detail::kCurvePointCount; ++i) {
 			const int value = _sofbuddy_lighting_overbright_curve[i]
 				? static_cast<int>(_sofbuddy_lighting_overbright_curve[i]->value + 0.5f)

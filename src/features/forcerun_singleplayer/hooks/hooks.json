@@ -1,0 +1,7 @@
+[
+  {
+    "function": "CL_BaseMove",
+    "callback": "hkCL_BaseMove",
+    "override": true
+  }
+]

@@ -91,7 +91,7 @@ void lighting_reset_overbright_curve_cvars(void) {
 	}
 	const lighting_curve_detail::CurvePoints defaults =
 		lighting_curve_detail::overbright_profile_points(
-			lighting_curve_detail::kOverbrightProfileLateHighlights);
+			lighting_curve_detail::kOverbrightProfilePoppingMidHighlight);
 	for (int i = 0; i < lighting_curve_detail::kCurvePointCount; ++i) {
 		char buffer[8];
 		std::snprintf(buffer, sizeof(buffer), "%d",
@@ -108,7 +108,7 @@ void create_lightingblend_cvars(void) {
 	// Legacy switch kept so existing configs keep working. The F12 menu now
 	// drives the preset below; setting this to 1 selects Raven 2x.
 	_sofbuddy_lighting_overbright = detour_Cvar_Get::oCvar_Get("_sofbuddy_lighting_overbright","0",CVAR_SOFBUDDY_ARCHIVE,&lighting_overbright_change);
-	_sofbuddy_lighting_overbright_profile = detour_Cvar_Get::oCvar_Get("_sofbuddy_lighting_overbright_profile","5",CVAR_SOFBUDDY_ARCHIVE,&lighting_overbright_profile_change);
+	_sofbuddy_lighting_overbright_profile = detour_Cvar_Get::oCvar_Get("_sofbuddy_lighting_overbright_profile","1",CVAR_SOFBUDDY_ARCHIVE,&lighting_overbright_profile_change);
 	_sofbuddy_lighting_preset = detour_Cvar_Get::oCvar_Get("_sofbuddy_lighting_preset","0",CVAR_SOFBUDDY_ARCHIVE,&lighting_preset_change);
 	_sofbuddy_lighting_cutoff = detour_Cvar_Get::oCvar_Get("_sofbuddy_lighting_cutoff","64",CVAR_SOFBUDDY_ARCHIVE,&lighting_cutoff_change);
 	_sofbuddy_water_size = detour_Cvar_Get::oCvar_Get("_sofbuddy_water_size","64",CVAR_SOFBUDDY_ARCHIVE,&water_size_change);
@@ -121,11 +121,12 @@ void create_lightingblend_cvars(void) {
 			kLightingCurveCvarNames[i], kLightingCurveDefaults[i],
 			CVAR_SOFBUDDY_ARCHIVE, &lighting_curve_change);
 	}
-	// Separate curve for the Overbright toggle.  The default is the Late
-	// highlights profile: half through 70% input, then a top-end lift.
+	// Separate curve for the Overbright toggle.  The default is the Popping
+	// mid+highlight profile: brighter midtones and highlights than Late
+	// highlights while still preserving the low end.
 	const lighting_curve_detail::CurvePoints overbright_defaults =
 		lighting_curve_detail::overbright_profile_points(
-			lighting_curve_detail::kOverbrightProfileLateHighlights);
+			lighting_curve_detail::kOverbrightProfilePoppingMidHighlight);
 	for (int i = 0; i < lighting_curve_detail::kCurvePointCount; ++i) {
 		char default_value[8];
 		std::snprintf(default_value, sizeof(default_value), "%d",
@@ -134,13 +135,17 @@ void create_lightingblend_cvars(void) {
 			kOverbrightCurveCvarNames[i], default_value,
 			CVAR_SOFBUDDY_ARCHIVE, &lighting_overbright_curve_change);
 	}
-	_sofbuddy_lighting_preserve_color = detour_Cvar_Get::oCvar_Get("_sofbuddy_lighting_preserve_color","1",CVAR_SOFBUDDY_ARCHIVE,&lighting_preserve_color_change);
+	_sofbuddy_lighting_preserve_color = detour_Cvar_Get::oCvar_Get("_sofbuddy_lighting_preserve_color","2",CVAR_SOFBUDDY_ARCHIVE,&lighting_preserve_color_change);
 	_sofbuddy_lighting_normalize = detour_Cvar_Get::oCvar_Get("_sofbuddy_lighting_normalize","0",CVAR_SOFBUDDY_ARCHIVE,&lighting_normalize_change);
 	_sofbuddy_lighting_normalize_up = detour_Cvar_Get::oCvar_Get("_sofbuddy_lighting_normalize_up","100",CVAR_SOFBUDDY_ARCHIVE,&lighting_normalize_amount_change);
 	_sofbuddy_lighting_normalize_down = detour_Cvar_Get::oCvar_Get("_sofbuddy_lighting_normalize_down","100",CVAR_SOFBUDDY_ARCHIVE,&lighting_normalize_amount_change);
 	_sofbuddy_lighting_ghoul_min_light = detour_Cvar_Get::oCvar_Get("_sofbuddy_lighting_ghoul_min_light","0",CVAR_SOFBUDDY_ARCHIVE,&lighting_ghoul_min_light_change);
 	// -1 = not forced by the feature; >=0 = value to restore when leaving a legacy blend.
 	_sb_internal_lighting_multitexture_restore = detour_Cvar_Get::oCvar_Get("_sb_internal_lighting_multitexture_restore","-1",CVAR_SOFBUDDY_ARCHIVE,NULL);
+	// One-shot guard for the newer lighting defaults (Preserve colour + Popping
+	// mid+highlight Overbright pre-curve).  Existing configs that still match
+	// the old defaults migrate once; deliberate custom values are kept.
+	detour_Cvar_Get::oCvar_Get("_sb_internal_lighting_defaults_v2","0",CVAR_SOFBUDDY_ARCHIVE,NULL);
 	_sb_internal_lighting_normalize_status = detour_Cvar_Get::oCvar_Get("_sb_internal_lighting_normalize_status","",0,NULL);
 	_sb_internal_lighting_style0_status = detour_Cvar_Get::oCvar_Get("_sb_internal_lighting_style0_status","",0,NULL);
 	// F12 Lighting page snippet: the Custom-only manual blend gate.

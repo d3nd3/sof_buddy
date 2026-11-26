@@ -28,7 +28,7 @@
 <cinclude _sb_internal_lighting_normalize_show_down sof_buddy/lighting_live_normalize_down>
 <cninclude _sofbuddy_lighting_overbright sof_buddy/lighting_live_style_row>
 <cinclude _sofbuddy_lighting_overbright sof_buddy/lighting_live_precurve_row>
-<list "Per-channel,Preserve brightness,Preserve colour" cvari _sofbuddy_lighting_preserve_color atext "Colour : " noshade tip "How the active curve is applied to the lightmap."><br>
+<list "Per-channel,Preserve brightness,Preserve colour" cvari _sofbuddy_lighting_preserve_color atext "Colour : " noshade tip "How the active curve is applied to the lightmap. Preserve colour is the default."><br>
 <list "Off,Default,No Spherical,All Spherical,Both (Experimental)" match "0,1,2,3,4" cvari _sofbuddy_shiny_spherical atext "Shiny : " noshade tip "0=Off, 1=Default, 2=Planar (position only), 3=Sphere (SPHERE_MAP, view angle), 4=Both (exp)."><br>
 <ctext _sofbuddy_lighting_cutoff atext "Threshold : " tint sb_accent atint sb_accent noshade tip "Minimum dynamic-light contribution on surfaces."><br>
 <slider cvari _sofbuddy_lighting_cutoff min 1 max 256 step 1><hbr>

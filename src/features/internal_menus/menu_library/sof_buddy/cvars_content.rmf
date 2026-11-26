@@ -281,9 +281,9 @@
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_lighting_preserve_color atext "_sofbuddy_lighting_preserve_color : " noshade tip "0 per-channel (classic overbright), 1 preserve brightness (luminance curve; default), 2 preserve colour (curve on brightest channel; no clipping). Built-in presets use 1."><br>
+<ctext _sofbuddy_lighting_preserve_color atext "_sofbuddy_lighting_preserve_color : " noshade tip "0 per-channel (classic overbright), 1 preserve brightness (luminance curve), 2 preserve colour (curve on brightest channel; no clipping; default). Built-in Lighting Style presets use 1."><br>
 <font type {font_title} tint gray atint gray>
-"Default 1 - Preserve brightness."
+"Default 2 - Preserve colour."
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
@@ -314,17 +314,17 @@
 <ctext _sofbuddy_lighting_overbright atext "_sofbuddy_lighting_overbright : " noshade tip "Overbright Lighting. 1 = Raven's original 2 x L x T look with the separate Overbright Pre-Curve; 0 = use Lighting Style. Works with gl_ext_multitexture on or off. Default 0. Performance: small per-surface cost while On; Off does no combiner/blend work. F12 Lighting."><br>
 <font type {font_title} tint gray atint gray>
 "Default 0 - Legacy switch, kept for old configs."<br>
-"Pre-curve: _sofbuddy_lighting_overbright_curve_0 ... _100 (default Late highlights 0,5,10,15,20,25,30,35,45,65,100)."
+"Pre-curve: _sofbuddy_lighting_overbright_curve_0 ... _100 (default Popping mid+highlight 0,5,10,15,20,25,40,55,70,85,100)."
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_lighting_overbright_profile atext "_sofbuddy_lighting_overbright_profile : " noshade tip "Overbright Pre-Curve profile, separate from Lighting Style. 0 Popping highlights, 1 Popping mid+highlight, 2 Preserve Darks only, 3 2x everything (linear identity / stock 2 x T x L), 4 Custom, 5 Late highlights (default). Selecting a profile writes its 11 values into the overbright curve cvars; editing a slider switches to Custom. F12 Lighting -> Overbright Pre-Curve."><br>
+<ctext _sofbuddy_lighting_overbright_profile atext "_sofbuddy_lighting_overbright_profile : " noshade tip "Overbright Pre-Curve profile, separate from Lighting Style. 0 Popping highlights, 1 Popping mid+highlight (default), 2 Preserve Darks only, 3 2x everything (linear identity / stock 2 x T x L), 4 Custom, 5 Late highlights. Selecting a profile writes its 11 values into the overbright curve cvars; editing a slider switches to Custom. F12 Lighting -> Overbright Pre-Curve."><br>
 <font type {font_title} tint gray atint gray>
-"Default 5 - Late highlights. 0 Popping highlights, 1 mid+highlight, 2 Preserve Darks only, 3 2x everything, 4 Custom."
+"Default 1 - Popping mid+highlight. 0 Popping highlights, 2 Preserve Darks only, 3 2x everything, 4 Custom, 5 Late highlights."
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_lighting_cutoff atext "_sofbuddy_lighting_cutoff : " noshade tip "Dynamic Light Threshold (F12 Lighting): min dynamic-light contribution / BSP culling margin (DLIGHT_CUTOFF). Default 64."><br>
+<ctext _sofbuddy_lighting_cutoff atext "_sofbuddy_lighting_cutoff : " noshade tip "Dynamic Light Distance Cutoff (F12 Lighting): min dynamic-light contribution / BSP culling margin (DLIGHT_CUTOFF). Default 64."><br>
 <font type {font_title} tint gray atint gray>
 "Default 64 - Lighting cutoff."
 <hbr>
@@ -357,6 +357,30 @@
 <ctext _sofbuddy_rawmouse atext "_sofbuddy_rawmouse : " noshade tip "Raw mouse input bypassing accel. 1 on, 0 off. Default 0."><br>
 <font type {font_title} tint gray atint gray>
 "Default 0 - Raw mouse input off."
+<hbr>
+
+<font type {font_title} tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type {font_title} tint cyan atint cyan>
+"Singleplayer"
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_forcerun_singleplayer atext "_sofbuddy_forcerun_singleplayer : " noshade tip "Force run speed in singleplayer. 1 on, 0 off. Default 0."><br>
+<font type {font_title} tint gray atint gray>
+"Default 0 - Stock walk/run key behavior."
+<hbr>
+
+<font type {font_title} tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type {font_title} tint cyan atint cyan>
+"Multiplayer"
+<font type {font_title} tint white atint white>
+<ctext _sofbuddy_local_mp_full_movescale atext "_sofbuddy_local_mp_full_movescale : " noshade tip "1: locally hosted multiplayer games use full movescale (1.0); 0: use the saved g_movescale (Half/Full server setting). Default 1."><br>
+<font type {font_title} tint gray atint gray>
+"Default 1 - Local servers run at full speed."
 <hbr>
 
 <font type {font_title} tint sb_subtle atint sb_subtle>
@@ -505,9 +529,9 @@
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>
-<ctext _sofbuddy_menu_tip_appear atext "_sofbuddy_menu_tip_appear : " noshade tip "Tooltip appear delay in ms. 0 immediate. Default 750."><br>
+<ctext _sofbuddy_menu_tip_appear atext "_sofbuddy_menu_tip_appear : " noshade tip "Tooltip appear delay in ms. 0 immediate. Default 625 (vanilla 2500/4)."><br>
 <font type {font_title} tint gray atint gray>
-"Default 750 - Tooltip appearance delay (ms)."
+"Default 625 - Tooltip appearance delay (ms, vanilla)."
 <hbr>
 <hbr>
 <font type {font_title} tint white atint white>

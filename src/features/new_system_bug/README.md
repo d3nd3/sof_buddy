@@ -54,14 +54,16 @@ Game starts
   → Detects "new" hardware (differs from config.cfg)
   → Loads ref.dll
   → new_sys_bug_LoadLibraryRef() intercepts
-  → Appends drivers/highest.cfg and the performance fixes in order
+  → Executes drivers/highest.cfg immediately (EXEC_NOW)
   → Applies the safe overrides after highest.cfg
   → Game runs with optimal settings
 ```
 
-The hook runs while `R_Init` is building the command buffer, so the commands
-must be appended as one ordered block. Otherwise `highest.cfg` can execute
-after an immediate `set fx_maxdebrisonscreen 128` and restore its `1024` value.
+The hook runs while `R_Init` is building the command buffer. `highest.cfg` must run
+immediately, before `S_Init` (later in `CL_Init`) reads `s_khz`: the stock cascade
+executes `drivers/memory1.cfg` first, which sets `s_khz 11`, and appended
+(`EXEC_APPEND`) text would only run after `CL_Init`. The safe overrides follow
+`highest.cfg` so its `fx_maxdebrisonscreen 1024` cannot overwrite `128`.
 
 ## Configuration
 No CVars - fix is automatically applied when enabled.

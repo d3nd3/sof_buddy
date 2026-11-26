@@ -444,11 +444,12 @@ inline CurvePoints make_curve(const float (&values)[kCurvePointCount]) {
 	same curve to the vanilla lightmap.
 
 	The product is `2 * T * C(L)`.  A point preserves vanilla only when
-	`C(L) = L / 2`; a point at identity doubles that tone.  Late highlights is
-	the default: it stays at half through 70% input, then lifts 80-100%, so
-	only the top of the map's range pops.  Popping highlights leaves the half
-	curve at 60% and lifts harder above that.  The thresholds are in
-	gamma-corrected lightmap space, not linear light.
+	`C(L) = L / 2`; a point at identity doubles that tone.  Popping
+	mid+highlight is the default: it stays at half through 60% input, then
+	lifts 70-100%, giving brighter midtones and highlights than Popping
+	highlights.  Late highlights is the gentler option: half through 70% input,
+	then only the top range pops.  The thresholds are in gamma-corrected
+	lightmap space, not linear light.
 
 	"2x everything" is the old linear identity, so selecting it reproduces the
 	original stock 2 x T x L product.
@@ -511,7 +512,7 @@ inline const char* overbright_profile_summary(int profile) {
 		case kOverbrightProfileCustom:
 			return "Your edited Overbright Pre-Curve.";
 		default:
-			return "Default: vanilla through 70% input, then only the top range pops.";
+			return "Gentler: vanilla through 70% input, then only the top range pops.";
 	}
 }
 
