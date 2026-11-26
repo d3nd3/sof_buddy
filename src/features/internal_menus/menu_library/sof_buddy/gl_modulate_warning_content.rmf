@@ -1,0 +1,43 @@
+<stm>
+<include tints>
+
+<backdrop bgcolor black>
+<key escape "sofbuddy_gl_modulate_cancel">
+<key n "sofbuddy_gl_modulate_cancel">
+<key y "sofbuddy_gl_modulate_confirm">
+
+<vbar tint orange>
+
+<left>
+<blank 16 1>
+<right>
+<blank 16 1>
+<normal>
+
+<center>
+<font type {font_title} tint orange atint orange>
+"LIGHTMAP MULTIPLIER"
+<hbr>
+<hbr>
+
+<font type {font_title} tint white atint white>
+<ctext _sb_internal_lighting_gl_modulate_current atext "Current : " noshade><hbr>
+<ctext _sb_internal_lighting_gl_modulate_pending atext "Requested : " noshade><hbr>
+<hbr>
+
+<font type {font_medium} tint white atint white>
+"Are you sure you want to do this?"
+<hbr>
+"Its highly recommended to keep"
+<hbr>
+"this at 1 to prevent flat lighting."
+<hbr>
+<hbr>
+
+<left>
+<font type {font_title} tint normaltext atint red>
+<text "Cancel (N)" border 16 1 gray key mouse1 "sofbuddy_gl_modulate_cancel">
+<right>
+<font type {font_title} tint normaltext atint green>
+<text "Apply Anyway (Y)" border 16 1 gray key mouse1 "sofbuddy_gl_modulate_confirm">
+</stm>

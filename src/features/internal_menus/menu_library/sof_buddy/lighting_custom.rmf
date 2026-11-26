@@ -1,0 +1,11 @@
+<font type {font_title} tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type {font_title} tint white atint white>
+<text "Manual lightmap blend">
+<font type {font_title} tint white atint white>
+<list "ZERO,ONE,SRC_C,1-SRC_C,DST_C,1-DST_C,SRC_A,1-SRC_A" match "GL_ZERO,GL_ONE,GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR,GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA" cvar _sofbuddy_lightblend_src atext "Blend Src : " noshade tip "Source blend factor. Default ZERO. Non-default factors need gl_ext_multitexture 0."><br>
+<list "ZERO,ONE,SRC_C,1-SRC_C,DST_C,1-DST_C,SRC_A,1-SRC_A" match "GL_ZERO,GL_ONE,GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR,GL_DST_COLOR,GL_ONE_MINUS_DST_COLOR,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA" cvar _sofbuddy_lightblend_dst atext "Blend Dst : " noshade tip "Destination blend factor. Default SRC_COLOR."><br>
+<text "Curve Only (Neutral Blend)" tip "Curve alone: Src ZERO / Dst SRC_C." key mouse1 "set _sofbuddy_lightblend_src GL_ZERO;set _sofbuddy_lightblend_dst GL_SRC_COLOR;refresh" border 8 1 cyan regular align center><hbr>
+<text "SRC Squared Blend (L2 + LxT)" tip "L squared + L x T: Src SRC_C / Dst SRC_C." key mouse1 "set _sofbuddy_lightblend_src GL_SRC_COLOR;set _sofbuddy_lightblend_dst GL_SRC_COLOR;refresh" border 8 1 cyan regular align center><hbr>

@@ -134,9 +134,14 @@ Per context:
   opt-out. It skips the generic rect dimension/offset pass so offsets stay on the
   engine's native path, but `<image>`/`<pic>` dimensions are still scaled in the
   `pic_c::Setup` hook;
-- **resize pages** — `menu_actual_pixel_scale_active()` returns false when the page
-  canvas actually carries a raised scale (`menu_resize_canvas_is_scaled()`:
-  `canvas > 1.001 && canvas <= max(menuScale, screen_x_scale, screen_y_scale) * 2`);
+- **resize pages** — `<stm resize W H>` scales **frames**, not their contents:
+  `frame_c`'s constructor multiplies the authored frame `W/H` by `menu_c+0xAC`, and
+  `hk_frame_resize` raises that canvas to `menuScale` and scales/centres the default
+  frame. Widget dimensions are not canvas-scaled (`rect_c::GetCoords` and the draw
+  paths use the stored `W/H`/picture sizes directly), so non-frame widgets still get
+  the normal per-widget `menuScale` factor. Virtual `xoff/yoff` stay on the engine
+  canvas path (`sub_200CF350` multiplies them by `menu_c+0xAC`), which the rect hook
+  divides out to avoid double scaling;
 - **load/save loadbox** — `loadbox_c::Parse` multiplies its stored width by the
   menu canvas itself. The rect hook therefore gives the loadbox `menuScale / canvas`
   instead of `menuScale`, so the page scales but the save list is not double-scaled
@@ -147,6 +152,12 @@ Per context:
   A `loadbox_c::Draw` hook scales/recenters the preview thumbnails and
   shifts the three text lines down with the taller icons; the 128 px cell width and
   32 px row padding in `GetIndices`/`Setup`/`Draw` are patched with `menuScale`.
+
+The lighting live-preview panels reserve the exact `<stm resize 300 600>` size.
+`hk_frame_resize` recognizes that size, scales it by
+`min(menu scale, (vid_h - 16) / 600, (vid_w - 16) / 300)`, and pins the resulting
+box to the right edge with an 8 px margin. Every other resize page keeps the
+centred layout.
 
 ## Rect fields
 
@@ -217,7 +228,7 @@ left/right content-inset blanks no longer inflate the page's content height.
 `<hr>` is a `setkey_c` object with its own parser; its `width` and `line` tokens
 never reach `rect_c::Parse`. A post-parse hook scales the stored width
 (`hr+0x8C`) and line thickness (`hr+0x90`) by the normal content factor, with the
-same `noscale`, intro/disclaimer and resize-page gates as other widgets.
+same `noscale` and intro/disclaimer gates as other widgets.
 
 Rect flag `rect+0x66` (`noscale`) disables all of this for the rect. Ghouls are
 excluded (see Ghouls and bghouls).
@@ -624,19 +635,34 @@ Fix:
   `tip.y = GetCoords().y + OuterH` (screen space). `tip.x` stays the engine's
   mouse-based value, so the tooltip appears at the cursor horizontally and just
   under the drawn item.
-- The engine does not draw a fresh tip until `elapsed > duration/4` (3.75 s at the
-  Buddy `tip_duration` default of 15000). `hk_menu_create_tip` records the new
+- Long tips wrap instead of running off-screen. Stock `tip_c::Render` measures the
+  whole string with `R_StrLen`, then clamps only the right edge
+  (`x = vid_w − width`), so a tip wider than the screen gets a negative x and its
+  left side is clipped. `hkR_DrawFont` recognises `FontCaller::TipRender` and, when
+  the scaled line exceeds `vid_w − 24`, reflows it greedily at word boundaries into
+  left-aligned lines (an over-long word is hard-split). Each line is drawn as its
+  own `R_DrawFont` run with the font-run pivots reset, so the normal scaled-text
+  path applies per line. The block is clamped inside 12 px screen margins and moved
+  up when it would cross the bottom edge. `hk_tip_render` publishes the unclamped
+  mouse anchor (`tip+0x10 + menu+0x9C`) for this, since the engine has already
+  shifted x for the single-line width by the time `R_DrawFont` runs.
+- The glyph-run capture records horizontal bounds as well as vertical, so
+  `hk_draw_beveled_box` now sets x/y/w/h from the measured run and the bevel box
+  hugs a wrapped block (one frame behind, hidden by the tip's fade-in).
+- The engine reveals a fresh tip at `duration/4` after `tip->start` (3.75 s at the
+  Buddy `tip_duration` default of 15000; stock SoF's 2500 ms duration gives
+  625 ms). `hk_menu_create_tip` records the new
   `(menu, tip, source rect)` and rewrites `tip->start(+0x18)` to
   `created − duration/4 + _sofbuddy_menu_tip_appear`, so the tooltip appears after
-  exactly the configured delay (default **750 ms**, `0` = immediate; the stock
-  delay is `duration/4`). The fade-out threshold moves with the start, so the
-  visible time is unchanged.
+  exactly the configured delay (default **625 ms**, matching vanilla; `0` =
+  immediate). The fade-out threshold moves with the start, so the visible time is
+  unchanged.
 - The value is exposed as **Menu tooltip Appear (ms)** in F12 → General → Menu.
   The tooltip font is selectable there as **Tooltip font** (Small default, Medium,
   Title) and applies when the menu is reopened. **Menu font size style**
   (Small/Normal/Large/Extra Large) selects the F12 font-tier template; F12 is
   reparsed so the authored `<font type>` tags stay consistent.
-- `<pic>`/`<image>` widgets are scaled at `pic_c::Setup` (`0x200D2290`) by the same menu-scale factor as other actual-pixel widgets. `noscale` does not opt the image out: it is a stock RMF flag for native-size drawing, so `noscale` images (including the outfit menu's bolted knife/divider) still get their stored dimensions scaled. Bolted images **without** `noscale` are the exception: they are anchored to the staged ghoul/art space, so they get the vertical-vs-canvas ratio (the same ratio applied to the bghoul and bolted tickers) instead of `menuScale`. Without that, the SoFPlus Web Folders tab icons keep their stock canvas size while the bghoul's tab art shrinks on wide screens, leaving the icons overhanging the tabs vertically. Images with explicit `width`/`height` (already scaled by rect parse) and resize canvases that already carry the scale are skipped.
+- `<pic>`/`<image>` widgets are scaled at `pic_c::Setup` (`0x200D2290`) by the same menu-scale factor as other actual-pixel widgets. `noscale` does not opt the image out: it is a stock RMF flag for native-size drawing, so `noscale` images (including the outfit menu's bolted knife/divider) still get their stored dimensions scaled. Bolted images **without** `noscale` are the exception: they are anchored to the staged ghoul/art space, so they get the vertical-vs-canvas ratio (the same ratio applied to the bghoul and bolted tickers) instead of `menuScale`. Without that, the SoFPlus Web Folders tab icons keep their stock canvas size while the bghoul's tab art shrinks on wide screens, leaving the icons overhanging the tabs vertically. Images with explicit `width`/`height` (already scaled by rect parse) are skipped. Resize pages are not skipped: their canvas scales frames only, so pictures still receive the normal per-widget factor.
 - `<selection>` grids parse their style, width, and height in `selection_c::Parse`'s
   constructor (`0x200E12B0`), so the generic `rect_c::Parse` hook never sees the two
   dimensions. `hk_selection_parse` scales `W/H/OuterW/OuterH` after the stock parse,

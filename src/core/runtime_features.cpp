@@ -22,7 +22,7 @@ namespace {
 #define COMPILED_FEATURE(macro, name, label) (macro != 0),
 const bool kCompiledFeatures[] = {
     FEATURE_LIST(COMPILED_FEATURE)
-    (FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU)
+    (FEATURE_SCALED_CON || FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_SCOPE)
 };
 #undef COMPILED_FEATURE
 
@@ -450,7 +450,8 @@ void Load() {
     const std::uint32_t scaledFeatures =
         (std::uint32_t(1) << static_cast<size_t>(Feature::RUNTIME_FEATURE_SCALED_CON)) |
         (std::uint32_t(1) << static_cast<size_t>(Feature::RUNTIME_FEATURE_SCALED_HUD)) |
-        (std::uint32_t(1) << static_cast<size_t>(Feature::RUNTIME_FEATURE_SCALED_MENU));
+        (std::uint32_t(1) << static_cast<size_t>(Feature::RUNTIME_FEATURE_SCALED_MENU)) |
+        (std::uint32_t(1) << static_cast<size_t>(Feature::RUNTIME_FEATURE_SCALED_SCOPE));
     if (g_enabled_mask & scaledFeatures) {
         g_enabled_mask |= std::uint32_t(1) << kScaledUiBaseIndex;
     }

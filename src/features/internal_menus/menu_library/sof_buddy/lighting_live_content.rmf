@@ -1,0 +1,47 @@
+<stm>
+<include tints>
+{theme_tints}
+<key escape "sofbuddy_close_menu">
+<cursor 1>
+
+<vbar tint sb_accent>
+
+<defaults noborder tiptint normaltext tipbtint sb_panel tipfont {tipfont}>
+<backdrop bgcolor sb_bg>
+
+<left>
+<blank 6 1>
+<right>
+<blank 6 1>
+<normal>
+
+<center>
+<hbr>
+<font type {font_title} tint sb_accent atint sb_accent>
+"LIVE LIGHTING"
+<hbr>
+<hbr>
+<font type {font_small} tint white atint white>
+<list "Off,On" cvari _sofbuddy_lighting_overbright atext "Overbright : " key mouse1 "sofbuddy_lighting_overbright_live_commit" key mouse2 "sofbuddy_lighting_overbright_live_commit" noshade tip "Raven's 2 x L x T lighting. Works with gl_ext_multitexture on or off."><br>
+<list "Off,Up,Down,Both" cvari _sofbuddy_lighting_normalize atext "Normalize : " key mouse1 "sofbuddy_lighting_normalize_live_commit" key mouse2 "sofbuddy_lighting_normalize_live_commit" noshade tip "Map lighting normalization. Up moves the map maximum toward 255; Down moves the minimum toward 0; Both applies both. The matching amount sliders appear below. Rebuilds the map's lightmaps once when changed."><br>
+<cinclude _sb_internal_lighting_normalize_show_up sof_buddy/lighting_live_normalize_up>
+<cinclude _sb_internal_lighting_normalize_show_down sof_buddy/lighting_live_normalize_down>
+<cninclude _sofbuddy_lighting_overbright sof_buddy/lighting_live_style_row>
+<cinclude _sofbuddy_lighting_overbright sof_buddy/lighting_live_precurve_row>
+<list "Per-channel,Preserve brightness,Preserve colour" cvari _sofbuddy_lighting_preserve_color atext "Colour : " noshade tip "How the active curve is applied to the lightmap. Preserve colour is the default."><br>
+<list "Off,Default,No Spherical,All Spherical,Both (Experimental)" match "0,1,2,3,4" cvari _sofbuddy_shiny_spherical atext "Shiny : " noshade tip "0=Off, 1=Default, 2=Planar (position only), 3=Sphere (SPHERE_MAP, view angle), 4=Both (exp)."><br>
+<ctext _sofbuddy_lighting_cutoff atext "Threshold : " tint sb_accent atint sb_accent noshade tip "Minimum dynamic-light contribution on surfaces."><br>
+<slider cvari _sofbuddy_lighting_cutoff min 1 max 256 step 1><hbr>
+<list "Off,On" cvar gl_dynamic atext "Dynamic Lights : " noshade tip "Dynamic lights on world surfaces. Big FPS hit."><br>
+<ctext gl_dlightintensity atext "dlightintensity : " tint sb_accent atint sb_accent noshade><br>
+<slider cvar gl_dlightintensity min 0 max 4 step 0.5><hbr>
+<list "Flat,Balanced,High Quality,GPU" match "0,1,2,3" cvar ghl_light_method atext "Ghoul Mode : " noshade tip "Ghoul model lighting quality. High Quality adds specular and coloured lights."><br>
+<list "Off,On" match "0,1" cvar ghl_specular atext "Ghoul Specular : " noshade tip "Specular highlights on Ghoul models. High Quality mode only."><br>
+<list "Disable,Low quality,High quality" match "0,1,2" cvar ghl_shadows atext "Ghoul Shadows : " noshade tip "Shadow quality on Ghoul models."><br>
+<ctext ghl_light_multiply atext "Ghoul Light : " tint sb_accent atint sb_accent noshade tip "Model light multiplier. Only when Ghoul Mode is not Flat."><br>
+<slider cvar ghl_light_multiply min 0 max 2 step 0.1><hbr>
+<list "Vanilla,Bypass" match "0,1" cvari _sofbuddy_lighting_ghoul_min_light atext "Ghoul Min : " noshade tip "Vanilla keeps the 0.1 minimum for RF_MINLIGHT models. Bypass lets them go fully dark."><br>
+<text "Rebuild Lightmaps" tip "Rebuild the current map's lightmaps after a manual change." key mouse1 "sofbuddy_lighting_rebuild" border 8 1 cyan regular align center><hbr>
+<text "Back to Lighting" tip "Return to the full Lighting tab." key mouse1 "sofbuddy_close_menu;sofbuddy_menu sof_buddy/lighting" border 8 1 orange regular align center><hbr>
+<text "Back to Game" tip "Close the live panel and return to the game." key mouse1 "sofbuddy_close_menu" border 8 1 orange regular align center>
+</stm>

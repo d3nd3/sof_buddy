@@ -60,16 +60,22 @@ Name: "features\recommended\bug_fixes"; Description: "Bug Fixes"; Types: full cu
 Name: "features\recommended\bug_fixes\new_system_bug"; Description: "New System Bug"; Types: full custom
 Name: "features\recommended\bug_fixes\cl_maxfps_singleplayer"; Description: "Cl Maxfps Singleplayer"; Types: full custom
 Name: "features\recommended\bug_fixes\list_match_fix"; Description: "List Match Fix"; Types: full custom
+Name: "features\recommended\bug_fixes\sound_alt_tab_fix"; Description: "Sound Alt Tab Fix"; Types: full custom
 Name: "features\recommended\graphics_features"; Description: "Graphics Features"; Types: full custom
 Name: "features\recommended\graphics_features\texture_mapping_min_mag"; Description: "Texture Mapping Min Mag"; Types: full custom
 Name: "features\recommended\graphics_features\scaled_con"; Description: "Scaled Con"; Types: full custom
 Name: "features\recommended\graphics_features\scaled_hud"; Description: "Scaled Hud"; Types: full custom
+Name: "features\recommended\graphics_features\scaled_scope"; Description: "Scaled Scope"; Types: full custom
 Name: "features\recommended\graphics_features\hd_textures"; Description: "Hd Textures"; Types: full custom
 Name: "features\recommended\graphics_features\vsync_toggle"; Description: "Vsync Toggle"; Types: full custom
 Name: "features\recommended\graphics_features\lighting_blend"; Description: "Lighting Blend"; Types: full custom
+Name: "features\recommended\graphics_features\lightstyle_interpolation"; Description: "Lightstyle Interpolation"; Types: full custom
+Name: "features\recommended\graphics_features\model_anisotropic"; Description: "Model Anisotropy"; Types: full custom
 Name: "features\recommended\gameplay_features"; Description: "Gameplay Features"; Types: full custom
 Name: "features\recommended\gameplay_features\more_crosshairs"; Description: "More Crosshairs"; Types: full custom
 Name: "features\recommended\gameplay_features\teamicons_offset"; Description: "Teamicons Offset"; Types: full custom
+Name: "features\recommended\gameplay_features\forcerun_singleplayer"; Description: "Force Run Singleplayer"; Types: full custom
+Name: "features\recommended\gameplay_features\local_mp_full_movescale"; Description: "Local MP Full Movescale"; Types: full custom
 Name: "features\recommended\networking_features"; Description: "Networking Features"; Types: full custom
 Name: "features\recommended\networking_features\http_maps"; Description: "Http Maps"; Types: full custom
 Name: "features\recommended\networking_features\master_server_fallback"; Description: "Master Server Fallback"; Types: full custom
@@ -88,7 +94,7 @@ Name: "features\optional\gameplay_features\entity_visualizer"; Description: "Ent
 [Tasks]
 Name: "appcompat_fix"; Description: "[OPTIONAL] Windows 10+ Application Compatibility fix (Raven string at 0x2015F1C0; usually skip for GOG 2022/community or SoF Plus kb kits)"; GroupDescription: "Optional installation options:"
 Name: "full_violence"; Description: "[OPTIONAL] Unlock full violence (highly recommended if not using SoFPlus spcl.dll)"; GroupDescription: "Optional installation options:"
-Name: "install_sofplus"; Description: "[OPTIONAL] Install SoF Plus client (20140531; CD or GOG kit chosen from your SoF.exe)"; GroupDescription: "Optional installation options:"
+Name: "install_sofplus"; Description: "[OPTIONAL] Install SoF Plus client (20140531; CD or GOG kit chosen from your SoF.exe)"; GroupDescription: "Optional installation options:"; Flags: unchecked
 Name: "reset_feature_toggles"; Description: "Expecting a new feature? Reset feature toggles (keeps other SoF Buddy settings)"; GroupDescription: "Optional installation options:"; Flags: unchecked; Check: HasExistingSoFBuddy
 
 [Files]
@@ -114,7 +120,7 @@ const
   LcgInverse = $B9B33155;
   LcgModulus = 4294967296;
   PatchOffset = $11AD72;
-  ExpectedDllSha256 = '65f94fea543eb7da7e4a1ef39a677da2f4e7a9900a74e2cd3c32ac0e447323ba';
+  ExpectedDllSha256 = '6f4c895e875b0e105b663f715d7e99a637532c42345764478634df77fb00a438';
 
 var
   FullViolencePage: TInputQueryWizardPage;
@@ -171,13 +177,21 @@ begin
   SoFRecommendFullViolence := SoFDetectValue('recommend_full_violence') <> '0';
 end;
 
+function HasSoFPlusClientFiles: Boolean;
+begin
+  // SoF Plus may be present as either client DLL; pre-select the task only
+  // when the chosen game folder already has one of them.
+  Result := FileExists(ExpandConstant('{app}\spcl.dll')) or
+    FileExists(ExpandConstant('{app}\SofPlus.dll'));
+end;
+
 procedure ApplySoFDetectTaskDefaults;
 begin
-  if SoFDetectPath = '' then exit;
   if WizardForm.TasksList.Items.Count < 3 then exit;
+  WizardForm.TasksList.Checked[2] := HasSoFPlusClientFiles;
+  if SoFDetectPath = '' then exit;
   WizardForm.TasksList.Checked[0] := SoFRecommendAppcompat;
   WizardForm.TasksList.Checked[1] := SoFRecommendFullViolence;
-  WizardForm.TasksList.Checked[2] := False;
 end;
 
 function HasExistingSoFBuddy: Boolean;
@@ -608,14 +622,20 @@ begin
   AddFeatureLine(Config, 'new_system_bug', 'features\recommended\bug_fixes\new_system_bug');
   AddFeatureLine(Config, 'cl_maxfps_singleplayer', 'features\recommended\bug_fixes\cl_maxfps_singleplayer');
   AddFeatureLine(Config, 'list_match_fix', 'features\recommended\bug_fixes\list_match_fix');
+  AddFeatureLine(Config, 'sound_alt_tab_fix', 'features\recommended\bug_fixes\sound_alt_tab_fix');
   AddFeatureLine(Config, 'texture_mapping_min_mag', 'features\recommended\graphics_features\texture_mapping_min_mag');
   AddFeatureLine(Config, 'scaled_con', 'features\recommended\graphics_features\scaled_con');
   AddFeatureLine(Config, 'scaled_hud', 'features\recommended\graphics_features\scaled_hud');
+  AddFeatureLine(Config, 'scaled_scope', 'features\recommended\graphics_features\scaled_scope');
   AddFeatureLine(Config, 'hd_textures', 'features\recommended\graphics_features\hd_textures');
   AddFeatureLine(Config, 'vsync_toggle', 'features\recommended\graphics_features\vsync_toggle');
   AddFeatureLine(Config, 'lighting_blend', 'features\recommended\graphics_features\lighting_blend');
+  AddFeatureLine(Config, 'lightstyle_interpolation', 'features\recommended\graphics_features\lightstyle_interpolation');
+  AddFeatureLine(Config, 'model_anisotropic', 'features\recommended\graphics_features\model_anisotropic');
   AddFeatureLine(Config, 'more_crosshairs', 'features\recommended\gameplay_features\more_crosshairs');
   AddFeatureLine(Config, 'teamicons_offset', 'features\recommended\gameplay_features\teamicons_offset');
+  AddFeatureLine(Config, 'forcerun_singleplayer', 'features\recommended\gameplay_features\forcerun_singleplayer');
+  AddFeatureLine(Config, 'local_mp_full_movescale', 'features\recommended\gameplay_features\local_mp_full_movescale');
   AddFeatureLine(Config, 'http_maps', 'features\recommended\networking_features\http_maps');
   AddFeatureLine(Config, 'master_server_fallback', 'features\recommended\networking_features\master_server_fallback');
   AddFeatureLine(Config, 'intro_scaler', 'features\recommended\menu_features\intro_scaler');

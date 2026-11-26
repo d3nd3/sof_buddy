@@ -1,0 +1,8 @@
+[
+  {
+    "hook": "PostCvarInit",
+    "callback": "forcerun_PostCvarInit",
+    "priority": 50,
+    "phase": "Post"
+  }
+]

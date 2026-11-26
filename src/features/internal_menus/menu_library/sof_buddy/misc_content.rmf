@@ -60,6 +60,24 @@
 <hbr>
 <hbr>
 <font type {font_title} tint cyan atint cyan>
+"Singleplayer"
+<font type {font_title} tint white atint white>
+<list "Off,On" cvari _sofbuddy_forcerun_singleplayer atext "Force movespeed : " noshade tip "Run by default in singleplayer instead of walking. The walk key still slows you down. No effect in multiplayer."><hbr>
+
+<font type {font_title} tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type {font_title} tint cyan atint cyan>
+"Multiplayer"
+<font type {font_title} tint white atint white>
+<list "Full,Saved" match "1,0" cvar _sofbuddy_local_mp_full_movescale atext "Local MP movescale : " noshade tip "When you host a multiplayer game locally, ignore the saved Movescale server setting and use full speed (1.0). Remote servers are unaffected. Saved keeps g_movescale from your config."><hbr>
+
+<font type {font_title} tint sb_subtle atint sb_subtle>
+"_____________________________"
+<hbr>
+<hbr>
+<font type {font_title} tint cyan atint cyan>
 "Audio"
 <font type {font_title} tint white atint white>
 <list "Yes,No" match "1,0" cvar s_musicenabled atext "Play Music : " noshade tip "Background music in-game."><hbr>

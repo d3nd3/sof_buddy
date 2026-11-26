@@ -1,0 +1,52 @@
+<stm>
+<include tints>
+{theme_tints}
+<key escape "sofbuddy_close_menu">
+<cursor 1>
+
+<vbar tint sb_accent>
+
+<defaults noborder tiptint normaltext tipbtint sb_panel tipfont {tipfont}>
+<backdrop bgcolor sb_bg>
+
+<left>
+<blank 6 1>
+<right>
+<blank 6 1>
+<normal>
+
+<center>
+<hbr>
+<font type {font_title} tint sb_accent atint sb_accent>
+"OVERBRIGHT PRE-CURVE"
+<hbr>
+<hbr>
+<font type {font_small} tint white atint white>
+<list "Popping highlights,Popping mid+highlight,Preserve Darks only,2x everything,Late highlights,Custom" match "0,1,2,3,5,4" cvari _sofbuddy_lighting_overbright_profile atext "Profile : " noshade tip "Overbright-only pre-curve profiles. The x2 combine preserves vanilla only where the curve is half. Popping mid+highlight (default) stays at half through 60% input, then lifts 70-100%; Popping highlights starts lifting at 70%; Late highlights at 80%; Preserve Darks only lifts harder; 2x everything is the stock identity look. Each writes its 11 values into the sliders; editing a slider switches to Custom."><br>
+<list "Per-channel,Preserve brightness,Preserve colour" cvari _sofbuddy_lighting_preserve_color atext "Colour : " noshade tip "How the pre-curve is applied. Preserve colour is the default."><br>
+<ctext _sofbuddy_lighting_overbright_curve_0 atext "Input 0% : " tint sb_accent atint sb_accent noshade><br>
+<slider cvari _sofbuddy_lighting_overbright_curve_0 min 0 max 100 step 1><hbr>
+<ctext _sofbuddy_lighting_overbright_curve_10 atext "Input 10% : " tint sb_accent atint sb_accent noshade><br>
+<slider cvari _sofbuddy_lighting_overbright_curve_10 min 0 max 100 step 1><hbr>
+<ctext _sofbuddy_lighting_overbright_curve_20 atext "Input 20% : " tint sb_accent atint sb_accent noshade><br>
+<slider cvari _sofbuddy_lighting_overbright_curve_20 min 0 max 100 step 1><hbr>
+<ctext _sofbuddy_lighting_overbright_curve_30 atext "Input 30% : " tint sb_accent atint sb_accent noshade><br>
+<slider cvari _sofbuddy_lighting_overbright_curve_30 min 0 max 100 step 1><hbr>
+<ctext _sofbuddy_lighting_overbright_curve_40 atext "Input 40% : " tint sb_accent atint sb_accent noshade><br>
+<slider cvari _sofbuddy_lighting_overbright_curve_40 min 0 max 100 step 1><hbr>
+<ctext _sofbuddy_lighting_overbright_curve_50 atext "Input 50% : " tint sb_accent atint sb_accent noshade><br>
+<slider cvari _sofbuddy_lighting_overbright_curve_50 min 0 max 100 step 1><hbr>
+<ctext _sofbuddy_lighting_overbright_curve_60 atext "Input 60% : " tint sb_accent atint sb_accent noshade><br>
+<slider cvari _sofbuddy_lighting_overbright_curve_60 min 0 max 100 step 1><hbr>
+<ctext _sofbuddy_lighting_overbright_curve_70 atext "Input 70% : " tint sb_accent atint sb_accent noshade><br>
+<slider cvari _sofbuddy_lighting_overbright_curve_70 min 0 max 100 step 1><hbr>
+<ctext _sofbuddy_lighting_overbright_curve_80 atext "Input 80% : " tint sb_accent atint sb_accent noshade><br>
+<slider cvari _sofbuddy_lighting_overbright_curve_80 min 0 max 100 step 1><hbr>
+<ctext _sofbuddy_lighting_overbright_curve_90 atext "Input 90% : " tint sb_accent atint sb_accent noshade><br>
+<slider cvari _sofbuddy_lighting_overbright_curve_90 min 0 max 100 step 1><hbr>
+<ctext _sofbuddy_lighting_overbright_curve_100 atext "Input 100% : " tint sb_accent atint sb_accent noshade><br>
+<slider cvari _sofbuddy_lighting_overbright_curve_100 min 0 max 100 step 1><hbr>
+<text "Reset Pre-Curve" tip "Reset to the default Popping mid+highlight profile." key mouse1 "sofbuddy_lighting_overbright_curve_reset;refresh" border 8 1 cyan regular align center><hbr>
+<text "Back to Live Lighting" tip "Return to the live lighting controls." key mouse1 "sofbuddy_close_menu;sofbuddy_menu sof_buddy/lighting_live" border 8 1 orange regular align center><hbr>
+<text "Back to Game" tip "Close the live panel and return to the game." key mouse1 "sofbuddy_close_menu" border 8 1 orange regular align center>
+</stm>

@@ -257,7 +257,7 @@ void __stdcall my_glVertex2f_DrawChar_2(float x, float y);
 void __stdcall my_glVertex2f_DrawChar_3(float x, float y);
 void __stdcall my_glVertex2f_DrawChar_4(float x, float y);
 #endif
-#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
+#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_SCOPE
 void __stdcall my_glVertex2f_StretchPic_1(float x, float y);
 void __stdcall my_glVertex2f_StretchPic_2(float x, float y);
 void __stdcall my_glVertex2f_StretchPic_3(float x, float y);
@@ -311,7 +311,7 @@ extern void * (__cdecl *orig_new_std_string)(int length);
 void hkDraw_PicOptions(int x, int y, float w_scale, float h_scale, int pal, char * name, detour_Draw_PicOptions::tDraw_PicOptions original);
 void hkDraw_CroppedPicOptions(int x, int y, int c1x, int c1y, int c2x, int c2y, int palette, char * name, detour_Draw_CroppedPicOptions::tDraw_CroppedPicOptions original);
 #endif
-#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU
+#if FEATURE_SCALED_HUD || FEATURE_SCALED_MENU || FEATURE_SCALED_SCOPE
 void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor, detour_R_DrawFont::tR_DrawFont original);
 bool scaled_menu_version_stamp(const char* text, int font);
 void hkSCR_CenterPrint(char * text, detour_SCR_CenterPrint::tSCR_CenterPrint original);
@@ -324,6 +324,7 @@ void hkDraw_CharExtra(float x, float y, float scale, void* palette, int ch, deto
 #if FEATURE_SCALED_HUD
 void hkcInventory2_And_cGunAmmo2_Draw(void * self, detour_cInventory2_And_cGunAmmo2_Draw::tcInventory2_And_cGunAmmo2_Draw original);
 void hkcHealthArmor2_Draw(void * self, detour_cHealthArmor2_Draw::tcHealthArmor2_Draw original);
+void hkcCountdown_Draw(void * self, detour_cCountdown_Draw::tcCountdown_Draw original);
 void hkcMissionStatus_Draw(void * self, detour_cMissionStatus_Draw::tcMissionStatus_Draw original);
 void hkcDMRanking_Draw(void * self, detour_cDMRanking_Draw::tcDMRanking_Draw original);
 void hkcCtfFlag_Draw(void * self, detour_cCtfFlag_Draw::tcCtfFlag_Draw original);

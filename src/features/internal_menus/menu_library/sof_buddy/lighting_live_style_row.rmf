@@ -1,0 +1,2 @@
+<list "Vanilla,2x Linear,4x Linear,Soft Glow,High Contrast,Deep Shadows,Film Slope,Cliff Edge,Bright Punch,Midnight,Custom" match "0,1,2,3,6,7,8,9,10,11,5" cvar _sofbuddy_lighting_preset atext "Style : " noshade tip "Lighting Style curve preset. Selecting one applies immediately and keeps this panel open."><br>
+<text "Tone Curve..." tip "Open the Tone Curve live editor." key mouse1 "sofbuddy_close_menu;sofbuddy_menu sof_buddy/lighting_curve_live" border 8 1 cyan regular align center><hbr>

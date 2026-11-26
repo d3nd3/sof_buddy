@@ -1,5 +1,6 @@
 [
   "AdjustTexCoords",
+  "Cbuf_AddText",
   "Cvar_Get",
   "Cvar_Set2",
   "glBegin",

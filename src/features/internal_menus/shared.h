@@ -30,6 +30,8 @@ void loading_show_ui(void);
 bool internal_menus_engine_shows_loading_plaque(void);
 void internal_menus_note_loading_shown(void);
 void internal_menus_push_menu_hooked(const char* menu, const char* parent, bool lock_input);
+void internal_menus_close_all_pages(void);
+void internal_menus_note_menu_page(const char* menu_file, void* page);
 void internal_menus_scr_updatescreen_post(bool force);
 void internal_menus_call_SCR_UpdateScreen(bool force);
 const char* internal_menus_get_content_inset_rmf(void);

@@ -26,6 +26,9 @@ float scaled_menu_snapped_text_scale(realFontEnum_t font);
 // box shifts as the menu scale grows. This records the screen-space glyph vertices of
 // the tip currently being rendered so the Draw_BeveledBox IAT hook can hug them.
 void scaled_menu_tip_bounds_vertex(float x, float y);
+// Unclamped screen-space X the current tooltip is anchored at (the mouse), while
+// tip_c::Render runs. Long tips use it to reflow inside the screen edges.
+bool scaled_menu_tip_anchor_x(int* x);
 void scaledMenu_EarlyStartup(void);
 // In the injected 16:9 chrome, anchor a global page's backdrop at the menu origin so
 // the background spans the full screen instead of starting at the ss_content X offset.

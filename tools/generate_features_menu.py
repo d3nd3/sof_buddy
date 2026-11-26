@@ -25,6 +25,7 @@ LABELS = {
     "hd_textures": "HD Textures",
     "vsync_toggle": "VSync Toggle",
     "lighting_blend": "Lighting Blend",
+    "model_anisotropic": "Model Anisotropy",
     "teamicons_offset": "Team Icons Offset",
     "entity_visualizer": "Entity Visualizer",
     "http_maps": "HTTP Maps",
@@ -38,6 +39,8 @@ LABELS = {
     "cbuf_limit_increase": "Cbuf Limit Increase",
     "raw_mouse": "Raw Mouse",
     "more_crosshairs": "More Crosshairs",
+    "forcerun_singleplayer": "Force Run Singleplayer",
+    "local_mp_full_movescale": "Local MP Full Movescale",
 }
 
 

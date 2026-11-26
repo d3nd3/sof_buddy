@@ -32,13 +32,18 @@ CATEGORIES = {
         "texture_mapping_min_mag",
         "scaled_con",
         "scaled_hud",
+        "scaled_scope",
         "hd_textures",
         "vsync_toggle",
         "lighting_blend",
+        "lightstyle_interpolation",
+        "model_anisotropic",
     ],
     "Gameplay Features": [
         "more_crosshairs",
         "teamicons_offset",
+        "forcerun_singleplayer",
+        "local_mp_full_movescale",
         "entity_visualizer",
     ],
     "Networking Features": [

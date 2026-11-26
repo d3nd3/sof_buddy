@@ -12,7 +12,7 @@
 - _sofbuddy_icons_autoscale: Scale team icons + playernames with HUD scale (default: 0)
 	- _sofbuddy_scale_round_auto: Snap cinematic image scale to round steps (default: 0)
 	- _sofbuddy_scale_round_ratio: Round step for scale values (default: 0.25)
-	- _sofbuddy_menu_tip_appear: milliseconds before a menu tooltip appears (default: 750)
+	- _sofbuddy_menu_tip_appear: milliseconds before a menu tooltip appears (default: 625 = vanilla)
 	- _sofbuddy_menu_font_size_style: F12 menu text preset 0=Small, 1=Normal, 2=Large, 3=Extra Large (default: 0)
 */
 
@@ -344,7 +344,22 @@ void create_scaled_ui_cvars(void) {
     if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) {
     _sofbuddy_menu_scale_pct = detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_scale_pct", "75", CVAR_SOFBUDDY_ARCHIVE, menu_scale_pct_change);
     _sofbuddy_menu_scale = detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_scale", "1", CVAR_SOFBUDDY_ARCHIVE, menuscale_change);
-    _sofbuddy_menu_tip_appear = detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_tip_appear", "750", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    _sofbuddy_menu_tip_appear = detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_tip_appear", "625", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    // SoF's stock tip_duration is 2500 ms and a tip becomes visible at duration/4,
+    // so vanilla tooltips appear after 625 ms. 750 was the old Buddy default; move
+    // it to the vanilla delay exactly once, guarded by an archived marker so a
+    // user who later chooses 750 deliberately keeps it.
+    cvar_t* tip_appear_migrated = detour_Cvar_Get::oCvar_Get(
+        "_sb_internal_tip_appear_vanilla_migrated", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
+    if (tip_appear_migrated && tip_appear_migrated->value == 0.0f &&
+        detour_Cvar_Set2::oCvar_Set2) {
+        if (_sofbuddy_menu_tip_appear && _sofbuddy_menu_tip_appear->value == 750.0f)
+            detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_menu_tip_appear"),
+                                         const_cast<char*>("625"), true);
+        detour_Cvar_Set2::oCvar_Set2(
+            const_cast<char*>("_sb_internal_tip_appear_vanilla_migrated"),
+            const_cast<char*>("1"), true);
+    }
     _sofbuddy_menu_font_size_style = detour_Cvar_Get::oCvar_Get("_sofbuddy_menu_font_size_style", "0", CVAR_SOFBUDDY_ARCHIVE, nullptr);
     migrate_legacy_negative_scale(_sofbuddy_menu_scale);
     if (_sofbuddy_menu_scale) _sofbuddy_menu_scale->flags &= ~kCvarInteger;

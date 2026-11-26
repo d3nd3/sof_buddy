@@ -1,0 +1,8 @@
+[
+  {
+    "hook": "PostCvarInit",
+    "callback": "lightstyle_interpolation_PostCvarInit",
+    "priority": 50,
+    "phase": "Post"
+  }
+]

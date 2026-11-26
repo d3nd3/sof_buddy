@@ -119,6 +119,30 @@ static bool try_resolve_stored_last_page(std::string& menu_to_push) {
     return true;
 }
 
+static void* s_current_buddy_page = nullptr;
+
+/*
+    Remember which menu page was pushed by a SoF Buddy RMF.  F12 uses this
+    to tell "a Buddy page is already open" apart from a stock menu, so the
+    hotkey can toggle instead of pushing another page (which used to leave a
+    stack that needed one Close per F12 press).
+*/
+void internal_menus_note_menu_page(const char* menu_file, void* page) {
+    s_current_buddy_page = nullptr;
+    if (!menu_file || !menu_file[0]) return;
+
+    std::string n = normalize_menu_file_path(menu_file);
+    if (n.empty()) return;
+    if (n.rfind("sof_buddy/", 0) != 0) {
+        if (n.find('/') != std::string::npos) return;
+        auto it = g_menu_internal_files.find("sof_buddy");
+        if (it == g_menu_internal_files.end()) return;
+        const std::string rmf = n + ".rmf";
+        if (it->second.find(rmf) == it->second.end()) return;
+    }
+    s_current_buddy_page = page;
+}
+
 namespace {
 
 constexpr const char* kInternalMenusDiskRoot = "user/menus";
@@ -359,7 +383,6 @@ void create_loading_cvars() {
 
 constexpr int kSofBuddyCenterPanelVirtualWidth = 640;
 
-
 namespace {
 
 std::string trim_ascii(const char* s) {
@@ -573,13 +596,25 @@ void apply_menu_hotkey_binding() {
         detour_Cvar_Set2::oCvar_Set2(const_cast<char*>("_sofbuddy_menu_hotkey"), const_cast<char*>(key.c_str()), true);
 
     char cmd[128];
-    const char* command = (key == "F12") ? "sofbuddy_f12_menu" : "sofbuddy_menu sof_buddy";
-    std::snprintf(cmd, sizeof(cmd), "bind %s \"%s\"", key.c_str(), command);
+    std::snprintf(cmd, sizeof(cmd), "bind %s \"sofbuddy_f12_menu\"", key.c_str());
     detour_Cmd_ExecuteString::oCmd_ExecuteString(cmd);
-    PrintOut(PRINT_DEV, "Internal menus: bound %s to %s\n", key.c_str(), command);
+    PrintOut(PRINT_DEV, "Internal menus: bound %s to sofbuddy_f12_menu\n", key.c_str());
 }
 
 void Cmd_SoFBuddy_F12_Menu_f() {
+    auto* menu_system_slot =
+        reinterpret_cast<void**>(rvaToAbsExe(reinterpret_cast<void*>(0x00406554)));
+    void* menu_system = menu_system_slot ? *menu_system_slot : nullptr;
+    void* top_page = menu_system
+                         ? *reinterpret_cast<void**>(static_cast<char*>(menu_system) + 4)
+                         : nullptr;
+
+    // Toggle: a second F12 on a Buddy page closes the whole Buddy stack.
+    if (top_page && top_page == s_current_buddy_page) {
+        internal_menus_close_all_pages();
+        return;
+    }
+
     if (detour_Cmd_ExecuteString::oCmd_ExecuteString)
         detour_Cmd_ExecuteString::oCmd_ExecuteString("sofbuddy_menu sof_buddy");
 }
@@ -709,7 +744,8 @@ void internal_menus_remember_menu_page(const char* menu_file) {
         }
     }
     if (n == "sof_buddy/update_prompt" || n == "sof_buddy/update_uptodate" ||
-        n == "sof_buddy/update_downgrade" || n == "sof_buddy/feature_prompt") {
+        n == "sof_buddy/update_downgrade" || n == "sof_buddy/feature_prompt" ||
+        n == "sof_buddy/gl_modulate_warning") {
         return;
     }
     set_runtime_cvar_str("_sb_internal_menu_last_page", n.c_str());
@@ -821,8 +857,8 @@ const char* internal_menus_get_theme_list_rmf(void) {
     const char* match = internal_menus_get_theme_list_match_rmf();
     std::snprintf(buf, sizeof(buf),
         "<list \"%s\" match \"%s\" cvari _sofbuddy_menu_theme atext \"Menu Theme : \" "
-        "key mouse1 \"reloadall;sofbuddy_menu sof_buddy/sofbuddy\" "
-        "key mouse2 \"reloadall;sofbuddy_menu sof_buddy/sofbuddy\" "
+        "key mouse1 \"sofbuddy_close_menu;reloadall;sofbuddy_menu sof_buddy/sofbuddy\" "
+        "key mouse2 \"sofbuddy_close_menu;reloadall;sofbuddy_menu sof_buddy/sofbuddy\" "
         "noshade tip \"Menu color preset. Tab reloads to apply tints.\"><br>",
         labels, match);
     return buf;
@@ -1031,11 +1067,34 @@ void internal_menus_EarlyStartup(void) {
 
 static bool sofbuddy_menu_command_registered = false;
 
+/*
+    Closing a menu stack: the engine's `killmenu` only pops one page
+    (menu_system_c::KillPage removes the top entry and returns true while a
+    parent remains).  Buddy pages are normally replaced in place, but page
+    rebuilds (`reloadall;sofbuddy_menu ...`) push a fresh page on top, so a
+    single killmenu can leave the previous F12 page visible behind a live
+    panel.  Pop repeatedly until the menu system is gone.
+*/
+void internal_menus_close_all_pages(void) {
+    if (!detour_Cmd_ExecuteString::oCmd_ExecuteString) return;
+    auto* menu_system_slot =
+        reinterpret_cast<void**>(rvaToAbsExe(reinterpret_cast<void*>(0x00406554)));
+    if (!menu_system_slot) return;
+    for (int i = 0; i < 32 && *menu_system_slot; ++i) {
+        detour_Cmd_ExecuteString::oCmd_ExecuteString(const_cast<char*>("killmenu"));
+    }
+}
+
+static void Cmd_SoFBuddy_Close_Menu_f(void) {
+    internal_menus_close_all_pages();
+}
+
 static bool register_sofbuddy_menu_command(void) {
     if (sofbuddy_menu_command_registered) return true;
     if (!detour_Cmd_AddCommand::oCmd_AddCommand) return false;
 
     detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_menu"), Cmd_SoFBuddy_Menu_f);
+    detour_Cmd_AddCommand::oCmd_AddCommand(const_cast<char*>("sofbuddy_close_menu"), Cmd_SoFBuddy_Close_Menu_f);
     sofbuddy_menu_command_registered = true;
     return true;
 }

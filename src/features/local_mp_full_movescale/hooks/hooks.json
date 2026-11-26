@@ -1,0 +1,8 @@
+[
+  {
+    "function": "SV_ShutdownGameProgs",
+    "callback": "lmfm_SV_ShutdownGameProgs_post",
+    "phase": "Post",
+    "priority": 90
+  }
+]

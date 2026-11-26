@@ -17,6 +17,52 @@ functions:
     detour_len: 0
     params: []
 
+  - name: R_BuildLightMap
+    module: RefDll
+    identifier: "0x00009550"
+    return_type: int
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: int
+        name: surf
+      - type: void*
+        name: dest
+      - type: int
+        name: pitch
+
+  - name: R_LightPoint
+    module: RefDll
+    identifier: "0x00008FF0"
+    return_type: float*
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: float*
+        name: point
+      - type: float*
+        name: color
+      - type: int
+        name: style
+
+  - name: R_BeginRegistration
+    module: RefDll
+    identifier: "0x0000AB80"
+    return_type: char*
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: char*
+        name: map
+
+  - name: R_SortAndDrawAlphaSurfaces
+    module: RefDll
+    identifier: "0x00011010"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
+
   - name: R_Init
     module: RefDll
     identifier: "0x0000F550"
@@ -30,6 +76,14 @@ functions:
         name: hWnd
       - type: void*
         name: unknown
+
+  - name: CL_RunLightStyles
+    module: SofExe
+    identifier: "0x0002F940"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params: []
 
   - name: IN_MouseMove
     module: SofExe
@@ -317,6 +371,28 @@ functions:
     detour_len: 0
     params: []
 
+  - name: CL_BaseMove
+    module: SofExe
+    identifier: "0x00004B20"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: void*
+        name: cmd
+
+  - name: ghoul_set_gl_table
+    module: SofExe
+    identifier: "0x00070780"
+    return_type: void
+    calling_convention: __thiscall
+    detour_len: 0
+    params:
+      - type: void*
+        name: self
+      - type: void*
+        name: table
+
   - name: SV_ShutdownGameProgs
     module: SofExe
     identifier: "0x005CD70"
@@ -445,6 +521,16 @@ functions:
       - type: void*
         name: self
 
+  - name: cCountdown_Draw
+    module: SofExe
+    identifier: "0x00007940"
+    return_type: void
+    calling_convention: __thiscall
+    detour_len: 0
+    params:
+      - type: void*
+        name: self
+
   - name: cMissionStatus_Draw
     module: SofExe
     identifier: "0x00009250"
@@ -468,6 +554,16 @@ functions:
   - name: cCtfFlag_Draw
     module: SofExe
     identifier: "0x00006920"
+    return_type: void
+    calling_convention: __thiscall
+    detour_len: 0
+    params:
+      - type: void*
+        name: self
+
+  - name: cScope_Draw
+    module: SofExe
+    identifier: "0x00006EA0"
     return_type: void
     calling_convention: __thiscall
     detour_len: 0
@@ -514,6 +610,24 @@ functions:
         name: name
       - type: int
         name: flags
+
+  - name: Draw_FillRGB
+    module: RefDll
+    identifier: "0x000025B0"
+    return_type: void
+    calling_convention: __cdecl
+    detour_len: 0
+    params:
+      - type: int
+        name: x
+      - type: int
+        name: y
+      - type: int
+        name: w
+      - type: int
+        name: h
+      - type: paletteRGBA_t*
+        name: color
 
   - name: Draw_Pic
     module: RefDll

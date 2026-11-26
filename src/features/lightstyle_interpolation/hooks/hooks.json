@@ -1,0 +1,8 @@
+[
+  {
+    "function": "CL_RunLightStyles",
+    "callback": "lightstyle_interpolation_run_post_callback",
+    "phase": "Post",
+    "priority": 100
+  }
+]

@@ -33,6 +33,7 @@
 #include "runtime_features.h"
 #include "generated_detours.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cctype>
@@ -52,7 +53,6 @@ float g_scaledMenuSelectionScale = 1.0f;
 
 static char s_pushed_menu_name[64] = {0};
 static bool s_skip_vertical_shrink = false;
-static bool s_resize_page_active = false;
 
 static bool name_contains_ci(const char* s, const char* needle) {
 	if (!s || !needle || !*needle) return false;
@@ -96,7 +96,6 @@ void scaled_menu_set_pushed_menu(const char* name) {
 	}
 	s_pushed_menu_name[i] = '\0';
 	s_skip_vertical_shrink = false;
-	s_resize_page_active = false;
 }
 
 namespace scaled_menu_detail {
@@ -324,7 +323,6 @@ constexpr uintptr_t kRvaFrameGetMouseX = 0x000C66A0u;
 constexpr uintptr_t kRvaFrameGetMouseY = 0x000C66D0u;
 constexpr uintptr_t kRvaToken = 0x000EB440u;
 constexpr uintptr_t kRvaTextVtbl = 0x00112A40u;
-constexpr uintptr_t kRvaInputVtbl = 0x001128C8u;
 constexpr uintptr_t kRvaTickerVtbl = 0x00112808u;
 constexpr uintptr_t kRvaGhoulVtbl = 0x001129E0u;
 constexpr uintptr_t kRvaPicVtbl = 0x00112848u;
@@ -443,15 +441,21 @@ static Draw_BeveledBox_t oDraw_BeveledBox = nullptr;
 // Apply the measured rect to the tip box currently being drawn by tip_c::Render.
 // Written by hk_tip_render, read by hk_draw_beveled_box.
 static bool s_tip_box_active = false;
+static int s_tip_box_x = 0;
 static int s_tip_box_y = 0;
+static int s_tip_box_w = 0;
 static int s_tip_box_h = 0;
 
 static void __cdecl hk_draw_beveled_box(int x, int y, int w, int h, void* tint) {
 	// tip_c::Render draws its background before the text, so use the previous frame's
 	// measured glyph bounds (stable while the same tip is hovered). The first frame of
 	// a new tip is invisible: the fade starts at alpha 0 when the tip becomes active.
+	// Width matters too: a long tip is reflowed into several lines, so the stock
+	// single-line box is too wide.
 	if (s_tip_box_active) {
+		x = s_tip_box_x;
 		y = s_tip_box_y;
+		w = s_tip_box_w;
 		h = s_tip_box_h;
 	}
 	if (oDraw_BeveledBox) oDraw_BeveledBox(x, y, w, h, tint);
@@ -473,28 +477,11 @@ static bool menu_c_is_resize_popup(const void* menu_c) {
 	return menu_c && *reinterpret_cast<const uint8_t*>(static_cast<const char*>(menu_c) + kMenuC_ResizeScreen) != 0;
 }
 
-static bool menu_resize_canvas_is_scaled(const void* menu_c) {
-	if (!menu_c || !menu_c_is_resize_popup(menu_c)) return false;
-	const float canvas =
-	    *reinterpret_cast<const float*>(static_cast<const char*>(menu_c) + kMenuC_ScreenScale);
-	float max_expected = scaled_menu_screen_scale();
-	if (screen_x_scale > max_expected) max_expected = screen_x_scale;
-	if (screen_y_scale > max_expected) max_expected = screen_y_scale;
-	return resize_canvas_scale_is_applied(canvas, max_expected);
-}
-
 // <text> labels are the widgets whose RMF xoff/yoff are hand-tuned centring offsets.
 static bool widget_is_text(const void* widget) {
 	if (!widget) return false;
 	const void* vt = *static_cast<const void* const*>(widget);
 	return vt == rvaToAbsExe(reinterpret_cast<void*>(kRvaTextVtbl));
-}
-
-// <input> sizes itself from measurement (textW/textH × scale + borders), like <text>.
-static bool widget_is_input(const void* widget) {
-	if (!widget) return false;
-	const void* vt = *static_cast<const void* const*>(widget);
-	return vt == rvaToAbsExe(reinterpret_cast<void*>(kRvaInputVtbl));
 }
 
 // <pic>/<image> dimensions are actual pixels; resize pages need their authored
@@ -690,12 +677,10 @@ static bool menu_actual_pixel_scale_active(const void* menu_c) {
 	if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU)) return false;
 	if (!scaled_menu_uniform_actual_active()) return false;
 	if (!menu_c) return false;
-	// Resize pages are pinned to actual pixels; hk_frame_resize raises their canvas to
-	// menuScale so the page itself carries the scale, and scaling the contents again would
-	// overflow. Only skip the per-widget factor when the canvas really holds such a raised
-	// scale. A re-parsed/reused menu tree can keep the +0x8C flag with a zeroed/1.0 canvas,
-	// in which case the per-widget factor is the only scaling the contents get.
-	if (menu_resize_canvas_is_scaled(menu_c)) return false;
+	// `<stm resize>` scales *frames* (frame_c's ctor multiplies frame W/H by
+	// menu_c+0xAC) but not widget dimensions: rect_c::GetCoords/setup use the stored
+	// W/H and picture sizes directly. So resize pages still need the normal per-widget
+	// factor; only the frame layout and virtual offsets go through the canvas.
 	return true;
 }
 
@@ -718,12 +703,7 @@ static float menu_actual_rect_dim_factor(void* rect, bool ignore_noscale = false
 		return 1.f;
 	if (widget_is_ghoul(rect)) return 1.f;
 	void* menu = menu_outer_from_widget(rect);
-	if (!menu_actual_pixel_scale_active(menu)) {
-		// Resize pages carry the page scale in their canvas, but text/input boxes
-		// keep authored widths unless their fixed dimensions get the normal factor.
-		if (!(widget_is_text(rect) || widget_is_input(rect)))
-			return 1.f;
-	}
+	if (!menu_actual_pixel_scale_active(menu)) return 1.f;
 	const float v = *reinterpret_cast<float*>(static_cast<char*>(rect) + kRect_WidgetScale);
 	if (v <= 1e-6f || !std::isfinite(v)) return 1.f;
 	const float s = scaled_menu_screen_scale();
@@ -1546,6 +1526,39 @@ static void hk_hbar_draw(void* hbar) {
 using Frame_Resize_t = void(__thiscall*)(void* frame, char* w, char* h);
 static Frame_Resize_t oFrame_Resize = nullptr;
 
+// Lighting live-preview pages request the exact `resize 300 600` size so they
+// can be pinned to the right edge of the screen instead of being centred. The
+// page is scaled down on short screens so it still fits at 640x480. Keep the
+// numbers in sync with lighting_*_live.rmf.
+static constexpr float kLivePanelW = 300.0f;
+static constexpr float kLivePanelH = 600.0f;
+static constexpr int kLivePanelMargin = 8;
+
+static bool is_live_panel_resize(const char* w, const char* h) {
+	return w && h && std::strcmp(w, "300") == 0 && std::strcmp(h, "600") == 0;
+}
+
+static void scale_live_panel(void* frame) {
+	char* f = static_cast<char*>(frame);
+	float s = scaled_menu_screen_scale();
+	if (!std::isfinite(s) || s <= 0.0f) s = 1.0f;
+	const float fit_h = static_cast<float>(current_vid_h - 2 * kLivePanelMargin) / kLivePanelH;
+	const float fit_w = static_cast<float>(current_vid_w - 2 * kLivePanelMargin) / kLivePanelW;
+	s = std::min(s, std::min(fit_h, fit_w));
+	if (s < 0.5f) s = 0.5f;
+	if (char* menu = *reinterpret_cast<char**>(f + kFrame_Menu)) {
+		*reinterpret_cast<float*>(menu + kMenuC_ScreenScale) = s;
+	}
+	int& fw = *reinterpret_cast<int*>(f + kFrame_W);
+	int& fh = *reinterpret_cast<int*>(f + kFrame_H);
+	const int scaled_w = static_cast<int>(std::lround(static_cast<float>(fw) * s));
+	const int scaled_h = static_cast<int>(std::lround(static_cast<float>(fh) * s));
+	fw = scaled_w;
+	fh = scaled_h;
+	*reinterpret_cast<int*>(f + kFrame_OffX) = current_vid_w - scaled_w - kLivePanelMargin;
+	*reinterpret_cast<int*>(f + kFrame_OffY) = (current_vid_h - scaled_h) / 2;
+}
+
 #if defined(__GNUC__)
 __attribute__((thiscall))
 #endif
@@ -1566,29 +1579,32 @@ static void hk_frame_resize(void* frame, char* w, char* h) {
 	// `<stm resize W H>` pins the page to absolute pixels at every menu scale. The engine
 	// sets menu->screenScale to 1.0 here; hk_frame_link keys off menu_c_is_resize_popup()
 	// so the 4:3->wide frame ratio never grows these frames by vid_h/480 (the stretched
-	// precache/player dialog). Mark the session flag before the scale check as well.
-	s_resize_page_active = true;
+	// precache/player dialog).
+	const bool live_panel = is_live_panel_resize(w, h);
+	if (live_panel) {
+		scale_live_panel(frame);
+		return;
+	}
 	if (!scaled_menu_uniform_actual_active() || scaled_menu_skip_for_intro_disclaimer()) return;
 	const float s = scaled_menu_screen_scale();
 	if (!std::isfinite(s) || std::fabs(s - 1.f) < 0.001f) return;
 	char* f = static_cast<char*>(frame);
-	// Stock pinned this page to W×H actual pixels with canvas scale 1.0. Scale both the
-	// canvas (contents) and the default frame box, then recentre the resulting size.
+	// Stock pinned this page to W×H actual pixels with canvas scale 1.0. Raise the canvas
+	// (frame_c's ctor scales authored frame W/H by it) and scale the default frame box,
+	// then recentre the resulting size. Widget contents are scaled separately by the
+	// normal per-widget factor; the canvas does not scale them.
 	if (char* menu = *reinterpret_cast<char**>(f + kFrame_Menu)) {
 		*reinterpret_cast<float*>(menu + kMenuC_ScreenScale) = s;
 	}
-	// W/H are authored in virtual units. The canvas scales the contents, so scale the
-	// default frame box too and centre the resulting actual-pixel size.
+	// W/H are authored in virtual units; scale the default frame box and centre it.
 	int& fw = *reinterpret_cast<int*>(f + kFrame_W);
 	int& fh = *reinterpret_cast<int*>(f + kFrame_H);
 	const int scaled_w = static_cast<int>(std::lround(static_cast<float>(fw) * s));
 	const int scaled_h = static_cast<int>(std::lround(static_cast<float>(fh) * s));
 	fw = scaled_w;
 	fh = scaled_h;
-	*reinterpret_cast<int*>(f + kFrame_OffX) =
-	    (current_vid_w - scaled_w) / 2;
-	*reinterpret_cast<int*>(f + kFrame_OffY) =
-	    (current_vid_h - scaled_h) / 2;
+	*reinterpret_cast<int*>(f + kFrame_OffX) = (current_vid_w - scaled_w) / 2;
+	*reinterpret_cast<int*>(f + kFrame_OffY) = (current_vid_h - scaled_h) / 2;
 }
 
 // Internal sof_buddy pages keep the stock frame canvas, so their frames skip the
@@ -1887,8 +1903,6 @@ struct HoverSave {
 	void* rect;
 	int ox;
 	int oy;
-	int w, h, ow, oh;
-	bool pic_scaled;
 };
 static HoverSave s_hover_saved[512];
 static int s_hover_saved_count = 0;
@@ -1942,16 +1956,20 @@ struct TipSource {
 	// The engine draws the tip's box before its text, so a new measurement is only
 	// available one frame later; the tip fades in from alpha 0, which hides that frame.
 	bool measured;
+	int box_x;
 	int box_y;
+	int box_w;
 	int box_h;
 };
 static TipSource s_tip_sources[64];
 static int s_tip_source_next = 0;
 
-// Glyph run capture for the current tip render. Only the vertical extent matters:
-// the engine's horizontal sizing already matches the scaled run.
+// Glyph run capture for the current tip render. Horizontal bounds are needed when a
+// long tip is reflowed into several lines; the tallest/widest run defines the box.
 static bool s_tip_capturing = false;
 static int s_tip_vertex_count = 0;
+static float s_tip_min_x = 0.0f;
+static float s_tip_max_x = 0.0f;
 static float s_tip_min_y = 0.0f;
 static float s_tip_max_y = 0.0f;
 
@@ -1963,23 +1981,41 @@ static void tip_bounds_begin(void) {
 static void tip_bounds_end(TipSource* source) {
 	s_tip_capturing = false;
 	if (!source || s_tip_vertex_count == 0) return;
+	const int left = static_cast<int>(std::floor(s_tip_min_x));
+	const int right = static_cast<int>(std::ceil(s_tip_max_x));
 	const int top = static_cast<int>(std::floor(s_tip_min_y));
 	const int bottom = static_cast<int>(std::ceil(s_tip_max_y));
-	if (bottom <= top) return;
+	if (bottom <= top || right <= left) return;
+	source->box_x = left - 2;
 	source->box_y = top - 2;
+	source->box_w = (right - left) + 4;
 	source->box_h = (bottom - top) + 4;
 	source->measured = true;
 }
 
 void tip_bounds_vertex(float x, float y) {
-	(void)x;
 	if (!s_tip_capturing) return;
 	if (s_tip_vertex_count++ == 0) {
+		s_tip_min_x = s_tip_max_x = x;
 		s_tip_min_y = s_tip_max_y = y;
 		return;
 	}
+	if (x < s_tip_min_x) s_tip_min_x = x;
+	if (x > s_tip_max_x) s_tip_max_x = x;
 	if (y < s_tip_min_y) s_tip_min_y = y;
 	if (y > s_tip_max_y) s_tip_max_y = y;
+}
+
+// tip_c::Render anchors the tip at the mouse x, then shifts it left when the single
+// line would overflow the right edge (going negative when the text is wider than the
+// screen). Long tips are reflowed instead, and that needs the unclamped anchor.
+static bool s_tip_anchor_active = false;
+static int s_tip_anchor_x_value = 0;
+
+bool tip_anchor_x(int* x) {
+	if (!s_tip_anchor_active || !x) return false;
+	*x = s_tip_anchor_x_value;
+	return true;
 }
 
 static void tip_source_store(void* menu, void* tip, void* rect, void* stm,
@@ -2005,7 +2041,9 @@ static void tip_source_store(void* menu, void* tip, void* rect, void* stm,
 	entry.generation = generation;
 	entry.from_stm_hover = from_stm_hover;
 	entry.measured = false;
+	entry.box_x = 0;
 	entry.box_y = 0;
+	entry.box_w = 0;
 	entry.box_h = 0;
 }
 
@@ -2018,7 +2056,9 @@ static void tip_source_reset(void) {
 		entry.generation = 0;
 		entry.from_stm_hover = false;
 		entry.measured = false;
+		entry.box_x = 0;
 		entry.box_y = 0;
+		entry.box_w = 0;
 		entry.box_h = 0;
 	}
 	s_tip_source_next = 0;
@@ -2048,7 +2088,6 @@ static void hover_save_and_adjust(void* rect) {
 	char* r = static_cast<char*>(rect);
 	sv.ox = *reinterpret_cast<int*>(r + kRect_Ox);
 	sv.oy = *reinterpret_cast<int*>(r + kRect_Oy);
-	sv.pic_scaled = false;
 	void* stm = *reinterpret_cast<void**>(static_cast<char*>(rect) + kRect_MenuPtr);
 	void* frame = stm ? *reinterpret_cast<void**>(stm) : nullptr;
 	void* menu = frame ? *reinterpret_cast<void**>(frame) : nullptr;
@@ -2067,17 +2106,6 @@ static void hover_save_and_adjust(void* rect) {
 	               (thiscall_noargs_int(frame, fmy) + stm_y);
 	*reinterpret_cast<int*>(r + kRect_Ox) = x - kx;
 	*reinterpret_cast<int*>(r + kRect_Oy) = y - ky;
-	if (s_resize_page_active && widget_is_pic(rect) &&
-	    !*reinterpret_cast<uint8_t*>(r + kRect_NoScale)) {
-		sv.w = *reinterpret_cast<int*>(r + kRect_W);
-		sv.h = *reinterpret_cast<int*>(r + kRect_H);
-		sv.ow = *reinterpret_cast<int*>(r + kRect_OuterW);
-		sv.oh = *reinterpret_cast<int*>(r + kRect_OuterH);
-		static constexpr ptrdiff_t fields[] = {kRect_W, kRect_H, kRect_OuterW, kRect_OuterH};
-		scale_widget_dims(rect, fields, sizeof(fields) / sizeof(fields[0]),
-		                  scaled_menu_screen_scale());
-		sv.pic_scaled = true;
-	}
 }
 
 #if defined(__GNUC__)
@@ -2118,12 +2146,6 @@ static void hk_stm_hover_pass(void* stm) {
 		char* r = static_cast<char*>(sv.rect);
 		*reinterpret_cast<int*>(r + kRect_Ox) = sv.ox;
 		*reinterpret_cast<int*>(r + kRect_Oy) = sv.oy;
-		if (sv.pic_scaled) {
-			*reinterpret_cast<int*>(r + kRect_W) = sv.w;
-			*reinterpret_cast<int*>(r + kRect_H) = sv.h;
-			*reinterpret_cast<int*>(r + kRect_OuterW) = sv.ow;
-			*reinterpret_cast<int*>(r + kRect_OuterH) = sv.oh;
-		}
 	}
 	s_hover_saved_count = 0;
 }
@@ -2186,13 +2208,19 @@ static void hk_tip_render(void* tip, void* menu) {
 	    RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU);
 	s_tip_box_active = fit && source && source->measured;
 	if (s_tip_box_active) {
+		s_tip_box_x = source->box_x;
 		s_tip_box_y = source->box_y;
+		s_tip_box_w = source->box_w;
 		s_tip_box_h = source->box_h;
 	}
 	if (fit && source)
 		tip_bounds_begin();
 	else
 		s_tip_capturing = false;
+	s_tip_anchor_x_value =
+	    *reinterpret_cast<int*>(static_cast<char*>(tip) + 0x10) +
+	    *reinterpret_cast<int*>(static_cast<char*>(menu) + kMenuC_FreeX);
+	s_tip_anchor_active = true;
 	if (oTip_Render) {
 #if defined(__GNUC__) && defined(__i386__)
 		thiscall_1arg_void(tip, menu, reinterpret_cast<void*>(oTip_Render));
@@ -2200,6 +2228,7 @@ static void hk_tip_render(void* tip, void* menu) {
 		oTip_Render(tip, menu);
 #endif
 	}
+	s_tip_anchor_active = false;
 	s_tip_box_active = false;
 	tip_bounds_end(source);
 }
@@ -2417,6 +2446,10 @@ using namespace scaled_menu_detail;
 
 void scaled_menu_tip_bounds_vertex(float x, float y) {
 	tip_bounds_vertex(x, y);
+}
+
+bool scaled_menu_tip_anchor_x(int* x) {
+	return tip_anchor_x(x);
 }
 
 void scaled_menu_backdrop_clip_extend(int* x, int* w, const void* menu_c) {

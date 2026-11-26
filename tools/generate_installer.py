@@ -39,7 +39,16 @@ def read_features(path):
     return categories
 
 
+FEATURE_LABELS = {
+    "forcerun_singleplayer": "Force Run Singleplayer",
+    "local_mp_full_movescale": "Local MP Full Movescale",
+    "model_anisotropic": "Model Anisotropy",
+}
+
+
 def feature_label(name):
+    if name in FEATURE_LABELS:
+        return FEATURE_LABELS[name]
     return name.replace("_", " ").title()
 
 
@@ -182,7 +191,7 @@ def generate(features_path, output_path):
         'Name: "full_violence"; Description: "[OPTIONAL] Unlock full violence (highly recommended if not using SoFPlus spcl.dll)"; '
         'GroupDescription: "Optional installation options:"',
         'Name: "install_sofplus"; Description: "[OPTIONAL] Install SoF Plus client (20140531; CD or GOG kit chosen from your SoF.exe)"; '
-        'GroupDescription: "Optional installation options:"',
+        'GroupDescription: "Optional installation options:"; Flags: unchecked',
         'Name: "reset_feature_toggles"; Description: "Expecting a new feature? Reset feature toggles (keeps other SoF Buddy settings)"; '
         'GroupDescription: "Optional installation options:"; Flags: unchecked; Check: HasExistingSoFBuddy',
         "",

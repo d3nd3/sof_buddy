@@ -56,7 +56,7 @@ Callers of `Draw_StretchPic` - used for stretched/scaled images:
 | `CON_DrawConsole` | Console background | `0x00020F90` | Console rendering |
 | `CtfFlagDraw` | CTF flag display | - | Capture the flag indicator |
 | `ControlFlagDraw` | Control point flag | - | Control point indicator |
-| `ScopeDraw` | Sniper scope overlay | - | Scope reticle |
+| `ScopeDraw` | Sniper scope overlay | `0x00006EA0` | Scope reticle |
 | `ExecuteLayoutString` | Menu/scoreboard elements | - | Layout-based UI |
 | `VbarDraw` | Vertical bar elements | - | Progress/status bars |
 | `DrawStretchPic` | Generic stretched pic | `0x000C8960` | Fallback caller |
@@ -133,7 +133,8 @@ Callers of `R_DrawFont` - used for text rendering:
 
 | Caller | UI Component | RVA | Module | Scaling | Notes |
 |--------|--------------|-----|--------|---------|-------|
-| `ScopeCalcXY` | Scope text | `0x00006DC0` | SoF.exe | None | Scope overlay text |
+| `ScopeCalcXY` | Scope layout calculation | `0x00006DC0` | SoF.exe | None | Scope positioning |
+| `ScopeDraw` | Scope text | `0x00006EA0` | SoF.exe | Scope scale (`scaled_scope`) | Magnification readout |
 | `DMRankingCalcXY` | Deathmatch ranking text | `0x00007AF0` | SoF.exe | HUD scale | DM scoreboard text |
 | `Inventory2` | Inventory text | `0x00008260` | SoF.exe | HUD scale | Item names, ammo counts |
 | `SCRDrawPause` | Pause screen text | `0x00013710` | SoF.exe | Screen scale | Pause menu |
@@ -181,6 +182,7 @@ Callers of `glVertex2f` - used for vertex coordinate scaling:
 Applied to:
 - `FontCaller::DMRankingCalcXY` - Deathmatch ranking text
 - `FontCaller::Inventory2` - Inventory text
+- `FontCaller::Countdown` - Countdown timer text
 - `PicOptionsCaller::cDMRanking_CalcXY` - DM ranking images
 - `PicOptionsCaller::cInterface_DrawNum` - Interface numbers
 - `StretchPicCaller::CtfFlagDraw` - CTF flag (when `g_activeRenderType == HudCtfFlag`)
@@ -237,9 +239,12 @@ Applied to:
 
 ### No Scaling
 These callers render at original size:
-- `FontCaller::ScopeCalcXY` - Scope text (must remain pixel-perfect)
+- `FontCaller::ScopeCalcXY` - Scope layout calculation (does not draw text)
 - `FontCaller::DrawLine` - Line text
 - `VertexCaller::*` - Vertex callers (handled separately)
+
+`FontCaller::ScopeDraw` is scaled only by the `scaled_scope` feature; when
+that feature is off the scope readout keeps its stock pixel size.
 
 **Related Files:**
 - `text_scaling.cpp` (lines 51-53, 63-65) - No scaling cases

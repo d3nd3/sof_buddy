@@ -183,6 +183,11 @@ No manual choice between “stub” and “full” GOG is required. After SoF Pl
 are installed, Setup runs `enable_sofplus_and_buddy` so `SoF.exe` loads
 `sof_buddy.dll`, which loads `spcl.dll` when present.
 
+The task is unticked by default. Setup pre-ticks it only when the chosen game
+folder already contains a SoF Plus client (`spcl.dll` or `SofPlus.dll`), so
+players who already use SoF Plus keep the client step selected while vanilla
+installs opt in manually.
+
 ### Full violence
 
 The checked-by-default **[OPTIONAL] Unlock full violence** option on the

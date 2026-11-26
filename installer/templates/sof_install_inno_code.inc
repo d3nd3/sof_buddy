@@ -48,13 +48,21 @@ begin
   SoFRecommendFullViolence := SoFDetectValue('recommend_full_violence') <> '0';
 end;
 
+function HasSoFPlusClientFiles: Boolean;
+begin
+  // SoF Plus may be present as either client DLL; pre-select the task only
+  // when the chosen game folder already has one of them.
+  Result := FileExists(ExpandConstant('{app}\spcl.dll')) or
+    FileExists(ExpandConstant('{app}\SofPlus.dll'));
+end;
+
 procedure ApplySoFDetectTaskDefaults;
 begin
-  if SoFDetectPath = '' then exit;
   if WizardForm.TasksList.Items.Count < 3 then exit;
+  WizardForm.TasksList.Checked[2] := HasSoFPlusClientFiles;
+  if SoFDetectPath = '' then exit;
   WizardForm.TasksList.Checked[0] := SoFRecommendAppcompat;
   WizardForm.TasksList.Checked[1] := SoFRecommendFullViolence;
-  WizardForm.TasksList.Checked[2] := False;
 end;
 
 function HasExistingSoFBuddy: Boolean;

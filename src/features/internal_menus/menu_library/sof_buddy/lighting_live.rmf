@@ -1,0 +1,6 @@
+<stm resize 300 600 global nopush>
+<include tints>
+
+<frame main 0 0 border 0 0 clear backfill clear>
+<frame content 0 0 page sof_buddy/lighting_live_content cut main>
+</stm>
