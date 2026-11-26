@@ -33,7 +33,7 @@ void hkDraw_StretchPic(int x, int y, int w, int h, int palette, char * name, int
     }
 #if FEATURE_SCALED_SCOPE
     if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_SCOPE) &&
-        g_currentStretchPicCaller == StretchPicCaller::ScopeDraw) {
+        scaled_scope_active()) {
         scaled_scope_note_stretch_pic(x, y, w, h, name);
     }
 #endif

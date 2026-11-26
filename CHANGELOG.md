@@ -2,6 +2,12 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.57
+
+### Scaled scope
+
+- **Every `cScope::Draw` overlay element now maps into the centred 4:3 frame**, not just the tube and vignette. The right-side ammo/zoom gauge, arrows, crosshair bars, and magnification readout all keep their authored proportions, and the readout glyphs scale with the scope instead of staying at stock 8 px. `cScope::Draw` (`0x6EA0`) was missing from `funcmaps/SoF.exe.json`, so the callsite classifier could not identify its `Draw_StretchPic`/`R_DrawFont` calls; the scope hooks now also key off the active-frame flag, so an older funcmap cannot silently disable them.
+
 ## v8.56
 
 ### Loading screen
