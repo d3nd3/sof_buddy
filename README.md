@@ -10,8 +10,6 @@
 
 > **Suggestions, criticisms, and issues are highly encouraged.** Please [open a GitHub issue](https://github.com/d3nd3/sof_buddy/issues), reply on a release, or reach out on [Discord](https://discord.gg/zZjnsRKPEJ) — feedback directly drives what gets fixed and built next.
 
-> **Donations help keep development going.** If SoF Buddy is useful to you, consider [sponsoring on GitHub](https://github.com/sponsors/d3nd3) — contributions go toward ongoing development, testing, and other project costs.
-
 ![HTTP map download - missing maps fetched on demand](docs/images/http.png)
 ![SoF Buddy in-game menu (F12)](docs/images/menu.png)
 
@@ -779,4 +777,8 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 ---
 
 > *SoF Buddy is not affiliated with Raven Software or Activision. Soldier of Fortune and Soldier of Fortune II are © their respective owners.*
+
+---
+
+> **Donations help keep development going.** If SoF Buddy is useful to you, consider [sponsoring on GitHub](https://github.com/sponsors/d3nd3) — contributions go toward ongoing development, testing, and other project costs.
 
