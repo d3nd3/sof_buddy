@@ -448,10 +448,10 @@ constexpr uintptr_t kRvaStmClampScroll = 0x000EA160u;
 using Draw_RenderRect_t = void(__cdecl*)(int x, int y, int w, int h);
 static Draw_RenderRect_t Draw_RenderRect = nullptr;
 static Draw_RenderRect_t oDraw_RenderRect = nullptr;
-static bool s_ticker_draw_bolted = false;
+static bool s_ticker_fullscreen_scissor = false;
 
 static void __cdecl hk_draw_render_rect(int x, int y, int w, int h) {
-	if (oDraw_RenderRect && s_ticker_draw_bolted && current_vid_w > 0) {
+	if (oDraw_RenderRect && s_ticker_fullscreen_scissor && current_vid_w > 0) {
 		x = 0;
 		w = current_vid_w;
 	}
@@ -1923,13 +1923,21 @@ static Ticker_Draw_t oTicker_Draw = nullptr;
 __attribute__((thiscall))
 #endif
 static char hk_ticker_draw(void* ticker) {
-	const bool previous = s_ticker_draw_bolted;
+	const bool previous = s_ticker_fullscreen_scissor;
 	char* t = static_cast<char*>(ticker);
-	s_ticker_draw_bolted =
-	    t && (*reinterpret_cast<uint8_t*>(t + kRect_Bolted) ||
-	          *reinterpret_cast<void**>(t + kRect_BoltAnchor) != nullptr);
+	bool bolted = false;
+	bool global_page = false;
+	if (t) {
+		bolted = *reinterpret_cast<uint8_t*>(t + kRect_Bolted) ||
+		         *reinterpret_cast<void**>(t + kRect_BoltAnchor) != nullptr;
+		char* stm = *reinterpret_cast<char**>(t + kRect_MenuPtr);
+		global_page =
+		    stm && *reinterpret_cast<uint8_t*>(stm + kStm_GlobalPage) != 0;
+	}
+	s_ticker_fullscreen_scissor =
+	    scaled_menu_detail::ticker_scissor_uses_screen(bolted, global_page);
 	const int ret = thiscall_noargs_int(ticker, reinterpret_cast<void*>(oTicker_Draw));
-	s_ticker_draw_bolted = previous;
+	s_ticker_fullscreen_scissor = previous;
 	return static_cast<char>(ret);
 }
 
