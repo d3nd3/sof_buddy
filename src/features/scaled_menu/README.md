@@ -681,6 +681,14 @@ Fix:
   exactly the configured delay (default **3750 ms**, the engine's own spawn gate
   at the Buddy `tip_duration` of 15000 ms; `0` = immediate). The fade-out
   threshold moves with the start, so the visible time is unchanged.
+- `tip_c::Render` also ties the fade ramp to `duration/16` (937 ms at Buddy's
+  15000 ms duration), which made tooltips fade in far slower than stock SoF.
+  `hk_tip_render` now computes the fade with stock SoF's `2500/16 = 156 ms`
+  ramp and publishes it while the original renderer runs. The existing
+  `Draw_BeveledBox` and `R_DrawFont` hooks replace the palette's high-byte alpha
+  for both the box and the text. `tip_duration` therefore controls only how long
+  the tip remains visible; a shorter custom duration keeps its own faster
+  `duration/16` ramp.
 - The value is exposed as **Menu tooltip Appear (ms)** in F12 → General → Menu.
   The tooltip font is selectable there as **Tooltip font** (Small default, Medium,
   Title) and applies when the menu is reopened. **Menu font size style**

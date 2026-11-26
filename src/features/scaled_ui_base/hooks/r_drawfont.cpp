@@ -143,6 +143,15 @@ static bool draw_wrapped_tip(int x, int y, char* text, int colorPalette, char* f
 #endif
 
 void hkR_DrawFont(int screenX, int screenY, char * text, int colorPalette, char * font, bool rememberLastColor, detour_R_DrawFont::tR_DrawFont original) {
+#if FEATURE_SCALED_MENU && defined(UI_MENU)
+    // tip_c::Render puts its alpha in the palette's high byte. Replace the engine's
+    // tip_duration/16 ramp with the stock-speed one while the tip is being drawn.
+    unsigned char tipAlpha = 0;
+    if (scaled_menu_tip_fade_alpha(&tipAlpha))
+        colorPalette = static_cast<int>(
+            (static_cast<unsigned int>(colorPalette) & 0x00FFFFFFu) |
+            (static_cast<unsigned int>(tipAlpha) << 24));
+#endif
     if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_HUD) &&
         !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU) &&
         !RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_CON) &&
