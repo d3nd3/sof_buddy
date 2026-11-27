@@ -2,11 +2,19 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
-## Unreleased
+## v8.62
+
+### Loading screen
+
+- **The Download line is no longer clipped, and Disconnect stays at the stock bottom position.** The internal loading header now uses a full-screen clip and backdrop, so the Loading/progress/`Map:`/`Download:` lines are never cut at any aspect ratio. The Disconnect button is in a separate bottom-anchored footer that scales with the menu, keeping the stock bottom margin at both 4:3 and 16:9 instead of moving with the header frame.
 
 ### Scaled scope
 
 - **The black side bars no longer shrink the normal widescreen view.** `cScope::Draw` is called every frame but returns early when the scope is not zoomed, so the 4:3 frame and its bars are now only painted when the scope actually emitted overlay geometry. Scoping in still keeps the overlay in its centred 4:3 frame with the bars.
+
+### Gameplay
+
+- **The local multiplayer movescale override no longer prints to the console.** The `g_movescale -> 1` notice is still written to the SoF Buddy log when the override applies, but it no longer adds a console line.
 
 ## v8.61
 
