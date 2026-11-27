@@ -15,8 +15,9 @@ void scaled_menu_on_vid_layout_changed(void);
 bool scaled_menu_install_hooks(void);
 bool scaled_menu_uniform_actual_active(void);
 void scaled_menu_set_pushed_menu(const char* name, bool skip_vertical_shrink);
-void scaled_menu_request_menu_wide(void);
-bool scaled_menu_consume_menu_wide_request(void);
+void scaled_menu_request_menu_native(void);
+bool scaled_menu_consume_menu_native_request(void);
+void Cmd_MenuNative_f(void);
 void Cmd_MenuWide_f(void);
 float scaled_menu_screen_scale(void);
 // True once the rect/text draw hooks needed by `<text talign center>` are installed.

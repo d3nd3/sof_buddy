@@ -53,7 +53,7 @@ float g_scaledMenuSelectionScale = 1.0f;
 
 static char s_pushed_menu_name[64] = {0};
 static bool s_skip_vertical_shrink = false;
-static bool s_menu_wide_requested = false;
+static bool s_menu_native_requested = false;
 
 static bool name_contains_ci(const char* s, const char* needle) {
 	if (!s || !needle || !*needle) return false;
@@ -99,26 +99,37 @@ void scaled_menu_set_pushed_menu(const char* name, bool skip_vertical_shrink) {
 	s_skip_vertical_shrink = skip_vertical_shrink;
 }
 
-void scaled_menu_request_menu_wide(void) {
-	s_menu_wide_requested = true;
+void scaled_menu_request_menu_native(void) {
+	s_menu_native_requested = true;
 }
 
-bool scaled_menu_consume_menu_wide_request(void) {
-	const bool requested = s_menu_wide_requested;
-	s_menu_wide_requested = false;
+bool scaled_menu_consume_menu_native_request(void) {
+	const bool requested = s_menu_native_requested;
+	s_menu_native_requested = false;
 	return requested;
 }
 
-void Cmd_MenuWide_f(void) {
-	scaled_menu_request_menu_wide();
+static void run_stock_menu_command(void) {
 	using MenuCommand_t = void(__cdecl*)(void);
 	auto menu_command = reinterpret_cast<MenuCommand_t>(
 	    rvaToAbsExe(reinterpret_cast<void*>(0x000C78F0)));
 	if (menu_command)
 		menu_command();
+}
+
+void Cmd_MenuNative_f(void) {
+	scaled_menu_request_menu_native();
+	run_stock_menu_command();
 	// If menu_f rejected the arguments it never reached M_PushMenu; make sure the
 	// one-shot request cannot leak into the next regular `menu` command.
-	s_menu_wide_requested = false;
+	s_menu_native_requested = false;
+}
+
+void Cmd_MenuWide_f(void) {
+	// Legacy command: the 4:3->wide frame correction is now the default for
+	// every menu. Keep `menu_wide` as an alias so existing keybinds/scripts
+	// continue to open the same menu.
+	run_stock_menu_command();
 }
 
 namespace scaled_menu_detail {
@@ -1664,8 +1675,8 @@ static void hk_frame_resize(void* frame, char* w, char* h) {
 }
 
 // Internal sof_buddy pages keep the stock frame canvas, so they skip the
-// 4:3 -> wide height correction. Loose user menus are marked by
-// scaled_menu_M_PushMenu_pre; stock pak menus keep the correction.
+// 4:3 -> wide height correction. Every other menu gets the correction by
+// default; menu_native opts a single push out (see M_PushMenu_pre).
 static void note_menu_source(const char* name) {
 	if (!name || !*name) return;
 	if (name_contains_ci(name, "sof_buddy/"))
@@ -1677,7 +1688,7 @@ struct FrameDimsRec {
 	void* frame;
 	int w;
 	int h;
-	bool skip_vertical_shrink; // sof_buddy/* pages and loose user menus keep authored frame geometry
+	bool skip_vertical_shrink; // sof_buddy/* pages and menu_native pushes keep authored frame geometry
 	bool height_shrunk;        // hk_frame_link applies at most once per ctor
 	bool width_shrunk;         // ss_content pages shrink width once as well
 };

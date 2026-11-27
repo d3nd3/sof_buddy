@@ -45,17 +45,18 @@ pages use the same ratio for width, which fits the 4:3 page into the narrower
 16:9 centre. This restores the original 4:3→wide fit without tying frames to
 menuScale.
 
-### `menu` vs `menu_wide` and loose user menus
+### Menu frame normalization and `menu_native`
 
-The stock `menu <name> [frame]` command leaves loose user menus at their authored
-640×480 frame geometry. `M_PushMenu` treats a menu as user when its `.rmf` exists
-on disk under `User/menus`, `base/menus`, `User`, `base`, or the game root; those
-pages skip the 4:3→wide height correction (and the `ss_content` width pass).
-Stock menus served from the numbered/SoFPlus paks keep the correction.
+The 4:3→wide frame-height correction is applied to **every** menu by default:
+stock pak menus, loose user menus under `User/menus`/`base/menus`, and pages the
+game pushes itself. That keeps unknown or automatically spawned menus fitted to
+the vertical design instead of the stock horizontal canvas.
 
-`menu_wide <name> [frame]` wraps the stock command and forces the correction for
-that push, including loose user menus. `sof_buddy/*` pages always skip it, even
-when pushed through `menu_wide`.
+`menu_native <name> [frame]` wraps the stock command and opts that one push out
+of the correction, so an RMF author can keep a native frame canvas. `sof_buddy/*`
+pages always skip the correction, even when pushed through `menu_native`.
+`menu_wide` is a legacy alias for `menu` (the correction is now the default) and
+remains registered for existing keybinds/scripts.
 
 The old conversion to `authored × menuScale` has been removed: it made frames
 shrink and drift at menu scales below `C` (for example 800×600 with a 1.19 menu
@@ -74,8 +75,9 @@ authors the tab grid and content spacers in 640×480 units so the two tab rows a
 page body stay together at the source resolution. Internal `loading/*` pages are
 not excluded from the normal frame height correction: the loading page is a real
 scaled menu and must get the same 4:3→widescreen frame-height treatment as stock
-loading pages. Loose user menus opened with plain `menu` also keep the authored
-frame canvas; only stock pak menus and `menu_wide` get the correction.
+loading pages. Every other menu, including loose user menus, gets the same
+correction by default; use `menu_native` for a page authored on the native
+canvas.
 
 ### Content is scaled by the vertical design (menuScale)
 
@@ -582,8 +584,8 @@ in `menu_variant.cpp`; the FS-path fallback and RMF transforms live in
 `internal_menus/hooks/menu_rmf_transform.cpp`. The old `_ss`-specific frame,
 border, topic, and join-menu corrections have been removed. `_ns` pages are
 authored in 640×480 space and receive the normal frame height correction described
-above when served from a pak (stock/SoFPlus); loose user `_ns` pages opened with
-plain `menu` keep the authored geometry.
+above when served from a pak (stock/SoFPlus); loose user `_ns` pages get the
+correction too, unless opened with `menu_native`.
 
 When SoFPlus selects the `_ss` variant (its `_spf_cl_video_shortscreen`
 wide-screen test) and the menu is in the whitelist, the FS loader replaces the

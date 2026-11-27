@@ -27,9 +27,13 @@ void scaledMenu_EarlyStartup(void)
 
 void scaledMenu_PostCvarInit(void)
 {
-    if (detour_Cmd_AddCommand::oCmd_AddCommand)
+    if (detour_Cmd_AddCommand::oCmd_AddCommand) {
+        detour_Cmd_AddCommand::oCmd_AddCommand(
+            const_cast<char*>("menu_native"), Cmd_MenuNative_f);
+        // Legacy alias: the 4:3->wide correction is now the default.
         detour_Cmd_AddCommand::oCmd_AddCommand(
             const_cast<char*>("menu_wide"), Cmd_MenuWide_f);
+    }
 }
 
 #endif // UI_MENU

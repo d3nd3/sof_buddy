@@ -2,6 +2,16 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.61
+
+### Loading screen
+
+- **The Disconnect button is back at its intended height.** The v8.56 header-clipping fix raised both the loading content frame and the header frame from 180 to 240 authored units. The header needed the extra height, but the content frame determines where the included loading-files page starts, so the button moved down by 60 × canvas (180 px at 1080p). The content frame is back to 180 and the header stays at 240, so the Map/Download lines remain fully visible and the button is no longer pinned to the bottom edge.
+
+### Menus
+
+- **Frame normalization is now on by default for every menu.** The 4:3→wide height correction used to skip loose user menus on disk, so a menu the game or a mod spawned from a loose file could keep the stock 640×480 canvas and sit too tall or off-centre at 16:9. Every push now gets the correction, including loose user menus and automatically spawned pages. `menu_native <menu> [frame]` opts a single push out for RMF authors who authored a native canvas. `menu_wide` remains a legacy alias for `menu`, existing keybinds keep working, and `sof_buddy/*` pages still always keep their authored canvas.
+
 ## v8.60
 
 ### Menus
