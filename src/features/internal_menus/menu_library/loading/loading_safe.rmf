@@ -4,7 +4,7 @@
 <set scr_menuoverlay 1>
 <set menu_loading 0.0>
 
-<frame top 0 180>
-<frame header_content 0 240 cut top page loading/loading_header>
-<exinclude deathmatch loading/loading_files loading/loading_stats>
+<frame top 0 240>
+<frame header_content 0 480 cut top page loading/loading_header>
+<exinclude deathmatch loading/loading_bot loading/loading_stats>
 </stm>

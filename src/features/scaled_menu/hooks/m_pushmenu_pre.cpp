@@ -71,7 +71,9 @@ void scaled_menu_M_PushMenu_pre(char const*& menu_file, char const*& parentFrame
 	// horizontal canvas. Authors who authored a native canvas can opt out with
 	// menu_native; internal sof_buddy pages always keep their authored canvas.
 	const bool skip_vertical_shrink = internal_menu || native_requested;
-	scaled_menu_set_pushed_menu(name, skip_vertical_shrink);
+	const bool loading_footer =
+	    contains_ci(std::string(menu_file), "loading/loading");
+	scaled_menu_set_pushed_menu(name, skip_vertical_shrink, loading_footer);
 }
 
 #endif // UI_MENU

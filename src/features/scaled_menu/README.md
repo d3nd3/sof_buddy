@@ -79,6 +79,20 @@ loading pages. Every other menu, including loose user menus, gets the same
 correction by default; use `menu_native` for a page authored on the native
 canvas.
 
+The internal loading page splits its layout into a full-screen header clip and a
+separate footer:
+
+- `loading/loading_header` lives in `header_content` with a 480-unit clip. Its
+  black backdrop covers the whole screen, so the Loading/progress/`Map:`/
+  `Download:` lines are never cut and there is no uncovered strip at any aspect
+  ratio.
+- `loading/loading_bot` is a zero-height `bottom` frame around
+  `loading/loading_files`. `hk_frame_link` bottom-aligns this frame and sizes it
+  to 264 authored units × `menuScale`, so the Disconnect button keeps the stock
+  78 px bottom margin instead of following the header cut. The footer page's
+  leading two line breaks are trimmed to compensate (300 − 36 = 264) and its
+  backdrop starts below the header content.
+
 ### Content is scaled by the vertical design (menuScale)
 
 Everything inside the frames — text, area rects, content borders, offsets — is

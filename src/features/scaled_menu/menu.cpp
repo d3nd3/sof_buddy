@@ -53,6 +53,7 @@ float g_scaledMenuSelectionScale = 1.0f;
 
 static char s_pushed_menu_name[64] = {0};
 static bool s_skip_vertical_shrink = false;
+static bool s_loading_footer_anchor = false;
 static bool s_menu_native_requested = false;
 
 static bool name_contains_ci(const char* s, const char* needle) {
@@ -85,7 +86,7 @@ namespace scaled_menu_detail {
 static void tip_source_reset(void);
 }
 
-void scaled_menu_set_pushed_menu(const char* name, bool skip_vertical_shrink) {
+void scaled_menu_set_pushed_menu(const char* name, bool skip_vertical_shrink, bool loading_footer) {
 	scaled_menu_detail::tip_source_reset();
 	scaled_menu_variant_reset();
 	char redirected[64];
@@ -97,6 +98,7 @@ void scaled_menu_set_pushed_menu(const char* name, bool skip_vertical_shrink) {
 	}
 	s_pushed_menu_name[i] = '\0';
 	s_skip_vertical_shrink = skip_vertical_shrink;
+	s_loading_footer_anchor = loading_footer;
 }
 
 void scaled_menu_request_menu_native(void) {
@@ -1771,6 +1773,40 @@ static bool frame_name_starts_with(const void* frame, const char* prefix) {
 	return p && n >= pl && std::memcmp(p, prefix, pl) == 0;
 }
 
+// The stock loading footer page is authored for the 300-unit area below the
+// 180-unit header. Its leading two line breaks are trimmed (36 units) so the
+// footer backdrop can start below the taller header. 300 - 36 = 264 keeps the
+// Disconnect button at the stock 78px bottom margin once the frame is
+// bottom-aligned and scaled with menuScale.
+constexpr int kLoadingFooterAuthoredHeight = 264;
+
+static bool is_internal_loading_footer(const void* child, const void* parent) {
+	if (!s_loading_footer_anchor) return false;
+	if (!frame_name_is(child, "bottom")) return false;
+	if (!parent || !frame_name_is(parent, "default")) return false;
+	return true;
+}
+
+// hk_frame_link runs before frame_c::CreatePage copies the frame rect into the
+// page, so adjusting the frame here also moves its page content.
+static void anchor_loading_footer(void* child, void* parent, int parent_bottom) {
+	if (!child || !parent || parent_bottom <= 0) return;
+	if (!RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU))
+		return;
+	char* c = static_cast<char*>(child);
+	void* menu = *reinterpret_cast<void**>(c + kFrame_Menu);
+	const float canvas =
+	    menu ? *reinterpret_cast<float*>(static_cast<char*>(menu) + kMenuC_ScreenScale) : 0.f;
+	const float content = scaled_menu_screen_scale();
+	if (!std::isfinite(canvas) || canvas <= 1e-6f || !std::isfinite(content) || content <= 0.f)
+		return;
+	const int footer_h =
+	    static_cast<int>(std::lround(static_cast<float>(kLoadingFooterAuthoredHeight) * content));
+	if (footer_h <= 0) return;
+	*reinterpret_cast<int*>(c + kFrame_OffY) = parent_bottom - footer_h;
+	*reinterpret_cast<int*>(c + kFrame_H) = footer_h;
+}
+
 #if defined(__GNUC__)
 __attribute__((thiscall))
 #endif
@@ -1812,7 +1848,14 @@ static void hk_frame_link(void* child, void* parent) {
 			}
 		}
 	}
+	const int parent_bottom =
+	    parent ? *reinterpret_cast<int*>(static_cast<char*>(parent) + kFrame_OffY) +
+	                 *reinterpret_cast<int*>(static_cast<char*>(parent) + kFrame_H)
+	           : 0;
 	if (oFrame_Link) oFrame_Link(child, parent);
+	if (is_internal_loading_footer(child, parent)) {
+		anchor_loading_footer(child, parent, parent_bottom);
+	}
 }
 
 using Toke_Ctor_t = void*(__thiscall*)(void* toke, const char* name);

@@ -62,6 +62,13 @@ When SoFPlus selects an `_ss` wrapper (via `_spf_cl_video_shortscreen`) for a wh
 
 **M_PushMenu** Post (`internal_menus_M_PushMenu_post`): Watches menu disclaimer (root `start`) pushes; if updater queued a startup update prompt, opens `sof_buddy/update_prompt` on top once. Tracks whether a SoF Buddy menu is current so disabled-feature prompts only appear from F12.
 
+The loading page splits its own layout: `loading/loading_header` is owned by the
+full-screen `header_content` clip, while `loading/loading_bot` wraps
+`loading/loading_files` in the engine's `bottom` frame. Scaled Menu bottom-aligns
+that footer to `menuScale`, so the Disconnect button keeps the stock bottom
+margin at every aspect ratio without moving with the header cut (see
+`scaled_menu/README.md`).
+
 **M_ForceMenuOff** Post (`internal_menus_M_ForceMenuOff_post`): clears the feature-prompt state when the menu system closes or the prompt is dismissed.
 
 ### 6) Loading UI cvar updates

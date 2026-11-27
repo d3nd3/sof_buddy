@@ -6,8 +6,6 @@
 
 <font type title>
 <center>
-<hbr>
-<hbr>
 <font tint lblue atint lblue>
 <ctext cl_downloading invisible><hbr>
 <ctext cl_download_filename invisible><hbr>

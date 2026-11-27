@@ -14,7 +14,7 @@ void scaled_menu_reload_open_page(void);
 void scaled_menu_on_vid_layout_changed(void);
 bool scaled_menu_install_hooks(void);
 bool scaled_menu_uniform_actual_active(void);
-void scaled_menu_set_pushed_menu(const char* name, bool skip_vertical_shrink);
+void scaled_menu_set_pushed_menu(const char* name, bool skip_vertical_shrink, bool loading_footer);
 void scaled_menu_request_menu_native(void);
 bool scaled_menu_consume_menu_native_request(void);
 void Cmd_MenuNative_f(void);
