@@ -2,6 +2,12 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## Unreleased
+
+### Scaled scope
+
+- **The black side bars no longer shrink the normal widescreen view.** `cScope::Draw` is called every frame but returns early when the scope is not zoomed, so the 4:3 frame and its bars are now only painted when the scope actually emitted overlay geometry. Scoping in still keeps the overlay in its centred 4:3 frame with the bars.
+
 ## v8.61
 
 ### Loading screen
@@ -28,6 +34,7 @@ User-facing highlights. Older detail is summarized at the bottom.
 - **The unstable channel works over HTTP.** The mirror publishes `files/unstable.json` and `files/release_windows_xp_unstable.zip` next to the stable package, and the manifests carry release notes. XP startup checks, **Refresh Release List**, and selecting the current release no longer depend on the redirecting root paths.
 - **Older tags no longer download the wrong package.** Older mirror tags are comparison-only; if a tag has no archived package, the updater reports that instead of downloading the current stable zip under the older tag.
 - `rsrc/sofvault_mirror/sync_from_github.sh` now writes the compact `files/` manifests (latest, stable, unstable, list, per-tag) and keeps the root copies for older clients. Reinstall and run it once on the sofvault host to publish the new files; `check_http.sh` verifies every XP-critical endpoint.
+
 
 ## v8.58
 
