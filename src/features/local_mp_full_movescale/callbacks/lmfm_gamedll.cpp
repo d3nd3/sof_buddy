@@ -60,11 +60,6 @@ void lmfm_GameDllLoaded(void* game_export) {
 	detour_Cvar_Set2::oCvar_Set2(
 		const_cast<char*>("g_movescale"), const_cast<char*>("1"), true);
 
-	if (detour_Com_Printf::oCom_Printf) {
-		detour_Com_Printf::oCom_Printf(
-			"SoF Buddy: local multiplayer movescale %s -> 1 (Full).\n",
-			s_saved_movescale.c_str());
-	}
 	PrintOut(PRINT_LOG,
 	         "local_mp_full_movescale: g_movescale %s -> 1 for local server\n",
 	         s_saved_movescale.c_str());

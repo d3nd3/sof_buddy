@@ -41,7 +41,7 @@ The scale reaches both sides through the same value:
 - The current value is saved, then `g_movescale` is set to `1.0` for the life of
   that server. The saved value is restored on `SV_ShutdownGameProgs`, so the
   user's config is not permanently rewritten.
-- A console line reports the override. Setting `_sofbuddy_local_mp_full_movescale
+- The override is written to the SoF Buddy log. Setting `_sofbuddy_local_mp_full_movescale
   0` keeps the saved Movescale behaviour.
 
 ## Menu
