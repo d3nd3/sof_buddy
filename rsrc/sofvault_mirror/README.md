@@ -1,10 +1,30 @@
 # SofVault XP updater mirror
 
-XP builds fetch updates over HTTP from `sofvault.org/sof_buddy/releases/` (see `src/core/update_command.cpp`).
+Windows XP builds fetch updates over plain HTTP from
+`sofvault.org/sof_buddy/releases/` (see `src/core/update_command.cpp`). XP's
+WinHTTP cannot negotiate modern TLS/SNI, so the updater must never be sent
+through an HTTP → HTTPS redirect.
+
+## Why the `files/` tree matters
+
+The live host currently exempts only these paths from its global redirect:
+
+```
+/sof_buddy/releases/latest.json
+/sof_buddy/releases/latest
+/sof_buddy/releases/files/...
+```
+
+Everything else, including `list.json` and `by_tag/`, answers with a 301 to
+`https://` and fails on XP with `win32 error 12175`. The sync script therefore
+publishes every manifest the updater needs under `files/`, and the client
+prefers those copies before falling back to the legacy root paths.
 
 ## Server setup (cron pull)
 
-Install `sync_from_github.sh` on the sofvault host. It polls GitHub’s release APIs, downloads `release_windows_xp.zip` when the tag changes, and writes HTTP manifests for in-game updater checks.
+Install `sync_from_github.sh` on the sofvault host. It polls GitHub’s release
+APIs, downloads the current stable and unstable XP packages when their tags
+change, and writes the HTTP manifests.
 
 Requires: `curl`, `jq`
 
@@ -23,23 +43,39 @@ Output layout:
 
 ```
 $SOFVAULT_ROOT/
-  latest.json          # newest GitHub release (updates every sync)
-  list.json            # GitHub release list (stable + unstable channels on XP)
-  latest               # plain tag text (newest)
-  .synced_tag          # last downloaded tag
-  by_tag/              # per-tag manifests for install-version picker
-    v6.6-build170.json
+  latest.json                 # newest stable release (legacy, HTTP-clean)
+  latest                      # plain stable tag text (legacy, HTTP-clean)
+  list.json                   # legacy compact list (root path redirects)
+  by_tag/<tag>.json           # legacy per-tag manifests (root path redirects)
+  .synced_tag                 # last stable package tag
+  .synced_unstable_tag        # last unstable package tag
   files/
-    release_windows_xp.zip   # only the latest XP zip is mirrored
+    latest.json               # same stable manifest, HTTP-clean
+    stable.json               # stable channel manifest
+    unstable.json             # newest prerelease channel manifest
+    list.json                 # compact install-version list
+    by_tag/<tag>.json         # per-tag manifests, HTTP-clean
+    release_windows_xp.zip             # current stable XP package
+    release_windows_xp_unstable.zip    # current unstable XP package
 ```
 
-XP **Refresh Release List** reads `list.json`; stable is the newest non-prerelease entry and unstable is the newest prerelease. **Check/download** for a specific tag uses `by_tag/<tag>.json`. Only the current latest tag has a `zip_url` on the mirror; older tags can be selected for version comparison but cannot be downloaded over HTTP until their zip is archived on sofvault.
+Only the two channel packages are archived. Older tags appear in the list for
+version comparison but have an empty `zip_url`; the XP updater reports that the
+package is not mirrored instead of downloading the current build under an older
+tag.
 
-The XP updater also uses `latest.json` directly when its tag belongs to the requested channel (stable or unstable). That keeps the startup check working even if the full release list is temporarily unavailable.
+Channel behaviour:
+
+- **Stable** = GitHub’s newest non-prerelease release (`/releases/latest`).
+- **Unstable** = the newest prerelease in the release list.
+- The startup check uses `latest.json` directly when its tag belongs to the
+  selected channel; `stable.json`/`unstable.json` cover the other channel.
 
 ## nginx: keep XP endpoints on plain HTTP
 
-Windows XP WinHTTP cannot negotiate modern TLS/SNI, so every path above must return **200 over `http://`** without redirecting to `https://`. If the site-wide HTTP server block has a global redirect, add an exception for the updater tree, for example:
+If the site-wide port-80 server block redirects to HTTPS, keep an exception for
+the whole updater tree **before** the redirect. The `files/` subtree is the
+minimum required for current builds:
 
 ```nginx
 # In the port-80 server block, before the global HTTP -> HTTPS redirect:
@@ -49,7 +85,8 @@ location ^~ /sof_buddy/releases/ {
 }
 ```
 
-This covers `latest.json`, `list.json`, `by_tag/`, `latest`, and `files/`. If the redirect is implemented per-location with `return 301 https://...`, add the same exception before those locations. Do not add HSTS on this tree: XP ignores it, but the redirect itself is what breaks the updater.
+If the redirect is implemented per-location, do not add HSTS or a redirect for
+`/sof_buddy/releases/files/`, `latest.json`, or `latest`.
 
 Verify from any host after changing nginx:
 
@@ -60,6 +97,9 @@ chmod +x check_http.sh
 SOFVAULT_BASE=http://127.0.0.1/sof_buddy/releases ./check_http.sh
 ```
 
-The script fails on any 3xx/4xx/5xx and prints the redirect target. Run it before publishing a release so an HTTPS redirect cannot silently break XP updates again.
+The script fails on any XP-critical 3xx/4xx/5xx and prints the redirect target.
+Legacy root `list.json`/`by_tag` redirects are printed as warnings because the
+current client reads the `files/` copies instead.
 
-No SSH push from GitHub Actions is required; the server pulls assets like the sof1maps mirror.
+No SSH push from GitHub Actions is required; the server pulls assets like the
+sof1maps mirror.

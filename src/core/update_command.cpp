@@ -34,6 +34,7 @@ constexpr const char* kUpdateApiUrlSofVault = "http://sofvault.org/sof_buddy/rel
 constexpr const char* kUpdateReleasesUrlSofVault = "http://sofvault.org/sof_buddy/releases/latest";
 constexpr const char* kUpdateSofVaultFilesBase = "http://sofvault.org/sof_buddy/releases/files/";
 constexpr const char* kUpdateSofVaultXpZipName = "release_windows_xp.zip";
+constexpr const char* kUpdateSofVaultXpUnstableZipName = "release_windows_xp_unstable.zip";
 constexpr const char* kUpdateWindowsZipName = "release_windows.zip";
 constexpr const char* kUpdateWindowsUniversalZipName = "release_windows_universal.zip";
 constexpr const char* kUpdateLinuxZipName = "release_linux_wine.zip";
@@ -159,6 +160,10 @@ struct ReleaseInfo {
     std::string zip_url;
     std::string body;
     bool prerelease = false;
+    // A boolean feed supplied zip_url/download_url/asset_url directly. Older
+    // mirror manifests intentionally leave it empty because only the current
+    // release zip is archived; do not substitute a different package then.
+    bool zip_url_explicit = false;
 };
 
 constexpr const char* kPendingUpdateManifest = "sof_buddy/update/pending_update.txt";
@@ -167,6 +172,7 @@ constexpr const char* kInstallContextEnv = "sof_buddy/update/install_context.env
 bool parse_url(const std::string& url, ParsedUrl& out, std::string& error);
 bool update_fetch_url_allowed(const std::string& url, std::string& error);
 std::wstring utf8_to_wide(const std::string& value);
+std::string force_http_url(const std::string& url);
 
 bool is_regular_file(const char* path) {
     if (!path || !path[0]) return false;
@@ -174,12 +180,30 @@ bool is_regular_file(const char* path) {
     return attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY) == 0;
 }
 
-bool prefer_linux_wine_release_zip() {
+bool os_is_windows_xp_or_older() {
+    OSVERSIONINFOEXA osvi = {};
+    osvi.dwOSVersionInfoSize = sizeof(osvi);
+    if (!GetVersionExA(reinterpret_cast<OSVERSIONINFOA*>(&osvi))) return false;
+    // NT 5.x is Windows 2000 / XP / Server 2003. All of them use WinHTTP
+    // builds that cannot negotiate modern TLS, so the plain-HTTP mirror is
+    // required even when the user installed a normal (non-XP) package.
+    return osvi.dwMajorVersion < 6;
+}
+
+bool update_uses_xp_http_mirror() {
 #if defined(SOFBUDDY_XP_BUILD)
-    return false;
+    return true;
 #else
-    return is_running_under_wine();
+    // Wine can negotiate TLS through the host, so keep its native updater
+    // feeds. Only a real NT 5.x install needs the XP mirror behaviour.
+    static const bool is_xp = os_is_windows_xp_or_older() && !is_running_under_wine();
+    return is_xp;
 #endif
+}
+
+bool prefer_linux_wine_release_zip() {
+    if (update_uses_xp_http_mirror()) return false;
+    return is_running_under_wine();
 }
 
 const char* update_gui_updater_default_string() {
@@ -278,12 +302,22 @@ std::string get_update_cvar_or_default(const char* name, const char* fallback) {
     return std::string(c->string);
 }
 
+std::string update_url_for_xp_mirror(std::string url) {
+    if (!update_uses_xp_http_mirror()) return url;
+    // Older builds and hand-edited configs may still store an https://
+    // sofvault URL. XP cannot complete that handshake, so normalise it here
+    // as well as at init time.
+    if (url.find("sofvault.org") != std::string::npos)
+        return force_http_url(url);
+    return url;
+}
+
 std::string get_update_api_url() {
-    return get_update_cvar_or_default(kCvarUpdateApiUrl, kUpdateApiUrl);
+    return update_url_for_xp_mirror(get_update_cvar_or_default(kCvarUpdateApiUrl, kUpdateApiUrl));
 }
 
 std::string get_update_releases_url() {
-    return get_update_cvar_or_default(kCvarUpdateReleasesUrl, kUpdateReleasesUrl);
+    return update_url_for_xp_mirror(get_update_cvar_or_default(kCvarUpdateReleasesUrl, kUpdateReleasesUrl));
 }
 
 bool cvar_is_empty_or_value(cvar_t* c, const char* expected) {
@@ -305,16 +339,16 @@ void append_tls_failure_hint(std::string& error, const ParsedUrl& parsed) {
         return;
     }
 
-#if defined(SOFBUDDY_XP_BUILD)
-    // WinHTTP follows an HTTP -> HTTPS redirect internally, so parsed.secure
-    // stays false when the handshake fails at the redirect target.  Say what
-    // actually happened instead of sending XP users to their TLS settings.
-    error += ". Windows XP WinHTTP could not complete the TLS handshake";
-    if (!parsed.secure)
-        error += " after the server redirected this plain-HTTP URL to HTTPS";
-    error += ". Windows XP cannot negotiate modern TLS/SNI; use the plain-HTTP SFVault mirror ";
-    error += "(http://sofvault.org/sof_buddy/releases/) or update manually.";
-#endif
+    if (update_uses_xp_http_mirror()) {
+        // WinHTTP follows an HTTP -> HTTPS redirect internally, so parsed.secure
+        // stays false when the handshake fails at the redirect target.  Say what
+        // actually happened instead of sending XP users to their TLS settings.
+        error += ". Windows XP WinHTTP could not complete the TLS handshake";
+        if (!parsed.secure)
+            error += " after the server redirected this plain-HTTP URL to HTTPS";
+        error += ". Windows XP cannot negotiate modern TLS/SNI; use the plain-HTTP SFVault mirror ";
+        error += "(http://sofvault.org/sof_buddy/releases/) or update manually.";
+    }
 }
 
 std::string wine_unix_path(const char* windows_path) {
@@ -584,6 +618,7 @@ bool http_begin_get(
     out_request = nullptr;
     out_status_code = 0;
 
+    PrintOut(PRINT_DEV, "sofbuddy_update: GET %s\n", url.c_str());
     if (!update_fetch_url_allowed(url, error)) return false;
 
     ParsedUrl parsed;
@@ -889,9 +924,13 @@ std::string zip_asset_name_from_url(const std::string& url) {
 
 void preferred_release_zip_names(std::vector<std::string>& out) {
     out.clear();
-#if defined(SOFBUDDY_XP_BUILD)
-    out.push_back("release_windows_xp.zip");
-#elif defined(SOFBUDDY_UNIVERSAL_BUILD)
+    if (update_uses_xp_http_mirror()) {
+        // A normal package installed on XP must update to the XP build, not
+        // the regular Windows package.
+        out.push_back(kUpdateSofVaultXpZipName);
+        return;
+    }
+#if defined(SOFBUDDY_UNIVERSAL_BUILD)
     out.push_back(prefer_linux_wine_release_zip()
                       ? kUpdateLinuxUniversalZipName
                       : kUpdateWindowsUniversalZipName);
@@ -900,7 +939,7 @@ void preferred_release_zip_names(std::vector<std::string>& out) {
         out.push_back(kUpdateLinuxZipName);
     else {
         out.push_back(kUpdateWindowsZipName);
-        out.push_back("release_windows_xp.zip");
+        out.push_back(kUpdateSofVaultXpZipName);
     }
 #endif
 }
@@ -951,6 +990,38 @@ std::string force_http_url(const std::string& url) {
     return url;
 }
 
+bool url_is_sofvault_files_path(const std::string& url) {
+    return url.find("/sof_buddy/releases/files/") != std::string::npos;
+}
+
+// The live SofVault host only exempts /sof_buddy/releases/files/ from its
+// global HTTP -> HTTPS redirect, plus the two legacy root files latest.json
+// and latest.  Mirror-side manifests therefore also exist under files/.
+std::string sofvault_files_variant(const std::string& url) {
+    if (!api_url_uses_sofvault_mirror(url) || url_is_sofvault_files_path(url))
+        return std::string();
+    const std::string marker = "/sof_buddy/releases/";
+    const size_t pos = url.find(marker);
+    if (pos == std::string::npos) return std::string();
+    const size_t rest = pos + marker.size();
+    const std::string path = url.substr(rest);
+    // The root latest file is HTTP-clean, but keep files/latest as a fallback
+    // for a temporarily missing/corrupt root latest.json.
+    if (path == "latest")
+        return std::string();
+    return url.substr(0, rest) + "files/" + path;
+}
+
+bool prefer_files_variant(const std::string& url) {
+    if (!update_uses_xp_http_mirror()) return false;
+    if (!api_url_uses_sofvault_mirror(url) || url_is_sofvault_files_path(url))
+        return false;
+    return url.find("/list.json") != std::string::npos ||
+           url.find("/by_tag/") != std::string::npos ||
+           url.find("/stable.json") != std::string::npos ||
+           url.find("/unstable.json") != std::string::npos;
+}
+
 bool update_production_urls_allowed(void) {
 #if defined(SOFBUDDY_UPDATE_TEST_BUILD)
     if (!detour_Cvar_Get::oCvar_Get) return false;
@@ -981,7 +1052,16 @@ bool update_fetch_url_allowed(const std::string& url, std::string& error) {
 }
 
 void finalize_xp_mirror_release(ReleaseInfo& info, const std::string& api_url) {
-#if defined(SOFBUDDY_XP_BUILD)
+    if (!update_uses_xp_http_mirror()) return;
+
+    if (!info.html_url.empty() && api_url_uses_sofvault_mirror(info.html_url))
+        info.html_url = force_http_url(info.html_url);
+
+    // Older mirror manifests carry no zip_url because their package is not
+    // archived. Keep that state so the UI reports "no zip asset" instead of
+    // silently downloading the current stable package under another tag.
+    if (info.zip_url_explicit && info.zip_url.empty()) return;
+
     const std::string mirror_zip =
         std::string(kUpdateSofVaultFilesBase) + kUpdateSofVaultXpZipName;
     const bool mirror_api = api_url_uses_sofvault_mirror(api_url);
@@ -994,15 +1074,37 @@ void finalize_xp_mirror_release(ReleaseInfo& info, const std::string& api_url) {
     // feeds may still carry an https URL, which XP WinHTTP cannot use.
     info.zip_url = force_http_url(info.zip_url);
 
-    if (zip_matches_build_preference(info.zip_url) &&
-        !github_zip_url && (!mirror_api || mirror_zip_url)) {
+    // Packages live under the HTTP-clean files/ tree; move a root-relative
+    // mirror URL there before downloading.
+    if (mirror_zip_url) {
+        const std::string files_zip = sofvault_files_variant(info.zip_url);
+        if (!files_zip.empty()) info.zip_url = files_zip;
+    }
+
+    const std::string zip_name = zip_asset_name_from_url(info.zip_url);
+    const bool usable_zip =
+        zip_name.size() > 4 &&
+        zip_name.compare(zip_name.size() - 4, 4, ".zip") == 0 &&
+        zip_name.find("debug") == std::string::npos;
+
+    // Trust a package published by the mirror itself.  This keeps a separate
+    // unstable package working (release_windows_xp_unstable.zip) instead of
+    // replacing it with the stable zip.
+    if (mirror_api && mirror_zip_url && usable_zip && !github_zip_url &&
+        info.zip_url.rfind("http://", 0) == 0) {
+        return;
+    }
+
+    // Custom plain-HTTP mirrors keep an XP package that already matches the
+    // build preference.
+    if (!mirror_api && usable_zip && zip_matches_build_preference(info.zip_url) &&
+        !github_zip_url) {
         return;
     }
 
     // GitHub only serves release assets over HTTPS.  XP cannot negotiate
     // modern TLS, so always use the mirror copy for the current XP build.
     info.zip_url = mirror_zip;
-#endif
 }
 
 std::vector<int> parse_version_parts(const std::string& version_text) {
@@ -1384,23 +1486,99 @@ bool http_fetch_text(const std::string& url, bool github_api_headers, std::strin
     HINTERNET request = nullptr;
     DWORD status = 0;
 
-    if (!http_begin_get(url, github_api_headers, session, connect, request, status, error))
+    if (!http_begin_get(url, github_api_headers, session, connect, request, status, error)) {
+        if (!error.empty()) error = url + ": " + error;
         return false;
+    }
 
     std::vector<uint8_t> payload;
     const bool ok = http_read_all(request, payload, error);
     WinHttpCloseHandle(request);
     WinHttpCloseHandle(connect);
     WinHttpCloseHandle(session);
-    if (!ok) return false;
+    if (!ok) {
+        if (!error.empty()) error = url + ": " + error;
+        return false;
+    }
 
     out_body.assign(payload.begin(), payload.end());
     if (status != 200) {
         if (out_body.size() > 200) out_body.resize(200);
-        error = "Release API returned HTTP " + std::to_string(status) + ": " + out_body;
+        error = url + " returned HTTP " + std::to_string(status) + ": " + out_body;
         return false;
     }
     return true;
+}
+
+// Try the HTTP-clean files/ copy first for mirror paths that the live host
+// still redirects (list.json, by_tag, channel manifests).  The root URL is
+// kept as a fallback so a fixed server config keeps working too.
+bool fetch_text_from_mirror(const std::string& url, bool github_api_headers,
+                            std::string& out_body, std::string& error) {
+    const std::string files_url = sofvault_files_variant(url);
+    if (files_url.empty())
+        return http_fetch_text(url, github_api_headers, out_body, error);
+
+    std::string first_error;
+    if (prefer_files_variant(url)) {
+        if (http_fetch_text(files_url, github_api_headers, out_body, error))
+            return true;
+        first_error = error;
+        if (http_fetch_text(url, github_api_headers, out_body, error))
+            return true;
+        error = first_error + "; " + error;
+        return false;
+    }
+
+    if (http_fetch_text(url, github_api_headers, out_body, error))
+        return true;
+    first_error = error;
+    if (http_fetch_text(files_url, github_api_headers, out_body, error))
+        return true;
+    error = first_error + "; " + error;
+    return false;
+}
+
+std::string trim_http_body(std::string text) {
+    while (!text.empty() && (text.back() == '\r' || text.back() == '\n' ||
+                             text.back() == ' ' || text.back() == '\t'))
+        text.pop_back();
+    size_t start = 0;
+    while (start < text.size() &&
+           (text[start] == '\r' || text[start] == '\n' ||
+            text[start] == ' ' || text[start] == '\t'))
+        ++start;
+    return text.substr(start);
+}
+
+bool fetch_plain_latest_tag(const std::string& feed_base, std::string& out_tag, std::string& error) {
+    if (feed_base.empty()) {
+        error = "No JSON feed base for the plain latest tag";
+        return false;
+    }
+    std::string body;
+    if (!http_fetch_text(feed_base + "/latest", false, body, error))
+        return false;
+    body = trim_http_body(body);
+    if (!safe_release_target(body)) {
+        error = "HTTP mirror returned an invalid latest tag";
+        return false;
+    }
+    out_tag = body;
+    return true;
+}
+
+ReleaseInfo make_mirror_release(const std::string& tag, bool prerelease) {
+    ReleaseInfo info;
+    info.tag_name = tag;
+    info.prerelease = prerelease || tag.find("-unstable") != std::string::npos;
+    info.html_url = get_update_releases_url();
+    info.zip_url = std::string(kUpdateSofVaultFilesBase) +
+                   (info.prerelease ? kUpdateSofVaultXpUnstableZipName
+                                    : kUpdateSofVaultXpZipName);
+    info.zip_url_explicit = true;
+    finalize_xp_mirror_release(info, get_update_api_url());
+    return info;
 }
 
 bool parse_release_json_body(const std::string& body, const std::string& api_url, ReleaseInfo& out, std::string& error) {
@@ -1408,11 +1586,16 @@ bool parse_release_json_body(const std::string& body, const std::string& api_url
 
     out.release_name.clear();
     out.prerelease = false;
+    out.zip_url_explicit = false;
     json_find_string_field(body, "name", 0, out.release_name, nullptr);
     if (!json_find_string_field(body, "tag_name", 0, out.tag_name, nullptr) &&
         !json_find_string_field(body, "version", 0, out.tag_name, nullptr) &&
         !json_find_string_field(body, "tag", 0, out.tag_name, nullptr)) {
         error = "Update feed missing version tag (expected tag_name/version/tag)";
+        return false;
+    }
+    if (!safe_release_target(out.tag_name)) {
+        error = "Update feed returned an invalid release tag";
         return false;
     }
     bool prerelease = false;
@@ -1429,26 +1612,31 @@ bool parse_release_json_body(const std::string& body, const std::string& api_url
         json_find_string_field(body, "description", 0, out.body, nullptr);
 
     out.zip_url.clear();
-    std::vector<std::string> candidates;
-    size_t search = 0;
-    std::string candidate;
-    while (json_find_string_field(body, "browser_download_url", search, candidate, &search))
-        candidates.push_back(candidate);
-    if (json_find_string_field(body, "zip_url", 0, candidate, nullptr))
-        candidates.push_back(candidate);
-    if (json_find_string_field(body, "download_url", 0, candidate, nullptr))
-        candidates.push_back(candidate);
-    if (json_find_string_field(body, "asset_url", 0, candidate, nullptr))
-        candidates.push_back(candidate);
-    out.zip_url = pick_best_zip_url(candidates);
+    // An explicit feed field is authoritative for the XP/mirror feeds: mirror
+    // manifests may point at a separate unstable package that is not in the
+    // normal asset preference list.  Other custom feeds keep the historical
+    // preferred-package filtering.
+    const bool mirror_feed = api_url_uses_sofvault_mirror(api_url) ||
+                             update_uses_xp_http_mirror();
+    std::string explicit_zip;
+    if (json_find_string_field(body, "zip_url", 0, explicit_zip, nullptr) ||
+        json_find_string_field(body, "download_url", 0, explicit_zip, nullptr) ||
+        json_find_string_field(body, "asset_url", 0, explicit_zip, nullptr)) {
+        out.zip_url_explicit = true;
+        const std::string name = zip_asset_name_from_url(explicit_zip);
+        const bool usable_zip =
+            name.size() > 4 && name.compare(name.size() - 4, 4, ".zip") == 0 &&
+            name.find("debug") == std::string::npos;
+        if (usable_zip && (mirror_feed || zip_matches_build_preference(explicit_zip)))
+            out.zip_url = explicit_zip;
+    }
     if (out.zip_url.empty()) {
-        std::string fallback_zip_url;
-        if (json_find_string_field(body, "zip_url", 0, fallback_zip_url, nullptr) ||
-            json_find_string_field(body, "download_url", 0, fallback_zip_url, nullptr) ||
-            json_find_string_field(body, "asset_url", 0, fallback_zip_url, nullptr)) {
-            if (zip_matches_build_preference(fallback_zip_url))
-                out.zip_url = fallback_zip_url;
-        }
+        std::vector<std::string> candidates;
+        size_t search = 0;
+        std::string candidate;
+        while (json_find_string_field(body, "browser_download_url", search, candidate, &search))
+            candidates.push_back(candidate);
+        out.zip_url = pick_best_zip_url(candidates);
     }
 
     finalize_xp_mirror_release(out, api_url);
@@ -1458,7 +1646,7 @@ bool parse_release_json_body(const std::string& body, const std::string& api_url
 bool fetch_release_from_api_url(const std::string& api_url, ReleaseInfo& out, std::string& error) {
     std::string body;
     const bool github_api = api_url.find("api.github.com") != std::string::npos;
-    if (!http_fetch_text(api_url, github_api, body, error))
+    if (!fetch_text_from_mirror(api_url, github_api, body, error))
         return false;
     return parse_release_json_body(body, api_url, out, error);
 }
@@ -1469,14 +1657,8 @@ bool release_tag_is_unstable(const std::string& tag, bool prerelease) {
     return prerelease || tag.find("-unstable") != std::string::npos;
 }
 
-bool fetch_release_list_entries(std::vector<ReleaseListEntry>& out_entries, std::string& error) {
+void parse_release_list_body(const std::string& body, std::vector<ReleaseListEntry>& out_entries) {
     out_entries.clear();
-    const std::string api_url = get_update_releases_list_api_url();
-    std::string body;
-    const bool github_api = api_url.find("api.github.com") != std::string::npos;
-    if (!http_fetch_text(api_url, github_api, body, error))
-        return false;
-
     size_t tag_search = 0;
     std::string tag;
     while (json_find_string_field(body, "tag_name", tag_search, tag, &tag_search)) {
@@ -1489,43 +1671,138 @@ bool fetch_release_list_entries(std::vector<ReleaseListEntry>& out_entries, std:
         entry.unstable = release_tag_is_unstable(tag, prerelease);
         out_entries.push_back(entry);
     }
-    if (out_entries.empty()) {
-        error = "Release list response did not contain any tag_name entries";
+}
+
+bool fetch_release_list_entries(std::vector<ReleaseListEntry>& out_entries, std::string& error,
+                                bool* out_partial = nullptr) {
+    out_entries.clear();
+    if (out_partial) *out_partial = false;
+
+    const std::string api_url = get_update_releases_list_api_url();
+    const std::string feed_base = json_release_feed_base(get_update_api_url());
+    std::string body;
+    std::string list_error;
+    const bool github_api = api_url.find("api.github.com") != std::string::npos;
+    if (fetch_text_from_mirror(api_url, github_api, body, list_error)) {
+        parse_release_list_body(body, out_entries);
+        if (!out_entries.empty()) return true;
+        list_error = "Release list response did not contain any tag_name entries";
+    }
+
+    if (feed_base.empty() || !api_url_uses_sofvault_mirror(get_update_api_url())) {
+        error = list_error;
         return false;
     }
+
+    // The live host redirects list.json and by_tag/ to HTTPS.  Build a usable
+    // partial list from the HTTP-clean latest.json (plus unstable.json when
+    // the mirror publishes it) so Refresh release list still works on XP.
+    bool added = false;
+    ReleaseInfo latest;
+    std::string latest_error;
+    if (fetch_release_from_api_url(get_update_api_url(), latest, latest_error)) {
+        ReleaseListEntry entry;
+        entry.tag_name = latest.tag_name;
+        entry.unstable = release_tag_is_unstable(latest.tag_name, latest.prerelease);
+        out_entries.push_back(entry);
+        added = true;
+    }
+
+    ReleaseInfo unstable_info;
+    std::string unstable_error;
+    if (fetch_release_from_api_url(feed_base + "/files/unstable.json", unstable_info, unstable_error)) {
+        bool duplicate = false;
+        for (const auto& entry : out_entries) {
+            if (entry.tag_name == unstable_info.tag_name) duplicate = true;
+        }
+        if (!duplicate) {
+            ReleaseListEntry entry;
+            entry.tag_name = unstable_info.tag_name;
+            entry.unstable = true;
+            out_entries.push_back(entry);
+            added = true;
+        }
+    }
+
+    if (!added) {
+        std::string latest_tag;
+        std::string latest_tag_error;
+        if (fetch_plain_latest_tag(feed_base, latest_tag, latest_tag_error)) {
+            ReleaseListEntry entry;
+            entry.tag_name = latest_tag;
+            entry.unstable = release_tag_is_unstable(latest_tag, false);
+            out_entries.push_back(entry);
+            added = true;
+        }
+    }
+
+    if (!added) {
+        error = list_error;
+        return false;
+    }
+    if (out_partial) *out_partial = true;
     return true;
 }
 
 bool fetch_channel_release(bool unstable, ReleaseInfo& out, std::string& error) {
     const std::string api_url = get_update_api_url();
-    if (api_url_uses_json_release_feed(api_url)) {
-        // latest.json is the only feed on the HTTP mirror that is guaranteed
-        // to work for XP.  Use it directly when it is the requested channel,
-        // and fall back to the full list only for the other channel.
+    const std::string feed_base = json_release_feed_base(api_url);
+    std::string first_error;
+
+    if (!feed_base.empty()) {
+        // latest.json is the canonical manifest and is HTTP-clean on the
+        // mirror.  Use it directly when its tag belongs to the channel.
         ReleaseInfo latest;
         std::string latest_error;
         if (fetch_release_from_api_url(api_url, latest, latest_error)) {
-            const bool latest_unstable =
-                release_tag_is_unstable(latest.tag_name, latest.prerelease);
-            if (latest_unstable == unstable) {
+            if (release_tag_is_unstable(latest.tag_name, latest.prerelease) == unstable) {
                 out = latest;
                 return true;
             }
         } else {
-            error = latest_error;
+            first_error = latest_error;
+        }
+
+        if (api_url_uses_sofvault_mirror(api_url)) {
+            // files/ is the only tree the live host serves over plain HTTP,
+            // so channel manifests are published there too.
+            ReleaseInfo channel;
+            std::string channel_error;
+            if (fetch_release_from_api_url(
+                    feed_base + "/files/" + (unstable ? "unstable.json" : "stable.json"),
+                    channel, channel_error)) {
+                if (release_tag_is_unstable(channel.tag_name, channel.prerelease) == unstable) {
+                    out = channel;
+                    return true;
+                }
+            }
+
+            // If latest.json is missing or broken, the plain tag text is
+            // still served over HTTP.  It only identifies the stable release.
+            if (!unstable) {
+                std::string tag;
+                std::string tag_error;
+                if (fetch_plain_latest_tag(feed_base, tag, tag_error)) {
+                    ReleaseInfo plain = make_mirror_release(tag, false);
+                    if (!plain.prerelease) {
+                        out = plain;
+                        return true;
+                    }
+                }
+            }
         }
     }
 
     if (!unstable) {
-        const std::string api_url = get_stable_release_api_url();
-        if (!api_url.empty())
-            return fetch_release_from_api_url(api_url, out, error);
+        const std::string stable_url = get_stable_release_api_url();
+        if (!stable_url.empty() && fetch_release_from_api_url(stable_url, out, error))
+            return true;
     }
 
     std::vector<ReleaseListEntry> entries;
     std::string list_error;
     if (!fetch_release_list_entries(entries, list_error)) {
-        if (!error.empty()) error += "; ";
+        if (!first_error.empty()) error = first_error + "; ";
         error += list_error;
         return false;
     }
@@ -1554,25 +1831,49 @@ bool fetch_release_by_tag(const std::string& tag, ReleaseInfo& out, std::string&
     const std::string api_url = get_update_api_url();
     const std::string feed_base = json_release_feed_base(api_url);
     if (!feed_base.empty()) {
-        // XP can fetch latest.json over plain HTTP; by_tag/ is still redirected
-        // to HTTPS on some mirror configs.  Avoid that request when the tag is
-        // the current release.
+        std::string latest_tag;
         ReleaseInfo latest;
         std::string latest_error;
-        if (fetch_release_from_api_url(api_url, latest, latest_error) &&
-            latest.tag_name == tag) {
+        const bool have_latest = fetch_release_from_api_url(api_url, latest, latest_error);
+        if (have_latest && latest.tag_name == tag) {
             out = latest;
             return true;
         }
-        return fetch_release_from_api_url(feed_base + "/by_tag/" + tag + ".json", out, error);
+        if (have_latest) latest_tag = latest.tag_name;
+
+        if (api_url_uses_sofvault_mirror(api_url) && latest_tag != tag) {
+            std::string plain_tag;
+            std::string tag_error;
+            if (fetch_plain_latest_tag(feed_base, plain_tag, tag_error) && plain_tag == tag) {
+                out = make_mirror_release(tag, false);
+                return true;
+            }
+        }
+
+        // by_tag/ is redirected to HTTPS on the live host; the mirror also
+        // publishes the same manifests under the HTTP-clean files/ tree.
+        std::string by_tag_error;
+        if (fetch_release_from_api_url(feed_base + "/by_tag/" + tag + ".json", out, by_tag_error))
+            return true;
+
+        if (update_uses_xp_http_mirror() && api_url_uses_sofvault_mirror(api_url)) {
+            error = "This Windows XP build can only download the current mirrored release";
+            if (!latest_tag.empty()) error += " (" + latest_tag + ")";
+            error += "; older tags are listed but their package is not archived on the HTTP mirror. ";
+            error += by_tag_error;
+        } else {
+            error = by_tag_error;
+        }
+        return false;
     }
     std::string url = "https://api.github.com/repos/d3nd3/sof_buddy/releases/tags/";
     url += tag;
     return fetch_release_from_api_url(url, out, error);
 }
 
-bool fetch_all_release_tags(std::vector<ReleaseListEntry>& out_entries, std::string& error) {
-    return fetch_release_list_entries(out_entries, error);
+bool fetch_all_release_tags(std::vector<ReleaseListEntry>& out_entries, std::string& error,
+                            bool* out_partial = nullptr) {
+    return fetch_release_list_entries(out_entries, error, out_partial);
 }
 
 bool show_all_release_tags() {
@@ -1658,7 +1959,8 @@ void refresh_release_list() {
 
     std::vector<ReleaseListEntry> entries;
     std::string error;
-    if (!fetch_all_release_tags(entries, error)) {
+    bool partial = false;
+    if (!fetch_all_release_tags(entries, error, &partial)) {
         set_update_status("release list fetch failed");
         set_update_cvar(kCvarUpdateReleaseListStatus, error);
         PrintOut(PRINT_BAD, "sofbuddy_update releases: %s\n", error.c_str());
@@ -1676,7 +1978,7 @@ void refresh_release_list() {
     g_cached_release_entries = entries;
 
     const std::string target = get_update_target_tag();
-    if (!target_tag_in_release_list(entries, target)) {
+    if (!partial && !target_tag_in_release_list(entries, target)) {
         set_update_cvar(kCvarUpdateTargetTag, kUpdateTargetStable);
         PrintOut(PRINT_DEV, "Reset install target to stable (previous tag is no longer listed).\n");
     }
@@ -1684,13 +1986,20 @@ void refresh_release_list() {
     const bool show_all = show_all_release_tags();
     const std::string rmf = build_release_list_rmf(entries, stable_tag, unstable_tag, show_all);
     set_update_cvar(kCvarUpdateReleaseListRmf, rmf);
-    std::string status = std::to_string(entries.size()) + " releases in feed";
-    if (show_all) {
-        status += " (showing latest " + std::to_string(kMaxReleaseRows) + ")";
+    std::string status;
+    if (partial) {
+        status = "current mirrored release only (full list unavailable)";
+        PrintOut(PRINT_BAD,
+                 "sofbuddy_update releases: full list unavailable; showing the current HTTP mirror release.\n");
     } else {
-        status += " (channels + latest stable/unstable";
-        if (!is_channel_target_tag(target)) status += " + selected";
-        status += ")";
+        status = std::to_string(entries.size()) + " releases in feed";
+        if (show_all) {
+            status += " (showing latest " + std::to_string(kMaxReleaseRows) + ")";
+        } else {
+            status += " (channels + latest stable/unstable";
+            if (!is_channel_target_tag(target)) status += " + selected";
+            status += ")";
+        }
     }
     set_update_cvar(kCvarUpdateReleaseListStatus, status);
     sofbuddy_update_reload_update_menus();
@@ -1731,6 +2040,7 @@ bool download_release_zip(const std::string& url, const std::string& out_path, s
     DWORD status = 0;
 
     if (!http_begin_get(url, false, session, connect, request, status, error)) {
+        if (!error.empty()) error = url + ": " + error;
         std::fclose(fp);
         DeleteFileA(out_path.c_str());
         return false;
@@ -1738,7 +2048,7 @@ bool download_release_zip(const std::string& url, const std::string& out_path, s
 
     bool ok = true;
     if (status != 200) {
-        error = "Download server returned HTTP " + std::to_string(status);
+        error = url + " returned HTTP " + std::to_string(status);
         ok = false;
     } else {
         ok = http_write_all(request, fp, out_bytes, error);
@@ -1750,6 +2060,8 @@ bool download_release_zip(const std::string& url, const std::string& out_path, s
     std::fclose(fp);
 
     if (!ok) {
+        if (!error.empty() && error.find(url) == std::string::npos)
+            error = url + ": " + error;
         DeleteFileA(out_path.c_str());
         return false;
     }
@@ -2037,16 +2349,42 @@ void sofbuddy_update_init(void) {
             get_update_cvar_or_default(kCvarUpdateStableTag, ""),
             get_update_cvar_or_default(kCvarUpdateUnstableTag, ""), false));
 
-#if defined(SOFBUDDY_XP_BUILD)
-    // XP builds should default to the sofvault mirror. Preserve explicit user customizations.
-    if (detour_Cvar_Set2::oCvar_Set2) {
+    if (update_uses_xp_http_mirror() && detour_Cvar_Set2::oCvar_Set2) {
+        // XP builds (and any normal package installed on NT 5.x) must use
+        // the plain-HTTP mirror.  Migrate archived GitHub URLs and any
+        // stored https:// sofvault URL, but preserve custom feeds.
         cvar_t* api_url_cvar = detour_Cvar_Get::oCvar_Get(kCvarUpdateApiUrl, kUpdateApiUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
-        if (cvar_is_empty_or_value(api_url_cvar, kUpdateApiUrlGitHub))
-            detour_Cvar_Set2::oCvar_Set2(const_cast<char*>(kCvarUpdateApiUrl), const_cast<char*>(kUpdateApiUrlSofVault), true);
-        if (cvar_is_empty_or_value(releases_url_cvar, kUpdateReleasesUrlGitHub))
-            detour_Cvar_Set2::oCvar_Set2(const_cast<char*>(kCvarUpdateReleasesUrl), const_cast<char*>(kUpdateReleasesUrlSofVault), true);
+        if (api_url_cvar) {
+            const char* stored = (api_url_cvar->string && api_url_cvar->string[0]) ? api_url_cvar->string : "";
+            std::string current = stored;
+            if (current.empty() || current.find("github.com") != std::string::npos ||
+                current.find("githubusercontent.com") != std::string::npos) {
+                current = kUpdateApiUrlSofVault;
+            } else if (current.find("sofvault.org") != std::string::npos) {
+                current = force_http_url(current);
+            }
+            if (current != stored) {
+                detour_Cvar_Set2::oCvar_Set2(const_cast<char*>(kCvarUpdateApiUrl),
+                                             const_cast<char*>(current.c_str()), true);
+                PrintOut(PRINT_DEV, "sofbuddy_update: XP mirror feed set to %s\n", current.c_str());
+            }
+        }
+
+        releases_url_cvar = detour_Cvar_Get::oCvar_Get(kCvarUpdateReleasesUrl, kUpdateReleasesUrl, CVAR_SOFBUDDY_ARCHIVE, nullptr);
+        if (releases_url_cvar) {
+            const char* stored = (releases_url_cvar->string && releases_url_cvar->string[0]) ? releases_url_cvar->string : "";
+            std::string current = stored;
+            if (current.empty() || current.find("github.com") != std::string::npos) {
+                current = kUpdateReleasesUrlSofVault;
+            } else if (current.find("sofvault.org") != std::string::npos) {
+                current = force_http_url(current);
+            }
+            if (current != stored) {
+                detour_Cvar_Set2::oCvar_Set2(const_cast<char*>(kCvarUpdateReleasesUrl),
+                                             const_cast<char*>(current.c_str()), true);
+            }
+        }
     }
-#endif
 
     detour_Cvar_Get::oCvar_Get(kCvarOpenUrlStatus, "idle", 0, nullptr);
     detour_Cvar_Get::oCvar_Get(kCvarOpenUrlLast, "", 0, nullptr);

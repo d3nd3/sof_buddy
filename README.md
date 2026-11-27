@@ -247,9 +247,10 @@ chosen folder already contains a SoF Plus client (`spcl.dll` or `SofPlus.dll`).
   set _sofbuddy_update_api_url "http://your-endpoint/latest.json"
   set _sofbuddy_update_releases_url "http://your-endpoint/releases/latest"
   ```
-- XP users may hit WinHTTP TLS failures on modern HTTPS endpoints (for example GitHub API). The mirror defaults above avoid that path.
-- The startup check reads `latest.json` first and accepts it when its tag belongs to the requested channel; the full `list.json`/`by_tag/` feeds are only needed for the other channel and **Refresh Release List**. All of those paths must return `200` over plain HTTP on the mirror — a redirect to HTTPS still produces `win32 error 12175` on XP. The updater now names that redirected-TLS cause instead of blaming Windows settings.
-- The sofvault host syncs the XP zip + `latest.json` from GitHub on a cron schedule (`rsrc/sofvault_mirror/sync_from_github.sh`); no SSH publish from CI is required. Run `rsrc/sofvault_mirror/check_http.sh` after nginx changes; see `rsrc/sofvault_mirror/README.md` for the HTTP exceptions.
+- XP users may hit WinHTTP TLS failures on modern HTTPS endpoints (for example GitHub API). The mirror defaults above avoid that path. A normal (non-XP) package launched on Windows XP also switches to the mirror and the XP package at startup, and archived `https://sofvault.org/...` feeds are rewritten to plain HTTP.
+- The live host serves only `latest.json`, `latest`, and the `files/` tree over HTTP; root `list.json` and `by_tag/` still redirect to HTTPS. The updater prefers `files/list.json`, `files/by_tag/<tag>.json`, `files/stable.json`, and `files/unstable.json`, and falls back to the current `latest.json`/`latest` release when the full list is unavailable. That keeps the stable startup check and **Refresh Release List** working without the redirects, and the unstable channel uses `files/release_windows_xp_unstable.zip`.
+- Only the current stable and unstable packages are mirrored. Older tags are listed for version comparison, but their packages are not archived on HTTP; selecting one reports that instead of downloading the current build under the wrong tag.
+- The sofvault host syncs the stable and unstable XP packages plus all `files/` manifests from GitHub on a cron schedule (`rsrc/sofvault_mirror/sync_from_github.sh`); no SSH publish from CI is required. Reinstall the script and run it once after updating, then run `rsrc/sofvault_mirror/check_http.sh` after nginx changes; see `rsrc/sofvault_mirror/README.md` for the HTTP exceptions.
 
 </details>
 

@@ -2,6 +2,16 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.59
+
+### Updater
+
+- **Windows XP no longer hits an HTTPS redirect during update checks.** The live SofVault host serves `latest.json`, `latest`, and the `files/` tree over plain HTTP, but root `list.json` and `by_tag/` still return a 301 to HTTPS, which XP's WinHTTP reports as `win32 error 12175`. The updater now reads the HTTP-clean `files/list.json`, `files/by_tag/<tag>.json`, `files/stable.json`, and `files/unstable.json` first, falls back to the current `latest.json`/`latest` release when the full list is unavailable, and logs the exact failing URL instead of only an error code.
+- **A normal Windows package running on XP now uses the mirror too.** The updater detects NT 5.x at runtime, migrates archived GitHub or `https://sofvault.org/...` feeds to the plain-HTTP mirror, and selects `release_windows_xp.zip`. Previously only the separate XP package got those defaults.
+- **The unstable channel works over HTTP.** The mirror publishes `files/unstable.json` and `files/release_windows_xp_unstable.zip` next to the stable package, and the manifests carry release notes. XP startup checks, **Refresh Release List**, and selecting the current release no longer depend on the redirecting root paths.
+- **Older tags no longer download the wrong package.** Older mirror tags are comparison-only; if a tag has no archived package, the updater reports that instead of downloading the current stable zip under the older tag.
+- `rsrc/sofvault_mirror/sync_from_github.sh` now writes the compact `files/` manifests (latest, stable, unstable, list, per-tag) and keeps the root copies for older clients. Reinstall and run it once on the sofvault host to publish the new files; `check_http.sh` verifies every XP-critical endpoint.
+
 ## v8.58
 
 ### Crosshairs
