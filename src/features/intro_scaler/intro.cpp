@@ -204,8 +204,7 @@ static void ensure_draw_render_rect() {
 	if (rr && *rr) Draw_RenderRect = reinterpret_cast<Draw_RenderRect_t>(*rr);
 }
 
-static bool set_clip_from_backdrop_open() {
-	void* ret = __builtin_return_address(0);
+static bool is_backdrop_open_return_address(void* ret) {
 	return ret == rvaToAbsExe(reinterpret_cast<void*>(kRvaBackdropSetClipOpen));
 }
 
@@ -235,7 +234,8 @@ static void __cdecl hk_menu_stm_set_clip(void* stm, int, int* outX, int* outY, i
 		w = *reinterpret_cast<int*>(frame + kFrame_W);
 		h = *reinterpret_cast<int*>(frame + kFrame_H);
 	}
-	if (set_clip_from_backdrop_open() && !s_intro_cinematic_active) {
+	const bool backdrop_open = is_backdrop_open_return_address(__builtin_return_address(0));
+	if (backdrop_open && !s_intro_cinematic_active) {
 		if (s_letterbox_menu_active && current_vid_w > 0 && current_vid_h > 0) {
 			x = 0;
 			y = 0;

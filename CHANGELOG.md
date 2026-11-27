@@ -2,6 +2,13 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.60
+
+### Menus
+
+- **The main-menu ticker is clipped to its tape again.** The ticker scissor was being expanded to the full screen for every bolted ticker, so at 1080p/16:9 the orange tape text ran across the black side bar and appeared before it entered the band. The engine's own ticker-box clip is now left intact, so the text enters and leaves at the band edges and waits hidden.
+- **The startup violence disclaimer covers the full screen again.** The backdrop-open test read `__builtin_return_address(0)` from inside a helper; in unoptimized builds that helper adds a stack frame, so the check never matched. The disclaimer then used the virtual-page clip, which stops at the 4:3 page bottom at 16:9, leaving the main-menu console/version stamp visible in the bottom strip. The caller return address is now passed directly. The same fix restores the wide-chrome global backdrop extension.
+
 ## v8.59
 
 ### Updater

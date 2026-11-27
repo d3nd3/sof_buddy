@@ -383,15 +383,12 @@ part** (e.g. `b_panel_tickertape`), and ghouls/artwork are drawn in the canvas s
   `W`/`OuterW`/`xoff` by `target/canvas` (0.75 at 16:9) to match the shrunk
   bghoul. This is driven by resolution, not by `_ns`/`_ss` or whether the page is
   in `ss_content`; it includes the full-screen main menu.
-- expands the ticker's own `Draw_RenderRect` scissor to the full screen for a
-  **non-global** bolted ticker (the full-width main-menu tape). The ticker draw
-  hook records that state, so the IAT hook does not depend on `_ns`/`_ss` or
-  `ss_content`. Clipping a bolted tape to a narrower frame made it first appear at
-  the frame edge, in front of the ghoul, instead of at the screen edge. Global
-  `<stm global>` tickers (the topic-frame bands such as `t_start`) are already
-  scissored to their own box by `ticker_c::Draw`; expanding those to the screen
-  let the text run across the menu and outside the band. The following clip
-  restore still uses the frame's real bounds;
+- leaves the engine's ticker-box scissor alone. `ticker_c::Draw` clips the tape
+  to its own authored box (the stock main-menu tape is `x=36 y=1000 w=1359 h=36`
+  at 1080p), which is the inner edge of the `b_panel_tickertape` art. Expanding
+  that scissor to the screen made the tape run across the 16:9 side bars and
+  show the waiting text before it entered the band. Global `<stm global>` topic
+  tickers keep the same box clip;
 - captures the authored `delay` before the stock init and restores it afterwards.
 - multiplies the ticker speed (`ticker+0xAC`) by the height-derived 4:3 width scale
   (`vid_h / 480`, e.g. 1080p gives 1440/640 = 2.25) for every non-`noscale` ticker.
@@ -801,8 +798,7 @@ patched `M_PushMenu` entry), not `detour_M_PushMenu::oM_PushMenu`.
 | `toke_c` ctor | 0xEAC70 | track menu source; redirect `_ss` pages to `_ns` |
 | `toke_c::Insert` | 0xEAF60 | track menu source; redirect `_ss` includes to `_ns` |
 | ticker init (vtable `+0x28`) | 0xD1B30 | ticker `W`/`OuterW` canvas normalisation, wide-screen box scale, speed scale |
-| `ticker_c::Draw` | 0xD1C80 | mark bolted tickers while drawing |
-| `Draw_RenderRect` IAT | 0x4035FC | expand bolted-ticker scissor to full screen |
+| `Draw_RenderRect` IAT | 0x4035FC | pass-through clip hook; preserves the engine's ticker/backdrop rects |
 | `Draw_BeveledBox` IAT | 0x4035E8 | fit tooltip background to measured glyph bounds |
 | `pic_c::Setup` | 0xD2290 | scale pic dimensions for normal menus |
 | `vbar_c` ctor | 0xD5250 | scale vbar W/OuterW/xoff + cap picture W/H |

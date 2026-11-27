@@ -77,12 +77,4 @@ inline int centered_text_offset(int box_width, int text_width) {
 	return (box_width - text_width) / 2;
 }
 
-// ticker_c::Draw already clips global-page tickers to their own band. Only the
-// non-global bolted tickers (the full-width main-menu tape) need the frame scissor
-// replaced with the screen; expanding a global topic ticker let its text run across
-// the menu instead of staying inside the ticker box.
-inline bool ticker_scissor_uses_screen(bool bolted, bool global_page) {
-	return bolted && !global_page;
-}
-
 } // namespace scaled_menu_detail

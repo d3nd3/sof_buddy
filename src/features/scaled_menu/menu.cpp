@@ -319,7 +319,6 @@ constexpr uintptr_t kRvaRectParse = 0x000CF890u;
 constexpr uintptr_t kRvaTextDraw = 0x000D8B70u;
 constexpr uintptr_t kRvaHrParse = 0x000DCF40u;
 constexpr uintptr_t kRvaTickerInit = 0x000D1B30u;
-constexpr uintptr_t kRvaTickerDraw = 0x000D1C80u;
 constexpr uintptr_t kRvaVbarCtor = 0x000D5250u;
 constexpr uintptr_t kRvaVbarCleanup = 0x000D5610u;
 constexpr uintptr_t kRvaLoadboxDraw = 0x000DC250u;
@@ -456,13 +455,11 @@ constexpr uintptr_t kRvaStmClampScroll = 0x000EA160u;
 using Draw_RenderRect_t = void(__cdecl*)(int x, int y, int w, int h);
 static Draw_RenderRect_t Draw_RenderRect = nullptr;
 static Draw_RenderRect_t oDraw_RenderRect = nullptr;
-static bool s_ticker_fullscreen_scissor = false;
 
 static void __cdecl hk_draw_render_rect(int x, int y, int w, int h) {
-	if (oDraw_RenderRect && s_ticker_fullscreen_scissor && current_vid_w > 0) {
-		x = 0;
-		w = current_vid_w;
-	}
+	// Preserve the engine's own rect. Ticker draws already clip to their
+	// authored band; expanding them to the screen let the main-menu tape run
+	// into the 16:9 side bars.
 	if (oDraw_RenderRect) oDraw_RenderRect(x, y, w, h);
 }
 
@@ -1930,31 +1927,6 @@ static void hk_ticker_init(void* ticker) {
 	}
 }
 
-using Ticker_Draw_t = char(__thiscall*)(void* ticker);
-static Ticker_Draw_t oTicker_Draw = nullptr;
-
-#if defined(__GNUC__)
-__attribute__((thiscall))
-#endif
-static char hk_ticker_draw(void* ticker) {
-	const bool previous = s_ticker_fullscreen_scissor;
-	char* t = static_cast<char*>(ticker);
-	bool bolted = false;
-	bool global_page = false;
-	if (t) {
-		bolted = *reinterpret_cast<uint8_t*>(t + kRect_Bolted) ||
-		         *reinterpret_cast<void**>(t + kRect_BoltAnchor) != nullptr;
-		char* stm = *reinterpret_cast<char**>(t + kRect_MenuPtr);
-		global_page =
-		    stm && *reinterpret_cast<uint8_t*>(stm + kStm_GlobalPage) != 0;
-	}
-	s_ticker_fullscreen_scissor =
-	    scaled_menu_detail::ticker_scissor_uses_screen(bolted, global_page);
-	const int ret = thiscall_noargs_int(ticker, reinterpret_cast<void*>(oTicker_Draw));
-	s_ticker_fullscreen_scissor = previous;
-	return static_cast<char>(ret);
-}
-
 using Menu_CreateTip_t = void(__thiscall*)(void* menu, void* rect, int stm_y);
 static Menu_CreateTip_t oMenu_CreateTip = nullptr;
 
@@ -2504,8 +2476,7 @@ static void restore_open_menu_scroll(void* menu) {
 	s_frame_scroll_count = 0;
 }
 
-static bool set_clip_from_backdrop_open() {
-	void* ret = __builtin_return_address(0);
+static bool is_backdrop_open_return_address(void* ret) {
 	return ret == rvaToAbsExe(reinterpret_cast<void*>(kRvaBackdropSetClipOpen));
 }
 
@@ -2539,7 +2510,8 @@ static void __cdecl hk_menu_stm_set_clip(void* stm, int, int* outX, int* outY, i
 #else
 	const bool intro_cine = false;
 #endif
-	const bool backdrop_clip = set_clip_from_backdrop_open() && !intro_cine;
+	const bool backdrop_clip =
+	    is_backdrop_open_return_address(__builtin_return_address(0)) && !intro_cine;
 	if (backdrop_clip)
 		scaled_menu_backdrop_clip_anchor(stm, menu, &x, &y, &w, &h);
 	if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_SCALED_MENU) &&
@@ -2722,11 +2694,6 @@ bool scaled_menu_install_hooks(void) {
 		reinterpret_cast<void*>(&hk_ticker_init),
 		reinterpret_cast<void**>(&oTicker_Init),
 		"ticker_init") && ok;
-	ok = install_one(
-		reinterpret_cast<void*>(kRvaTickerDraw),
-		reinterpret_cast<void*>(&hk_ticker_draw),
-		reinterpret_cast<void**>(&oTicker_Draw),
-		"ticker_draw") && ok;
 	ok = install_one(
 		reinterpret_cast<void*>(kRvaPicSetup),
 		reinterpret_cast<void*>(&hk_pic_setup),

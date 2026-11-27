@@ -60,11 +60,4 @@ int main() {
 	assert(scaled_menu_detail::centered_text_offset(90, 100) == 0);
 	assert(scaled_menu_detail::centered_text_offset(0, 53) == 0);
 	assert(scaled_menu_detail::centered_text_offset(90, 0) == 0);
-
-	// Only non-global bolted tickers need the full-screen scissor. Global topic
-	// tickers must keep the engine's own ticker-box clip.
-	assert(scaled_menu_detail::ticker_scissor_uses_screen(true, false));
-	assert(!scaled_menu_detail::ticker_scissor_uses_screen(true, true));
-	assert(!scaled_menu_detail::ticker_scissor_uses_screen(false, false));
-	assert(!scaled_menu_detail::ticker_scissor_uses_screen(false, true));
 }
