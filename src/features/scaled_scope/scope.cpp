@@ -29,6 +29,7 @@ namespace {
 
 struct ScopeFixState {
     bool active = false;
+    bool drew = false;
     int width = 0;
     int height = 0;
     int virtualWidth = 0;
@@ -89,6 +90,7 @@ float scaled_scope_text_scale(void) {
 
 void scaled_scope_note_stretch_pic(int& x, int& y, int& w, int& h, const char* name) {
     if (!g_scopeFix.active) return;
+    g_scopeFix.drew = true;
 
     const int cx = g_scopeFix.width / 2;
     const int cy = g_scopeFix.height / 2;
@@ -128,6 +130,7 @@ void scaled_scope_note_stretch_pic(int& x, int& y, int& w, int& h, const char* n
 
 void scaled_scope_remap_text(int& x, int& y) {
     if (!g_scopeFix.active) return;
+    g_scopeFix.drew = true;
 
     const float sy = static_cast<float>(g_scopeFix.virtualHeight) /
                      static_cast<float>(g_scopeFix.height);
@@ -174,6 +177,7 @@ void hkcScope_Draw(void* self, detour_cScope_Draw::tcScope_Draw original) {
     }
 
     g_scopeFix.active = true;
+    g_scopeFix.drew = false;
     g_scopeFix.width = width;
     g_scopeFix.height = height;
     g_scopeFix.virtualWidth = virtualWidth;
@@ -185,9 +189,13 @@ void hkcScope_Draw(void* self, detour_cScope_Draw::tcScope_Draw original) {
     // this flag is set.
     original(self);
 
-    draw_black_bars();
+    // cScope::Draw returns early when the scope is not zoomed. Only frame the
+    // screen once it actually emitted overlay geometry; otherwise the black
+    // bars would shrink the normal widescreen view with the scope inactive.
+    if (g_scopeFix.drew) draw_black_bars();
 
     g_scopeFix.active = false;
+    g_scopeFix.drew = false;
 }
 
 #endif // FEATURE_SCALED_SCOPE

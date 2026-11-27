@@ -2,6 +2,12 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## Unreleased
+
+### Scaled scope
+
+- **The black side bars no longer shrink the normal widescreen view.** `cScope::Draw` is called every frame but returns early when the scope is not zoomed, so the 4:3 frame and its bars are now only painted when the scope actually emitted overlay geometry. Scoping in still keeps the overlay in its centred 4:3 frame with the bars.
+
 ## v8.58
 
 ### Crosshairs

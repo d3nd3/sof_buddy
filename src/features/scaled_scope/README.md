@@ -12,6 +12,9 @@ Addresses issue #32 (`Correct scope overlay for widescreen`).
   full-screen layout into a centred 4:3 frame. On wider displays the scope keeps
   its normal vertical scale, with black bars filling the unused left/right strip.
   On displays narrower than 4:3 the bars move to the top and bottom.
+- The black bars are only painted when `cScope::Draw` actually emits overlay
+  geometry. `cScope::Draw` is called every frame but returns early when the
+  scope is not zoomed; the normal widescreen view stays full width in that case.
 - The magnification readout (`x 06`) is remapped with the rest of the overlay
   and scales with the vertical scope size, so it stays legible at 1080p and above
   instead of staying at stock 640×480 pixel size.
@@ -22,7 +25,7 @@ Addresses issue #32 (`Correct scope overlay for widescreen`).
 
 - **cScope_Draw** (`SoF.exe`, `0x00006EA0`)
   - `hkcScope_Draw()` - marks the 4:3 virtual frame and lets the engine draw,
-    then paints the side/top bars.
+    then paints the side/top bars if the overlay was emitted.
 - The scope's function start (`0x6EA0`) is listed in
   `funcmaps/SoF.exe.json`. Without it the callsite classifier cannot resolve
   `cScope::Draw`, so the shared draw hooks cannot identify or scale its output.
