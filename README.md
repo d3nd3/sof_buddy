@@ -732,10 +732,10 @@ SoF Buddy uses two version numbers:
 
 | Part | Where | Example |
 |------|--------|---------|
-| **Version** (`MAJOR.MINOR`) | `VERSION` file (bump manually) | `8.60` |
-| **Build** | GitHub Actions `run_number` (automatic) | `298` |
+| **Version** (`MAJOR.MINOR`) | `VERSION` file (bump manually) | `8.61` |
+| **Build** | GitHub Actions `run_number` (automatic) | `299` |
 
-Published stable tags look like **`v8.60-build298`**; unstable builds append **`-unstable`** (for example `v8.60-build299-unstable`) and are GitHub prereleases. Develop on `unstable`, then merge to `master` when the build is ready for stable.
+Published stable tags look like **`v8.61-build299`**; unstable builds append **`-unstable`** (for example `v8.61-build300-unstable`) and are GitHub prereleases. Develop on `unstable`, then merge to `master` when the build is ready for stable.
 
 **Unstable build:** push to `unstable`. CI builds and publishes a prerelease automatically; its release notes come from `## Unreleased` in `CHANGELOG.md`.
 
