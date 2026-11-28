@@ -735,7 +735,7 @@ SoF Buddy uses two version numbers:
 | **Version** (`MAJOR.MINOR`) | `VERSION` file (bump manually) | `8.62` |
 | **Build** | GitHub Actions `run_number` (automatic) | `301` |
 
-Published stable tags look like **`v8.62-build301`**; unstable builds append **`-unstable`** (for example `v8.62-build302-unstable`) and are GitHub prereleases. Develop on `unstable`, then merge to `master` when the build is ready for stable.
+Published stable tags look like **`v8.63-build302`**; unstable builds append **`-unstable`** (for example `v8.63-build303-unstable`) and are GitHub prereleases. Develop on `unstable`, then merge to `master` when the build is ready for stable.
 
 **Unstable build:** push to `unstable`. CI builds and publishes a prerelease automatically; its release notes come from `## Unreleased` in `CHANGELOG.md`.
 
