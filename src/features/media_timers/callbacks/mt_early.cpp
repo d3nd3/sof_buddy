@@ -27,15 +27,25 @@ void mediaTimers_EarlyStartup(void) {
     //skip the rest of the loop, so we implement most ourself
 	WriteE9Jmp(rvaToAbsExe((void*)0x00066417), rvaToAbsExe((void*)0x0006643C));
 	
-    //Sys_sendkeyevents @call    Sys_Milliseconds instead of TimeGetTime
-	WriteE8Call(rvaToAbsExe((void*)0x00065D5E), (void*)&my_TimeGetTime);
-	WriteByte(rvaToAbsExe((void*)0x00065D63), 0x90);
-
+    // Keep Sys_SendKeyEvents on stock timeGetTime. sys_msg_time (msg.time) and
+    // sys_frame_time must share one clock because CL_KeyState subtracts downtime
+    // (from Key_Event's msg.time argument) from sys_frame_time.
 	
 	if (o_sofplus) {
 		PrintOut(PRINT_LOG, "Media timers: Initializing SoFPlus integration...\n");
 		
 		sp_Sys_Mil = (int(*)(void))((char*)o_sofplus + 0xFA60);
+
+		// SoFPlus's Sys_Millisec_Hook calls the original Sys_Milliseconds directly.
+		// Redirect that call to our QPC clock so curtime has one writer/timebase.
+		// Hook prologue: 83 EC 0C  B8 <imm32>  (sub esp,0Ch; mov eax, imm32)
+		unsigned char* sp_hook = (unsigned char*)o_sofplus + 0xFA60;
+		if (sp_hook[3] == 0xB8) {
+			writeUnsignedIntegerAt(sp_hook + 4,
+				(unsigned int)(uintptr_t)(void*)&my_Sys_Milliseconds);
+		} else {
+			PrintOut(PRINT_BAD, "Media timers: unexpected SoFPlus Sys_Millisec_Hook prologue\n");
+		}
 		
 		spcl_FreeScript = (void(*)(void))((char*)o_sofplus + 0x9D20);
 		spcl_Timers = (void(*)(void))((char*)o_sofplus + 0x10190);

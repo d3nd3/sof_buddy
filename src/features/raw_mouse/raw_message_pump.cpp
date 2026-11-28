@@ -4,12 +4,8 @@
 
 #include "shared.h"
 #include "util.h"
-#include "runtime_features.h"
 #include <windows.h>
 #include <mmsystem.h>
-#if FEATURE_MEDIA_TIMERS
-#include "features/media_timers/shared.h"
-#endif
 
 #ifndef WM_INPUT
 #define WM_INPUT 0x00FF
@@ -144,15 +140,10 @@ static RAW_MOUSE_NOINLINE void QuitPath() {
 }
 
 void raw_mouse_write_engine_frame_time() {
-#if FEATURE_MEDIA_TIMERS
-  if (RuntimeFeatures::Enabled(RuntimeFeatures::Feature::RUNTIME_FEATURE_MEDIA_TIMERS)) {
-    *SysFrameTimePtr() = my_TimeGetTime();
-  } else {
-    *SysFrameTimePtr() = timeGetTime();
-  }
-#else
+  /* sys_msg_time is msg.time (GetTickCount/timeGetTime), and Key_Event copies
+   * that into the +command time argument. CL_KeyState then subtracts that
+   * downtime from sys_frame_time, so both must use the same clock. */
   *SysFrameTimePtr() = timeGetTime();
-#endif
 }
 
 void Sys_SendKeyEvents_Replacement() {

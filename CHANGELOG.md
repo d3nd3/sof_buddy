@@ -2,6 +2,16 @@
 
 User-facing highlights. Older detail is summarized at the bottom.
 
+## v8.63
+
+### Input latency
+
+- **Media timers no longer adds a frame of input lag.** The SoFPlus timer hook now runs once per rendered frame instead of on every 1 ms loop slice, keeping SoFPlus timer processing at frame cadence and avoiding the extra per-millisecond hook work. The hook uses Buddy's QPC clock, while `Sys_SendKeyEvents` and raw mouse stay on stock `timeGetTime` so `sys_msg_time` and `sys_frame_time` share one timebase. Under the pinned GE-Proton launch, measured key-to-view latency returned to the SoFPlus-only baseline (about 11–12 ms, down from about 20 ms). Buddy still owns the frame limiter.
+
+### Menus
+
+- **Configure Bots is no longer empty (#37).** The Start Server screen could display "Standard" while `menu_deathmatch` was still 0, so the bots page's conditional include matched nothing. `menu_deathmatch` now defaults to Standard when `deathmatch` is unset, with a fallback on the bots page itself. Fill Server, Add Bot, Remove Bot, and Apply appear again.
+
 ## v8.62
 
 ### Loading screen

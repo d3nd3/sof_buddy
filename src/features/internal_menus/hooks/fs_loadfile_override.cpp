@@ -47,6 +47,39 @@ std::string normalize_path(const char* path) {
     return s;
 }
 
+bool menu_leaf_is(const char* path, const char* leaf) {
+    const std::string normalized = normalize_path(path);
+    const size_t slash = normalized.rfind('/');
+    const std::string name =
+        slash == std::string::npos ? normalized : normalized.substr(slash + 1);
+    return name == leaf;
+}
+
+// The Start Server page copies the player's deathmatch cvar into menu_deathmatch.
+// A fresh or singleplayer config has deathmatch 0, so the copy is 0. The type
+// list still renders its first label ("Standard"), but the bots page checks the
+// cvar and finds no matching <einclude>, leaving Configure Bots empty.
+// Default the menu copy to Standard when deathmatch is unset.
+bool fix_start_menu_deathmatch(std::string& content) {
+    const size_t pos = content.find("<set menu_deathmatch");
+    if (pos == std::string::npos) return false;
+    const size_t end = content.find('>', pos);
+    if (end == std::string::npos) return false;
+    content.replace(pos, end - pos + 1, "<set menu_deathmatch 1>");
+    return true;
+}
+
+// Fallback for a bots page parsed before menu_deathmatch was set, or for a
+// cached page: treat 0 as Standard instead of producing an empty frame.
+bool fix_bots_menu_default(std::string& content) {
+    const size_t pos = content.find("<einclude menu_deathmatch 1");
+    if (pos == std::string::npos) return false;
+    const size_t end = content.find('>', pos);
+    if (end == std::string::npos) return false;
+    content.replace(pos, end - pos + 1, "<include m_bots_cfg>");
+    return true;
+}
+
 #if FEATURE_SCALED_MENU
 // Tab labels are centred by Scaled Menu at draw time (`talign center`), using the
 // engine's own R_Strlen measurement. Do not pad the strings with spaces: a space is a
@@ -589,11 +622,26 @@ static int load_menu_file(char* path, void** buffer, bool override_pak,
     }
 #endif
     const int len = original(path, buffer, override_pak);
-#if FEATURE_SCALED_MENU
     if (len <= 0 || !buffer || !*buffer) return len;
 
     std::string content(static_cast<const char*>(*buffer), static_cast<size_t>(len));
-    if (!scaled_menu_transform_rmf_content(path, content)) return len;
+    bool changed = false;
+
+    if (menu_leaf_is(path, "m_start.rmf") && !internal_menus_deathmatch_mode_active()) {
+        changed = fix_start_menu_deathmatch(content) || changed;
+    }
+    if (menu_leaf_is(path, "m_bots.rmf")) {
+        cvar_t* md = findCvar(const_cast<char*>("menu_deathmatch"));
+        if (!md || md->value == 0.0f) {
+            changed = fix_bots_menu_default(content) || changed;
+        }
+    }
+
+#if FEATURE_SCALED_MENU
+    changed = scaled_menu_transform_rmf_content(path, content) || changed;
+#endif
+
+    if (!changed) return len;
     if (!detour_Z_Malloc::oZ_Malloc) return len;
     const size_t size = content.size() + 1;
     void* copy = detour_Z_Malloc::oZ_Malloc(static_cast<int>(size));
@@ -602,9 +650,6 @@ static int load_menu_file(char* path, void** buffer, bool override_pak,
     if (detour_FS_FreeFile::oFS_FreeFile) detour_FS_FreeFile::oFS_FreeFile(*buffer);
     *buffer = copy;
     return static_cast<int>(content.size());
-#else
-    return len;
-#endif
 }
 
 // Engine includecvar runs at page-cache time; expand when serving embedded menus so notes/lists stay current.

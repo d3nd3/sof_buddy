@@ -629,11 +629,18 @@ int winmain_loop(void)
 
 	if ( o_sofplus ) {
 		SOFBUDDY_ASSERT(sp_Sys_Mil != nullptr);
+		// Buddy owns frame pacing; keep SoFPlus's own limiter disabled.
 		//_sp_cl_cpu_cool
 		*(int*)((char*)o_sofplus + 0x331AC) = 0x00;
 		//_sp_cl_frame_delay
 		*(int*)((char*)o_sofplus + 0x331BC) = 0x00;
-		sp_Sys_Mil();
+
+		// Run SoFPlus's timer/cleanup hook once per frame, not on every 1 ms
+		// slice. This keeps MbTimers at frame cadence and avoids alternating
+		// timeGetTime/QPC writes to curtime.
+		if (*extratime + timedelta >= targetMsec) {
+			sp_Sys_Mil();
+		}
 	}
 
 	//higher msec value (less frequent) = lower frequency to server, more distance moved
